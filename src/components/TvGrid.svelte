@@ -136,6 +136,16 @@
 
   /* ---------- Tuiles de catégorie ---------- */
 
+  /* Une grande tuile grossit moins que les jaquettes : agrandie de 5 %, elle débordait de sa case
+     (qui coupe tout ce qui dépasse) et son cadre était rogné. */
+  .tv-grid.tile .cell {
+    padding: 14px;
+  }
+
+  .cell:focus .tile {
+    transform: scale(1.02);
+  }
+
   .tile {
     border-radius: 18px;
     background: hsl(var(--hue) 45% 16%);
