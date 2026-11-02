@@ -608,6 +608,8 @@ Maku est gratuit et libre, développé sur le temps libre. Si l'application vous
 sur [Ko-fi](https://ko-fi.com/yanutros) : ça aide à le faire vivre (et à payer le compte développeur du Play Store).
 Le lien est aussi dans l'application, **Réglages → Compte**.
 
+<p align="center"><a href="https://ko-fi.com/yanutros"><img src="https://ko-fi.com/img/githubbutton_sm.svg" alt="Soutenir Maku sur Ko-fi" height="36" /></a></p>
+
 ## 📜 Licence
 
 Maku est un logiciel libre, distribué sous la licence **GNU GPL version 3 ou ultérieure** : voir le fichier

@@ -3,6 +3,7 @@
   import { onMount, tick } from "svelte";
   import { listen } from "@tauri-apps/api/event";
   import QrCode from "../components/QrCode.svelte";
+  import KofiLogo from "../components/KofiLogo.svelte";
   import { applyInvite, decodeInvite, encodeInvite, readQrImage, type InviteStatus } from "../lib/invite";
   import { api, errorText, tracearrLogin, type Account, type Pref, type Section, type ServerKinds, type Session } from "../lib/api";
   import { go, nav, toast } from "../lib/nav.svelte";
@@ -446,12 +447,12 @@
       {/if}
       <section class="card support">
         <div>
-          <h2>{t("settings.account.support")}</h2>
+          <h2 class="support-title"><KofiLogo size={22} /> {t("settings.account.support")}</h2>
           <p class="muted">{t("settings.account.supportHint")}</p>
           {#if device.tv}
             <p class="muted small">{KOFI}</p>
           {:else}
-            <button class="btn" onclick={() => invoke("open_url", { url: KOFI }).catch((e) => toast(errorText(e), true))}><Icon name="heart" size={16} /> {t("settings.account.supportButton")}</button>
+            <button class="btn" onclick={() => invoke("open_url", { url: KOFI }).catch((e) => toast(errorText(e), true))}><KofiLogo size={18} /> {t("settings.account.supportButton")}</button>
           {/if}
         </div>
         <!-- Téléviseur : pas de navigateur, le QR code s'ouvre sur le téléphone. -->
@@ -718,6 +719,12 @@
     line-height: 1.5;
     white-space: pre-wrap;
     word-break: break-word;
+  }
+
+  .support-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
 
   .support {
