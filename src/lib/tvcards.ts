@@ -5,7 +5,8 @@ import { go, toast } from "./nav.svelte";
 import { play, playMusic } from "./player.svelte";
 import { t } from "./i18n";
 
-export type Shape = "poster" | "square" | "round" | "wide";
+/** `tile` : grande tuile de catégorie (couleur du genre, éventail d'affiches), comme sur ordinateur. */
+export type Shape = "poster" | "square" | "round" | "wide" | "tile";
 
 export interface TvCard {
   key: string;
@@ -26,6 +27,9 @@ export interface TvCard {
   open: () => void;
   /** Titre Plex derrière la jaquette : appui long sur OK ou touche Menu ouvrent son menu (TvMenu). */
   item?: Item;
+  /** Tuile de catégorie : teinte du genre et affiches en éventail. */
+  hue?: number;
+  posters?: string[];
 }
 
 export interface TvRow {

@@ -9,13 +9,23 @@
    * (`content-visibility`), pour garder peu de mémoire même avec des milliers de titres.
    * `onEnd` est appelé quand la sélection approche de la fin, pour charger la suite.
    */
-  let { cards, onEnd }: { cards: TvCard[]; onEnd?: () => void } = $props();
+  let { cards, onEnd, initialKey = null }: { cards: TvCard[]; onEnd?: () => void; initialKey?: string | null } = $props();
 
   const shape = $derived(cards[0]?.shape ?? "poster");
-  const columns = $derived(shape === "wide" ? 4 : shape === "poster" ? 6 : 5);
+  const columns = $derived(shape === "wide" ? 4 : shape === "tile" ? 2 : shape === "poster" ? 6 : 5);
 
   let index = $state(0);
   let root = $state<HTMLElement>();
+
+  // Au retour d'une fiche, la sélection par défaut est la jaquette qu'on avait quittée, dès que la
+  // grille se dessine (voir Library.restore), pour ne pas passer par la première.
+  let seeded = false;
+  $effect(() => {
+    if (seeded || !initialKey || !cards.length) return;
+    seeded = true;
+    const i = cards.findIndex((c) => c.key === initialKey);
+    if (i >= 0) index = i;
+  });
 
   function focusAt(i: number) {
     const el = root?.querySelector<HTMLElement>(`[data-index="${i}"]`);
@@ -70,17 +80,35 @@
     <button
       class="cell"
       data-index={i}
+      data-key={card.key}
       data-nav-default={i === index ? "" : undefined}
       onclick={card.open}
       use:menuable={card.item}
       aria-label={card.title}
     >
+      {#if shape === "tile"}
+        <!-- Tuile de catégorie, comme sur ordinateur (GenreTile) : sans flou, trop coûteux pour un téléviseur. -->
+        <span class="img tile" style:--hue={card.hue ?? 220}>
+          {#if card.image}<span class="tile-bg" style:background-image={`url("${card.image}")`}></span>{/if}
+          <span class="tile-tint"></span>
+          <span class="fan">
+            {#each (card.posters ?? []).slice(0, 3) as poster, i (poster)}
+              <img src={poster} alt="" loading="lazy" decoding="async" style:--i={i - (Math.min(card.posters?.length ?? 0, 3) - 1) / 2} style:z-index={i === 1 ? 3 : 2 - i} />
+            {/each}
+          </span>
+          <span class="tile-label">
+            <span class="tile-name">{card.title}</span>
+            <span class="tile-count">{card.line}</span>
+          </span>
+        </span>
+      {:else}
       <span class="img">
         {#if card.image}<img src={card.image} alt="" loading="lazy" decoding="async" />{/if}
         {#if shape === "wide"}<span class="overlay">{card.label}</span>{/if}
         {#if card.progress > 0}<span class="progress"><span style:width="{card.progress}%"></span></span>{/if}
       </span>
-      {#if shape !== "wide"}<span class="label">{card.label}</span>{/if}
+      {/if}
+      {#if shape !== "wide" && shape !== "tile"}<span class="label">{card.label}</span>{/if}
     </button>
   {/each}
 </div>
@@ -101,8 +129,82 @@
     --ratio: 1;
   }
 
-  .tv-grid.wide {
+  .tv-grid.wide,
+  .tv-grid.tile {
     --ratio: 16 / 9;
+  }
+
+  /* ---------- Tuiles de catégorie ---------- */
+
+  .tile {
+    border-radius: 18px;
+    background: hsl(var(--hue) 45% 16%);
+    box-shadow: inset 0 0 0 1px #ffffff14;
+  }
+
+  .tile-bg {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    opacity: 0.35;
+  }
+
+  .tile-tint {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(120% 90% at 0% 100%, hsl(var(--hue) 70% 12% / 0.95) 0%, transparent 60%),
+      linear-gradient(135deg, hsl(var(--hue) 70% 45% / 0.55), hsl(calc(var(--hue) + 40) 70% 20% / 0.6));
+  }
+
+  .fan {
+    position: absolute;
+    right: 9%;
+    top: 14%;
+    width: 28%;
+    aspect-ratio: 2 / 3;
+  }
+
+  .fan img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 8px;
+    box-shadow: 0 12px 28px #000b;
+    transform: translateX(calc(var(--i) * 34%)) rotate(calc(var(--i) * 9deg)) scale(calc(1 - (var(--i) * var(--i)) * 0.12));
+    transform-origin: 50% 110%;
+    transition: transform 0.35s var(--ease);
+  }
+
+  .cell:focus .fan img {
+    transform: translateX(calc(var(--i) * 48%)) rotate(calc(var(--i) * 13deg)) scale(calc(1.04 - (var(--i) * var(--i)) * 0.1));
+  }
+
+  .tile-label {
+    position: absolute;
+    left: 22px;
+    bottom: 18px;
+    display: grid;
+    max-width: 55%;
+    color: var(--text);
+  }
+
+  .tile-name {
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    text-shadow: 0 2px 12px #0009;
+  }
+
+  .tile-count {
+    margin-top: 2px;
+    color: #ffffffb3;
+    font-size: 13px;
+    font-weight: 600;
   }
 
   /* Hors de l'écran, une case n'est ni mise en page ni dessinée. Ce mode coupe tout ce qui dépasse

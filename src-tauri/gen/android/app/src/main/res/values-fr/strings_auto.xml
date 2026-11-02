@@ -9,4 +9,6 @@
     <string name="auto_sign_in">"Connecte-toi à Plex dans Maku, sur le téléphone."</string>
     <string name="auto_unreachable">"Serveur Plex injoignable."</string>
     <string name="auto_nothing">"Rien à lire ici."</string>
+    <string name="auto_no_server">"Choisis un serveur dans Maku, sur le téléphone."</string>
+    <string name="auto_locked">"Déverrouille le téléphone une fois, puis réessaie."</string>
 </resources>

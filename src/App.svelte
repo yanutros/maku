@@ -29,6 +29,7 @@
   import TvMenu from "./components/TvMenu.svelte";
   import EditDialog from "./components/EditDialog.svelte";
   import UpdateDialog from "./components/UpdateDialog.svelte";
+  import TrailerOverlay from "./components/TrailerOverlay.svelte";
   import QrCode from "./components/QrCode.svelte";
   import { sidebar } from "./lib/sidebar.svelte";
   import { device } from "./lib/device";
@@ -53,7 +54,8 @@
 
   // Bouton Retour (Android, souris) : il ferme d'abord ce qui est ouvert par-dessus la page.
   onBack(() => {
-    if (nav.tvMenu) nav.tvMenu = null;
+    if (nav.trailer) nav.trailer = null;
+    else if (nav.tvMenu) nav.tvMenu = null;
     else if (nav.menu) nav.menu = null;
     else if (nav.editing) nav.editing = null;
     else if (nav.requesting) nav.requesting = null;
@@ -153,7 +155,16 @@
           {:else if nav.view.name === "section" && nav.view.kind === "artist"}
             <MusicLibrary sectionKey={nav.view.key} title={nav.view.title} />
           {:else if nav.view.name === "section"}
-            <Library sectionKey={nav.view.key} title={nav.view.title} kind={nav.view.kind} initialTab={nav.view.tab} />
+            <Library
+              sectionKey={nav.view.key}
+              title={nav.view.title}
+              kind={nav.view.kind}
+              initialTab={nav.view.tab}
+              initialGenre={nav.view.genre}
+              initialFocus={nav.view.focusKey}
+              initialScroll={nav.view.scroll}
+              initialLoaded={nav.view.loaded}
+            />
           {:else if nav.view.name === "item"}
             <ItemDetail ratingKey={nav.view.ratingKey} />
           {:else if nav.view.name === "person"}
@@ -184,6 +195,7 @@
 
 {#if watching}
   <PlayerOverlay />
+  <TrailerOverlay />
 {/if}
 
 {#if nav.tvMenu}

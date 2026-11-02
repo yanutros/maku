@@ -31,6 +31,10 @@
   };
 
   let page = $state("account");
+  // Téléphone : journal d'Android Auto (AutoLog.kt), pour comprendre un échec en voiture.
+  const autoBridge = (window as { PlexrDevice?: { autoLog?: () => string } }).PlexrDevice;
+  let autoLog = $state(autoBridge?.autoLog ? autoBridge.autoLog() : null);
+  const KOFI = "https://ko-fi.com/yanutros";
   let account = $state<Account | null>(null);
   let prefs = $state<Pref[] | null>(null);
   let prefsError = $state<string | null>(null);
@@ -432,6 +436,27 @@
           </button>
         </div>
       </section>
+      {#if autoLog !== null}
+        <section class="card">
+          <h2>Android Auto</h2>
+          <p class="muted small">{t("settings.account.autoLogHint")}</p>
+          <pre class="auto-log">{autoLog.trim() || t("settings.account.autoLogEmpty")}</pre>
+          <div><button class="btn" onclick={() => (autoLog = autoBridge?.autoLog?.() ?? "")}><Icon name="restart" size={16} /> {t("settings.account.autoLogRefresh")}</button></div>
+        </section>
+      {/if}
+      <section class="card support">
+        <div>
+          <h2>{t("settings.account.support")}</h2>
+          <p class="muted">{t("settings.account.supportHint")}</p>
+          {#if device.tv}
+            <p class="muted small">{KOFI}</p>
+          {:else}
+            <button class="btn" onclick={() => invoke("open_url", { url: KOFI }).catch((e) => toast(errorText(e), true))}><Icon name="heart" size={16} /> {t("settings.account.supportButton")}</button>
+          {/if}
+        </div>
+        <!-- Téléviseur : pas de navigateur, le QR code s'ouvre sur le téléphone. -->
+        {#if device.tv}<QrCode text={KOFI} size={120} />{/if}
+      </section>
     {:else if page === "services"}
       <h1 class="title">{t("settings.menu.services")}</h1>
       <section class="card">
@@ -444,14 +469,14 @@
             <input type="file" accept="image/*" hidden onchange={onInviteImage} />
           </label>
           <div class="row">
-            <input class="grow" bind:value={pasted} placeholder="PLEXR-INVITE:…" spellcheck="false" />
+            <input class="grow" bind:value={pasted} placeholder="MAKU-INVITE:…" spellcheck="false" />
             <button class="btn" disabled={!pasted.trim() || applying?.step === "running"} onclick={() => runInvite(pasted, false)}>
               {t("settings.invite.apply")}
             </button>
           </div>
         {:else if device.mobile}
           <div class="phone-setup">
-            {#if relayUrl}<QrCode text={relayUrl} size={190} />{:else}<div class="qr-wait skeleton"></div>{/if}
+            {#if relayUrl}<QrCode text={relayUrl} size={device.tv ? 300 : 190} />{:else}<div class="qr-wait skeleton"></div>{/if}
             <p class="muted">
               {t("settings.invite.phoneHint")}
             </p>
@@ -460,7 +485,7 @@
         {:else}
           <p class="muted">{t("settings.invite.pasteHint")}</p>
           <div class="row">
-            <input class="grow" bind:value={pasted} placeholder="PLEXR-INVITE:…" spellcheck="false" />
+            <input class="grow" bind:value={pasted} placeholder="MAKU-INVITE:…" spellcheck="false" />
             <button class="btn primary" disabled={!pasted.trim() || applying?.step === "running"} onclick={() => runInvite(pasted, false)}>
               {t("settings.invite.apply")}
             </button>
@@ -680,6 +705,26 @@
   .phone-setup p {
     max-width: 320px;
     margin: 0;
+  }
+
+  .auto-log {
+    max-height: 220px;
+    margin: 0;
+    padding: 10px 12px;
+    overflow: auto;
+    border-radius: 10px;
+    background: #0000004d;
+    font-size: 11px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .support {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
   }
 
   .qr-wait {
@@ -940,6 +985,14 @@
     gap: 4px;
     color: var(--text-dim);
     font-size: 13px;
+  }
+
+  /* Un label qui sert de bouton (choix de fichier) garde l'aspect du bouton : icône et texte sur une ligne. */
+  label.btn {
+    display: inline-flex;
+    gap: 8px;
+    color: var(--text);
+    font-size: inherit;
   }
 
   .row {

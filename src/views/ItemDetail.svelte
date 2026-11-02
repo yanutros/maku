@@ -46,6 +46,24 @@
     play(key, opts).catch((e) => toast(errorText(e), true));
   }
 
+  // Bande-annonce : un titre du serveur à lire, ou une vidéo YouTube par-dessus la page.
+  let trailerBusy = $state(false);
+  let trailerMissing = $state(false);
+  async function openTrailer() {
+    trailerBusy = true;
+    trailerMissing = false;
+    try {
+      const found = await api.trailer(ratingKey);
+      if (found?.ratingKey) start(found.ratingKey, { fromStart: true });
+      else if (found?.youtube) nav.trailer = found.youtube;
+      else trailerMissing = true;
+    } catch (e) {
+      toast(errorText(e), true);
+    } finally {
+      trailerBusy = false;
+    }
+  }
+
   function playThis(fromStart = false) {
     start(item!.ratingKey, { audioStream, subtitleStream, fromStart });
   }
@@ -180,6 +198,12 @@
               {collection ? t("item.playTitle", { title: nextUp.title }) : t("item.episodeNumber", { number: nextUp.index ?? "" })}
             </button>
           {/if}
+          {#if !collection && (item.kind === "movie" || item.kind === "show")}
+            <button class="btn big" disabled={trailerBusy} onclick={openTrailer} title={t("item.trailer")}>
+              <Icon name="film" size={18} />
+              {t("item.trailer")}
+            </button>
+          {/if}
           {#if !collection}
           <button
             class="btn round big"
@@ -196,6 +220,7 @@
           {/if}
           {/if}
         </div>
+        {#if trailerMissing}<p class="muted small no-trailer">{t("item.noTrailer")}</p>{/if}
 
         {#if progress > 0}
           <div class="watch-progress">

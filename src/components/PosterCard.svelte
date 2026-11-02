@@ -49,7 +49,7 @@
   }
 </script>
 
-<div class="card" class:wide class:square={music} class:round={item.kind === "artist"} oncontextmenu={openMenu} role="group">
+<div class="card" class:wide class:square={music} class:round={item.kind === "artist"} oncontextmenu={openMenu} role="group" data-key={item.ratingKey}>
   <div class="img">
     {#if image}<img src={image} alt="" loading="lazy" />{/if}
     {#if item.unwatchedCount}

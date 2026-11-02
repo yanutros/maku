@@ -32,7 +32,13 @@
       "releaseNotes": "Versionshinweise",
       "serverKinds": "Medienserver",
       "bothKinds": "Beide",
-      "serverKindsHint": "Mit nur einem fragt Maku nicht mehr nach Plex oder Jellyfin. Mit beiden bietet „Server wechseln“ die Wahl an, ohne die Anmeldungen zu verlieren."
+      "serverKindsHint": "Mit nur einem fragt Maku nicht mehr nach Plex oder Jellyfin. Mit beiden bietet „Server wechseln“ die Wahl an, ohne die Anmeldungen zu verlieren.",
+      "support": "Maku unterstützen",
+      "supportHint": "Maku ist kostenlos und quelloffen. Ein Kaffee auf Ko-fi hilft, es am Leben zu halten.",
+      "supportButton": "Einen Kaffee auf Ko-fi spendieren",
+      "autoLogHint": "Was das Auto von Maku angefordert hat, und aufgetretene Fehler.",
+      "autoLogEmpty": "Noch nichts.",
+      "autoLogRefresh": "Aktualisieren"
     },
     "services": {
       "seerrConnected": "Mit deinem Plex-Konto bei Seerr angemeldet",
@@ -319,7 +325,9 @@
     "related": "Mehr davon",
     "movieCount_one": "{{count}} Film",
     "movieCount_other": "{{count}} Filme",
-    "collectionMovies": "Filme der Sammlung"
+    "collectionMovies": "Filme der Sammlung",
+    "trailer": "Trailer",
+    "noTrailer": "Kein Trailer für diesen Titel gefunden."
   },
   "stats": {
     "title": "Meine Statistiken",
@@ -536,7 +544,9 @@
     "audio": "Audio",
     "subtitles": "Untertitel",
     "none": "Keine",
-    "fullscreen": "Vollbild"
+    "fullscreen": "Vollbild",
+    "skipIntro": "Intro überspringen",
+    "skipCredits": "Abspann überspringen"
   },
   "request": {
     "sent": "Anfrage gesendet: {{title}}",

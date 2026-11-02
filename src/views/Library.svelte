@@ -1,14 +1,14 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onMount, tick } from "svelte";
   import { api, errorText, type Genre, type Hub, type Item } from "../lib/api";
-  import { genreLabel } from "../lib/genres";
+  import { genreHue, genreLabel } from "../lib/genres";
   import PosterCard from "../components/PosterCard.svelte";
   import Row from "../components/Row.svelte";
   import HeroCarousel from "../components/HeroCarousel.svelte";
   import GenreTile from "../components/GenreTile.svelte";
   import ContinueRow from "../components/ContinueRow.svelte";
   import FeaturePanels, { type Panel } from "../components/FeaturePanels.svelte";
-  import { go, toast } from "../lib/nav.svelte";
+  import { go, nav, toast } from "../lib/nav.svelte";
   import { play } from "../lib/player.svelte";
   import Icon from "../components/Icon.svelte";
   import TvRows from "../components/TvRows.svelte";
@@ -22,7 +22,26 @@
     title,
     kind = "",
     initialTab = "recommended",
-  }: { sectionKey: string; title: string; kind?: string; initialTab?: "recommended" | "library" | "collections" | "categories" } = $props();
+    initialGenre = null,
+    initialFocus = null,
+    initialScroll = 0,
+    initialLoaded = 0,
+  }: {
+    sectionKey: string;
+    title: string;
+    kind?: string;
+    initialTab?: "recommended" | "library" | "collections" | "categories";
+    initialGenre?: Genre | null;
+    initialFocus?: string | null;
+    initialScroll?: number;
+    initialLoaded?: number;
+  } = $props();
+
+  // La page telle qu'elle est dans l'historique : l'onglet, la catégorie, la jaquette sélectionnée,
+  // le défilement et le nombre de titres chargés y sont notés au fil de la navigation, pour revenir
+  // exactement au même endroit depuis une fiche (voir `restore`).
+  // svelte-ignore state_referenced_locally
+  const memo = nav.view.name === "section" && nav.view.key === sectionKey ? nav.view : null;
 
   type Tab = "recommended" | "library" | "collections" | "categories";
   // Collections : seulement dans les bibliothèques de films, comme dans Plex.
@@ -104,8 +123,10 @@
   const tvGenres = $derived<TvCard[]>(
     (genres ?? []).map((g) => ({
       key: g.id,
-      image: g.backdrop ?? g.posters[0] ?? null,
-      shape: "wide",
+      image: g.backdrop ?? null,
+      shape: "tile",
+      hue: genreHue(g.title),
+      posters: g.posters,
       label: genreLabel(g.title),
       progress: 0,
       eyebrow: t("library.category"),
@@ -145,6 +166,10 @@
   function select(next: Tab) {
     tab = next;
     error = null;
+    if (memo) {
+      memo.tab = next;
+      if (next !== "library") memo.genre = null;
+    }
     if (next === "library" && !items.length) loadMore();
     if (next === "collections" && !collections) {
       api.collections(sectionKey).then(
@@ -160,16 +185,78 @@
     }
   }
 
-  // Une catégorie ouvre la bibliothèque filtrée sur ce genre.
-  function openGenre(g: Genre | null) {
+  // Une catégorie ouvre la bibliothèque filtrée sur ce genre, comme une nouvelle page : Retour
+  // revient à la liste des catégories, sur la catégorie choisie.
+  function openGenre(g: Genre) {
+    go({ name: "section", key: sectionKey, title, kind, tab: "library", genre: g });
+  }
+
+  /** Affiche sur place la bibliothèque, filtrée sur un genre ou non. */
+  function showGenre(g: Genre | null) {
     genre = g;
     resetLibrary();
     select("library");
+    if (memo) memo.genre = g;
     loadMore();
   }
 
+  /** Au retour d'une fiche : recharge autant de titres qu'avant, puis remet le défilement et la sélection. */
+  async function restore() {
+    const scroller = document.querySelector<HTMLElement>(".content");
+    const pause = (ms: number) => new Promise((r) => setTimeout(r, ms));
+    if (tab === "library") {
+      for (let guard = 0; items.length < initialLoaded && (!total || items.length < total) && guard < 20; guard++) {
+        if (loading) await pause(50);
+        else await loadMore();
+      }
+    } else if (tab === "collections") {
+      for (let guard = 0; !collections && guard < 100; guard++) await pause(50);
+    } else if (tab === "categories") {
+      for (let guard = 0; !genres && guard < 100; guard++) await pause(50);
+    }
+    await tick();
+    if (scroller && initialScroll) scroller.scrollTop = initialScroll;
+    if (!initialFocus || !device.tv) return;
+    // La jaquette est cherchée par comparaison directe des clés (un sélecteur CSS échappé sur une clé
+    // numérique s'est avéré peu fiable), et le focus est redonné tant que la page qui s'installe le
+    // reprend (grille qui se dessine, sélection par défaut).
+    for (let attempt = 0; attempt < 15; attempt++) {
+      const card = [...document.querySelectorAll<HTMLElement>("[data-key]")].find((el) => el.dataset.key === initialFocus);
+      if (card) {
+        card.focus({ preventScroll: true });
+        if (document.activeElement === card) {
+          card.scrollIntoView({ block: "center" });
+          return;
+        }
+      }
+      await pause(100);
+    }
+  }
+
   onMount(() => {
-    if (initialTab !== "recommended") select(initialTab);
+    if (initialGenre) showGenre(initialGenre);
+    else if (initialTab !== "recommended") select(initialTab);
+    if (initialLoaded || initialScroll || initialFocus) restore();
+    // Ce qu'on fait sur la page est noté dans l'historique au fur et à mesure.
+    const scroller = document.querySelector<HTMLElement>(".content");
+    const onScroll = () => {
+      if (memo && scroller) memo.scroll = scroller.scrollTop;
+    };
+    const onPick = (e: Event) => {
+      const key = (e.target as HTMLElement).closest?.("[data-key]")?.getAttribute("data-key");
+      if (key && memo) {
+        memo.focusKey = key;
+        memo.loaded = items.length;
+      }
+    };
+    scroller?.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("focusin", onPick);
+    window.addEventListener("click", onPick, true);
+    const forget = () => {
+      scroller?.removeEventListener("scroll", onScroll);
+      window.removeEventListener("focusin", onPick);
+      window.removeEventListener("click", onPick, true);
+    };
     api.sectionHubs(sectionKey).then(
       (h) => (hubs = h),
       (e) => (error = errorText(e)),
@@ -181,7 +268,10 @@
       { rootMargin: "600px" },
     );
     if (sentinel) observer.observe(sentinel);
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      forget();
+    };
   });
 </script>
 
@@ -194,7 +284,7 @@
       {/each}
     </div>
     {#if tab === "library" && genre}
-      <button class="filter tv-filter" onclick={() => openGenre(null)} data-nav-low>
+      <button class="filter tv-filter" onclick={() => showGenre(null)} data-nav-low>
         {genreLabel(genre.title)} <Icon name="x" size={14} />
       </button>
     {/if}
@@ -214,11 +304,11 @@
       {@render tvHead()}
       {#if error}<p class="error">{error}</p>{/if}
       {#if tab === "library"}
-        <TvGrid cards={tvItems} onEnd={loadMore} />
+        <TvGrid cards={tvItems} onEnd={loadMore} initialKey={initialFocus} />
       {:else if tab === "collections"}
-        <TvGrid cards={tvCollections} />
+        <TvGrid cards={tvCollections} initialKey={initialFocus} />
       {:else}
-        <TvGrid cards={tvGenres} />
+        <TvGrid cards={tvGenres} initialKey={initialFocus} />
       {/if}
     </div>
   {/if}
@@ -265,7 +355,7 @@
     {#if genre}
       <div class="filter">
         <span>{t("library.genreFilter")} <strong>{genreLabel(genre.title)}</strong></span>
-        <button class="chip-x" onclick={() => openGenre(null)} aria-label={t("library.removeFilter")}><Icon name="x" size={14} /></button>
+        <button class="chip-x" onclick={() => showGenre(null)} aria-label={t("library.removeFilter")}><Icon name="x" size={14} /></button>
       </div>
     {/if}
     <div class="grid">

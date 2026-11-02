@@ -9,4 +9,6 @@
     <string name="auto_sign_in">"Meld je aan bij Plex in Maku op je telefoon."</string>
     <string name="auto_unreachable">"Plex-server onbereikbaar."</string>
     <string name="auto_nothing">"Niets om hier af te spelen."</string>
+    <string name="auto_no_server">"Kies een server in Maku op je telefoon."</string>
+    <string name="auto_locked">"Ontgrendel je telefoon één keer en probeer het opnieuw."</string>
 </resources>

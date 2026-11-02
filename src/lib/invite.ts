@@ -5,7 +5,9 @@ import jsQR from "jsqr";
 import { api, errorText, tracearrLogin } from "./api";
 import { t } from "./i18n";
 
-const PREFIX = "PLEXR-INVITE:";
+const PREFIX = "MAKU-INVITE:";
+/** Les invitations créées par Plexr (captures encore en circulation) restent valables. */
+const LEGACY_PREFIX = "PLEXR-INVITE:";
 
 export interface Invite {
   seerr?: string;
@@ -32,9 +34,10 @@ export function encodeInvite(invite: Invite): string {
 
 export function decodeInvite(text: string): Invite | null {
   const code = text.trim();
-  if (!code.startsWith(PREFIX)) return null;
+  const prefix = [PREFIX, LEGACY_PREFIX].find((p) => code.startsWith(p));
+  if (!prefix) return null;
   try {
-    const b64 = code.slice(PREFIX.length).replace(/-/g, "+").replace(/_/g, "/");
+    const b64 = code.slice(prefix.length).replace(/-/g, "+").replace(/_/g, "/");
     const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
     const raw = JSON.parse(new TextDecoder().decode(bytes));
     const url = (v: unknown) => (typeof v === "string" && /^https?:\/\//.test(v) ? v : undefined);

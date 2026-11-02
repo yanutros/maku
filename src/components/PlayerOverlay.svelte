@@ -128,6 +128,19 @@
     menu = null;
   }
 
+  // Repère (intro, générique) sous la tête de lecture : le bouton « Passer », qui prend le focus sur
+  // téléviseur pour qu'un simple OK suffise.
+  const skip = $derived(
+    player.markers.find((m) => {
+      const ms = player.position * 1000;
+      return (m.kind === "intro" || m.kind === "credits") && ms >= m.startMs && ms < m.endMs - 1500;
+    }),
+  );
+  let skipEl = $state<HTMLButtonElement>();
+  $effect(() => {
+    if (skip && skipEl && document.documentElement.classList.contains("tv")) skipEl.focus();
+  });
+
   function onKey(e: KeyboardEvent) {
     poke();
     // Sur téléviseur, les flèches de la télécommande servent à passer d'un bouton à l'autre.
@@ -222,6 +235,14 @@
       {#if player.subtitle}<div class="subtitle">{player.subtitle}</div>{/if}
     </div>
   </div>
+
+  <!-- Repère en cours (intro, générique) : un bouton pour le passer, comme dans Plex et Netflix. -->
+  {#if skip}
+    <button class="btn skip" bind:this={skipEl} onclick={() => mpv("seek", skip.endMs / 1000, "absolute")}>
+      {skip.kind === "credits" ? t("player.skipCredits") : t("player.skipIntro")}
+      <Icon name="skipNext" size={18} filled />
+    </button>
+  {/if}
 
   <div class="bottom">
     <div
@@ -405,6 +426,25 @@
     left: 0;
     right: 0;
     transition: opacity 0.25s ease;
+  }
+
+  .skip {
+    position: absolute;
+    right: 40px;
+    bottom: 150px;
+    height: 46px;
+    padding: 0 20px;
+    border-color: #ffffff55;
+    background: #000000aa;
+    font-size: 15px;
+    font-weight: 600;
+    backdrop-filter: blur(8px);
+  }
+
+  .skip:hover,
+  :global(html.tv) .skip:focus {
+    background: var(--accent);
+    color: var(--accent-text);
   }
 
   .hidden .top,

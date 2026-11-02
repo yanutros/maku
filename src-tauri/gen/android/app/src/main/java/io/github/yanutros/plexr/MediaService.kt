@@ -181,6 +181,7 @@ class MediaService : MediaBrowserServiceCompat() {
         handler.post { showError(it) }
         emptyList()
       }
+      AutoLog.append(this, "children($parentId): ${items.size}")
       result.sendResult(items.toMutableList())
     }
   }
@@ -299,12 +300,18 @@ class MediaService : MediaBrowserServiceCompat() {
     Log.w("Maku", "Android Auto", error)
     val (code, message) = when (error) {
       null -> PlaybackStateCompat.ERROR_CODE_NOT_SUPPORTED to R.string.auto_nothing
-      is PlexLibrary.NotSignedIn -> PlaybackStateCompat.ERROR_CODE_AUTHENTICATION_EXPIRED to R.string.auto_sign_in
+      // Selon la cause : serveur à choisir, téléphone jamais déverrouillé depuis l'allumage, ou compte.
+      is PlexLibrary.NotSignedIn -> PlaybackStateCompat.ERROR_CODE_AUTHENTICATION_EXPIRED to when (error.reason) {
+        "server" -> R.string.auto_no_server
+        "config" -> R.string.auto_locked
+        else -> R.string.auto_sign_in
+      }
       else -> {
         library.forgetServer()
         PlaybackStateCompat.ERROR_CODE_APP_ERROR to R.string.auto_unreachable
       }
     }
+    AutoLog.append(this, "${error?.javaClass?.simpleName ?: "none"}: ${error?.message} -> ${getString(message)}")
     session.setPlaybackState(
       PlaybackStateCompat.Builder().setActions(ACTIONS).setState(PlaybackStateCompat.STATE_ERROR, 0, 0f).setErrorMessage(code, getString(message)).build(),
     )

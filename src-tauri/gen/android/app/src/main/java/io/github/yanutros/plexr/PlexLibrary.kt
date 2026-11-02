@@ -24,7 +24,8 @@ import java.net.URLEncoder
  * `track:<conteneur>|<ratingKey>` (le conteneur donne la file d'attente : album, liste…).
  */
 class PlexLibrary(private val context: Context) {
-  class NotSignedIn : Exception()
+  /** `reason` : `config` (réglages illisibles, téléphone jamais déverrouillé depuis l'allumage), `server`, `token`. */
+  class NotSignedIn(val reason: String) : Exception(reason)
 
   /** Morceau prêt à lire. */
   data class Track(
@@ -45,7 +46,7 @@ class PlexLibrary(private val context: Context) {
 
   private fun config(): JSONObject {
     val file = File(context.applicationInfo.dataDir, "config.json")
-    return runCatching { JSONObject(file.readText()) }.getOrNull() ?: throw NotSignedIn()
+    return runCatching { JSONObject(file.readText()) }.getOrNull() ?: throw NotSignedIn("config")
   }
 
   /** Adresse du serveur : celle enregistrée par Maku, sinon une autre annoncée par plex.tv (en voiture, hors du Wi-Fi). */
@@ -53,13 +54,13 @@ class PlexLibrary(private val context: Context) {
   private fun server(): Server {
     server?.let { return it }
     val cfg = config()
-    val saved = cfg.optJSONObject("server") ?: throw NotSignedIn()
+    val saved = cfg.optJSONObject("server") ?: throw NotSignedIn("server")
     val clientId = cfg.optString("client_id")
     val token = saved.getString("token")
     val candidates = mutableListOf(saved.getString("uri"))
     if (!reachable(candidates[0], token, clientId)) {
       candidates.clear()
-      val account = cfg.optString("plex_token").takeIf { it.isNotEmpty() } ?: throw NotSignedIn()
+      val account = cfg.optString("plex_token").takeIf { it.isNotEmpty() } ?: throw NotSignedIn("token")
       val resources = JSONArray(get("https://clients.plex.tv/api/v2/resources?includeHttps=1&includeRelay=1", account, clientId))
       for (i in 0 until resources.length()) {
         val res = resources.getJSONObject(i)

@@ -154,9 +154,12 @@
       <p>{t("login.chooseServer")}</p>
       <div class="servers">
         <button class="server-btn" onclick={choosePlex}>
+          <!-- Pictogramme neutre (le logo de Plex est une marque déposée) : un écran et sa lecture. -->
           <svg class="server-icon" viewBox="0 0 512 512" aria-hidden="true">
             <rect width="512" height="512" rx="96" fill="#282a2d" />
-            <path d="M150 64h120l112 192-112 192H150l112-192z" fill="#ebaf00" />
+            <rect x="96" y="128" width="320" height="216" rx="28" fill="none" stroke="#ebaf00" stroke-width="28" />
+            <path d="M222 190v92l78-46z" fill="#ebaf00" />
+            <path d="M192 400h128" stroke="#ebaf00" stroke-width="28" stroke-linecap="round" />
           </svg>
           <span class="server-name">Plex</span>
           <span class="muted small">{remembered?.plexRemembered ? t("login.connected") : t("login.plexHint")}</span>

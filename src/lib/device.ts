@@ -28,7 +28,9 @@ export async function detectDevice() {
   const android = (window as { PlexrDevice?: AndroidBridge }).PlexrDevice;
   const androidTv = android?.isTv();
   device.touch = !androidTv && (navigator.maxTouchPoints > 0 || matchMedia("(pointer: coarse)").matches);
-  device.tv = device.os === "android" && (androidTv ?? !device.touch);
+  // `?device=tv` impose l'interface du téléviseur (essais dans un navigateur).
+  const params = new URLSearchParams(location.search);
+  device.tv = params.get("device") === "tv" || (device.os === "android" && (androidTv ?? !device.touch));
   // Un téléviseur Full HD n'offre que 960 × 540 px à la page (densité ×2) : on l'affiche
   // comme un écran de 1280 px de large, que le WebView réduit pour tenir dans l'image.
   if (device.tv) {
@@ -49,7 +51,7 @@ export async function detectDevice() {
   }
   // Téléphone : petit écran tactile (le plus petit côté sous 600 px), avec une interface à part
   // (onglets en bas, rangées d'affiches). `?device=phone` l'impose (essais dans un navigateur).
-  const forced = new URLSearchParams(location.search).get("device") === "phone";
+  const forced = params.get("device") === "phone";
   device.phone = forced || (device.mobile && !device.tv && Math.min(screen.width, screen.height) < 600);
   if (forced) device.touch = true;
   const root = document.documentElement;

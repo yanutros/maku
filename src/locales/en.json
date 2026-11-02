@@ -32,7 +32,13 @@
       "releaseNotes": "Release notes",
       "serverKinds": "Media servers",
       "bothKinds": "Both",
-      "serverKindsHint": "With just one, Maku no longer asks you to choose between Plex and Jellyfin. With both, “Change server” offers the choice, keeping both sign-ins."
+      "serverKindsHint": "With just one, Maku no longer asks you to choose between Plex and Jellyfin. With both, “Change server” offers the choice, keeping both sign-ins.",
+      "support": "Support Maku",
+      "supportHint": "Maku is free and open source. A coffee on Ko-fi helps keep it going.",
+      "supportButton": "Buy a coffee on Ko-fi",
+      "autoLogHint": "What the car asked Maku for, and any errors.",
+      "autoLogEmpty": "Nothing yet.",
+      "autoLogRefresh": "Refresh"
     },
     "services": {
       "seerrConnected": "Connected to Seerr with your Plex account",
@@ -319,7 +325,9 @@
     "related": "More like this",
     "movieCount_one": "{{count}} movie",
     "movieCount_other": "{{count}} movies",
-    "collectionMovies": "Movies in this collection"
+    "collectionMovies": "Movies in this collection",
+    "trailer": "Trailer",
+    "noTrailer": "No trailer found for this title."
   },
   "stats": {
     "title": "My stats",
@@ -536,7 +544,9 @@
     "audio": "Audio",
     "subtitles": "Subtitles",
     "none": "None",
-    "fullscreen": "Full screen"
+    "fullscreen": "Full screen",
+    "skipIntro": "Skip intro",
+    "skipCredits": "Skip credits"
   },
   "request": {
     "sent": "Request sent: {{title}}",

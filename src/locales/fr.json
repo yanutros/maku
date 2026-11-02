@@ -32,7 +32,13 @@
       "releaseNotes": "Notes de version",
       "serverKinds": "Serveurs de médias",
       "bothKinds": "Les deux",
-      "serverKindsHint": "Avec un seul, Maku ne demande plus de choisir entre Plex et Jellyfin. Avec les deux, « Changer de serveur » propose le choix, sans perdre les connexions."
+      "serverKindsHint": "Avec un seul, Maku ne demande plus de choisir entre Plex et Jellyfin. Avec les deux, « Changer de serveur » propose le choix, sans perdre les connexions.",
+      "support": "Soutenir Maku",
+      "supportHint": "Maku est gratuit et libre. Un café sur Ko-fi aide à le faire vivre.",
+      "supportButton": "Offrir un café sur Ko-fi",
+      "autoLogHint": "Ce que la voiture a demandé à Maku, et les erreurs rencontrées.",
+      "autoLogEmpty": "Rien pour l'instant.",
+      "autoLogRefresh": "Actualiser"
     },
     "services": {
       "seerrConnected": "Connecté à Seerr avec ton compte Plex",
@@ -319,7 +325,9 @@
     "related": "Plus de ce genre",
     "movieCount_one": "{{count}} film",
     "movieCount_other": "{{count}} films",
-    "collectionMovies": "Films de la collection"
+    "collectionMovies": "Films de la collection",
+    "trailer": "Bande-annonce",
+    "noTrailer": "Pas de bande-annonce trouvée pour ce contenu."
   },
   "stats": {
     "title": "Mes statistiques",
@@ -536,7 +544,9 @@
     "audio": "Audio",
     "subtitles": "Sous-titres",
     "none": "Aucun",
-    "fullscreen": "Plein écran"
+    "fullscreen": "Plein écran",
+    "skipIntro": "Passer l'intro",
+    "skipCredits": "Passer le générique"
   },
   "request": {
     "sent": "Demande envoyée : {{title}}",

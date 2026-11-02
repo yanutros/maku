@@ -9,4 +9,6 @@
     <string name="auto_sign_in">"Sign in to Plex in Maku on your phone."</string>
     <string name="auto_unreachable">"Plex server unreachable."</string>
     <string name="auto_nothing">"Nothing to play here."</string>
+    <string name="auto_no_server">"Choose a server in Maku on your phone."</string>
+    <string name="auto_locked">"Unlock your phone once, then try again."</string>
 </resources>

@@ -14,6 +14,7 @@
   <img alt="mpv" src="https://img.shields.io/badge/lecteur-mpv-691F69" />
   <img alt="Langues" src="https://img.shields.io/badge/langues-FR%20%7C%20EN%20%7C%20ES%20%7C%20DE%20%7C%20NL-E5A00D" />
   <a href="LICENSE"><img alt="Licence GPL-3.0" src="https://img.shields.io/badge/licence-GPL--3.0-blue" /></a>
+  <a href="https://ko-fi.com/yanutros"><img alt="Soutenir sur Ko-fi" src="https://img.shields.io/badge/Ko--fi-soutenir-FF5E5B?logo=ko-fi&logoColor=white" /></a>
 </p>
 
 <p align="center">
@@ -24,6 +25,7 @@
   <a href="#-développer">Développer</a> ·
   <a href="#-confidentialité">Confidentialité</a> ·
   <a href="#%EF%B8%8F-mentions-légales">Mentions légales</a> ·
+  <a href="#-soutenir-maku">Soutenir</a> ·
   <a href="#-licence">Licence</a>
 </p>
 
@@ -261,6 +263,17 @@ serveur viennent de la configuration de Maku, et hors du Wi-Fi l'adresse distant
 prend le relais. Les écoutes remontent dans l'historique de Plex. Une musique lancée sur le téléphone remplace
 celle de la voiture, et inversement.
 
+> [!IMPORTANT]
+> Tant que Maku n'est pas sur le Play Store, Android Auto ne montre pas dans la voiture une application
+> installée à la main. Sur le téléphone : Android Auto → **Paramètres** → touchez dix fois **Version** pour
+> ouvrir les **Paramètres développeur** → activez **Sources inconnues**. Maku apparaît alors dans le lanceur de
+> la voiture (et dans **Personnaliser le lanceur**, si elle y est décochée). Sans ce réglage, toucher la musique
+> de Maku dans la voiture ouvre seulement l'application sur le téléphone.
+
+En cas de problème en voiture, la voiture affiche la cause (serveur à choisir,
+téléphone à déverrouiller une première fois, compte Plex absent, serveur injoignable) et **Réglages → Compte** sur
+le téléphone garde un journal de ce que la voiture a demandé. Android Auto ne connaît pour l'instant que Plex.
+
 > [!NOTE]
 > **Lecture sur Android** : il n'y a pas de mpv. La vidéo est lue par ExoPlayer, le lecteur natif qu'utilisent
 > aussi Plex et Wholphin : le fichier d'origine (4K, HEVC, HDR compris) est décodé par l'appareil et affiché dans
@@ -378,7 +391,15 @@ machine), puis ajouté à la version avec `gh release upload`.
    Si le routeur ou le DNS bloque les adresses locales `*.plex.direct` (protection contre le « DNS rebinding »),
    Maku utilise directement l'adresse IP locale du serveur (`http://10.0.0.2:32400`), comme Plex Web, plutôt
    que de faire le tour par l'adresse publique.
-3. Parcourez vos bibliothèques et lancez une lecture.
+3. Parcourez vos bibliothèques et lancez une lecture. Sur la fiche d'un film ou d'une série, **Bande-annonce**
+   cherche celle du serveur (extra Plex, fichier local Jellyfin, lien YouTube de la fiche Jellyfin), sinon celle
+   de TMDB avec votre clé (dans la langue de l'interface, puis en anglais) ; une vidéo YouTube s'ouvre par-dessus
+   la page, Retour la ferme. Pendant un épisode, **Passer l'intro** et **Passer le générique** apparaissent sur les
+   repères détectés par le serveur : Plex les fournit à tous les comptes (seules ses propres applications
+   réservent le bouton au Plex Pass) ; Jellyfin via ses segments (10.10 et plus, plugin Intro Skipper). En
+   revenant d'une fiche, la bibliothèque rouvre l'onglet où l'on était (Bibliothèque, Collections, ou la
+   catégorie choisie), au même endroit : titres rechargés, défilement retrouvé et, sur téléviseur, la même
+   jaquette sélectionnée. Sur téléviseur, les catégories sont les mêmes grandes tuiles colorées que sur ordinateur.
 4. Dans **Réglages → Seerr et Tracearr**, ajoutez si vous le souhaitez Seerr et Tracearr, à la main ou avec
    l'invitation de l'administrateur (voir ci-dessous).
 
@@ -402,7 +423,10 @@ vidéo, les touches lecture / pause et suivant / précédent de la télécommand
 | ↑ / ↓ | Volume | |
 | M | Couper le son | |
 | F | Plein écran (double-clic aussi) | |
-| Touches multimédia | | Lecture / pause, suivant, précédent |
+| Touches multimédia | Lecture / pause, épisode suivant / précédent | Lecture / pause, suivant, précédent |
+
+Sous Linux, GNOME et KDE gardent les touches multimédia pour eux : Maku se déclare comme lecteur **MPRIS**, elles
+lui parviennent donc même sans la fenêtre au premier plan, et ce qui joue apparaît dans les commandes du bureau.
 | Échap | Quitter le plein écran, puis le lecteur | Fermer la file d'attente ou la vue « En cours de lecture » |
 
 ### 🧭 Menu latéral
@@ -455,8 +479,8 @@ partagé ne voit pas cette partie : Plex la lui refuserait de toute façon.
 
 Dans **Réglages → Seerr et Tracearr**, l'administrateur du serveur trouve **Inviter des utilisateurs** : il y
 indique les adresses de Seerr et de Tracearr à partager (pré-remplies avec les siennes, s'il les a configurées) et
-obtient un QR code, et le code équivalent, qui les contient **sans aucun identifiant**. Il le copie (texte ou
-image) pour l'envoyer par message.
+obtient un QR code, et le code équivalent (`MAKU-INVITE:…` ; les anciens `PLEXR-INVITE:` restent acceptés), qui
+les contient **sans aucun identifiant**. Il le copie (texte ou image) pour l'envoyer par message.
 
 Chez l'utilisateur, la **Configuration rapide** de la même page l'applique : Maku enregistre les adresses, se
 connecte à Seerr avec le compte Plex et lance la connexion Tracearr.
@@ -502,7 +526,7 @@ L'interface se recharge à chaque modification et le backend Rust est recompilé
 **Mode démo.** `npx vite` puis `http://localhost:1420/?demo=accueil` lance l'interface dans un navigateur, sans
 serveur Plex, avec une bibliothèque fictive et des visuels générés. Vues disponibles : `accueil`, `films`,
 `categories`, `series`, `fiche`, `lecteur`, `decouvrir`, `seerr`, `musique`, `ecoute`, `stats`. C'est ce mode qui
-produit les captures de cette page (avec Edge en mode sans interface, `--screenshot`).
+produit les captures de cette page (avec Edge en mode sans interface, `--screenshot`). `?device=phone` ou `?device=tv` imposent l'interface du téléphone ou du téléviseur dans le navigateur.
 
 ### 🌍 Traductions
 
@@ -578,6 +602,12 @@ Tracearr ou mpv. « Plex » est une marque de Plex, Inc. ; les autres noms appar
 respectifs. Maku ne fournit aucun contenu : il se contente d'afficher et de lire la bibliothèque de votre propre
 serveur. Les visuels du mode démo et des captures ci-dessus sont générés par le programme.
 
+## ☕ Soutenir Maku
+
+Maku est gratuit et libre, développé sur le temps libre. Si l'application vous plaît, vous pouvez offrir un café
+sur [Ko-fi](https://ko-fi.com/yanutros) : ça aide à le faire vivre (et à payer le compte développeur du Play Store).
+Le lien est aussi dans l'application, **Réglages → Compte**.
+
 ## 📜 Licence
 
 Maku est un logiciel libre, distribué sous la licence **GNU GPL version 3 ou ultérieure** : voir le fichier
@@ -590,7 +620,7 @@ d'auteur. Maku est fourni **sans aucune garantie**.
 Les bibliothèques utilisées gardent leur propre licence (Tauri, Svelte et qrcode-generator sous MIT, jsQR et
 hls.js sous Apache-2.0, les polices Bebas Neue, Cinzel, Orbitron, Fredoka, Playfair Display et Creepster sous
 SIL Open Font License via Fontsource, notamment ; le logo Jellyfin de l'écran de connexion sous CC BY-SA 4.0,
-projet Jellyfin) ; Plex est une marque de Plex, Inc., dont l'icône ne sert qu'à désigner le service ; mpv est un
+projet Jellyfin) ; Plex est une marque de Plex, Inc. : son nom désigne seulement le service, son logo n'est pas utilisé ; mpv est un
 programme séparé, lancé par Maku, et reste sous sa licence. L'installeur Windows en inclut une version
 compilée par [mpv-winbuild-cmake](https://github.com/shinchiro/mpv-winbuild-cmake), sous GPL, dont le code source
 est disponible sur [github.com/mpv-player/mpv](https://github.com/mpv-player/mpv).

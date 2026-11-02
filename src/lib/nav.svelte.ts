@@ -1,9 +1,21 @@
-import type { Item, SeerrMedia } from "./api";
+import type { Genre, Item, SeerrMedia } from "./api";
 
 export type View =
   | { name: "home" }
   | { name: "libraries" }
-  | { name: "section"; key: string; title: string; kind: string; tab?: "recommended" | "library" | "collections" | "categories" }
+  | {
+      name: "section";
+      key: string;
+      title: string;
+      kind: string;
+      tab?: "recommended" | "library" | "collections" | "categories";
+      /** Catégorie ouverte (la bibliothèque filtrée sur ce genre). */
+      genre?: Genre | null;
+      /** Pour revenir au même endroit : jaquette sélectionnée, défilement, nombre de titres chargés. */
+      focusKey?: string | null;
+      scroll?: number;
+      loaded?: number;
+    }
   | { name: "item"; ratingKey: string }
   | { name: "search"; query: string }
   | { name: "discover" }
@@ -25,6 +37,8 @@ export const nav = $state({
   editing: null as Item | null,
   /** Le compte connecté administre le serveur (édition, réglages). */
   admin: false,
+  /** Bande-annonce YouTube ouverte par-dessus la page (identifiant de la vidéo). */
+  trailer: null as string | null,
   /** Téléviseur : lien d'autorisation Tracearr, montré en QR code à scanner avec un téléphone. */
   authUrl: null as string | null,
   toast: null as { text: string; error: boolean } | null,

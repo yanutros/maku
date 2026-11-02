@@ -40,6 +40,8 @@ export const player = $state({
   subtitle: null as string | null,
   position: 0,
   duration: 0,
+  /** Repères de l'épisode (intro, générique), pour le bouton « Passer ». */
+  markers: [] as { kind: string; startMs: number; endMs: number }[],
   bufferedUntil: 0,
   paused: false,
   buffering: true,
@@ -106,6 +108,7 @@ function reset(video: boolean) {
     buffering: true,
     position: 0,
     duration: 0,
+    markers: [],
     bufferedUntil: 0,
     paused: false,
     tracks: [],
@@ -119,10 +122,16 @@ function reset(video: boolean) {
 export async function play(ratingKey: string, opts: PlayOptions = {}) {
   reset(true);
   player.ratingKey = ratingKey;
-  // Épisodes voisins, chargés à part : la lecture démarre sans les attendre.
+  // Épisodes voisins et repères (intro, générique), chargés à part : la lecture démarre sans les attendre.
   invoke<{ prev: string | null; next: string | null }>("plex_adjacent", { ratingKey }).then(
     (a) => {
       if (player.ratingKey === ratingKey) Object.assign(player, { prevKey: a.prev, nextKey: a.next });
+    },
+    () => {},
+  );
+  invoke<{ kind: string; startMs: number; endMs: number }[]>("plex_markers", { ratingKey }).then(
+    (m) => {
+      if (player.ratingKey === ratingKey) player.markers = m;
     },
     () => {},
   );
@@ -550,43 +559,64 @@ listen<string>("player-stopped", ({ payload }) => {
   }
 });
 
-// ---------- Android : musique dans la notification ----------
+// ---------- Commandes venues de l'extérieur ----------
 
 /**
- * Sur Android, la musique jouée dans la page s'affiche dans une notification (pochette, titre,
- * précédent / lecture / suivant) qui la garde aussi en vie en arrière-plan : voir MediaService.kt.
- * Ses commandes reviennent ici par `window.__plexrMedia`.
+ * Commande reçue d'ailleurs que la page : la notification de musique d'Android (MediaService.kt),
+ * ou les touches multimédia du clavier sous Linux, que le bureau transmet par MPRIS (mpris.rs).
+ */
+export function mediaCommand(action: string) {
+  if (!player.active) return;
+  if (action === "play_pause") mpv("cycle", "pause");
+  else if (action === "play" || action === "pause") {
+    if (player.paused === (action === "play")) mpv("cycle", "pause");
+  } else if (action === "next") {
+    if (player.video) {
+      if (player.nextKey) play(player.nextKey);
+    } else next();
+  } else if (action === "previous") {
+    if (player.video) {
+      if (player.prevKey) play(player.prevKey);
+    } else previous();
+  } else if (action === "stop") stop();
+  else if (action.startsWith("seek:")) mpv("seek", Number(action.slice(5)) / 1000, "absolute");
+}
+
+listen<string>("media-command", (e) => mediaCommand(e.payload)).catch(() => {});
+
+/**
+ * Ce qui joue, pour les commandes extérieures : sur Android, la notification (pochette, titre,
+ * précédent / lecture / suivant) qui garde aussi la musique en vie en arrière-plan ; sous Linux, le
+ * lecteur MPRIS du bureau. Les commandes reviennent par `mediaCommand`.
  */
 const android = (globalThis as { PlexrDevice?: { mediaUpdate?(json: string): void; mediaStop?(): void } }).PlexrDevice;
-if (android?.mediaUpdate) {
-  $effect.root(() => {
-    $effect(() => {
-      void player.seeks;
-      const track = current();
-      if (!player.active || !player.web || !track) {
-        android.mediaStop?.();
-        return;
-      }
-      android.mediaUpdate!(
-        JSON.stringify({
-          title: track.title,
-          artist: track.artist ?? "",
-          album: track.album ?? "",
-          art: track.cover ?? "",
-          playing: !player.paused,
-          position: Math.round(untrack(() => player.position) * 1000),
-          duration: Math.round(player.duration * 1000),
-        }),
-      );
+$effect.root(() => {
+  $effect(() => {
+    void player.seeks;
+    const track = current();
+    // Android : la musique jouée dans la page seulement ; ailleurs, aussi la vidéo.
+    const nothing = !player.active || (android ? !player.web || !track : !track && !player.title);
+    if (nothing) {
+      if (android) android.mediaStop?.();
+      else invoke("media_update", { json: null }).catch(() => {});
+      return;
+    }
+    const json = JSON.stringify({
+      title: track?.title ?? player.title,
+      artist: track?.artist ?? player.subtitle ?? "",
+      album: track?.album ?? "",
+      art: track?.cover ?? "",
+      playing: !player.paused,
+      position: Math.round(untrack(() => player.position) * 1000),
+      duration: Math.round(player.duration * 1000),
     });
+    if (android?.mediaUpdate) android.mediaUpdate(json);
+    else invoke("media_update", { json }).catch(() => {});
   });
+});
 
+if (android?.mediaUpdate) {
   (globalThis as { __plexrMedia?: (action: string) => void }).__plexrMedia = (action) => {
-    if (action === "play" || action === "pause") {
-      if (player.paused === (action === "play")) mpv("cycle", "pause");
-    } else if (action === "next") next();
-    else if (action === "previous") previous();
-    else if (action === "stop") stop();
-    else if (action.startsWith("seek:")) mpv("seek", Number(action.slice(5)) / 1000, "absolute");
+    mediaCommand(action);
   };
 }

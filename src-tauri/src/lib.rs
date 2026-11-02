@@ -3,6 +3,8 @@ mod error;
 mod i18n;
 mod jellyfin;
 mod media;
+#[cfg(target_os = "linux")]
+mod mpris;
 mod player;
 mod plex;
 mod plex_admin;
@@ -501,6 +503,49 @@ async fn plex_section_items(
 async fn plex_adjacent(state: State<'_, AppState>, rating_key: String) -> CmdResult<Adjacent> {
     Ok(state.server()?.adjacent(&rating_key).await?)
 }
+
+/// Repères d'un épisode (intro, générique), pour le bouton « Passer ».
+#[tauri::command]
+async fn plex_markers(state: State<'_, AppState>, rating_key: String) -> CmdResult<Vec<plex::Marker>> {
+    Ok(state.server()?.markers(&rating_key).await?)
+}
+
+/// Bande-annonce : celle du serveur, sinon celle de TMDB (avec la clé de l'utilisateur), dans la
+/// langue de l'interface puis en anglais. `None` : rien trouvé.
+#[tauri::command]
+async fn plex_trailer(state: State<'_, AppState>, rating_key: String) -> CmdResult<Option<plex::Trailer>> {
+    let source = state.server()?.trailer(&rating_key).await?;
+    if source.trailer.is_some() {
+        return Ok(source.trailer);
+    }
+    let c = state.cfg();
+    let (Some(key), Some(kind), Some(id)) = (c.tmdb_key.as_deref(), source.tmdb_kind, source.tmdb_id.as_deref()) else {
+        return Ok(None);
+    };
+    let found = plex::tmdb_trailer(&state.http, key, kind, id, crate::i18n::language()).await;
+    Ok(found.map(|youtube| plex::Trailer { rating_key: None, youtube: Some(youtube) }))
+}
+
+/// Linux : ce qui joue, pour les touches multimédia et les commandes du bureau (MPRIS) ; `None`
+/// quand plus rien ne joue. Ailleurs, rien à faire : les touches arrivent directement à la page.
+#[tauri::command]
+fn media_update(app: AppHandle, json: Option<String>) -> CmdResult<()> {
+    #[cfg(target_os = "linux")]
+    if let Some(keys) = app.try_state::<MediaKeys>() {
+        let update = match json.as_deref().map(serde_json::from_str::<mpris::State>) {
+            Some(Ok(state)) => mpris::Update::State(state),
+            _ => mpris::Update::Stop,
+        };
+        let _ = keys.0.send(update);
+    }
+    #[cfg(not(target_os = "linux"))]
+    let _ = (app, json);
+    Ok(())
+}
+
+/// Linux : le lecteur MPRIS, à qui l'interface envoie ce qui joue.
+#[cfg(target_os = "linux")]
+struct MediaKeys(tokio::sync::mpsc::UnboundedSender<mpris::Update>);
 
 #[tauri::command]
 async fn plex_genres(state: State<'_, AppState>, key: String) -> CmdResult<Vec<Genre>> {
@@ -1236,6 +1281,16 @@ pub fn run() {
             tauri::async_runtime::spawn(async move {
                 let _ = refresh_connection(&handle.state::<AppState>()).await;
             });
+            // Linux : les touches multimédia du clavier passent par MPRIS (voir mpris.rs).
+            #[cfg(target_os = "linux")]
+            {
+                use tauri::Emitter;
+                let handle = app.handle().clone();
+                let keys = mpris::start(move |action| {
+                    let _ = handle.emit("media-command", action);
+                });
+                app.manage(MediaKeys(keys));
+            }
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -1259,6 +1314,9 @@ pub fn run() {
             plex_section_hubs,
             plex_genres,
             plex_adjacent,
+            plex_markers,
+            plex_trailer,
+            media_update,
             plex_playlists,
             plex_tracks,
             plex_home,

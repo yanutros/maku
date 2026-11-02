@@ -213,6 +213,28 @@ pub async fn tmdb_check(http: &Client, key: &str) -> Result<()> {
     Ok(())
 }
 
+/// Bande-annonce YouTube d'un film (`movie`) ou d'une série (`tv`) sur TMDB : dans la langue de
+/// l'interface, sinon en anglais ; une bande-annonce officielle de préférence, un teaser à défaut.
+pub async fn tmdb_trailer(http: &Client, key: &str, kind: &str, id: &str, lang: &str) -> Option<String> {
+    for language in [lang, "en"] {
+        let Ok(resp) = tmdb_get(http, key, &format!("/{kind}/{id}/videos?language={language}")).send().await else { continue };
+        let Ok(v) = resp.error_for_status() else { continue };
+        let Ok(v) = v.json::<serde_json::Value>().await else { continue };
+        let Some(videos) = v["results"].as_array() else { continue };
+        let on_youtube = |t: &&serde_json::Value| t["site"] == "YouTube";
+        let found = videos
+            .iter()
+            .filter(on_youtube)
+            .filter(|t| t["type"] == "Trailer")
+            .max_by_key(|t| t["official"].as_bool().unwrap_or(false))
+            .or_else(|| videos.iter().filter(on_youtube).find(|t| t["type"] == "Teaser"));
+        if let Some(id) = found.and_then(|t| t["key"].as_str()) {
+            return Some(id.to_string());
+        }
+    }
+    None
+}
+
 /// Logo d'un film (`movie`) ou d'une série (`tv`) sur TMDB : dans la langue de l'interface, sinon
 /// (avec `any`) en anglais ou sans texte.
 async fn tmdb_logo(http: &Client, key: &str, kind: &str, id: &str, ui: &str, any: bool) -> Option<String> {
@@ -473,6 +495,44 @@ struct RawMetadata {
     /// Images associées (affiche, fond, logo du titre…) ; pour un épisode, celles de sa série.
     #[serde(rename = "Image")]
     images: Vec<RawImage>,
+    /// Identifiants externes (« tmdb://… », « imdb://… »).
+    #[serde(rename = "Guid")]
+    guids: Vec<RawGuid>,
+    /// Repères détectés par le serveur : intro, générique (« credits »).
+    #[serde(rename = "Marker")]
+    marker: Vec<RawMarker>,
+    /// Bandes-annonces et autres extras.
+    #[serde(rename = "Extras")]
+    extras: Option<RawExtras>,
+}
+
+#[derive(Deserialize, Default)]
+#[serde(default)]
+struct RawGuid {
+    id: String,
+}
+
+#[derive(Deserialize, Default)]
+#[serde(default, rename_all = "camelCase")]
+struct RawMarker {
+    #[serde(rename = "type")]
+    kind: String,
+    start_time_offset: u64,
+    end_time_offset: u64,
+}
+
+#[derive(Deserialize, Default)]
+#[serde(default)]
+struct RawExtras {
+    #[serde(rename = "Metadata")]
+    metadata: Vec<RawExtra>,
+}
+
+#[derive(Deserialize, Default)]
+#[serde(default, rename_all = "camelCase")]
+struct RawExtra {
+    rating_key: String,
+    subtype: String,
 }
 
 #[derive(Deserialize, Default)]
@@ -694,6 +754,39 @@ pub struct PlayInfo {
     pub sub_files: Vec<String>,
     /// Les mêmes, avec leur format et leur langue (lecteur natif d'Android).
     pub sub_tracks: Vec<SubFile>,
+}
+
+/// Repère d'un épisode : `intro` ou `credits` (générique), en millisecondes.
+#[derive(Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct Marker {
+    pub kind: String,
+    pub start_ms: u64,
+    pub end_ms: u64,
+}
+
+/// Bande-annonce : un élément du serveur (lisible comme un titre) ou une vidéo YouTube.
+#[derive(Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct Trailer {
+    pub rating_key: Option<String>,
+    pub youtube: Option<String>,
+}
+
+/// Ce que le serveur sait d'une bande-annonce, et de quoi la chercher sur TMDB sinon.
+pub struct TrailerSource {
+    pub trailer: Option<Trailer>,
+    /// « movie » ou « tv ».
+    pub tmdb_kind: Option<&'static str>,
+    pub tmdb_id: Option<String>,
+}
+
+/// Identifiant d'une vidéo YouTube dans une adresse (`watch?v=`, `youtu.be/`, `/embed/`, ou
+/// `videoid=` des adresses Kodi que Jellyfin reprend).
+pub(crate) fn youtube_id(url: &str) -> Option<String> {
+    let rest = ["v=", "videoid=", "youtu.be/", "/embed/", "/shorts/"].iter().find_map(|m| url.split(m).nth(1))?;
+    let id: String = rest.chars().take_while(|c| c.is_ascii_alphanumeric() || *c == '-' || *c == '_').collect();
+    (id.len() == 11).then_some(id)
 }
 
 /// Sous-titre externe servi par Plex.
@@ -976,7 +1069,8 @@ impl PlexServer {
     }
 
     async fn raw_metadata(&self, rating_key: &str) -> Result<RawMetadata> {
-        let found = match self.container(&format!("/library/metadata/{rating_key}")).await {
+        // Avec les repères (intro, générique) et les extras (bande-annonce).
+        let found = match self.container(&format!("/library/metadata/{rating_key}?includeMarkers=1&includeExtras=1")).await {
             Ok(c) => c.metadata.into_iter().next(),
             Err(_) => None,
         };
@@ -1221,6 +1315,30 @@ impl PlexServer {
 
     /// Prépare la lecture. `audio` / `subtitle` sont des identifiants de piste Plex ;
     /// `None` reprend les choix enregistrés dans Plex, `Some(0)` désactive les sous-titres.
+    /// Repères (intro, générique) détectés par le serveur. Plex les renvoie à tous les comptes :
+    /// seules ses propres applications réservent le bouton « Passer » au Plex Pass.
+    pub async fn markers(&self, rating_key: &str) -> Result<Vec<Marker>> {
+        let m = self.raw_metadata(rating_key).await?;
+        Ok(m.marker
+            .iter()
+            .filter(|k| k.end_time_offset > k.start_time_offset)
+            .map(|k| Marker { kind: k.kind.clone(), start_ms: k.start_time_offset, end_ms: k.end_time_offset })
+            .collect())
+    }
+
+    /// Bande-annonce du serveur (extra), et l'identifiant TMDB pour en chercher une en ligne sinon.
+    pub async fn trailer(&self, rating_key: &str) -> Result<TrailerSource> {
+        let m = self.raw_metadata(rating_key).await?;
+        let trailer = m
+            .extras
+            .as_ref()
+            .and_then(|e| e.metadata.iter().find(|x| x.subtype == "trailer"))
+            .map(|x| Trailer { rating_key: Some(x.rating_key.clone()), youtube: None });
+        let tmdb_id = m.guids.iter().find_map(|g| g.id.strip_prefix("tmdb://").map(str::to_owned));
+        let tmdb_kind = Some(if m.kind == "show" { "tv" } else { "movie" });
+        Ok(TrailerSource { trailer, tmdb_kind, tmdb_id })
+    }
+
     pub async fn play_info(&self, rating_key: &str, audio: Option<u64>, subtitle: Option<u64>) -> Result<PlayInfo> {
         let m = self.raw_metadata(rating_key).await?;
         let part = m
