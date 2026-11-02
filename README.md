@@ -469,7 +469,7 @@ la fiche et de marquer un titre comme vu ou non vu (« non vu » remet aussi à 
 
 ### 🖥️ Réglages du serveur Plex
 
-**Réglages** regroupe les options de Maku (compte, Seerr et Tracearr, lecteur, interface) et, pour
+**Réglages** regroupe les options de Maku (compte, avec son en-tête de profil aux couleurs du thème ; Seerr et Tracearr ; lecteur ; interface) et, pour
 l'administrateur du serveur, celles de Plex : **Tableau de bord** (lectures en cours de tous les utilisateurs,
 recherche de nouveaux fichiers et corbeille de chaque bibliothèque) puis **Général, Bibliothèque, Réseau,
 Transcodeur, DLNA, Bonus et Tâches planifiées**. Les réglages avancés s'affichent sur demande. Un utilisateur

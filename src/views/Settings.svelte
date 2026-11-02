@@ -389,74 +389,83 @@
   <div class="panel">
     {#if page === "account"}
       <h1 class="title">{t("settings.menu.account")}</h1>
-      <section class="card account">
-        {#if account?.thumb}<img class="avatar" src={account.thumb} alt="" />{:else}<span class="avatar ph"><Icon name="user" size={30} /></span>{/if}
-        <div>
-          <div class="big">{account?.username ?? "…"}</div>
-          {#if account?.email}<div class="muted">{account.email}</div>{/if}
-          <div class="badges">
-            {#if account?.plexPass}<span class="badge pass">Plex Pass</span>{/if}
-            <span class="badge outline">{(account?.admin ?? nav.admin) ? t("settings.account.admin") : t("settings.account.shared")}</span>
+      <!-- En-tête du profil, aux couleurs du thème : photo, nom, badges, et le serveur en cours. -->
+      <section class="card hero">
+        <div class="hero-row">
+          {#if account?.thumb}<img class="avatar" src={account.thumb} alt="" />{:else}<span class="avatar ph"><Icon name="user" size={34} /></span>{/if}
+          <div class="hero-text">
+            <div class="big">{account?.username ?? "…"}</div>
+            {#if account?.email}<div class="muted">{account.email}</div>{/if}
+            <div class="badges">
+              {#if account?.plexPass}<span class="badge pass">Plex Pass</span>{/if}
+              <span class="badge outline">{(account?.admin ?? nav.admin) ? t("settings.account.admin") : t("settings.account.shared")}</span>
+            </div>
           </div>
         </div>
-      </section>
-      <section class="card">
-        <p>{t("settings.account.server")} <strong>{session.serverName}</strong></p>
-        <div class="row">
+        <div class="hero-actions">
+          <span class="chip"><Icon name="server" size={16} /> {t("settings.account.server")} <strong>{session.serverName}</strong></span>
           <button class="btn" onclick={changeServer}>{t("settings.account.changeServer")}</button>
           <button class="btn" onclick={logout}><Icon name="logout" size={16} /> {t("settings.account.logout")}</button>
         </div>
       </section>
-      <section class="card">
-        <h2>{t("settings.account.serverKinds")}</h2>
-        <div class="languages" role="radiogroup" aria-label={t("settings.account.serverKinds")}>
-          {#each [{ id: "plex", label: "Plex" }, { id: "jellyfin", label: "Jellyfin" }, { id: "both", label: t("settings.account.bothKinds") }] as k (k.id)}
-            <button
-              class="btn"
-              class:primary={serverKinds === k.id}
-              role="radio"
-              aria-checked={serverKinds === k.id}
-              onclick={() => serverKinds !== k.id && chooseKinds(k.id as ServerKinds)}
-            >
-              {k.label}
+
+      <!-- Les réglages du compte, en lignes : le texte à gauche, la commande à droite. -->
+      <section class="card list">
+        <div class="line">
+          <div class="line-text">
+            <strong>{t("settings.account.serverKinds")}</strong>
+            <span class="muted small">{t("settings.account.serverKindsHint")}</span>
+          </div>
+          <div class="seg" role="radiogroup" aria-label={t("settings.account.serverKinds")}>
+            {#each [{ id: "plex", label: "Plex" }, { id: "jellyfin", label: "Jellyfin" }, { id: "both", label: t("settings.account.bothKinds") }] as k (k.id)}
+              <button
+                class:on={serverKinds === k.id}
+                role="radio"
+                aria-checked={serverKinds === k.id}
+                onclick={() => serverKinds !== k.id && chooseKinds(k.id as ServerKinds)}
+              >
+                {k.label}
+              </button>
+            {/each}
+          </div>
+        </div>
+        <div class="line">
+          <div class="line-text"><strong>{t("settings.account.version", { version })}</strong></div>
+          <div class="row">
+            <button class="btn" disabled={update.checking} onclick={checkUpdates}>
+              <Icon name="restart" size={16} />
+              {update.checking ? t("settings.account.checking") : t("settings.account.checkUpdates")}
             </button>
-          {/each}
+            <button class="btn" disabled={update.checking} onclick={openNotes}>
+              <Icon name="library" size={16} />
+              {t("settings.account.releaseNotes")}
+            </button>
+          </div>
         </div>
-        <p class="muted small">{t("settings.account.serverKindsHint")}</p>
+        {#if autoLog !== null}
+          <div class="line line-stack">
+            <div class="line-text">
+              <strong>Android Auto</strong>
+              <span class="muted small">{t("settings.account.autoLogHint")}</span>
+            </div>
+            <pre class="auto-log">{autoLog.trim() || t("settings.account.autoLogEmpty")}</pre>
+            <div><button class="btn" onclick={() => (autoLog = autoBridge?.autoLog?.() ?? "")}><Icon name="restart" size={16} /> {t("settings.account.autoLogRefresh")}</button></div>
+          </div>
+        {/if}
       </section>
-      <section class="card">
-        <p>{t("settings.account.version", { version })}</p>
-        <div class="row">
-          <button class="btn" disabled={update.checking} onclick={checkUpdates}>
-            <Icon name="restart" size={16} />
-            {update.checking ? t("settings.account.checking") : t("settings.account.checkUpdates")}
-          </button>
-          <button class="btn" disabled={update.checking} onclick={openNotes}>
-            <Icon name="library" size={16} />
-            {t("settings.account.releaseNotes")}
-          </button>
+
+      <!-- Ko-fi, en bannière : un seul logo, en grand. Sur téléviseur, pas de navigateur : un QR code. -->
+      <section class="card kofi">
+        <span class="kofi-badge"><KofiLogo size={30} /></span>
+        <div class="kofi-text">
+          <strong>{t("settings.account.support")}</strong>
+          <span class="muted">{t("settings.account.supportHint")}</span>
         </div>
-      </section>
-      {#if autoLog !== null}
-        <section class="card">
-          <h2>Android Auto</h2>
-          <p class="muted small">{t("settings.account.autoLogHint")}</p>
-          <pre class="auto-log">{autoLog.trim() || t("settings.account.autoLogEmpty")}</pre>
-          <div><button class="btn" onclick={() => (autoLog = autoBridge?.autoLog?.() ?? "")}><Icon name="restart" size={16} /> {t("settings.account.autoLogRefresh")}</button></div>
-        </section>
-      {/if}
-      <section class="card support">
-        <div>
-          <h2 class="support-title"><KofiLogo size={22} /> {t("settings.account.support")}</h2>
-          <p class="muted">{t("settings.account.supportHint")}</p>
-          {#if device.tv}
-            <p class="muted small">{KOFI}</p>
-          {:else}
-            <button class="btn" onclick={() => invoke("open_url", { url: KOFI }).catch((e) => toast(errorText(e), true))}><KofiLogo size={18} /> {t("settings.account.supportButton")}</button>
-          {/if}
-        </div>
-        <!-- Téléviseur : pas de navigateur, le QR code s'ouvre sur le téléphone. -->
-        {#if device.tv}<QrCode text={KOFI} size={120} />{/if}
+        {#if device.tv}
+          <QrCode text={KOFI} size={110} />
+        {:else}
+          <button class="btn kofi-btn" onclick={() => invoke("open_url", { url: KOFI }).catch((e) => toast(errorText(e), true))}>{t("settings.account.supportButton")}</button>
+        {/if}
       </section>
     {:else if page === "services"}
       <h1 class="title">{t("settings.menu.services")}</h1>
@@ -719,19 +728,6 @@
     line-height: 1.5;
     white-space: pre-wrap;
     word-break: break-word;
-  }
-
-  .support-title {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .support {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
   }
 
   .qr-wait {
@@ -1016,17 +1012,167 @@
     font-weight: 600;
   }
 
-  .account {
-    grid-template-columns: auto 1fr;
+  /* ---------- Page Compte ---------- */
+
+  .hero {
+    position: relative;
+    gap: 18px;
+    overflow: hidden;
+  }
+
+  .hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(70% 140% at 8% 10%, color-mix(in srgb, var(--accent) 30%, transparent), transparent 65%),
+      linear-gradient(135deg, color-mix(in srgb, var(--accent) 12%, transparent), transparent 55%);
+    pointer-events: none;
+  }
+
+  .hero > * {
+    position: relative;
+  }
+
+  .hero-row {
+    display: flex;
     align-items: center;
     gap: 18px;
   }
 
+  .hero-text {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    height: 40px;
+    padding: 0 14px;
+    border-radius: var(--radius);
+    background: #00000033;
+    color: var(--text-dim);
+  }
+
+  .chip strong {
+    color: var(--text);
+  }
+
   .avatar {
-    width: 72px;
-    height: 72px;
+    width: 80px;
+    height: 80px;
+    flex: none;
     border-radius: 50%;
     object-fit: cover;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 60%, transparent), 0 10px 30px #0008;
+  }
+
+  .list {
+    gap: 0;
+    padding: 4px 20px;
+  }
+
+  .line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px 20px;
+    padding: 16px 0;
+    border-top: 1px solid var(--border);
+  }
+
+  .line:first-child {
+    border-top: none;
+  }
+
+  .line-text {
+    display: grid;
+    flex: 1;
+    gap: 3px;
+    min-width: 200px;
+  }
+
+  .line-stack {
+    display: grid;
+  }
+
+  /* Choix à plusieurs positions (Plex / Jellyfin / Les deux). */
+  .seg {
+    display: inline-flex;
+    gap: 2px;
+    padding: 3px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: #00000040;
+  }
+
+  .seg button {
+    height: 34px;
+    padding: 0 14px;
+    border: none;
+    border-radius: 9px;
+    background: none;
+    color: var(--text-dim);
+    font-weight: 600;
+    transition: background 0.15s, color 0.15s;
+  }
+
+  .seg button:hover {
+    color: var(--text);
+  }
+
+  .seg button.on {
+    background: var(--accent);
+    color: var(--accent-text);
+  }
+
+  .kofi {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 16px;
+    border-color: #ff5e5b55;
+    background: linear-gradient(135deg, #ff5e5b2b, #ffffff05 60%);
+  }
+
+  .kofi-badge {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    background: #ff5e5b2e;
+    color: #fff;
+  }
+
+  .kofi-text {
+    display: grid;
+    flex: 1;
+    gap: 3px;
+    min-width: 200px;
+  }
+
+  .kofi-btn {
+    border-color: transparent;
+    background: #ff5e5b;
+    color: #fff;
+    font-weight: 600;
+  }
+
+  .kofi-btn:hover {
+    background: #ff7572;
   }
 
   .avatar.ph {
