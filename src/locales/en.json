@@ -35,10 +35,7 @@
       "serverKindsHint": "With just one, Maku no longer asks you to choose between Plex and Jellyfin. With both, “Change server” offers the choice, keeping both sign-ins.",
       "support": "Support Maku",
       "supportHint": "Maku is free and open source. A coffee on Ko-fi helps keep it going.",
-      "supportButton": "Buy a coffee on Ko-fi",
-      "autoLogHint": "What the car asked Maku for, and any errors.",
-      "autoLogEmpty": "Nothing yet.",
-      "autoLogRefresh": "Refresh"
+      "supportButton": "Buy a coffee on Ko-fi"
     },
     "services": {
       "seerrConnected": "Connected to Seerr with your Plex account",

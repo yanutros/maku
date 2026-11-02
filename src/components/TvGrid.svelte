@@ -27,17 +27,26 @@
     if (i >= 0) index = i;
   });
 
+  /** Première rangée : la page remonte tout en haut (titre et onglets visibles) ; sinon la case se centre. */
+  function reveal(el: HTMLElement, i: number) {
+    if (i < columns) root?.closest(".content")?.scrollTo({ top: 0, behavior: "smooth" });
+    else el.scrollIntoView({ block: "center", behavior: "smooth" });
+  }
+
   function focusAt(i: number) {
     const el = root?.querySelector<HTMLElement>(`[data-index="${i}"]`);
     if (!el) return;
     el.focus({ preventScroll: true });
-    el.scrollIntoView({ block: "center", behavior: "smooth" });
+    reveal(el, i);
   }
 
   function onFocusIn(e: FocusEvent) {
     const i = (e.target as HTMLElement).dataset.index;
     if (i === undefined) return;
     index = Number(i);
+    // Une case de la première rangée sélectionnée alors que la page est déjà descendue (changement
+    // d'onglet, retour sur la page) : la page remonte, sinon la rangée reste coupée en haut.
+    if (index < columns && (root?.closest(".content")?.scrollTop ?? 0) > 0) reveal(e.target as HTMLElement, index);
     if (index >= cards.length - columns * 3) onEnd?.();
   }
 

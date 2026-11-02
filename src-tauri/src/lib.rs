@@ -510,20 +510,46 @@ async fn plex_markers(state: State<'_, AppState>, rating_key: String) -> CmdResu
     Ok(state.server()?.markers(&rating_key).await?)
 }
 
-/// Bande-annonce : celle du serveur, sinon celle de TMDB (avec la clé de l'utilisateur), dans la
-/// langue de l'interface puis en anglais. `None` : rien trouvé.
+/// Bande-annonce, dans la langue de l'interface autant que possible : une bande-annonce du serveur
+/// dont le titre dit cette langue, sinon celle de TMDB dans cette langue (avec la clé de
+/// l'utilisateur), sinon une bande-annonce du serveur, sinon le lien YouTube de la fiche (Jellyfin),
+/// sinon TMDB en anglais. `None` : rien trouvé.
 #[tauri::command]
 async fn plex_trailer(state: State<'_, AppState>, rating_key: String) -> CmdResult<Option<plex::Trailer>> {
     let source = state.server()?.trailer(&rating_key).await?;
-    if source.trailer.is_some() {
-        return Ok(source.trailer);
+    let lang = crate::i18n::language();
+    // Comment les titres de bandes-annonces nomment la langue (« Verity (French Teaser Trailer) »).
+    let names: &[&str] = match lang {
+        "fr" => &["french", "français", "francais", "vf"],
+        "es" => &["spanish", "español", "espanol", "castellano"],
+        "de" => &["german", "deutsch"],
+        "nl" => &["dutch", "nederlands"],
+        _ => &["english"],
+    };
+    let in_lang = |title: &str| {
+        let t = title.to_lowercase();
+        names.iter().any(|n| t.contains(n))
+    };
+    let local = |key: &str| plex::Trailer { rating_key: Some(key.to_string()), youtube: None };
+    let youtube = |id: &str| plex::Trailer { rating_key: None, youtube: Some(id.to_string()) };
+    if let Some((key, _)) = source.local.iter().find(|(_, title)| in_lang(title)) {
+        return Ok(Some(local(key)));
     }
     let c = state.cfg();
-    let (Some(key), Some(kind), Some(id)) = (c.tmdb_key.as_deref(), source.tmdb_kind, source.tmdb_id.as_deref()) else {
-        return Ok(None);
+    let online = match (c.tmdb_key.as_deref(), source.tmdb_kind, source.tmdb_id.as_deref()) {
+        (Some(key), Some(kind), Some(id)) => plex::tmdb_trailers(&state.http, key, kind, id, lang).await,
+        _ => Vec::new(),
     };
-    let found = plex::tmdb_trailer(&state.http, key, kind, id, crate::i18n::language()).await;
-    Ok(found.map(|youtube| plex::Trailer { rating_key: None, youtube: Some(youtube) }))
+    if let Some((id, _)) = online.iter().find(|(_, same)| *same) {
+        return Ok(Some(youtube(id)));
+    }
+    if let Some((key, _)) = source.local.first() {
+        return Ok(Some(local(key)));
+    }
+    if let Some(id) = &source.youtube {
+        return Ok(Some(youtube(id)));
+    }
+    Ok(online.first().map(|(id, _)| youtube(id)))
 }
 
 /// Linux : ce qui joue, pour les touches multimédia et les commandes du bureau (MPRIS) ; `None`

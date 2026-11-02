@@ -86,9 +86,6 @@ class MainActivity : TauriActivity() {
       @JavascriptInterface
       fun isTv(): Boolean = tv
 
-      /** Journal d'Android Auto (AutoLog.kt), montré dans les Réglages du téléphone. */
-      @JavascriptInterface
-      fun autoLog(): String = AutoLog.read(this@MainActivity)
 
       /** Téléviseur : OK sur un champ de saisie ouvre le clavier (il ne s'ouvre pas au simple passage). */
       @JavascriptInterface

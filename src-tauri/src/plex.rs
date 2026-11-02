@@ -213,26 +213,26 @@ pub async fn tmdb_check(http: &Client, key: &str) -> Result<()> {
     Ok(())
 }
 
-/// Bande-annonce YouTube d'un film (`movie`) ou d'une série (`tv`) sur TMDB : dans la langue de
-/// l'interface, sinon en anglais ; une bande-annonce officielle de préférence, un teaser à défaut.
-pub async fn tmdb_trailer(http: &Client, key: &str, kind: &str, id: &str, lang: &str) -> Option<String> {
-    for language in [lang, "en"] {
-        let Ok(resp) = tmdb_get(http, key, &format!("/{kind}/{id}/videos?language={language}")).send().await else { continue };
-        let Ok(v) = resp.error_for_status() else { continue };
-        let Ok(v) = v.json::<serde_json::Value>().await else { continue };
-        let Some(videos) = v["results"].as_array() else { continue };
-        let on_youtube = |t: &&serde_json::Value| t["site"] == "YouTube";
-        let found = videos
-            .iter()
-            .filter(on_youtube)
-            .filter(|t| t["type"] == "Trailer")
-            .max_by_key(|t| t["official"].as_bool().unwrap_or(false))
-            .or_else(|| videos.iter().filter(on_youtube).find(|t| t["type"] == "Teaser"));
-        if let Some(id) = found.and_then(|t| t["key"].as_str()) {
-            return Some(id.to_string());
-        }
-    }
-    None
+/// Bandes-annonces YouTube d'un film (`movie`) ou d'une série (`tv`) sur TMDB, dans la langue de
+/// l'interface et en anglais : `(identifiant, dans la langue de l'interface)`, la meilleure d'abord
+/// (langue de l'interface, puis bande-annonce plutôt que teaser, puis officielle).
+pub async fn tmdb_trailers(http: &Client, key: &str, kind: &str, id: &str, lang: &str) -> Vec<(String, bool)> {
+    let path = format!("/{kind}/{id}/videos?language={lang}&include_video_language={lang},en");
+    let Ok(resp) = tmdb_get(http, key, &path).send().await else { return Vec::new() };
+    let Ok(v) = resp.error_for_status() else { return Vec::new() };
+    let Ok(v) = v.json::<serde_json::Value>().await else { return Vec::new() };
+    let mut videos: Vec<&serde_json::Value> = v["results"]
+        .as_array()
+        .map(|a| a.iter().filter(|t| t["site"] == "YouTube" && (t["type"] == "Trailer" || t["type"] == "Teaser")).collect())
+        .unwrap_or_default();
+    let score = |t: &serde_json::Value| {
+        (t["iso_639_1"] == lang) as u8 * 4 + (t["type"] == "Trailer") as u8 * 2 + t["official"].as_bool().unwrap_or(false) as u8
+    };
+    videos.sort_by_key(|t| std::cmp::Reverse(score(t)));
+    videos
+        .iter()
+        .filter_map(|t| Some((t["key"].as_str()?.to_string(), t["iso_639_1"] == lang)))
+        .collect()
 }
 
 /// Logo d'un film (`movie`) ou d'une série (`tv`) sur TMDB : dans la langue de l'interface, sinon
@@ -533,6 +533,7 @@ struct RawExtras {
 struct RawExtra {
     rating_key: String,
     subtype: String,
+    title: String,
 }
 
 #[derive(Deserialize, Default)]
@@ -775,7 +776,10 @@ pub struct Trailer {
 
 /// Ce que le serveur sait d'une bande-annonce, et de quoi la chercher sur TMDB sinon.
 pub struct TrailerSource {
-    pub trailer: Option<Trailer>,
+    /// Bandes-annonces du serveur, avec leur titre (qui dit souvent la langue : « French Trailer »).
+    pub local: Vec<(String, String)>,
+    /// Lien YouTube donné par le serveur (Jellyfin).
+    pub youtube: Option<String>,
     /// « movie » ou « tv ».
     pub tmdb_kind: Option<&'static str>,
     pub tmdb_id: Option<String>,
@@ -829,6 +833,13 @@ impl PlexServer {
     async fn container(&self, path: &str) -> Result<MediaContainer> {
         let env: Envelope = self.get(path).send().await?.error_for_status()?.json().await?;
         Ok(env.media_container)
+    }
+
+    /// Adresse d'un fichier servi par le serveur, avec le jeton : les clés des extras (bandes-annonces
+    /// de plex.tv) portent déjà des paramètres, le jeton s'ajoute alors avec `&`.
+    pub(crate) fn file_url(&self, key: &str) -> String {
+        let sep = if key.contains('?') { '&' } else { '?' };
+        format!("{}{}{sep}X-Plex-Token={}", self.base, key, self.token)
     }
 
     pub(crate) fn image(&self, path: &str, width: u32, height: u32) -> String {
@@ -1129,7 +1140,7 @@ impl PlexServer {
             .into_iter()
             .filter_map(|t| {
                 let part = t.media.first().and_then(|x| x.part.first())?;
-                let url = format!("{}{}?X-Plex-Token={}", self.base, part.key, self.token);
+                let url = self.file_url(&part.key);
                 let cover = t.parent_thumb.as_ref().or(t.grandparent_thumb.as_ref()).or(t.thumb.as_ref());
                 Some(QueueTrack {
                     url,
@@ -1329,14 +1340,14 @@ impl PlexServer {
     /// Bande-annonce du serveur (extra), et l'identifiant TMDB pour en chercher une en ligne sinon.
     pub async fn trailer(&self, rating_key: &str) -> Result<TrailerSource> {
         let m = self.raw_metadata(rating_key).await?;
-        let trailer = m
+        let local = m
             .extras
             .as_ref()
-            .and_then(|e| e.metadata.iter().find(|x| x.subtype == "trailer"))
-            .map(|x| Trailer { rating_key: Some(x.rating_key.clone()), youtube: None });
+            .map(|e| e.metadata.iter().filter(|x| x.subtype == "trailer").map(|x| (x.rating_key.clone(), x.title.clone())).collect())
+            .unwrap_or_default();
         let tmdb_id = m.guids.iter().find_map(|g| g.id.strip_prefix("tmdb://").map(str::to_owned));
         let tmdb_kind = Some(if m.kind == "show" { "tv" } else { "movie" });
-        Ok(TrailerSource { trailer, tmdb_kind, tmdb_id })
+        Ok(TrailerSource { local, youtube: None, tmdb_kind, tmdb_id })
     }
 
     pub async fn play_info(&self, rating_key: &str, audio: Option<u64>, subtitle: Option<u64>) -> Result<PlayInfo> {
@@ -1383,13 +1394,13 @@ impl PlexServer {
         let sub_files = external
             .iter()
             .filter_map(|s| s.key.as_ref())
-            .map(|key| format!("{}{}?X-Plex-Token={}", self.base, key, self.token))
+            .map(|key| self.file_url(key))
             .collect();
         let sub_tracks = external
             .iter()
             .filter_map(|s| {
                 Some(SubFile {
-                    url: format!("{}{}?X-Plex-Token={}", self.base, s.key.as_ref()?, self.token),
+                    url: self.file_url(s.key.as_ref()?),
                     codec: s.codec.clone().unwrap_or_else(|| "srt".into()),
                     language: s.language_code.clone(),
                     title: s.display_title.clone(),
@@ -1398,7 +1409,7 @@ impl PlexServer {
             .collect();
 
         Ok(PlayInfo {
-            url: format!("{}{}?X-Plex-Token={}", self.base, part.key, self.token),
+            url: self.file_url(&part.key),
             title,
             subtitle: subtitle_line,
             offset_ms: m.view_offset.unwrap_or(0),

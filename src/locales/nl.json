@@ -35,10 +35,7 @@
       "serverKindsHint": "Met één vraagt Maku niet meer om te kiezen tussen Plex en Jellyfin. Met beide biedt „Andere server” de keuze, zonder de aanmeldingen kwijt te raken.",
       "support": "Maku steunen",
       "supportHint": "Maku is gratis en open source. Een koffie op Ko-fi helpt het door te laten gaan.",
-      "supportButton": "Een koffie geven op Ko-fi",
-      "autoLogHint": "Wat de auto aan Maku heeft gevraagd, en de fouten die optraden.",
-      "autoLogEmpty": "Nog niets.",
-      "autoLogRefresh": "Vernieuwen"
+      "supportButton": "Een koffie geven op Ko-fi"
     },
     "services": {
       "seerrConnected": "Verbonden met Seerr via je Plex-account",

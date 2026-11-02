@@ -166,6 +166,8 @@
   function select(next: Tab) {
     tab = next;
     error = null;
+    // Un autre onglet repart du haut (sans quoi, sur téléviseur, sa première rangée resterait coupée).
+    if (!initialFocus) document.querySelector(".content")?.scrollTo({ top: 0 });
     if (memo) {
       memo.tab = next;
       if (next !== "library") memo.genre = null;

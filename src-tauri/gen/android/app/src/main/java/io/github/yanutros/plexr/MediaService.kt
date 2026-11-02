@@ -181,7 +181,6 @@ class MediaService : MediaBrowserServiceCompat() {
         handler.post { showError(it) }
         emptyList()
       }
-      AutoLog.append(this, "children($parentId): ${items.size}")
       result.sendResult(items.toMutableList())
     }
   }
@@ -311,7 +310,6 @@ class MediaService : MediaBrowserServiceCompat() {
         PlaybackStateCompat.ERROR_CODE_APP_ERROR to R.string.auto_unreachable
       }
     }
-    AutoLog.append(this, "${error?.javaClass?.simpleName ?: "none"}: ${error?.message} -> ${getString(message)}")
     session.setPlaybackState(
       PlaybackStateCompat.Builder().setActions(ACTIONS).setState(PlaybackStateCompat.STATE_ERROR, 0, 0f).setErrorMessage(code, getString(message)).build(),
     )

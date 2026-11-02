@@ -32,9 +32,6 @@
   };
 
   let page = $state("account");
-  // Téléphone : journal d'Android Auto (AutoLog.kt), pour comprendre un échec en voiture.
-  const autoBridge = (window as { PlexrDevice?: { autoLog?: () => string } }).PlexrDevice;
-  let autoLog = $state(autoBridge?.autoLog ? autoBridge.autoLog() : null);
   const KOFI = "https://ko-fi.com/yanutros";
   let account = $state<Account | null>(null);
   let prefs = $state<Pref[] | null>(null);
@@ -442,16 +439,6 @@
             </button>
           </div>
         </div>
-        {#if autoLog !== null}
-          <div class="line line-stack">
-            <div class="line-text">
-              <strong>Android Auto</strong>
-              <span class="muted small">{t("settings.account.autoLogHint")}</span>
-            </div>
-            <pre class="auto-log">{autoLog.trim() || t("settings.account.autoLogEmpty")}</pre>
-            <div><button class="btn" onclick={() => (autoLog = autoBridge?.autoLog?.() ?? "")}><Icon name="restart" size={16} /> {t("settings.account.autoLogRefresh")}</button></div>
-          </div>
-        {/if}
       </section>
 
       <!-- Ko-fi, en bannière : un seul logo, en grand. Sur téléviseur, pas de navigateur : un QR code. -->
@@ -715,19 +702,6 @@
   .phone-setup p {
     max-width: 320px;
     margin: 0;
-  }
-
-  .auto-log {
-    max-height: 220px;
-    margin: 0;
-    padding: 10px 12px;
-    overflow: auto;
-    border-radius: 10px;
-    background: #0000004d;
-    font-size: 11px;
-    line-height: 1.5;
-    white-space: pre-wrap;
-    word-break: break-word;
   }
 
   .qr-wait {

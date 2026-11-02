@@ -35,10 +35,7 @@
       "serverKindsHint": "Mit nur einem fragt Maku nicht mehr nach Plex oder Jellyfin. Mit beiden bietet „Server wechseln“ die Wahl an, ohne die Anmeldungen zu verlieren.",
       "support": "Maku unterstützen",
       "supportHint": "Maku ist kostenlos und quelloffen. Ein Kaffee auf Ko-fi hilft, es am Leben zu halten.",
-      "supportButton": "Einen Kaffee auf Ko-fi spendieren",
-      "autoLogHint": "Was das Auto von Maku angefordert hat, und aufgetretene Fehler.",
-      "autoLogEmpty": "Noch nichts.",
-      "autoLogRefresh": "Aktualisieren"
+      "supportButton": "Einen Kaffee auf Ko-fi spendieren"
     },
     "services": {
       "seerrConnected": "Mit deinem Plex-Konto bei Seerr angemeldet",

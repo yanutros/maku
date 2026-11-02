@@ -5,7 +5,7 @@ use anyhow::{anyhow, bail, Result};
 use reqwest::{Client, RequestBuilder};
 use serde::Deserialize;
 
-use crate::plex::{Marker, PRODUCT, Section, Trailer, TrailerSource};
+use crate::plex::{Marker, PRODUCT, Section, TrailerSource};
 
 /// En-tête d'authentification de Jellyfin : l'application, l'appareil et, une fois connecté, le jeton.
 fn authorization(client_id: &str, token: Option<&str>) -> String {
@@ -624,25 +624,21 @@ impl JellyfinServer {
     /// l'identifiant TMDB pour chercher en ligne à défaut.
     pub async fn trailer(&self, id: &str) -> Result<TrailerSource> {
         let v = self.json(&format!("/Users/{}/Items/{id}", self.uid())).await?;
-        let mut trailer = None;
+        let mut local = Vec::new();
         if v["LocalTrailerCount"].as_u64().unwrap_or(0) > 0 {
             if let Ok(list) = self.json(&format!("/Users/{}/Items/{id}/LocalTrailers", self.uid())).await {
-                trailer = list
+                local = list
                     .as_array()
-                    .and_then(|a| a.first())
-                    .and_then(|t| str_of(&t["Id"]))
-                    .map(|k| Trailer { rating_key: Some(k), youtube: None });
+                    .map(|a| a.iter().filter_map(|t| Some((str_of(&t["Id"])?, str_of(&t["Name"]).unwrap_or_default()))).collect())
+                    .unwrap_or_default();
             }
         }
-        if trailer.is_none() {
-            trailer = v["RemoteTrailers"]
-                .as_array()
-                .and_then(|a| a.iter().find_map(|t| crate::plex::youtube_id(t["Url"].as_str()?)))
-                .map(|yt| Trailer { rating_key: None, youtube: Some(yt) });
-        }
+        let youtube = v["RemoteTrailers"]
+            .as_array()
+            .and_then(|a| a.iter().find_map(|t| crate::plex::youtube_id(t["Url"].as_str()?)));
         let tmdb_id = str_of(&v["ProviderIds"]["Tmdb"]);
         let tmdb_kind = Some(if v["Type"] == "Series" { "tv" } else { "movie" });
-        Ok(TrailerSource { trailer, tmdb_kind, tmdb_id })
+        Ok(TrailerSource { local, youtube, tmdb_kind, tmdb_id })
     }
 
     pub async fn play_info(&self, id: &str, audio: Option<u64>, subtitle: Option<u64>) -> Result<PlayInfo> {

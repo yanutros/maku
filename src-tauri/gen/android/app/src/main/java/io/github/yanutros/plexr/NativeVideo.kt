@@ -21,7 +21,10 @@ import androidx.media3.common.Player
 import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.common.Tracks
 import androidx.media3.common.VideoSize
+import androidx.media3.datasource.DefaultDataSource
+import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.DefaultRenderersFactory
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.SubtitleView
 import org.json.JSONArray
@@ -93,7 +96,11 @@ class NativeVideo(private val activity: Activity, private val webView: WebView) 
       )
       .build()
 
+    // Les bandes-annonces de plex.tv sont servies par le serveur en http puis redirigées en https :
+    // ExoPlayer refuse ce changement de protocole par défaut.
+    val http = DefaultHttpDataSource.Factory().setAllowCrossProtocolRedirects(true)
     val p = ExoPlayer.Builder(activity, DefaultRenderersFactory(activity).setEnableDecoderFallback(true))
+      .setMediaSourceFactory(DefaultMediaSourceFactory(DefaultDataSource.Factory(activity, http)))
       .setAudioAttributes(AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(), true)
       .setVideoChangeFrameRateStrategy(C.VIDEO_CHANGE_FRAME_RATE_STRATEGY_ONLY_IF_SEAMLESS)
       .build()
