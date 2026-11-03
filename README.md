@@ -297,7 +297,8 @@ pour l'instant que Plex.
 > cartes qui s'agrandissent ni de flou) pour consommer peu de mémoire. Le menu de gauche se déplie en faisant
 > glisser la page vers la droite, comme dans Wholphin, sans la remettre en page : l'animation reste fluide même
 > sur un téléviseur modeste, comme la descente dans une fiche, dont le fond s'assombrit sans être redessiné.
-> Les nouveautés arrivent d'abord sur
+> Dans une bibliothèque, la barre d'onglets (Recommandé, Bibliothèque, Catégories…) reste au même endroit d'un
+> onglet à l'autre. Les nouveautés arrivent d'abord sur
 > l'application de bureau. Un élément est toujours sélectionné (à l'arrivée, après une lecture), et les fiches
 > se parcourent rangée par rangée comme dans Plex et Wholphin : haut / bas d'une rangée à l'autre (boutons,
 > audio, sous-titres, distribution, « Plus de ce genre »), gauche / droite dans la rangée. Comme dans Plex, un **appui long sur OK** (ou la touche Menu) sur une jaquette ouvre

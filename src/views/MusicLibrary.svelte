@@ -141,7 +141,7 @@
   {#if tab === "recommended" && hubs && tvRows.length}
     <TvRows rows={tvRows} header={tvHead} />
   {:else}
-    <div class="page">
+    <div class="page tv-page">
       {@render tvHead()}
       {#if error}<p class="error">{error}</p>{/if}
       {#if tab !== "recommended"}<TvGrid cards={tvItems} onEnd={loadMore} />{/if}

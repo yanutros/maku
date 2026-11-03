@@ -299,10 +299,10 @@
     {#if hubs}
       <TvRows rows={tvRows} header={tvHead} />
     {:else}
-      <div class="page">{@render tvHead()}</div>
+      <div class="page tv-page">{@render tvHead()}</div>
     {/if}
   {:else}
-    <div class="page">
+    <div class="page tv-page">
       {@render tvHead()}
       {#if error}<p class="error">{error}</p>{/if}
       {#if tab === "library"}

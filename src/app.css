@@ -323,6 +323,13 @@ html.touch .request {
 }
 
 /* Téléviseur : les flous d'arrière-plan coûtent cher aux puces des TV, on s'en passe. */
+/* Bibliothèques hors « Recommandé » : la barre d'onglets au même endroit que sur les rangées TV (TvRows,
+   en-tête à 28 px du haut et 48 px du bord), pour qu'elle ne saute pas d'un onglet à l'autre. */
+html.tv .tv-page {
+  margin-top: -68px;
+  padding: 28px 48px 48px;
+}
+
 html.tv *:not(.update-backdrop) {
   backdrop-filter: none !important;
 }
