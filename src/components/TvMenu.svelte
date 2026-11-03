@@ -32,15 +32,28 @@
     returnTo?.focus();
   }
 
-  async function run(action: () => unknown, done?: string, refresh = false) {
+  /**
+   * `after` : ce que l'action change, appliqué au titre sur place (vu, note…) : seule sa jaquette se met à
+   * jour, comme dans Plex, sans recharger la page. `true` : la page se recharge (le titre doit disparaître).
+   */
+  async function run(action: () => unknown, done?: string, after?: (() => void) | true) {
     close();
     try {
       await action();
       if (done) toast(done);
-      if (refresh) reload();
+      if (after === true) reload();
+      else after?.();
     } catch (e) {
       toast(errorText(e), true);
     }
+  }
+
+  // Vu / non vu : la progression repart de zéro, et une série n'a plus (ou a de nouveau) d'épisodes à voir.
+  function setWatched(watched: boolean) {
+    item.watched = watched;
+    item.viewOffsetMs = null;
+    // Le nombre d'épisodes à voir n'est connu qu'après rechargement : on l'efface plutôt que d'en afficher un faux.
+    if (item.unwatchedCount !== null) item.unwatchedCount = watched ? 0 : null;
   }
 
   const actions = $derived.by<Action[]>(() => {
@@ -74,14 +87,14 @@
     a.push({ icon: "star", label: item.userRating ? t("tvMenu.rated", { stars: Math.round(item.userRating / 2) }) : t("tvMenu.rate"), run: () => (rating = true) });
     if (!music) {
       if (started) a.push({ icon: "x", label: t("tvMenu.removeContinue"), run: () => run(() => api.removeFromContinue(item.ratingKey), t("tvMenu.removedContinue"), true) });
-      if (!item.watched) a.push({ icon: "checkCircle", label: t("cardMenu.markWatched"), run: () => run(() => api.setWatched(item.ratingKey, true), t("cardMenu.markedWatched"), true) });
-      if (item.watched || started) a.push({ icon: "restart", label: t("cardMenu.markUnwatched"), run: () => run(() => api.setWatched(item.ratingKey, false), t("cardMenu.markedUnwatched"), true) });
+      if (!item.watched) a.push({ icon: "checkCircle", label: t("cardMenu.markWatched"), run: () => run(() => api.setWatched(item.ratingKey, true), t("cardMenu.markedWatched"), () => setWatched(true)) });
+      if (item.watched || started) a.push({ icon: "restart", label: t("cardMenu.markUnwatched"), run: () => run(() => api.setWatched(item.ratingKey, false), t("cardMenu.markedUnwatched"), () => setWatched(false)) });
     }
     return a;
   });
 
   function rate(stars: number | null) {
-    run(() => api.rate(item.ratingKey, stars === null ? null : stars * 2), stars === null ? t("tvMenu.ratingCleared") : t("tvMenu.ratingSaved", { stars }), true);
+    run(() => api.rate(item.ratingKey, stars === null ? null : stars * 2), stars === null ? t("tvMenu.ratingCleared") : t("tvMenu.ratingSaved", { stars }), () => (item.userRating = stars === null ? null : stars * 2));
   }
 
   // Haut / bas d'une action à l'autre ; les autres flèches restent dans le panneau.

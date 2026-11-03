@@ -27,6 +27,8 @@ export interface TvCard {
   open: () => void;
   /** Titre Plex derrière la jaquette : appui long sur OK ou touche Menu ouvrent son menu (TvMenu). */
   item?: Item;
+  /** Titre vu en entier : une petite coche dans le coin de la jaquette, comme dans Plex. */
+  watched?: boolean;
   /** Tuile de catégorie : teinte du genre et affiches en éventail. */
   hue?: number;
   posters?: string[];
@@ -78,6 +80,7 @@ export function fromItem(item: Item, eyebrow: string, resume = false): TvCard {
     backdrop: item.backdrop ?? item.thumb,
     open,
     item,
+    watched: item.watched && !music,
   };
 }
 

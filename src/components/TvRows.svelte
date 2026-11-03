@@ -3,6 +3,7 @@
   import type { Snippet } from "svelte";
   import { focusTabs, moveFocus } from "../lib/spatial";
   import TitleLogo from "./TitleLogo.svelte";
+  import Icon from "./Icon.svelte";
   import type { TvRow } from "../lib/tvcards";
 
   /**
@@ -110,6 +111,7 @@
                 >
                   {#if card.image}<img src={card.image} alt="" loading="lazy" decoding="async" />{/if}
                   {#if card.progress > 0}<div class="progress"><div style:width="{card.progress}%"></div></div>{/if}
+                  {#if card.watched}<span class="watched"><Icon name="check" size={14} /></span>{/if}
                 </button>
               {/each}
             </div>
@@ -313,6 +315,20 @@
     outline: 3px solid #fff;
     outline-offset: 3px;
     transform: scale(1.05);
+  }
+
+  /* Titre vu : une petite coche discrète dans le coin, sur un rond translucide, comme dans Plex. */
+  .watched {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #00000080;
+    color: #ffffffd9;
   }
 
   .progress {

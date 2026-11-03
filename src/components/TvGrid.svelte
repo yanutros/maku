@@ -2,6 +2,7 @@
   import { menuable } from "../lib/longpress";
   import { focusTabs, moveFocus } from "../lib/spatial";
   import type { TvCard } from "../lib/tvcards";
+  import Icon from "./Icon.svelte";
 
   /**
    * Grille des téléviseurs (toute une bibliothèque, ses catégories…) : nombre de colonnes fixe,
@@ -115,6 +116,7 @@
         {#if card.image}<img src={card.image} alt="" loading="lazy" decoding="async" />{/if}
         {#if shape === "wide"}<span class="overlay">{card.label}</span>{/if}
         {#if card.progress > 0}<span class="progress"><span style:width="{card.progress}%"></span></span>{/if}
+        {#if card.watched}<span class="watched"><Icon name="check" size={14} /></span>{/if}
       </span>
       {/if}
       {#if shape !== "wide" && shape !== "tile"}<span class="label">{card.label}</span>{/if}
@@ -298,6 +300,20 @@
     background: linear-gradient(0deg, #000000c0, transparent 60%);
     font-size: 18px;
     font-weight: 800;
+  }
+
+  /* Titre vu : une petite coche discrète dans le coin, sur un rond translucide, comme dans Plex. */
+  .watched {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #00000080;
+    color: #ffffffd9;
   }
 
   .progress {
