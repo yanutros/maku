@@ -9,6 +9,7 @@
   import { playMusic } from "../lib/player.svelte";
   import TvRows from "../components/TvRows.svelte";
   import TvGrid from "../components/TvGrid.svelte";
+  import { keepTabFocus } from "../lib/spatial";
   import { device } from "../lib/device";
   import { fromItem } from "../lib/tvcards";
   import { t } from "../lib/i18n";
@@ -92,6 +93,7 @@
 
   function select(next: Tab) {
     if (next === tab) return;
+    keepTabFocus();
     tab = next;
     items = [];
     total = 0;

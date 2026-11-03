@@ -13,6 +13,7 @@
   import Icon from "../components/Icon.svelte";
   import TvRows from "../components/TvRows.svelte";
   import TvGrid from "../components/TvGrid.svelte";
+  import { keepTabFocus } from "../lib/spatial";
   import { device } from "../lib/device";
   import { fromItem, type TvCard } from "../lib/tvcards";
   import { t } from "../lib/i18n";
@@ -165,6 +166,7 @@
 
   function select(next: Tab) {
     tab = next;
+    keepTabFocus();
     error = null;
     // Un autre onglet repart du haut (sans quoi, sur téléviseur, sa première rangée resterait coupée).
     if (!initialFocus) document.querySelector(".content")?.scrollTo({ top: 0 });

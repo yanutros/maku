@@ -6,6 +6,8 @@
 // haut / bas passent d'une rangée (`data-nav-row`) à l'autre, gauche / droite restent dans la rangée.
 // Il y a toujours un élément sélectionné : à l'arrivée, après une lecture, quand il disparaît.
 
+import { tick } from "svelte";
+
 const FOCUSABLE = 'button:not(:disabled), a[href], input:not([type="hidden"]), select, textarea, [tabindex]:not([tabindex="-1"])';
 
 type Dir = "ArrowUp" | "ArrowDown" | "ArrowLeft" | "ArrowRight";
@@ -130,6 +132,19 @@ export function focusTabs(): boolean {
   tab.focus({ preventScroll: true });
   tab.scrollIntoView({ block: "nearest", behavior: "smooth" });
   return true;
+}
+
+/**
+ * Changement d'onglet fait depuis la barre d'onglets : la barre d'onglets peut être redessinée ailleurs (sur
+ * « Recommandé », elle fait partie des rangées TV), et le bouton sélectionné disparaît avec l'ancienne. On
+ * rend alors la sélection au nouvel onglet actif, au lieu de la laisser partir sur la première jaquette.
+ */
+export function keepTabFocus() {
+  if (document.activeElement?.getAttribute("role") !== "tab") return;
+  tick().then(() => {
+    const tab = document.querySelector<HTMLElement>('main [role="tablist"] [aria-selected="true"]');
+    if (tab && tab !== document.activeElement) tab.focus({ preventScroll: true });
+  });
 }
 
 /** Sans élément sélectionné : celui de la page (`data-nav-default`), sinon le premier du contenu. */
