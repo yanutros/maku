@@ -4,6 +4,9 @@
   import { go } from "../lib/nav.svelte";
   import SeerrCard from "../components/SeerrCard.svelte";
   import Row from "../components/Row.svelte";
+  import TvRows from "../components/TvRows.svelte";
+  import { device } from "../lib/device";
+  import { fromSeerr } from "../lib/tvcards";
   import { t } from "../lib/i18n";
 
   // Rangées de l'accueil de Seerr, dans le même ordre.
@@ -22,6 +25,17 @@
   let rows = $state<Record<string, SeerrMedia[] | null>>({});
   let error = $state<string | null>(null);
 
+  // Téléviseur : les mêmes rangées que l'accueil, une fois toutes chargées (une rangée arrivée en retard
+  // décalerait la sélection). Les cartes d'ordinateur ne s'y prêtent pas : leurs boutons n'apparaissent
+  // qu'au survol de la souris, la télécommande ne pouvait pas les atteindre.
+  const tvRows = $derived(
+    SOURCES.some((s) => rows[s.id] === null)
+      ? []
+      : SOURCES.map((s) => ({ title: s.title, cards: (rows[s.id] ?? []).map((m) => ({ ...fromSeerr(m), eyebrow: s.title })) })).filter(
+          (r) => r.cards.length,
+        ),
+  );
+
   onMount(() => {
     for (const s of SOURCES) {
       rows[s.id] = null;
@@ -37,6 +51,13 @@
   });
 </script>
 
+{#if device.tv && !error}
+  {#if tvRows.length}
+    <TvRows rows={tvRows} />
+  {:else}
+    <div class="page"><h1 class="row-title page-title">{t("discover.title")}</h1></div>
+  {/if}
+{:else}
 <div class="page">
   <h1 class="row-title page-title">{t("discover.title")}</h1>
   {#if error}
@@ -57,6 +78,7 @@
     {/each}
   {/if}
 </div>
+{/if}
 
 <style>
   .loading .row-title {

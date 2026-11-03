@@ -46,7 +46,74 @@ export const nav = $state({
 
 // Chaque page ouverte ajoute une entrée à l'historique du navigateur : le bouton Retour d'Android
 // (et les boutons précédent de la souris) reviennent ainsi à la page d'avant.
+/**
+ * Où l'on était sur une page : défilement et élément sélectionné (`data-key` du titre, `data-cell` de sa
+ * place dans les rangées TV). On y revient après une action qui recharge la page, et au retour d'une autre.
+ */
+export type Spot = { scroll: number; key?: string; cell?: string };
+
+// En parallèle de `nav.history` : l'endroit quitté sur chaque page de l'historique.
+const spots: Spot[] = [];
+let pendingSpot: Spot | null = null;
+
+function spot(): Spot {
+  const el = document.activeElement as HTMLElement | null;
+  return {
+    scroll: document.querySelector(".content")?.scrollTop ?? 0,
+    key: el?.closest<HTMLElement>("[data-key]")?.dataset.key,
+    cell: el?.closest<HTMLElement>("[data-cell]")?.dataset.cell,
+  };
+}
+
+/** L'endroit où reprendre la vue qui s'affiche (une seule fois), ou null pour repartir du haut. */
+export function takeSpot(): Spot | null {
+  const s = pendingSpot;
+  pendingSpot = null;
+  return s;
+}
+
+/**
+ * Ramène la page rechargée à l'endroit quitté. Ses données arrivent après coup : on attend (5 s au plus)
+ * que la page soit assez haute et que l'élément réapparaisse. Une touche ou un clic de l'utilisateur arrête tout.
+ */
+export function restoreSpot(content: HTMLElement, s: Spot) {
+  const started = Date.now();
+  let timer: ReturnType<typeof setTimeout>;
+  const stop = () => {
+    clearTimeout(timer);
+    removeEventListener("keydown", stop, true);
+    removeEventListener("pointerdown", stop, true);
+  };
+  addEventListener("keydown", stop, true);
+  addEventListener("pointerdown", stop, true);
+  const target = (): HTMLElement | null => {
+    const same = s.key ? [...content.querySelectorAll<HTMLElement>("[data-key]")].filter((el) => el.dataset.key === s.key) : [];
+    const atCell = (el: HTMLElement) => el.closest<HTMLElement>("[data-cell]")?.dataset.cell === s.cell;
+    // Le même titre à la même place, sinon ailleurs ; sinon (retiré de sa rangée) celui qui l'a remplacé.
+    const holder =
+      same.find(atCell) ?? same[0] ?? (s.cell ? [...content.querySelectorAll<HTMLElement>("[data-cell]")].find((el) => el.dataset.cell === s.cell) : undefined);
+    if (!holder) return null;
+    return holder.matches("button, a[href], [tabindex]") ? holder : holder.querySelector<HTMLElement>("button, a[href], [tabindex]");
+  };
+  const attempt = () => {
+    const el = target();
+    const tall = content.scrollHeight - content.clientHeight >= s.scroll;
+    const late = Date.now() - started > 5000;
+    if (tall || late) content.scrollTop = s.scroll;
+    // Sur téléviseur, la sélection compte autant que le défilement.
+    const tv = document.documentElement.classList.contains("tv");
+    if (tall && (el || !tv || !(s.key || s.cell))) {
+      if (el && tv) el.focus({ preventScroll: true });
+      return stop();
+    }
+    if (late) return stop();
+    timer = setTimeout(attempt, 100);
+  };
+  attempt();
+}
+
 export function go(view: View) {
+  spots.push(spot());
   nav.history.push(nav.view);
   nav.view = view;
   history.pushState({ plexr: nav.history.length }, "");
@@ -54,6 +121,7 @@ export function go(view: View) {
 
 /** Recharge la vue affichée (après une modification). */
 export function reload() {
+  pendingSpot = spot();
   nav.view = { ...nav.view };
 }
 
@@ -78,7 +146,10 @@ export function setupBackButton() {
       return;
     }
     const previous = nav.history.pop();
-    if (previous) nav.view = previous;
+    if (previous) {
+      pendingSpot = spots.pop() ?? null;
+      nav.view = previous;
+    }
   });
 }
 

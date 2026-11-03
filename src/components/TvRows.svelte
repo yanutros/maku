@@ -101,6 +101,7 @@
                 <button
                   class="card"
                   data-cell="{ri}-{ci}"
+                  data-key={card.key}
                   tabindex={ri === row ? 0 : -1}
                   data-nav-default={ri === row && ci === col(ri) ? "" : undefined}
                   onclick={card.open}

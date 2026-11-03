@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { api, type Section, type Session } from "./lib/api";
-  import { back, go, nav, onBack } from "./lib/nav.svelte";
+  import { back, go, nav, onBack, restoreSpot, takeSpot } from "./lib/nav.svelte";
   import { player, stop } from "./lib/player.svelte";
   import Login from "./views/Login.svelte";
   import ServerPicker from "./views/ServerPicker.svelte";
@@ -78,10 +78,13 @@
     document.documentElement.style.setProperty("--sidebar-w", device.phone ? "0px" : sidebar.collapsed ? "73px" : "237px");
   });
 
-  // Chaque nouvelle vue repart du haut.
+  // Chaque nouvelle vue repart du haut ; une page rechargée ou retrouvée (Retour) reprend où on l'avait quittée.
   $effect(() => {
     void nav.view;
-    content?.scrollTo({ top: 0 });
+    if (!content) return;
+    const spot = takeSpot();
+    if (spot) restoreSpot(content, spot);
+    else content.scrollTo({ top: 0 });
   });
 
   // Sur téléviseur et téléphone, la page de recherche s'ouvre sur le champ de saisie.

@@ -175,12 +175,18 @@ export function moveFocus(dir: Dir): boolean {
   const all = [...scope().querySelectorAll<HTMLElement>(FOCUSABLE)].filter(
     (el) => el !== current && el.tabIndex >= 0 && visible(el),
   );
-  if (!all.length) return false;
   const from =
     current && current !== document.body
       ? current.getBoundingClientRect()
       : new DOMRect(window.innerWidth / 2, 0, 0, 0);
-  let target = best(from, dir, all);
+  let target = all.length ? best(from, dir, all) : null;
+  // Haut depuis le premier élément d'une page descendue : on remonte d'abord tout en haut, pour revoir
+  // ce qui n'a rien à sélectionner (bandeau des statistiques…), avant de quitter le contenu.
+  const content = document.querySelector<HTMLElement>(".content");
+  if (dir === "ArrowUp" && current && content?.contains(current) && content.scrollTop > 0 && (!target || !content.contains(target))) {
+    content.scrollTo({ top: 0, behavior: "smooth" });
+    return true;
+  }
   if (!target) return false;
   // En changeant de zone, on retrouve l'élément quitté s'il est encore à l'écran.
   const into = zone(target);
