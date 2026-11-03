@@ -24,6 +24,7 @@
   <a href="#%EF%B8%8F-configurer">Configurer</a> ·
   <a href="#-développer">Développer</a> ·
   <a href="#-confidentialité">Confidentialité</a> ·
+  <a href="#-signature-du-code">Code signing policy</a> ·
   <a href="#%EF%B8%8F-mentions-légales">Mentions légales</a> ·
   <a href="#-soutenir-maku">Soutenir</a> ·
   <a href="#-licence">Licence</a>
@@ -210,7 +211,7 @@ Les paquets de chaque version sont publiés dans les [Releases](../../releases) 
 
 | Système | Fichier | Installation |
 | --- | --- | --- |
-| 🪟 **Windows** | `Maku_<version>_x64-setup.exe` (ou `.msi`) | lancez l'installeur : mpv est inclus, rien d'autre à installer |
+| 🪟 **Windows** | `Maku_<version>_x64-setup.exe` (ou `.msi`) | lancez l'installeur : mpv est inclus, rien d'autre à installer (voir aussi [Signature du code](#-signature-du-code)) |
 | 🎩 **Fedora / RHEL** | `Maku-<version>-1.x86_64.rpm` | `sudo dnf install ./Maku-*.rpm` (installe aussi mpv) |
 | 🐧 **Debian / Ubuntu** | `Maku_<version>_amd64.deb` | `sudo apt install ./Maku_*.deb` (installe aussi mpv) |
 | 📦 **Autres Linux** | `Maku_<version>_amd64.AppImage` | rendez-le exécutable (`chmod +x`), installez mpv avec votre gestionnaire de paquets |
@@ -271,8 +272,8 @@ celle de la voiture, et inversement.
 > de Maku dans la voiture ouvre seulement l'application sur le téléphone.
 
 En cas de problème en voiture, la voiture affiche la cause (serveur à choisir,
-téléphone à déverrouiller une première fois, compte Plex absent, serveur injoignable) et **Réglages → Compte** sur
-le téléphone garde un journal de ce que la voiture a demandé. Android Auto ne connaît pour l'instant que Plex.
+téléphone à déverrouiller une première fois, compte Plex absent, serveur injoignable). Android Auto ne connaît
+pour l'instant que Plex.
 
 > [!NOTE]
 > **Lecture sur Android** : il n'y a pas de mpv. La vidéo est lue par ExoPlayer, le lecteur natif qu'utilisent
@@ -318,8 +319,8 @@ reste pas deux ; sur Linux et macOS, l'ancien Plexr peut être supprimé à la m
 ### Pourquoi pas encore de Flatpak ?
 
 Flatpak est le meilleur format pour toucher toutes les distributions via Flathub, mais il demande d'embarquer mpv
-dans le bac à sable et Flathub n'accepte que les projets publics. Il viendra avec l'ouverture du dépôt ; d'ici là,
-le RPM est la solution la plus simple sous Fedora (mises à jour par `dnf`, mpv venant des dépôts officiels).
+dans le bac à sable et de passer la relecture de Flathub. D'ici là, le RPM est la solution la plus simple sous
+Fedora (mises à jour par `dnf`, mpv venant des dépôts officiels).
 
 ### Compiler soi-même
 
@@ -347,7 +348,7 @@ Sous Windows, `scripts/fetch-mpv.mjs` télécharge d'abord une version épinglé
 dans `src-tauri/mpv-win/` (ignoré par git) : l'installeur la dépose dans `Maku\mpv\`, où Maku la trouve. Un
 chemin de mpv indiqué dans **Réglages → Lecteur** reste prioritaire.
 
-**Android.** Il faut en plus le JDK 17, le SDK Android (plateforme 36, build-tools, platform-tools) et le NDK,
+**Android.** Il faut en plus le JDK 17, le SDK Android (plateforme 37, build-tools, platform-tools) et le NDK,
 avec les variables `JAVA_HOME`, `ANDROID_HOME` et `NDK_HOME`, ainsi que les cibles Rust
 (`rustup target add aarch64-linux-android armv7-linux-androideabi`). Sous Windows, le **mode développeur** doit
 être activé (Tauri crée des liens symboliques). Le projet Android est versionné dans `src-tauri/gen/android`.
@@ -366,6 +367,14 @@ Le workflow [`.github/workflows/paquets.yml`](.github/workflows/paquets.yml) con
 systèmes sur GitHub Actions et les joint à une version en brouillon. Il se lance en poussant une étiquette
 (`git tag v0.2.0 && git push origin v0.2.0`, après avoir mis à jour la version dans `package.json`,
 `src-tauri/Cargo.toml` et `src-tauri/tauri.conf.json`) ou à la main depuis l'onglet **Actions**.
+
+Sous Windows, `plexr.exe` est signé avant d'être empaqueté, puis l'installeur NSIS et le MSI le sont à leur tour,
+par [SignPath](https://signpath.io) : le workflow attend que chacune des deux demandes de signature soit approuvée
+dans SignPath (voir [Signature du code](#-signature-du-code)). Il lui faut le secret `SIGNPATH_API_TOKEN` et les
+variables de dépôt `SIGNPATH_ORGANIZATION_ID`, `SIGNPATH_PROJECT_SLUG` et `SIGNPATH_POLICY_SLUG` ; les
+configurations d'artefact à déclarer dans SignPath (`exe` et `installeurs`) sont dans
+[`.signpath/artifact-configurations/`](.signpath/artifact-configurations). Sans ces variables, les paquets
+Windows sont construits sans signature.
 
 L'APK Android est compilé et signé sur l'ordinateur du mainteneur (la clé de signature ne quitte pas sa
 machine), puis ajouté à la version avec `gh release upload`.
@@ -425,10 +434,10 @@ vidéo, les touches lecture / pause et suivant / précédent de la télécommand
 | M | Couper le son | |
 | F | Plein écran (double-clic aussi) | |
 | Touches multimédia | Lecture / pause, épisode suivant / précédent | Lecture / pause, suivant, précédent |
+| Échap | Quitter le plein écran, puis le lecteur | Fermer la file d'attente ou la vue « En cours de lecture » |
 
 Sous Linux, GNOME et KDE gardent les touches multimédia pour eux : Maku se déclare comme lecteur **MPRIS**, elles
 lui parviennent donc même sans la fenêtre au premier plan, et ce qui joue apparaît dans les commandes du bureau.
-| Échap | Quitter le plein écran, puis le lecteur | Fermer la file d'attente ou la vue « En cours de lecture » |
 
 ### 🧭 Menu latéral
 
@@ -573,7 +582,7 @@ traduisez les valeurs sans toucher aux clés ni aux `{{variables}}`, puis décla
 | `src-tauri/gen/android/` | projet Android : manifeste (Android TV, bannière, icônes par couleur), signature, détection du téléviseur et du téléphone, barres système, vidéo en paysage (`MainActivity.kt`), lecteur vidéo natif sous la page (`NativeVideo.kt`), musique en arrière-plan, notification et Android Auto (`MediaService.kt`, bibliothèque lue auprès de Plex dans `PlexLibrary.kt`, pochettes servies à la voiture par `ArtProvider.kt`) |
 | `src/components/PhoneTabs.svelte`, `src/views/Libraries.svelte` | téléphone : barre d'onglets et liste des bibliothèques |
 | `src-tauri/tauri.conf.json`, `tauri.windows.conf.json` | configuration et paquets ; la fenêtre transparente n'est activée que sous Windows |
-| `.github/workflows/paquets.yml` | construction des paquets Windows, Linux et macOS (l'APK est construit à part) |
+| `.github/workflows/paquets.yml`, `.signpath/` | construction des paquets Windows, Linux et macOS, signature des paquets Windows par SignPath (l'APK est construit à part) |
 
 Sous Windows, pendant une vidéo, la fenêtre Tauri devient transparente et mpv dessine l'image dessous : l'interface
 web n'affiche plus que la barre de contrôle par-dessus. Ailleurs, mpv ouvre sa propre fenêtre et Maku devient une
@@ -595,6 +604,27 @@ Maku par un « Job Object » qui le fait fermer par le système même si Maku pl
   le jeton Plex et les cookies de session Tracearr **en clair** : ne la partagez pas.
 - Les affiches et images affichées viennent de votre serveur Plex, de Seerr ou de TMDB, comme dans leurs propres
   applications.
+
+## 🔏 Signature du code
+
+**Code signing policy** — Free code signing provided by [SignPath.io](https://about.signpath.io/), certificate by
+[SignPath Foundation](https://signpath.org/).
+
+L'application et les installeurs Windows sont signés dès que SignPath Foundation a accepté le projet (les versions
+précédentes ne le sont pas) : Windows et son antivirus reconnaissent ainsi l'éditeur, au lieu de traiter chaque
+nouvelle version comme un programme inconnu, parfois à tort comme un logiciel malveillant. Seuls sont signés les fichiers construits par
+GitHub Actions à partir du code de ce dépôt, et chaque signature est approuvée à la main. mpv, inclus dans
+l'installeur, est un programme tiers qui n'est pas signé par Maku.
+
+| Rôle | Membres |
+| --- | --- |
+| Auteurs (modifient le code) | [yanutros](https://github.com/yanutros) |
+| Relecteurs (relisent toute contribution extérieure) | [yanutros](https://github.com/yanutros) |
+| Approbateurs (approuvent chaque signature) | [yanutros](https://github.com/yanutros) |
+
+Confidentialité : voir [Confidentialité](#-confidentialité) ci-dessus. Maku ne communique qu'avec les services que
+l'utilisateur utilise ou configure (serveur Plex ou Jellyfin, plex.tv, Seerr, Tracearr, TMDB, YouTube pour les
+bandes-annonces qu'il ouvre) et avec l'API publique de GitHub pour les mises à jour.
 
 ## ⚖️ Mentions légales
 

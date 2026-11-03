@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Configuration d'artefact SignPath « installeurs » : l'archive envoyée par paquets.yml contient
+     l'installeur NSIS et le MSI de Windows, construits avec le plexr.exe déjà signé. -->
+<artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
+  <parameters>
+    <parameter name="version" />
+  </parameters>
+  <zip-file>
+    <pe-file path="nsis/Maku_${version}_x64-setup.exe" product-name="Maku">
+      <authenticode-sign />
+    </pe-file>
+    <msi-file path="msi/Maku_${version}_x64_en-US.msi">
+      <authenticode-sign />
+    </msi-file>
+  </zip-file>
+</artifact-configuration>

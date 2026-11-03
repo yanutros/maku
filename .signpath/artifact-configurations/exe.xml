@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Configuration d'artefact SignPath « exe » : plexr.exe seul, signé avant d'être empaqueté.
+     Le workflow paquets.yml l'envoie sans archive (archive: false) et passe la version de package.json. -->
+<artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
+  <parameters>
+    <parameter name="version" />
+  </parameters>
+  <pe-file product-name="Maku" product-version="${version}">
+    <authenticode-sign />
+  </pe-file>
+</artifact-configuration>

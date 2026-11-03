@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: write
+  actions: read
 
 jobs:
   paquets:
@@ -17,9 +18,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - nom: Windows (installeur NSIS et MSI)
-            os: windows-latest
-            args: ""
           - nom: Linux (RPM, DEB et AppImage)
             os: ubuntu-22.04
             args: ""
@@ -60,12 +58,124 @@ jobs:
           releaseBody: |
             Paquets de Maku v__VERSION__.
 
-            - **Windows** : `Maku_…_x64-setup.exe` (ou le `.msi`).
+            - **Windows** : `Maku_…_x64-setup.exe` (ou le `.msi`), signés via SignPath.
             - **Fedora / RHEL** : `Maku-….x86_64.rpm` — `sudo dnf install ./Maku-*.rpm` (installe aussi mpv).
             - **Debian / Ubuntu** : `Maku_…_amd64.deb` — `sudo apt install ./Maku_*.deb`.
             - **Autres Linux** : `Maku_…_amd64.AppImage` (mpv à installer avec le gestionnaire de paquets).
             - **macOS** : `Maku_…_universal.dmg` (mpv : `brew install mpv`). L'application n'est pas signée :
               au premier lancement, clic droit sur Maku → Ouvrir.
+
+            Code signing policy : https://github.com/yanutros/maku#-signature-du-code
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
+
+  # Windows à part : plexr.exe est signé avant d'être empaqueté, puis les installeurs à leur tour
+  # (SignPath Foundation, chaque signature approuvée à la main dans SignPath). Tant que la variable
+  # de dépôt SIGNPATH_ORGANIZATION_ID n'existe pas, les paquets sont construits sans signature.
+  # Ce job attend les autres pour que la version brouillon existe déjà.
+  windows:
+    name: Windows (installeur NSIS et MSI)
+    needs: paquets
+    runs-on: windows-latest
+    env:
+      SIGNER: ${{ vars.SIGNPATH_ORGANIZATION_ID != '' }}
+      BUNDLE: src-tauri/target/release/bundle
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - run: npm ci
+
+      - name: Version
+        id: version
+        shell: bash
+        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Compiler Maku
+        run: npx tauri build --no-bundle
+
+      - name: Envoyer plexr.exe à SignPath
+        id: exe-non-signe
+        if: env.SIGNER == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: plexr-exe-non-signe
+          path: src-tauri/target/release/plexr.exe
+          archive: false
+
+      - name: Signer plexr.exe
+        if: env.SIGNER == 'true'
+        uses: signpath/github-action-submit-signing-request@v3
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ vars.SIGNPATH_POLICY_SLUG }}
+          artifact-configuration-slug: exe
+          github-artifact-id: ${{ steps.exe-non-signe.outputs.artifact-id }}
+          skip-decompress: true
+          wait-for-completion-timeout-in-seconds: 7200
+          output-artifact-directory: signe/exe
+          parameters: |
+            version: "${{ steps.version.outputs.version }}"
+
+      - name: Remplacer plexr.exe par sa version signée
+        if: env.SIGNER == 'true'
+        shell: pwsh
+        run: |
+          $signe = Get-ChildItem signe/exe -Filter *.exe -Recurse | Select-Object -First 1
+          if ((Get-AuthenticodeSignature $signe.FullName).Status -ne 'Valid') { throw "plexr.exe n'est pas signé" }
+          Copy-Item $signe.FullName src-tauri/target/release/plexr.exe -Force
+
+      - name: Construire les installeurs
+        run: npx tauri bundle --bundles nsis,msi
+
+      - name: Envoyer les installeurs à SignPath
+        id: installeurs-non-signes
+        if: env.SIGNER == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: installeurs-non-signes
+          path: |
+            ${{ env.BUNDLE }}/nsis/*.exe
+            ${{ env.BUNDLE }}/msi/*.msi
+
+      - name: Signer les installeurs
+        if: env.SIGNER == 'true'
+        uses: signpath/github-action-submit-signing-request@v3
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ vars.SIGNPATH_POLICY_SLUG }}
+          artifact-configuration-slug: installeurs
+          github-artifact-id: ${{ steps.installeurs-non-signes.outputs.artifact-id }}
+          wait-for-completion-timeout-in-seconds: 7200
+          output-artifact-directory: signe/installeurs
+          parameters: |
+            version: "${{ steps.version.outputs.version }}"
+
+      - name: Joindre les installeurs à la version
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $dossier = if ($env:SIGNER -eq 'true') { 'signe/installeurs' } else { $env:BUNDLE }
+          $fichiers = Get-ChildItem $dossier -Recurse -Include *-setup.exe, *.msi
+          if ($env:SIGNER -eq 'true') {
+            foreach ($f in $fichiers) {
+              if ((Get-AuthenticodeSignature $f.FullName).Status -ne 'Valid') { throw "$($f.Name) n'est pas signé" }
+            }
+          }
+          gh release upload "v${{ steps.version.outputs.version }}" $fichiers.FullName --clobber
