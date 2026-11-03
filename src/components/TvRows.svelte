@@ -38,6 +38,13 @@
   function onFocusIn(e: FocusEvent) {
     const cell = (e.target as HTMLElement).dataset.cell;
     if (!cell) return;
+    // Tout bouge par translation : un défilement natif (scrollIntoView venu d'ailleurs) décalerait les
+    // rangées hors de l'écran, on l'annule.
+    for (const el of [root, ...(root?.querySelectorAll<HTMLElement>(".rows, .viewport") ?? [])]) {
+      if (!el) continue;
+      el.scrollTop = 0;
+      el.scrollLeft = 0;
+    }
     const [r, c] = cell.split("-").map(Number);
     row = r;
     cols[r] = c;

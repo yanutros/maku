@@ -304,7 +304,7 @@ pour l'instant que Plex.
 > audio, sous-titres, distribution, « Plus de ce genre »), gauche / droite dans la rangée. Comme dans Plex, un **appui long sur OK** (ou la touche Menu) sur une jaquette ouvre
 > le menu du titre : reprendre ou recommencer, liste de visionnage, note, retrait de « Continuer à regarder »,
 > vu / non vu, et pour la musique lecture aléatoire, aller à l'artiste ou à l'album. Après un choix du menu,
-> comme au retour d'une fiche (bouton Retour), la page reste là où vous étiez, sur la même jaquette.
+> comme au retour d'une fiche (bouton Retour), la page reste là où vous étiez, sur la même rangée et la même jaquette.
 > Vu, non vu et la note s'appliquent sur place, sans recharger la page, et une petite coche discrète marque
 > les titres vus, comme dans Plex.
 > **Découvrir** reprend les rangées de l'accueil, et la flèche haut remonte toujours une page jusqu'à son

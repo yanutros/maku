@@ -220,7 +220,9 @@
     }
     await tick();
     if (scroller && initialScroll) scroller.scrollTop = initialScroll;
-    if (!initialFocus || !device.tv) return;
+    // Les rangées de « Recommandé » retrouvent leur jaquette d'elles-mêmes (restoreSpot, place dans la
+    // rangée) : les faire défiler ici les décalerait hors de l'écran.
+    if (!initialFocus || !device.tv || tab === "recommended") return;
     // La jaquette est cherchée par comparaison directe des clés (un sélecteur CSS échappé sur une clé
     // numérique s'est avéré peu fiable), et le focus est redonné tant que la page qui s'installe le
     // reprend (grille qui se dessine, sélection par défaut).
