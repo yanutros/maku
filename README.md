@@ -226,6 +226,12 @@ Maku s'ouvre ensuite comme n'importe quel logiciel (menu Démarrer, lanceur d'ap
 > fenêtre de Maku n'existe pour l'instant que sous Windows. La musique fonctionne partout de la même façon.
 
 > [!IMPORTANT]
+> **Fedora** : le mpv des dépôts Fedora s'appuie sur `ffmpeg-free`, qui ne sait décoder ni le H.264, ni le HEVC,
+> ni l'E-AC3 : la plupart des films s'arrêtent dès l'ouverture. Installez le FFmpeg complet de
+> [RPM Fusion](https://rpmfusion.org/Configuration) (dépôts « free » activés) :
+> `sudo dnf swap ffmpeg-free ffmpeg --allowerasing`.
+
+> [!IMPORTANT]
 > **macOS** : l'application n'est pas signée par Apple. Au premier lancement, faites un clic droit sur Maku →
 > **Ouvrir**, puis confirmez.
 
