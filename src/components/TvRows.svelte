@@ -91,7 +91,10 @@
   {#if current}
     <div class="spotlight">
       <div class="eyebrow">{current.eyebrow}</div>
-      <h1><TitleLogo logo={current.logo} guid={current.logoGuid} genres={current.genres} title={current.title} /></h1>
+      <!-- Musique (pochettes carrées, artistes ronds) : pas de logo officiel, le titre en texte simple. -->
+      <h1>
+        {#if current.shape === "square" || current.shape === "round"}{current.title}{:else}<TitleLogo logo={current.logo} guid={current.logoGuid} genres={current.genres} title={current.title} />{/if}
+      </h1>
       {#if current.line}<div class="line">{current.line}</div>{/if}
       {#if current.summary}<p>{current.summary}</p>{/if}
     </div>
