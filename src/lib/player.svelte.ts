@@ -3,6 +3,7 @@ import { listen } from "@tauri-apps/api/event";
 import { untrack } from "svelte";
 import type { QueueTrack } from "./api";
 import { t } from "./i18n";
+import { device } from "./device";
 
 export interface MpvTrack {
   id: number;
@@ -182,7 +183,8 @@ export async function playMusic(
 ) {
   const wasExpanded = player.expanded && !player.video;
   reset(false);
-  player.expanded = wasExpanded;
+  // Téléviseur : le lecteur plein écran s'ouvre, comme dans Plex.
+  player.expanded = wasExpanded || device.tv;
   try {
     const q = await invoke<{ session: string; tracks: QueueTrack[]; index: number }>(
       player.web ? "music_queue" : "play_music",

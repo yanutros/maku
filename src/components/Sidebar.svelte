@@ -6,6 +6,7 @@
   import Logo from "./Logo.svelte";
   import Wordmark from "./Wordmark.svelte";
   import { device } from "../lib/device";
+  import { current, player } from "../lib/player.svelte";
   import { t } from "../lib/i18n";
 
   let { sections, serverName }: { sections: Section[]; serverName: string | null } = $props();
@@ -96,6 +97,12 @@
   </div>
 
   <nav>
+    <!-- Téléviseur : la musique en cours, en tête du menu (le lecteur plein écran s'ouvre). -->
+    {#if device.tv && player.active && !player.video && current()}
+      <button class="item playing" onclick={() => (player.expanded = true)} title={t("common.c1.nowPlaying")}>
+        <Icon name="music" /> <span class="label">{t("common.c1.nowPlaying")}</span>
+      </button>
+    {/if}
     {#if !device.phone}
       <button class="item" class:active={isActive("search")}
             aria-current={isActive("search") ? "page" : undefined} onclick={() => open({ name: "search", query: "" })} title={t("sidebar.search")}>
@@ -299,6 +306,10 @@
   }
 
   .item.active :global(svg) {
+    color: var(--accent);
+  }
+
+  .item.playing :global(svg) {
     color: var(--accent);
   }
 

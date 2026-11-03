@@ -21,6 +21,8 @@
   import PlayerOverlay from "./components/PlayerOverlay.svelte";
   import MusicBar from "./components/MusicBar.svelte";
   import NowPlaying from "./components/NowPlaying.svelte";
+  import TvNowPlaying from "./components/TvNowPlaying.svelte";
+  import TvMiniPlayer from "./components/TvMiniPlayer.svelte";
   import Icon from "./components/Icon.svelte";
   import Logo from "./components/Logo.svelte";
   import Wordmark from "./components/Wordmark.svelte";
@@ -187,13 +189,13 @@
       </div>
     </main>
   </div>
-  {#if listening}<MusicBar />{/if}
+  {#if listening}{#if device.tv}<TvMiniPlayer />{:else}<MusicBar />{/if}{/if}
   {#if device.phone && !watching}<PhoneTabs />{/if}
   </div>
 {/if}
 
 {#if listening && player.expanded}
-  <NowPlaying />
+  {#if device.tv}<TvNowPlaying />{:else}<NowPlaying />{/if}
 {/if}
 
 {#if watching}

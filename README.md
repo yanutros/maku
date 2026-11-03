@@ -307,6 +307,9 @@ pour l'instant que Plex.
 > comme au retour d'une fiche (bouton Retour), la page reste là où vous étiez, sur la même rangée et la même jaquette.
 > Vu, non vu et la note s'appliquent sur place, sans recharger la page, et une petite coche discrète marque
 > les titres vus, comme dans Plex.
+> La musique a son lecteur plein écran, comme dans Plex : la pochette en grand, les commandes qui s'effacent au
+> repos, et la file d'attente en rangée de pochettes (flèche bas). Pendant qu'on parcourt les pages, une petite
+> vignette rappelle le titre en cours, et « En cours de lecture », en tête du menu, rouvre le lecteur.
 > **Découvrir** reprend les rangées de l'accueil, et la flèche haut remonte toujours une page jusqu'à son
 > bandeau (celui des statistiques, par exemple) avant de rejoindre le menu.
 
