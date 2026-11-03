@@ -393,7 +393,8 @@ machine), puis ajouté à la version avec `gh release upload`.
    que de faire le tour par l'adresse publique.
 3. Parcourez vos bibliothèques et lancez une lecture. Sur la fiche d'un film ou d'une série, **Bande-annonce**
    cherche celle du serveur (extra Plex, fichier local Jellyfin, lien YouTube de la fiche Jellyfin), sinon celle
-   de TMDB avec votre clé (dans la langue de l'interface, puis en anglais) ; une vidéo YouTube s'ouvre par-dessus
+   de TMDB avec votre clé — dans la langue de l'interface d'abord (une bande-annonce du serveur dont le titre dit
+   « French », ou celle de TMDB en français), sinon n'importe laquelle ; une vidéo YouTube s'ouvre par-dessus
    la page, Retour la ferme. Pendant un épisode, **Passer l'intro** et **Passer le générique** apparaissent sur les
    repères détectés par le serveur : Plex les fournit à tous les comptes (seules ses propres applications
    réservent le bouton au Plex Pass) ; Jellyfin via ses segments (10.10 et plus, plugin Intro Skipper). En
