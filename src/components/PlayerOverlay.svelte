@@ -269,8 +269,8 @@
           {#if player.subtitle}<div class="subtitle">{player.subtitle}</div>{/if}
           <div class="title">{player.title}</div>
         </div>
-        <!-- Avec un flux converti (navigateur), l'audio et les sous-titres se choisissent sur la fiche. -->
-        {#if !player.web || player.native}
+        <!-- Flux converti (iPad, navigateur) : les pistes viennent de la fiche Plex, et en changer relance le flux. -->
+        {#if !player.web || player.native || player.tracks.length}
           <div class="pills">
             <div class="menu-anchor">
               <button

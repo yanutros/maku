@@ -1,7 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { untrack } from "svelte";
-import type { QueueTrack } from "./api";
+import type { ItemDetail, QueueTrack } from "./api";
 import { t } from "./i18n";
 
 export interface MpvTrack {
@@ -158,6 +158,21 @@ export async function play(ratingKey: string, opts: PlayOptions = {}) {
       }>("video_stream", { ratingKey, ...streams });
       Object.assign(player, { session: s.session, title: s.title, subtitle: s.subtitle, duration: s.durationMs / 1000 });
       web.startVideo(s.url, opts.fromStart ? 0 : s.offsetMs / 1000);
+      // Pistes de la fiche (identifiants Plex), pour en changer pendant la lecture (iPad, navigateur).
+      api_metadata(ratingKey).then(
+        (d) => {
+          if (player.ratingKey !== ratingKey || player.native) return;
+          player.tracks = [
+            ...d.audioTracks.map((tr) => ({ id: tr.id, type: "audio" as const, title: tr.label })),
+            ...d.subtitleTracks.map((tr) => ({ id: tr.id, type: "sub" as const, title: tr.label })),
+          ];
+          player.aid = streams.audioStream ?? d.audioTracks.find((tr) => tr.selected)?.id ?? null;
+          // Sous-titres : 0 demande « aucun » ; sans choix, ceux que Plex retient pour ce titre.
+          player.sid =
+            streams.subtitleStream === 0 ? null : (streams.subtitleStream ?? d.subtitleTracks.find((tr) => tr.selected)?.id ?? null);
+        },
+        () => {},
+      );
       return;
     }
     const now = await invoke<{ session: string; title: string; subtitle: string | null; embedded: boolean }>("play", {
@@ -226,6 +241,8 @@ export function previous() {
 export function next() {
   mpv("playlist-next");
 }
+
+const api_metadata = (ratingKey: string) => invoke<ItemDetail>("plex_metadata", { ratingKey });
 
 export function trackLabel(track: MpvTrack): string {
   const parts = [track.title, track.lang?.toUpperCase()].filter(Boolean);
@@ -371,6 +388,29 @@ const web = (() => {
     }
   }
 
+  /**
+   * Flux converti : une autre piste audio ou d'autres sous-titres demandent un nouveau flux au serveur,
+   * repris au même moment (les sous-titres y sont incrustés). L'ancienne conversion est libérée.
+   */
+  async function switchStream(kind: "aid" | "sid", value: unknown) {
+    const key = player.ratingKey;
+    const at = player.position;
+    const audioStream = kind === "aid" ? Number(value) : player.aid;
+    const subtitleStream = kind === "sid" ? (value === "no" ? 0 : Number(value)) : (player.sid ?? 0);
+    const previous = player.session;
+    try {
+      const s = await invoke<{ session: string; url: string }>("video_stream", { ratingKey: key, audioStream, subtitleStream });
+      if (player.ratingKey !== key || !videoEl) return;
+      invoke("stop_transcode", { session: previous }).catch(() => {});
+      Object.assign(player, { session: s.session, aid: audioStream, sid: subtitleStream || null, buffering: true });
+      hls?.destroy();
+      hls = null;
+      load(videoEl, s.url, at);
+    } catch {
+      // Le flux en cours continue tel quel.
+    }
+  }
+
   async function load(el: HTMLVideoElement, url: string, offset: number) {
     el.addEventListener("loadedmetadata", () => offset > 0 && (el.currentTime = offset), { once: true });
     // Le lecteur d'Android et d'iOS lit le HLS nativement ; sinon hls.js s'en charge.
@@ -451,6 +491,7 @@ const web = (() => {
           else if (a === "mute") el.muted = !!b;
           else if (a === "playlist-pos") playTrack(Number(b));
           else if (a === "loop-playlist") player.repeat = b !== "no";
+          else if ((a === "aid" || a === "sid") && player.video) switchStream(a, b);
           break;
         case "playlist-next":
           if (player.index < player.queue.length - 1) playTrack(player.index + 1);

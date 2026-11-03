@@ -1,0 +1,38 @@
+<!doctype html>
+<!-- Icône de l'app iPad (1024×1024) : le même soleil que logo.html, sur un carré plein et opaque, qu'iPadOS
+     arrondit lui-même (des coins transparents y deviendraient noirs). Rendu :
+     msedge --headless=new --window-size=1024,1024 --screenshot=src-tauri/icons/ios.png docs/logo-ios.html -->
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      html,
+      body {
+        margin: 0;
+        width: 1024px;
+        height: 1024px;
+        overflow: hidden;
+        background: #0c0c0c;
+      }
+
+      svg {
+        display: block;
+        width: 1024px;
+        height: 1024px;
+      }
+    </style>
+  </head>
+  <body>
+    <svg viewBox="0 0 512 512">
+      <defs>
+        <mask id="stripes">
+          <rect width="512" height="512" fill="#fff" />
+          <rect y="282" width="512" height="12" fill="#000" />
+          <rect y="318" width="512" height="18" fill="#000" />
+          <rect y="360" width="512" height="24" fill="#000" />
+        </mask>
+      </defs>
+      <circle cx="256" cy="256" r="164" fill="#f5b700" mask="url(#stripes)" />
+    </svg>
+  </body>
+</html>
