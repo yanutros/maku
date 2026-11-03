@@ -555,4 +555,18 @@
   .collapsed .profile .gear {
     display: none;
   }
+
+  /* Téléviseur : sa colonne garde la largeur du menu replié (App.svelte) ; déplié, le menu s'élargit
+     par-dessus et la page glisse d'autant vers la droite, comme dans Wholphin. Seul le menu change de
+     taille : la page n'est jamais remise en page pendant l'animation (c'est ce qui saccadait). */
+  :global(html.tv) aside {
+    position: relative;
+    z-index: 30;
+    width: 226px;
+    transition: width 0.25s var(--ease);
+  }
+
+  :global(html.tv) aside.collapsed {
+    width: 62px;
+  }
 </style>

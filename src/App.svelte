@@ -75,7 +75,7 @@
 
   // Largeur de la barre latérale, reprise par les fonds plein écran des fiches.
   $effect(() => {
-    document.documentElement.style.setProperty("--sidebar-w", device.phone ? "0px" : sidebar.collapsed ? "73px" : "237px");
+    document.documentElement.style.setProperty("--sidebar-w", device.phone ? "0px" : sidebar.collapsed || device.tv ? "73px" : "237px");
   });
 
   // Chaque nouvelle vue repart du haut ; une page rechargée ou retrouvée (Retour) reprend où on l'avait quittée.
@@ -257,6 +257,22 @@
 
   .shell.collapsed {
     grid-template-columns: 72px minmax(0, 1fr);
+  }
+
+  /* Téléviseur : la colonne du menu ne change jamais. Menu déplié, la page glisse vers la droite (une
+     translation, que la TV anime sans recalculer la mise en page) au lieu de rétrécir. */
+  :global(html.tv) .shell {
+    grid-template-columns: 72px minmax(0, 1fr);
+    transition: none;
+    overflow: hidden;
+  }
+
+  :global(html.tv) main {
+    transition: transform 0.25s var(--ease);
+  }
+
+  :global(html.tv) .shell:not(.collapsed) main {
+    transform: translateX(164px);
   }
 
   /* Téléphone : pas de menu latéral (les onglets sont en bas). */

@@ -294,7 +294,9 @@ pour l'instant que Plex.
 
 > [!TIP]
 > **Sur téléviseur**, l'interface est volontairement plus sobre que sur ordinateur (pas de carrousel animé, de
-> cartes qui s'agrandissent ni de flou) pour consommer peu de mémoire. Les nouveautés arrivent d'abord sur
+> cartes qui s'agrandissent ni de flou) pour consommer peu de mémoire. Le menu de gauche se déplie en faisant
+> glisser la page vers la droite, comme dans Wholphin, sans la remettre en page : l'animation reste fluide même
+> sur un téléviseur modeste. Les nouveautés arrivent d'abord sur
 > l'application de bureau. Un élément est toujours sélectionné (à l'arrivée, après une lecture), et les fiches
 > se parcourent rangée par rangée comme dans Plex et Wholphin : haut / bas d'une rangée à l'autre (boutons,
 > audio, sous-titres, distribution, « Plus de ce genre »), gauche / droite dans la rangée. Comme dans Plex, un **appui long sur OK** (ou la touche Menu) sur une jaquette ouvre
