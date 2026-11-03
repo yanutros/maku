@@ -32,6 +32,8 @@
 
   const audioTracks = $derived(player.tracks.filter((t) => t.type === "audio"));
   const subTracks = $derived(player.tracks.filter((t) => t.type === "sub"));
+  const currentAudio = $derived(audioTracks.find((t) => t.id === player.aid));
+  const currentSub = $derived(subTracks.find((t) => t.id === player.sid));
   const progress = $derived(player.duration ? (player.position / player.duration) * 100 : 0);
   const buffered = $derived(player.duration ? Math.min(100, (player.bufferedUntil / player.duration) * 100) : 0);
 
@@ -223,16 +225,31 @@
   {:else if player.buffering}
     <div class="center"><div class="spinner"></div></div>
   {:else if player.paused}
-    <div class="center"><div class="big-play"><Icon name="play" size={44} filled /></div></div>
+    <div class="center"><div class="big-play"><Icon name="play" size={76} filled /></div></div>
   {/if}
 
+  <!-- Coins de l'image : fermer à gauche ; volume et plein écran à droite, en boutons ronds translucides. -->
   <div class="top">
-    <button class="icon-btn" onclick={close} aria-label={t("player.close")}>
-      <Icon name="arrowLeft" size={24} />
+    <button class="icon-btn glass" onclick={close} aria-label={t("player.close")} title={t("player.close")}>
+      <Icon name="arrowLeft" size={22} />
     </button>
-    <div class="titles">
-      <div class="title">{player.title}</div>
-      {#if player.subtitle}<div class="subtitle">{player.subtitle}</div>{/if}
+    <div class="corner">
+      <div class="volume glass">
+        <input
+          type="range"
+          min="0"
+          max="130"
+          value={player.muted ? 0 : player.volume}
+          oninput={setVolume}
+          aria-label={t("player.volume")}
+        />
+        <button class="icon-btn" onclick={() => mpv("cycle", "mute")} aria-label={t("player.mute")}>
+          <Icon name={player.muted || player.volume === 0 ? "mute" : "volume"} size={20} />
+        </button>
+      </div>
+      <button class="icon-btn glass" onclick={toggleFullscreen} aria-label={t("player.fullscreen")}>
+        <Icon name={fullscreen ? "exitFullscreen" : "fullscreen"} size={20} />
+      </button>
     </div>
   </div>
 
@@ -244,124 +261,120 @@
     </button>
   {/if}
 
+  <!-- Capsule flottante, façon Apple TV : titre et pistes, progression, puis commandes de lecture. -->
   <div class="bottom">
-    <div
-      class="bar"
-      bind:this={bar}
-      onpointerdown={onBarDown}
-      onpointermove={onBarMove}
-      onpointerup={onBarUp}
-      onpointerleave={() => (hoverTime = null)}
-      role="slider"
-      tabindex="-1"
-      aria-label={t("player.position")}
-      aria-valuemin={0}
-      aria-valuemax={player.duration}
-      aria-valuenow={player.position}
-    >
-      <div class="track">
-        <div class="buffered" style:width="{buffered}%"></div>
-        <div class="played" style:width="{progress}%"></div>
-      </div>
-      <div class="thumb" style:left="{progress}%"></div>
-      {#if hoverTime !== null}
-        <div class="hover-time" style:left="{hoverX}px">{fmt(hoverTime)}</div>
-      {/if}
-    </div>
-
-    <div class="controls">
-      <div class="group">
-        {#if player.prevKey || player.nextKey}
-          <button class="icon-btn" disabled={!player.prevKey} onclick={() => goTo(player.prevKey)} aria-label={t("player.prevEpisode")} title={t("player.prevEpisode")}>
-            <Icon name="skipPrev" size={20} filled />
-          </button>
-        {/if}
-        <button class="icon-btn" onclick={() => mpv("seek", -10, "relative")} aria-label={t("player.back10")} title={t("player.back10")}>
-          <Icon name="replay10" size={24} />
-        </button>
-        <button class="icon-btn main" class:paused={player.paused} onclick={() => mpv("cycle", "pause")} aria-label={player.paused ? t("player.play") : t("player.pause")}>
-          <Icon name={player.paused ? "play" : "pause"} size={26} filled />
-        </button>
-        <button class="icon-btn" onclick={() => mpv("seek", 10, "relative")} aria-label={t("player.forward10")} title={t("player.forward10")}>
-          <Icon name="forward10" size={24} />
-        </button>
-        {#if player.prevKey || player.nextKey}
-          <button class="icon-btn" disabled={!player.nextKey} onclick={() => goTo(player.nextKey)} aria-label={t("player.nextEpisode")} title={t("player.nextEpisode")}>
-            <Icon name="skipNext" size={20} filled />
-          </button>
-        {/if}
-        <button class="icon-btn" onclick={close} aria-label={t("player.close")} title={t("player.close")}>
-          <Icon name="stop" size={16} filled />
-        </button>
-        <div class="volume">
-          <button class="icon-btn" onclick={() => mpv("cycle", "mute")} aria-label={t("player.mute")}>
-            <Icon name={player.muted || player.volume === 0 ? "mute" : "volume"} size={22} />
-          </button>
-          <input
-            type="range"
-            min="0"
-            max="130"
-            value={player.muted ? 0 : player.volume}
-            oninput={setVolume}
-            aria-label={t("player.volume")}
-          />
+    <div class="capsule">
+      <div class="head">
+        <div class="titles">
+          {#if player.subtitle}<div class="subtitle">{player.subtitle}</div>{/if}
+          <div class="title">{player.title}</div>
         </div>
-        <span class="time">{fmt(player.position)} <span class="dim">/ {fmt(player.duration)}</span></span>
-      </div>
-
-      <div class="group">
         <!-- Avec un flux converti (navigateur), l'audio et les sous-titres se choisissent sur la fiche. -->
         {#if !player.web || player.native}
-        <div class="menu-anchor">
-          <button
-            class="icon-btn"
-            class:on={menu === "audio"}
-            onclick={() => (menu = menu === "audio" ? null : "audio")}
-            aria-label={t("player.audioTracks")}
-          >
-            <Icon name="audio" size={22} />
-          </button>
-          {#if menu === "audio"}
-            <div class="menu">
-              <div class="menu-title">{t("player.audio")}</div>
-              {#each audioTracks as track (track.id)}
-                <button class:selected={player.aid === track.id} onclick={() => selectTrack("aid", track.id)}>
-                  <span class="tick">{#if player.aid === track.id}<Icon name="check" size={16} />{/if}</span>
-                  {trackLabel(track)}
-                </button>
-              {/each}
-            </div>
-          {/if}
-        </div>
-        <div class="menu-anchor">
-          <button
-            class="icon-btn"
-            class:on={menu === "sub"}
-            onclick={() => (menu = menu === "sub" ? null : "sub")}
-            aria-label={t("player.subtitles")}
-          >
-            <Icon name="subtitles" size={22} />
-          </button>
-          {#if menu === "sub"}
-            <div class="menu">
-              <div class="menu-title">{t("player.subtitles")}</div>
-              <button class:selected={player.sid === null} onclick={() => selectTrack("sid", "no")}>
-                <span class="tick">{#if player.sid === null}<Icon name="check" size={16} />{/if}</span>
-                {t("player.none")}
+          <div class="pills">
+            <div class="menu-anchor">
+              <button
+                class="pill"
+                class:on={menu === "sub"}
+                onclick={() => (menu = menu === "sub" ? null : "sub")}
+                aria-label={t("player.subtitles")}
+                title={t("player.subtitles")}
+              >
+                <Icon name="subtitles" size={16} />
+                <span>{currentSub ? trackLabel(currentSub) : t("player.none")}</span>
               </button>
-              {#each subTracks as track (track.id)}
-                <button class:selected={player.sid === track.id} onclick={() => selectTrack("sid", track.id)}>
-                  <span class="tick">{#if player.sid === track.id}<Icon name="check" size={16} />{/if}</span>
-                  {trackLabel(track)}
-                </button>
-              {/each}
+              {#if menu === "sub"}
+                <div class="menu">
+                  <div class="menu-title">{t("player.subtitles")}</div>
+                  <button class:selected={player.sid === null} onclick={() => selectTrack("sid", "no")}>
+                    <span class="tick">{#if player.sid === null}<Icon name="check" size={16} />{/if}</span>
+                    {t("player.none")}
+                  </button>
+                  {#each subTracks as track (track.id)}
+                    <button class:selected={player.sid === track.id} onclick={() => selectTrack("sid", track.id)}>
+                      <span class="tick">{#if player.sid === track.id}<Icon name="check" size={16} />{/if}</span>
+                      {trackLabel(track)}
+                    </button>
+                  {/each}
+                </div>
+              {/if}
             </div>
+            <div class="menu-anchor">
+              <button
+                class="pill"
+                class:on={menu === "audio"}
+                onclick={() => (menu = menu === "audio" ? null : "audio")}
+                aria-label={t("player.audioTracks")}
+                title={t("player.audioTracks")}
+              >
+                <Icon name="audio" size={16} />
+                <span>{currentAudio ? trackLabel(currentAudio) : t("player.audio")}</span>
+              </button>
+              {#if menu === "audio"}
+                <div class="menu">
+                  <div class="menu-title">{t("player.audio")}</div>
+                  {#each audioTracks as track (track.id)}
+                    <button class:selected={player.aid === track.id} onclick={() => selectTrack("aid", track.id)}>
+                      <span class="tick">{#if player.aid === track.id}<Icon name="check" size={16} />{/if}</span>
+                      {trackLabel(track)}
+                    </button>
+                  {/each}
+                </div>
+              {/if}
+            </div>
+          </div>
+        {/if}
+      </div>
+
+      <div
+        class="bar"
+        bind:this={bar}
+        onpointerdown={onBarDown}
+        onpointermove={onBarMove}
+        onpointerup={onBarUp}
+        onpointerleave={() => (hoverTime = null)}
+        role="slider"
+        tabindex="-1"
+        aria-label={t("player.position")}
+        aria-valuemin={0}
+        aria-valuemax={player.duration}
+        aria-valuenow={player.position}
+      >
+        <div class="track">
+          <div class="buffered" style:width="{buffered}%"></div>
+          <div class="played" style:width="{progress}%"></div>
+        </div>
+        <div class="thumb" style:left="{progress}%"></div>
+        {#if hoverTime !== null}
+          <div class="hover-time" style:left="{hoverX}px">{fmt(hoverTime)}</div>
+        {/if}
+      </div>
+
+      <div class="controls">
+        <span class="time">{fmt(player.position)}</span>
+        <div class="transport">
+          {#if player.prevKey || player.nextKey}
+            <button class="icon-btn" disabled={!player.prevKey} onclick={() => goTo(player.prevKey)} aria-label={t("player.prevEpisode")} title={t("player.prevEpisode")}>
+              <Icon name="skipPrev" size={20} filled />
+            </button>
+          {/if}
+          <button class="icon-btn" onclick={() => mpv("seek", -10, "relative")} aria-label={t("player.back10")} title={t("player.back10")}>
+            <Icon name="replay10" size={24} />
+          </button>
+          <button class="icon-btn main" class:paused={player.paused} onclick={() => mpv("cycle", "pause")} aria-label={player.paused ? t("player.play") : t("player.pause")}>
+            <Icon name={player.paused ? "play" : "pause"} size={36} filled />
+          </button>
+          <button class="icon-btn" onclick={() => mpv("seek", 10, "relative")} aria-label={t("player.forward10")} title={t("player.forward10")}>
+            <Icon name="forward10" size={24} />
+          </button>
+          {#if player.prevKey || player.nextKey}
+            <button class="icon-btn" disabled={!player.nextKey} onclick={() => goTo(player.nextKey)} aria-label={t("player.nextEpisode")} title={t("player.nextEpisode")}>
+              <Icon name="skipNext" size={20} filled />
+            </button>
           {/if}
         </div>
-        {/if}
-        <button class="icon-btn" onclick={toggleFullscreen} aria-label={t("player.fullscreen")}>
-          <Icon name={fullscreen ? "exitFullscreen" : "fullscreen"} size={22} />
-        </button>
+        <!-- Temps restant, comme sur Apple TV. -->
+        <span class="time end">−{fmt(player.duration - player.position)}</span>
       </div>
     </div>
   </div>
@@ -425,13 +438,13 @@
     position: absolute;
     left: 0;
     right: 0;
-    transition: opacity 0.25s ease;
+    transition: opacity 0.25s ease, transform 0.25s ease;
   }
 
   .skip {
     position: absolute;
     right: 40px;
-    bottom: 150px;
+    bottom: 190px;
     height: 46px;
     padding: 0 20px;
     border-color: #ffffff55;
@@ -453,13 +466,59 @@
     pointer-events: none;
   }
 
+  .hidden .bottom {
+    transform: translateY(12px);
+  }
+
   .top {
     top: 0;
     display: flex;
+    justify-content: space-between;
     align-items: center;
+    padding: 20px 28px;
+  }
+
+  .corner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  /* Boutons ronds translucides des coins de l'image. */
+  .glass,
+  .icon-btn.glass {
+    background: #1c1f24b3;
+    border: 1px solid #ffffff1f;
+    backdrop-filter: blur(16px);
+  }
+
+  .icon-btn.glass:hover {
+    background: #2a2e35d9;
+  }
+
+  .bottom {
+    bottom: 0;
+    padding: 0 28px 22px;
+  }
+
+  /* La capsule : une carte translucide qui flotte au-dessus du bas de l'image. */
+  .capsule {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 16px 22px 12px;
+    border-radius: 22px;
+    background: #1c1f24d9;
+    border: 1px solid #ffffff1f;
+    backdrop-filter: blur(24px) saturate(1.4);
+    box-shadow: 0 20px 50px #0009;
+  }
+
+  .head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
     gap: 16px;
-    padding: 20px 28px 48px;
-    background: linear-gradient(#000c, transparent);
+    margin-bottom: 8px;
   }
 
   .titles {
@@ -467,19 +526,49 @@
   }
 
   .title {
-    font-size: 20px;
+    font-size: 19px;
     font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .subtitle {
-    color: #fffb;
-    font-size: 14px;
+    color: #fff9;
+    font-size: 13px;
   }
 
-  .bottom {
-    bottom: 0;
-    padding: 64px 28px 18px;
-    background: linear-gradient(transparent, #000d);
+  .pills {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  /* Piste audio et sous-titres en cours, lisibles sans ouvrir de menu. */
+  .pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 200px;
+    height: 32px;
+    padding: 0 12px;
+    border: none;
+    border-radius: 999px;
+    background: #ffffff1f;
+    color: #fffe;
+    font-size: 13px;
+    transition: background 0.15s;
+  }
+
+  .pill span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .pill:hover,
+  .pill.on {
+    background: #ffffff38;
   }
 
   .bar {
@@ -494,15 +583,15 @@
   .track {
     position: relative;
     width: 100%;
-    height: 4px;
-    border-radius: 2px;
-    background: #ffffff33;
+    height: 5px;
+    border-radius: 3px;
+    background: #ffffff2e;
     overflow: hidden;
     transition: height 0.15s;
   }
 
   .bar:hover .track {
-    height: 6px;
+    height: 8px;
   }
 
   .buffered,
@@ -512,11 +601,11 @@
   }
 
   .buffered {
-    background: #ffffff40;
+    background: #ffffff33;
   }
 
   .played {
-    background: var(--accent);
+    background: #fff;
   }
 
   .thumb {
@@ -525,8 +614,8 @@
     height: 14px;
     margin-left: -7px;
     border-radius: 50%;
-    background: var(--accent);
-    box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 20%, transparent);
+    background: #fff;
+    box-shadow: 0 2px 8px #0008;
     transform: scale(0);
     transition: transform 0.15s;
   }
@@ -541,23 +630,33 @@
     transform: translateX(-50%);
     background: #000c;
     padding: 3px 8px;
-    border-radius: 4px;
+    border-radius: 6px;
     font-size: 12px;
     font-variant-numeric: tabular-nums;
     pointer-events: none;
   }
 
   .controls {
-    display: flex;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
     align-items: center;
-    margin-top: 6px;
+    margin-top: 2px;
   }
 
-  .group {
+  .transport {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 10px;
+  }
+
+  .time {
+    color: #fffb;
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .time.end {
+    text-align: right;
   }
 
   .icon-btn {
@@ -572,8 +671,7 @@
     transition: background 0.15s, color 0.15s;
   }
 
-  .icon-btn:hover,
-  .icon-btn.on {
+  .icon-btn:hover {
     background: #ffffff1f;
   }
 
@@ -586,51 +684,39 @@
     background: none;
   }
 
-  /* Bouton lecture principal : rond blanc, comme sur la barre de musique. */
+  /* Bouton lecture principal : plus grand, sans pastille. */
   .icon-btn.main {
-    width: 52px;
-    height: 52px;
-    margin: 0 4px;
-    background: #fff;
-    color: #0d0e10;
-    box-shadow: 0 6px 18px #0008;
+    width: 54px;
+    height: 54px;
   }
 
-  .icon-btn.main.paused {
-    padding-left: 3px;
+  /* Le focus donné au bouton à l'ouverture (pour la télécommande) n'a pas à l'entourer à la souris. */
+  :global(html:not(.tv)) .icon-btn.main:focus {
+    outline: none;
   }
 
-  .icon-btn.main:hover {
-    background: var(--accent);
-    color: var(--accent-text);
-  }
-
+  /* Volume : le curseur se déplie vers la gauche au survol. */
   .volume {
     display: flex;
     align-items: center;
+    border-radius: 999px;
   }
 
   .volume input {
     width: 0;
+    margin: 0;
+    padding: 0;
+    border: none;
     opacity: 0;
-    transition: width 0.2s, opacity 0.2s;
-    accent-color: var(--accent);
+    transition: width 0.2s, opacity 0.2s, margin 0.2s;
+    accent-color: #fff;
   }
 
   .volume:hover input,
   .volume input:focus {
     width: 100px;
+    margin-left: 14px;
     opacity: 1;
-  }
-
-  .time {
-    margin-left: 10px;
-    font-size: 14px;
-    font-variant-numeric: tabular-nums;
-  }
-
-  .dim {
-    color: #fff9;
   }
 
   .menu-anchor {
@@ -640,18 +726,17 @@
   .menu {
     position: absolute;
     right: 0;
-    bottom: 52px;
+    bottom: 44px;
     min-width: 280px;
     max-height: 50vh;
     overflow-y: auto;
     padding: 8px;
-    border-radius: 12px;
+    border-radius: 14px;
     background: #16181ce8;
     backdrop-filter: blur(16px);
     border: 1px solid #ffffff1a;
     box-shadow: 0 16px 40px #000a;
   }
-
   .menu-title {
     padding: 6px 10px 8px;
     font-size: 12px;
@@ -695,15 +780,12 @@
     pointer-events: none;
   }
 
+  /* Triangle seul, façon Netflix : une ombre douce suffit à le détacher de l'image. */
   .big-play {
     display: grid;
-    place-items: center;
-    width: 96px;
-    height: 96px;
-    padding-left: 6px;
-    border-radius: 50%;
-    background: #0008;
-    backdrop-filter: blur(6px);
+    /* L'icône place déjà le triangle un peu à droite ; on n'en garde que la moitié, pour l'œil. */
+    translate: -2px 0;
+    filter: drop-shadow(0 2px 12px #000a);
   }
 
   .spinner {
@@ -718,6 +800,37 @@
   @keyframes spin {
     to {
       transform: rotate(360deg);
+    }
+  }
+
+  /* Téléphone : capsule plus serrée, pistes sous le titre. */
+  @media (max-width: 640px) {
+    .top {
+      padding: 12px 14px;
+    }
+
+    .bottom {
+      padding: 0 10px 10px;
+    }
+
+    .capsule {
+      padding: 12px 14px 8px;
+      border-radius: 18px;
+    }
+
+    .head {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 8px;
+    }
+
+    .pill {
+      max-width: 150px;
+    }
+
+    .skip {
+      right: 14px;
+      bottom: 210px;
     }
   }
 </style>
