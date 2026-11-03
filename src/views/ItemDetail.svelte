@@ -136,9 +136,12 @@
 {:else if isMusic(item.kind)}
   <MusicDetail {item} />
 {:else}
-  <!-- Le fond reste en place pendant que la page défile par-dessus, et s'assombrit peu à peu. -->
-  <div class="backdrop" style:--fade={fade}>
-    {#if heroArt}<img src={heroArt} alt="" />{/if}
+  <!-- Le fond reste en place pendant que la page défile par-dessus, et s'assombrit peu à peu. Le défilement
+       ne change que l'agrandissement de l'image et l'opacité du voile, chacun sur son calque : rien n'est
+       redessiné à chaque image (une variable de style forçait à repeindre tout le fond, saccadé sur TV). -->
+  <div class="backdrop">
+    {#if heroArt}<img src={heroArt} alt="" style:transform="scale({1 + fade * 0.05})" />{/if}
+    <div class="veil" style:opacity={fade * 0.72}></div>
   </div>
 
   <div class="page detail" bind:this={root} data-nav-rows>
@@ -371,8 +374,8 @@
     object-fit: cover;
     object-position: center top;
     mask-image: linear-gradient(#000 0%, #000 55%, transparent 100%);
-    transform: scale(calc(1 + var(--fade) * 0.05));
     animation: unveil 1.2s var(--ease);
+    will-change: transform;
   }
 
   @keyframes unveil {
@@ -383,15 +386,23 @@
   }
 
   /* Dégradés : l'image reste intacte en haut, le bas s'assombrit sous le titre centré, puis un voile
-     s'épaissit au défilement. */
+     (.veil) s'épaissit au défilement. */
   .backdrop::after {
     content: "";
     position: absolute;
     inset: 0;
     background:
       linear-gradient(0deg, var(--bg) 0%, #000000c8 22%, #00000040 50%, transparent 70%),
-      linear-gradient(180deg, #00000080 0%, transparent 14%),
-      rgb(0 0 0 / calc(var(--fade) * 0.72));
+      linear-gradient(180deg, #00000080 0%, transparent 14%);
+  }
+
+  /* Sous les dégradés, comme l'ancienne couleur de fond qui venait en dernier. */
+  .veil {
+    position: absolute;
+    inset: 0;
+    background: #000;
+    opacity: 0;
+    will-change: opacity;
   }
 
   .detail {
