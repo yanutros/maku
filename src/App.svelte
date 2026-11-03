@@ -195,8 +195,10 @@
 
 {#if watching}
   <PlayerOverlay />
-  <TrailerOverlay />
 {/if}
+
+<!-- Bande-annonce YouTube : s'ouvre par-dessus la fiche, sans lecture en cours. -->
+<TrailerOverlay />
 
 {#if nav.tvMenu}
   <TvMenu />
