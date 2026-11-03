@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onDestroy, onMount } from "svelte";
   import { formatClock } from "../lib/api";
-  import { current, mpv, next, player, previous } from "../lib/player.svelte";
+  import { current, mpv, next, player, previous, stop } from "../lib/player.svelte";
   import Icon from "./Icon.svelte";
   import { t } from "../lib/i18n";
 
@@ -27,7 +27,7 @@
   let idle = $state(false);
   let idleTimer: ReturnType<typeof setTimeout> | undefined;
 
-  const BUTTONS = 4;
+  const BUTTONS = 5;
   const progress = $derived(player.duration ? Math.min(100, (player.position / player.duration) * 100) : 0);
 
   function wake() {
@@ -115,6 +115,8 @@
           <Icon name={player.paused ? "play" : "pause"} size={26} filled />
         </button>
         <button data-ctl="3" class="ctl" onclick={next} aria-label={t("common.c1.next")}><Icon name="forward" size={26} filled /></button>
+        <!-- Arrêter : la lecture s'arrête et le lecteur se ferme, la vignette disparaît avec lui. -->
+        <button data-ctl="4" class="ctl" onclick={stop} aria-label={t("common.c1.stop")}><Icon name="stop" size={20} filled /></button>
       </div>
       {#if queue.length > 1}<div class="hint"><Icon name="chevronDown" size={20} /></div>{/if}
     </div>
@@ -325,14 +327,15 @@
   }
 
   .queue h2 {
-    margin: 0 0 14px 64px;
+    margin: 0 0 4px 64px;
     font-size: 20px;
     font-weight: 700;
   }
 
+  /* Assez de marge pour la pochette sélectionnée, agrandie et entourée : la rangée coupe ce qui dépasse. */
   .viewport {
     overflow: hidden;
-    padding: 6px 0 12px;
+    padding: 16px 0 12px;
   }
 
   .row {

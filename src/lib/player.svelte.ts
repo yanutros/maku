@@ -61,7 +61,8 @@ export const player = $state({
   seeks: 0,
 });
 
-export const current = () => (player.video ? null : (player.queue[player.index] ?? null));
+// Rien après un arrêt : la file reste en mémoire, mais plus aucun titre n'est « en cours ».
+export const current = () => (player.video || !player.active ? null : (player.queue[player.index] ?? null));
 
 // Sur Android et iOS, mpv n'existe pas : le lecteur du système prend le relais.
 invoke<string | null>("platform").then(
