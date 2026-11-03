@@ -1,0 +1,72 @@
+# Construit une version d'essai de Maku pour iPad, non signée : Sideloadly (ou AltStore) la signe avec un
+# compte Apple au moment de l'installer. Se lance à la main (onglet Actions) ; le fichier .ipa est joint à
+# l'exécution, il ne fait pas partie des versions publiées.
+name: iPad (essai)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ipad:
+    name: iPad (.ipa non signé)
+    runs-on: macos-latest
+    env:
+      # Équipe fictive : Tauri en exige une pour préparer le projet Xcode, mais rien n'est signé ici.
+      APPLE_DEVELOPMENT_TEAM: "0000000000"
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-ios
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - run: npm ci
+
+      # Les icônes iOS sont tirées de l'icône principale, le temps de la construction (non versionnées).
+      - name: Icônes iOS
+        run: |
+          npx tauri icon src-tauri/icons/icon.png -o "$RUNNER_TEMP/icons"
+          mkdir -p src-tauri/icons/ios
+          cp -R "$RUNNER_TEMP/icons/ios/." src-tauri/icons/ios/
+
+      # Le projet Xcode ne peut être créé que sur un Mac : il est régénéré à chaque construction.
+      - name: Projet Xcode
+        run: npx tauri ios init --ci
+
+      - name: Sans signature
+        run: |
+          for p in src-tauri/gen/apple/*.xcodeproj/project.pbxproj; do
+            sed -i '' 's/buildSettings = {/buildSettings = { CODE_SIGNING_ALLOWED = NO; CODE_SIGNING_REQUIRED = NO; CODE_SIGN_IDENTITY = "";/' "$p"
+          done
+
+      # L'archive Xcode se construit sans signature ; seule l'exportation finale en exige une, d'où
+      # l'erreur tolérée ici : l'application est reprise dans l'archive à l'étape suivante.
+      - name: Construction
+        continue-on-error: true
+        run: npx tauri ios build --ci --target aarch64
+
+      - name: Paquet .ipa
+        run: |
+          app=$(find src-tauri/gen/apple/build -type d -name "*.app" -path "*.xcarchive/*" | head -1)
+          if [ -z "$app" ]; then echo "Aucune application construite"; find src-tauri/gen/apple/build -maxdepth 4; exit 1; fi
+          mkdir Payload
+          cp -R "$app" Payload/
+          zip -qry Maku-ipad.ipa Payload
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: Maku-ipad
+          path: Maku-ipad.ipa
+          retention-days: 14
