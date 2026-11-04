@@ -118,12 +118,12 @@
           aria-label={t("musicBar.repeatQueue")}
           title={t("musicBar.repeatQueue")}
         >
-          <Icon name="repeat" size={17} />
+          <Icon name="repeat" size={20} />
         </button>
         <button class="ctl" onclick={previous} aria-label={t("common.c1.previous")} title={t("common.c1.previous")}>
-          <Icon name="backward" size={26} filled />
+          <Icon name="backward" size={24} filled />
         </button>
-        <button class="play" class:paused={player.paused} onclick={() => mpv("cycle", "pause")} aria-label={player.paused ? t("common.c1.playback") : t("common.c1.pause")}>
+        <button class="ctl play" class:paused={player.paused} onclick={() => mpv("cycle", "pause")} aria-label={player.paused ? t("common.c1.playback") : t("common.c1.pause")}>
           <Icon name={player.paused ? "play" : "pause"} size={24} filled />
         </button>
         <button
@@ -133,9 +133,9 @@
           aria-label={t("common.c1.next")}
           title={t("common.c1.next")}
         >
-          <Icon name="forward" size={26} filled />
+          <Icon name="forward" size={24} filled />
         </button>
-        <button class="ctl small" onclick={stop} aria-label={t("common.c1.stop")} title={t("common.c1.stop")}><Icon name="stop" size={13} filled /></button>
+        <button class="ctl small" onclick={stop} aria-label={t("common.c1.stop")} title={t("common.c1.stop")}><Icon name="stop" size={18} filled /></button>
       </div>
 
       <div class="scrub">
@@ -209,12 +209,12 @@
 </div>
 
 <style>
-  /* La barre flotte au-dessus du bas de la fenêtre, comme une capsule de verre. */
+  /* La barre, une capsule de verre sous le contenu (sans fond autour : la vue « En cours de lecture »
+     passe derrière elle). */
   .dock {
     position: relative;
     z-index: 30;
     padding: 8px 14px 12px;
-    background: var(--bg);
   }
 
   .bar {
@@ -401,6 +401,18 @@
     color: #fff;
   }
 
+  /* Les cinq boutons de lecture (répétition, précédent, lecture, suivant, arrêt) : même cercle, même
+     couleur, icônes de même taille. */
+  .transport .ctl.small {
+    width: 40px;
+    height: 40px;
+    color: #fff;
+  }
+
+  .transport .ctl.on {
+    color: var(--accent);
+  }
+
   /* Bouton actif (répétition, file d'attente) : couleur d'accent et petit point dessous. */
   .ctl.on {
     position: relative;
@@ -417,36 +429,11 @@
     background: var(--accent);
   }
 
-  .play {
-    display: grid;
-    place-items: center;
-    width: 50px;
-    height: 50px;
-    padding: 0;
-    border: none;
-    border-radius: 50%;
+  /* Sur ordinateur, le bouton lecture est un bouton comme les autres (`ctl`) ; le téléphone garde son
+     disque blanc (plus bas). */
+  :global(html.phone) .play {
     background: #fff;
     color: #0d0e10;
-    box-shadow: 0 6px 18px #0008;
-    transition:
-      transform 0.18s var(--ease),
-      background 0.15s,
-      box-shadow 0.2s;
-  }
-
-  .play.paused {
-    padding-left: 3px;
-  }
-
-  .play:hover {
-    transform: scale(1.07);
-    box-shadow:
-      0 0 0 6px #ffffff1a,
-      0 8px 22px #0009;
-  }
-
-  .play:active {
-    transform: scale(0.94);
   }
 
   .scrub {

@@ -187,9 +187,12 @@
           {/if}
         {/key}
       </div>
+      <!-- Ordinateur : la barre musique sous le contenu seulement, le menu de gauche garde toute la hauteur. -->
+      {#if listening && !device.tv && !device.phone}<MusicBar />{/if}
     </main>
   </div>
-  {#if listening}{#if device.tv}<TvMiniPlayer />{:else}<MusicBar />{/if}{/if}
+  {#if listening && device.tv}<TvMiniPlayer />{/if}
+  {#if listening && device.phone}<MusicBar />{/if}
   {#if device.phone && !watching}<PhoneTabs />{/if}
   </div>
 {/if}

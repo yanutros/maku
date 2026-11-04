@@ -82,8 +82,9 @@ visionnage. Tout se fait avec son compte Plex (ou Jellyfin) : aucune clé d'API 
       <h4>🎵 Il joue votre musique</h4>
       Une page d'accueil façon Apple Music : grands panneaux des derniers albums, listes de lecture,
       « Titres du moment », pochettes qui grandissent avec la fenêtre. File d'attente, lecture aléatoire et
-      vue « En cours de lecture ». Une barre de lecture flottante, en verre dépoli teinté par la pochette, reste
-      en bas pendant que vous naviguez.
+      vue « En cours de lecture », dont le fond aux couleurs de la pochette passe jusque derrière le menu. Une barre
+      de lecture flottante, en verre dépoli teinté par la pochette, reste en bas du contenu pendant que vous naviguez,
+      avec des commandes toutes de même taille.
     </td>
   </tr>
   <tr>

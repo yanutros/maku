@@ -451,7 +451,10 @@
 
   /* ---------- Ordinateur : panneau flottant (Apple), page active en barre lumineuse (Netflix) ---------- */
 
+  /* Au-dessus de « En cours de lecture », dont le fond passe derrière le panneau translucide. */
   .desk {
+    position: relative;
+    z-index: 26;
     margin: 10px 0 10px 10px;
     padding: 12px 8px 10px;
     border: 1px solid #ffffff10;

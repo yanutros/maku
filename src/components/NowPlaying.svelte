@@ -80,7 +80,10 @@
 <style>
   .now-playing {
     position: fixed;
-    inset: 0 0 106px 0;
+    /* Le fond couvre toute la fenêtre, menu compris (il flotte par-dessus, voir Sidebar) ; le contenu se
+       cale sur la colonne de droite, au-dessus de la barre musique. */
+    inset: 0;
+    padding: 0 0 106px var(--sidebar-w, 237px);
     z-index: 25;
     overflow: hidden;
     background: #0d0e10;
@@ -107,7 +110,7 @@
     position: absolute;
     z-index: 1;
     top: 18px;
-    left: 18px;
+    left: calc(var(--sidebar-w, 237px) + 18px);
     display: grid;
     place-items: center;
     width: 44px;
@@ -241,6 +244,7 @@
 
   :global(html.phone) .now-playing {
     inset: 0;
+    padding: 0;
     z-index: 60;
     overflow-y: auto;
   }
