@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { api, type Section, type Session } from "./lib/api";
-  import { back, go, nav, onBack, restoreSpot, takeSpot } from "./lib/nav.svelte";
+  import { back, go, nav, onBack, reload, restoreSpot, takeSpot } from "./lib/nav.svelte";
   import { player, stop } from "./lib/player.svelte";
   import Login from "./views/Login.svelte";
   import ServerPicker from "./views/ServerPicker.svelte";
@@ -68,7 +68,46 @@
     }
   }
 
-  onMount(refresh);
+  // Retour dans l'application (téléphone surtout) ou réseau revenu : l'adresse du serveur a pu changer
+  // (Wi-Fi ↔ 4G). Sans cette vérification, la page attendait une adresse injoignable et restait vide.
+  // La page elle-même peut aussi avoir été rechargée par Android pendant l'absence : on vérifie d'abord.
+  let hiddenAt = 0;
+  let checking = false;
+  async function checkServer(force = false) {
+    if (checking || !session?.serverName || session.serverKind !== "plex") return;
+    if (!force && Date.now() - hiddenAt < 15000) return;
+    checking = true;
+    try {
+      if (await api.reconnect()) {
+        sections = await api.sections().catch(() => sections);
+        reload();
+      }
+    } catch {
+      // Toujours injoignable : la page garde son message d'erreur, une nouvelle tentative viendra.
+    } finally {
+      checking = false;
+    }
+  }
+
+  onMount(() => {
+    api.reconnect().catch(() => false).finally(refresh);
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") hiddenAt = Date.now();
+      else checkServer();
+    };
+    const onOnline = () => checkServer(true);
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("online", onOnline);
+    // Android (MainActivity.kt) : retour dans l'application et changement de réseau. La vérification est
+    // rapide quand l'adresse répond toujours, on la fait donc à chaque retour.
+    const w = window as { __makuResume?: () => void; __makuNetwork?: () => void };
+    w.__makuResume = () => checkServer(true);
+    w.__makuNetwork = () => checkServer(true);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("online", onOnline);
+    };
+  });
 
   // Bouton Retour (Android, souris) : il ferme d'abord ce qui est ouvert par-dessus la page.
   onBack(() => {

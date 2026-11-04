@@ -6,6 +6,8 @@ import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.content.res.Configuration
+import android.net.ConnectivityManager
+import android.net.Network
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -31,6 +33,31 @@ class MainActivity : TauriActivity() {
     if (Build.VERSION.SDK_INT >= 37 && checkSelfPermission(LOCAL_NETWORK) != PackageManager.PERMISSION_GRANTED) {
       requestPermissions(arrayOf(LOCAL_NETWORK), 0)
     }
+    // Changement de réseau (Wi-Fi ↔ données mobiles) : la page revérifie l'adresse du serveur. Le premier
+    // appel, à l'inscription, ne fait que décrire le réseau du moment.
+    val connectivity = getSystemService(CONNECTIVITY_SERVICE) as ConnectivityManager
+    connectivity.registerDefaultNetworkCallback(object : ConnectivityManager.NetworkCallback() {
+      private var current: Network? = null
+      override fun onAvailable(network: Network) {
+        val changed = current != null && current != network
+        current = network
+        if (changed) notifyPage("__makuNetwork")
+      }
+    })
+  }
+
+  /**
+   * Retour dans Maku : la page n'en est pas toujours prévenue (Tauri met le WebView en pause, et la musique
+   * le relance aussitôt), on l'appelle donc directement. Elle revérifie l'adresse du serveur.
+   */
+  override fun onResume() {
+    super.onResume()
+    notifyPage("__makuResume")
+  }
+
+  private fun notifyPage(fn: String) {
+    val web = MediaService.webView ?: return
+    web.post { web.evaluateJavascript("window.$fn && window.$fn()", null) }
   }
 
   private companion object {

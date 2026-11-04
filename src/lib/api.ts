@@ -400,6 +400,8 @@ export const api = {
 
   isAdmin: () => invoke<boolean>("plex_is_admin"),
   account: () => invoke<Account>("plex_account"),
+  /** L'adresse du serveur répond-elle encore ? Sinon Maku en cherche une autre (vrai si elle a changé). */
+  reconnect: () => invoke<boolean>("reconnect_server"),
   homeUsers: () => invoke<{ users: HomeUser[]; current: string | null }>("plex_home_users"),
   switchUser: (uuid: string, pin: string | null) => invoke<void>("plex_switch_user", { uuid, pin }),
   setAutoSignIn: (on: boolean) => invoke<void>("set_auto_sign_in", { on }),

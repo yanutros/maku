@@ -543,30 +543,50 @@ async fn plex_select_server(state: State<'_, AppState>, machine_id: String) -> C
     Ok(name)
 }
 
-/// Au lancement : la meilleure adresse du serveur peut avoir changé (autre réseau, Wi-Fi ↔ 4G,
-/// adresse locale devenue joignable) ; on la revérifie et on la garde si elle diffère.
-async fn refresh_connection(state: &AppState) -> anyhow::Result<()> {
+/// La meilleure adresse du serveur peut avoir changé (autre réseau, Wi-Fi ↔ 4G, adresse locale
+/// devenue joignable) : on la revérifie et on la garde si elle diffère. `quick` : si l'adresse en
+/// cours répond, on s'en contente (retour dans l'application) ; sinon on refait le tour des adresses,
+/// comme au lancement. Renvoie vrai quand l'adresse a changé.
+async fn refresh_connection(state: &AppState, quick: bool) -> anyhow::Result<bool> {
     let c = state.cfg();
-    let (Some(token), Some(saved)) = (c.plex_token, c.server) else { return Ok(()) };
+    let (Some(token), Some(saved)) = (c.plex_token, c.server) else { return Ok(false) };
     if saved.is_jellyfin() {
-        return Ok(());
+        return Ok(false);
+    }
+    if quick {
+        let alive = plex::with_plex_headers(state.http.get(format!("{}/identity", saved.uri)), &c.client_id, Some(&saved.token))
+            .timeout(Duration::from_secs(3))
+            .send()
+            .await
+            .is_ok_and(|r| r.status().is_success());
+        if alive {
+            return Ok(false);
+        }
     }
     let Some(res) = plex::servers(&state.http, &c.client_id, &token)
         .await?
         .into_iter()
         .find(|r| r.client_identifier == saved.machine_id)
     else {
-        return Ok(());
+        return Ok(false);
     };
     let uri = plex::pick_connection(&state.http, &c.client_id, &res).await?;
-    if uri != saved.uri {
-        state.update_cfg(|c| {
-            if let Some(s) = c.server.as_mut() {
-                s.uri = uri;
-            }
-        })?;
+    if uri == saved.uri {
+        return Ok(false);
     }
-    Ok(())
+    state.update_cfg(|c| {
+        if let Some(s) = c.server.as_mut() {
+            s.uri = uri;
+        }
+    })?;
+    Ok(true)
+}
+
+/// Retour dans l'application, réseau revenu : l'adresse du serveur répond-elle toujours ? Sinon, Maku
+/// en cherche une autre (vrai si elle a changé : la page se recharge).
+#[tauri::command]
+async fn reconnect_server(state: State<'_, AppState>) -> CmdResult<bool> {
+    Ok(refresh_connection(&state, true).await?)
 }
 
 // ---------- Bibliothèques ----------
@@ -1473,7 +1493,7 @@ pub fn run() {
             });
             let handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
-                let _ = refresh_connection(&handle.state::<AppState>()).await;
+                let _ = refresh_connection(&handle.state::<AppState>(), false).await;
             });
             // Linux : les touches multimédia du clavier passent par MPRIS (voir mpris.rs).
             #[cfg(target_os = "linux")]
@@ -1533,6 +1553,7 @@ pub fn run() {
             plex_set_watched,
             plex_is_admin,
             plex_home_users,
+            reconnect_server,
             plex_switch_user,
             set_auto_sign_in,
             plex_account,

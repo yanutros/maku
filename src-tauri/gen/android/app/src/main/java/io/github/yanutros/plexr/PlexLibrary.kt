@@ -178,7 +178,8 @@ class PlexLibrary(private val context: Context) {
   private fun playlistsFolder() = listOf(folder("playlists", context.getString(R.string.auto_playlists), null, icon = R.drawable.ic_auto_playlists))
 
   private fun album(it: JSONObject) = MediaItem(
-    describe("album:${it.getString("ratingKey")}", it.optString("title"), it.optString("parentTitle"), it.thumb()),
+    // Album sans pochette : la photo de son artiste.
+    describe("album:${it.getString("ratingKey")}", it.optString("title"), it.optString("parentTitle"), it.thumb() ?: it.optString("parentThumb").ifEmpty { null }),
     MediaItem.FLAG_BROWSABLE or MediaItem.FLAG_PLAYABLE,
   )
 
@@ -264,7 +265,8 @@ class PlexLibrary(private val context: Context) {
       artist = it.optString("originalTitle").ifEmpty { it.optString("grandparentTitle") },
       album = it.optString("parentTitle"),
       durationMs = it.optLong("duration"),
-      thumb = it.optString("parentThumb").ifEmpty { it.optString("thumb") }.ifEmpty { null },
+      // Comme dans la page : la pochette de l'album, sinon la photo de l'artiste, sinon celle du titre.
+      thumb = it.optString("parentThumb").ifEmpty { it.optString("grandparentThumb") }.ifEmpty { it.optString("thumb") }.ifEmpty { null },
       partKey = part,
     )
   }

@@ -113,7 +113,7 @@ visionnage. Tout se fait avec son compte Plex (ou Jellyfin) : aucune clé d'API 
     </td>
     <td valign="top">
       <h4>🔑 Il se connecte avec Plex</h4>
-      Connexion par code PIN, choix du serveur avec test automatique des adresses ; Seerr et Tracearr
+      Connexion par code PIN, choix du serveur avec test automatique des adresses (revérifiées au retour dans l'application et à chaque changement de réseau, Wi-Fi ↔ données mobiles) ; Seerr et Tracearr
       utilisent le même compte. Avec Plex Home, « Qui regarde ? » au lancement : profils, profils gérés et
       code PIN, comme dans Plex, ou connexion automatique au dernier profil (Réglages → Compte) ; la carte du
       profil, en bas du menu, change d'utilisateur à tout moment.
@@ -277,7 +277,7 @@ Le mini-lecteur, façon Spotify, ouvre en plein écran la pochette, la progressi
 
 **Android Auto** : Maku apparaît parmi les applications de musique de la voiture, avec quatre onglets —
 **Accueil** (ajouts récents), **Artistes** (avec une lecture aléatoire de toute la bibliothèque), **Albums** et
-**Playlists** — illustrés de leurs pochettes. Un album ou une playlist se lit d'un coup ou à partir d'un morceau,
+**Playlists** — illustrés de leurs pochettes (la photo de l'artiste quand un album n'en a pas, comme dans l'application). Un album ou une playlist se lit d'un coup ou à partir d'un morceau,
 avec la file d'attente à l'écran ; « Joue … sur Maku » lance un artiste, un album ou un morceau à la voix. La
 voiture lit elle-même la musique (ExoPlayer), même si Maku n'est pas ouvert sur le téléphone : le compte et le
 serveur viennent de la configuration de Maku, et hors du Wi-Fi l'adresse distante du serveur (ou le relais Plex)
