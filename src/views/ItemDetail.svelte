@@ -19,6 +19,20 @@
   let error = $state<string | null>(null);
   let audioStream = $state<number | null>(null);
   let subtitleStream = $state<number>(0);
+  // Version choisie (4K, 1080p…) : ses propres pistes audio et sous-titres.
+  let version = $state(0);
+  const media = $derived(item ? (item.versions?.[version] ?? item) : null);
+
+  /** Pistes par défaut d'une version : celles retenues par le serveur. */
+  function pickTracks(v: { audioTracks: { id: number; selected: boolean }[]; subtitleTracks: { id: number; selected: boolean }[] }) {
+    audioStream = v.audioTracks.find((tr) => tr.selected)?.id ?? v.audioTracks[0]?.id ?? null;
+    subtitleStream = v.subtitleTracks.find((tr) => tr.selected)?.id ?? 0;
+  }
+
+  function chooseVersion(e: Event) {
+    version = Number((e.target as HTMLSelectElement).value);
+    if (media) pickTracks(media);
+  }
   let related = $state<Item[]>([]);
   let summaryOpen = $state(false);
   let root = $state<HTMLElement>();
@@ -28,8 +42,8 @@
     try {
       const detail = await api.metadata(ratingKey);
       item = detail;
-      audioStream = detail.audioTracks.find((tr) => tr.selected)?.id ?? detail.audioTracks[0]?.id ?? null;
-      subtitleStream = detail.subtitleTracks.find((tr) => tr.selected)?.id ?? 0;
+      if (version >= (detail.versions?.length ?? 1)) version = 0;
+      pickTracks(detail.versions?.[version] ?? detail);
       if (detail.kind === "movie" || detail.kind === "show") api.related(ratingKey).then((r) => (related = r), () => {});
       children =
         detail.kind === "show" || detail.kind === "season"
@@ -65,7 +79,7 @@
   }
 
   function playThis(fromStart = false) {
-    start(item!.ratingKey, { audioStream, subtitleStream, fromStart });
+    start(item!.ratingKey, { audioStream, subtitleStream, fromStart, mediaIndex: version });
   }
 
   async function toggleWatched() {
@@ -262,14 +276,22 @@
         {/if}
         {#if hasMedia}
           <div class="panel media">
-            {#if item.video}
-              <div class="track"><span class="ico" title={t("item.facts.video")}><Icon name="film" size={18} /></span><span class="video">{item.video}</span></div>
+            <!-- Plusieurs versions (4K, 1080p…) : la ligne vidéo devient un choix, comme dans Plex. -->
+            {#if item.versions?.length > 1}
+              <label class="track" data-nav-row>
+                <span class="ico" title={t("item.facts.version")}><Icon name="film" size={18} /></span>
+                <select value={version} onchange={chooseVersion} aria-label={t("item.facts.version")}>
+                  {#each item.versions as v, i (i)}<option value={i}>{v.label}</option>{/each}
+                </select>
+              </label>
+            {:else if media?.video}
+              <div class="track"><span class="ico" title={t("item.facts.video")}><Icon name="film" size={18} /></span><span class="video">{media.video}</span></div>
             {/if}
-            {#if item.audioTracks.length}
+            {#if media?.audioTracks.length}
               <label class="track" data-nav-row>
                 <span class="ico" title={t("item.facts.audio")}><Icon name="audio" size={18} /></span>
                 <select bind:value={audioStream} aria-label={t("item.facts.audio")}>
-                  {#each item.audioTracks as tr (tr.id)}<option value={tr.id}>{tr.label}</option>{/each}
+                  {#each media.audioTracks as tr (tr.id)}<option value={tr.id}>{tr.label}</option>{/each}
                 </select>
               </label>
             {/if}
@@ -278,7 +300,7 @@
                 <span class="ico" title={t("item.facts.subtitles")}><Icon name="subtitles" size={18} /></span>
                 <select bind:value={subtitleStream} aria-label={t("item.facts.subtitles")}>
                   <option value={0}>{t("item.facts.none")}</option>
-                  {#each item.subtitleTracks as tr (tr.id)}<option value={tr.id}>{tr.label}</option>{/each}
+                  {#each media?.subtitleTracks ?? [] as tr (tr.id)}<option value={tr.id}>{tr.label}</option>{/each}
                 </select>
               </label>
             {/if}

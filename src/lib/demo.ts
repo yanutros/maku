@@ -263,6 +263,7 @@ function detail(key: string): ItemDetail {
         ]
       : [],
     subtitleTracks: base.playable ? [{ id: 3, label: "Français (SRT)", selected: false }] : [],
+    versions: [],
   };
 }
 

@@ -57,7 +57,8 @@ visionnage. Tout se fait avec son compte Plex (ou Jellyfin) : aucune clé d'API 
       suivant, arrêt), retour, volume et plein écran en boutons ronds dans les coins, raccourcis clavier. Reprise là où
       vous vous étiez arrêté. Qualité au choix, comme dans Plex : le fichier d'origine, ou une conversion par le
       serveur de 20 Mb/s en 1080p à 1,5 Mb/s en 480p, retenue pour les vidéos suivantes et visible telle quelle
-      dans Tautulli et Tracearr.
+      dans Tautulli et Tracearr. Un film en plusieurs versions (4K, 1080p…) se choisit sur sa fiche, avec ses
+      propres pistes audio et sous-titres.
     </td>
     <td width="50%" valign="top">
       <h4>🏠 Il met vos bibliothèques en valeur</h4>

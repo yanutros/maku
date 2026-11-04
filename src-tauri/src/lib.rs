@@ -814,13 +814,14 @@ async fn play(
     from_start: Option<bool>,
     max_kbps: Option<u32>,
     start_ms: Option<u64>,
+    media_index: Option<usize>,
 ) -> CmdResult<NowPlaying> {
     let server = state.server()?;
     let session = uuid::Uuid::new_v4().simple().to_string();
     let mut info = match max_kbps {
         // Qualité réduite : mpv lit le flux converti par le serveur, pistes choisies et sous-titres incrustés.
         Some(kbps) => {
-            let s = server.web_stream(&rating_key, audio_stream, subtitle_stream, Some(kbps), &session).await?;
+            let s = server.web_stream(&rating_key, media_index, audio_stream, subtitle_stream, Some(kbps), &session).await?;
             plex::PlayInfo {
                 url: s.url,
                 title: s.title,
@@ -833,7 +834,7 @@ async fn play(
                 sub_tracks: Vec::new(),
             }
         }
-        None => server.play_info(&rating_key, audio_stream, subtitle_stream).await?,
+        None => server.play_info(&rating_key, media_index, audio_stream, subtitle_stream).await?,
     };
     if from_start == Some(true) {
         info.offset_ms = 0;
@@ -931,9 +932,10 @@ async fn video_stream(
     audio_stream: Option<u64>,
     subtitle_stream: Option<u64>,
     max_kbps: Option<u32>,
+    media_index: Option<usize>,
 ) -> CmdResult<WebStream> {
     let session = uuid::Uuid::new_v4().simple().to_string();
-    Ok(state.server()?.web_stream(&rating_key, audio_stream, subtitle_stream, max_kbps, &session).await?)
+    Ok(state.server()?.web_stream(&rating_key, media_index, audio_stream, subtitle_stream, max_kbps, &session).await?)
 }
 
 /// Lecture native sur Android (ExoPlayer) : le fichier d'origine, sans conversion, avec les
@@ -961,8 +963,9 @@ async fn native_video(
     subtitle_stream: Option<u64>,
     from_start: Option<bool>,
     start_ms: Option<u64>,
+    media_index: Option<usize>,
 ) -> CmdResult<NativeVideo> {
-    let info = state.server()?.play_info(&rating_key, audio_stream, subtitle_stream).await?;
+    let info = state.server()?.play_info(&rating_key, media_index, audio_stream, subtitle_stream).await?;
     Ok(NativeVideo {
         session: uuid::Uuid::new_v4().simple().to_string(),
         url: info.url,

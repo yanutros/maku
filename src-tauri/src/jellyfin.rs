@@ -548,20 +548,23 @@ impl JellyfinServer {
                 photo: str_of(&p["Id"]).zip(p["PrimaryImageTag"].as_str()).map(|(pid, t)| self.image(&pid, "Primary", t, 300)),
             })
             .collect();
-        let streams = v["MediaSources"][0]["MediaStreams"].as_array().cloned().unwrap_or_default();
-        let video = streams.iter().find(|s| s["Type"] == "Video").map(|s| {
-            // D'après la largeur : un film au format large en 4K fait 3840 × 1600, pas « 1600p ».
-            let w = s["Width"].as_u64().unwrap_or(0);
-            let res = match w {
-                w if w >= 3200 => "4K".to_string(),
-                w if w >= 1800 => "1080p".to_string(),
-                w if w >= 1200 => "720p".to_string(),
-                w if w > 0 => "SD".to_string(),
-                _ => String::new(),
-            };
-            format!("{res} ({})", s["Codec"].as_str().unwrap_or("").to_uppercase()).trim().to_string()
-        });
-        let tracks = |t: &str| {
+        let sources = v["MediaSources"].as_array().cloned().unwrap_or_default();
+        let streams_of = |source: &Value| source["MediaStreams"].as_array().cloned().unwrap_or_default();
+        let video_of = |streams: &[Value]| {
+            streams.iter().find(|s| s["Type"] == "Video").map(|s| {
+                // D'après la largeur : un film au format large en 4K fait 3840 × 1600, pas « 1600p ».
+                let w = s["Width"].as_u64().unwrap_or(0);
+                let res = match w {
+                    w if w >= 3200 => "4K".to_string(),
+                    w if w >= 1800 => "1080p".to_string(),
+                    w if w >= 1200 => "720p".to_string(),
+                    w if w > 0 => "SD".to_string(),
+                    _ => String::new(),
+                };
+                format!("{res} ({})", s["Codec"].as_str().unwrap_or("").to_uppercase()).trim().to_string()
+            })
+        };
+        let tracks_of = |streams: &[Value], t: &str| {
             streams
                 .iter()
                 .filter(|s| s["Type"] == t)
@@ -572,6 +575,25 @@ impl JellyfinServer {
                 })
                 .collect::<Vec<_>>()
         };
+        let versions: Vec<crate::plex::Version> = sources
+            .iter()
+            .map(|source| {
+                let streams = streams_of(source);
+                let video = video_of(&streams);
+                // Débit en b/s chez Jellyfin.
+                let rate = source["Bitrate"].as_u64().map(|b| crate::plex::bitrate_label(b / 1000));
+                let label = [video.clone(), rate].into_iter().flatten().collect::<Vec<_>>().join(" · ");
+                crate::plex::Version {
+                    label,
+                    video,
+                    audio_tracks: tracks_of(&streams, "Audio"),
+                    subtitle_tracks: tracks_of(&streams, "Subtitle"),
+                }
+            })
+            .collect();
+        let streams = sources.first().map(streams_of).unwrap_or_default();
+        let video = video_of(&streams);
+        let tracks = |t: &str| tracks_of(&streams, t);
         Ok(ItemDetail {
             tagline: str_of(&v["Taglines"][0]),
             original_title: str_of(&v["OriginalTitle"]).filter(|o| *o != item.title),
@@ -584,6 +606,7 @@ impl JellyfinServer {
             video,
             audio_tracks: tracks("Audio"),
             subtitle_tracks: tracks("Subtitle"),
+            versions,
             item,
         })
     }
@@ -641,9 +664,10 @@ impl JellyfinServer {
         Ok(TrailerSource { local, youtube, tmdb_kind, tmdb_id })
     }
 
-    pub async fn play_info(&self, id: &str, audio: Option<u64>, subtitle: Option<u64>) -> Result<PlayInfo> {
+    pub async fn play_info(&self, id: &str, media: Option<usize>, audio: Option<u64>, subtitle: Option<u64>) -> Result<PlayInfo> {
         let v = self.json(&format!("/Users/{}/Items/{id}", self.uid())).await?;
-        let source = &v["MediaSources"][0];
+        let index = media.filter(|&i| v["MediaSources"][i].is_object()).unwrap_or(0);
+        let source = &v["MediaSources"][index];
         let source_id = source["Id"].as_str().unwrap_or(id).to_string();
         let streams = source["MediaStreams"].as_array().cloned().unwrap_or_default();
         let audios: Vec<&Value> = streams.iter().filter(|s| s["Type"] == "Audio").collect();
@@ -714,14 +738,16 @@ impl JellyfinServer {
     pub async fn web_stream(
         &self,
         id: &str,
+        media: Option<usize>,
         audio: Option<u64>,
         subtitle: Option<u64>,
         max_kbps: Option<u32>,
         session: &str,
     ) -> Result<WebStream> {
-        let info = self.play_info(id, audio, subtitle).await?;
+        let info = self.play_info(id, media, audio, subtitle).await?;
         let v = self.json(&format!("/Users/{}/Items/{id}", self.uid())).await?;
-        let source_id = v["MediaSources"][0]["Id"].as_str().unwrap_or(id).to_string();
+        let index = media.filter(|&i| v["MediaSources"][i].is_object()).unwrap_or(0);
+        let source_id = v["MediaSources"][index]["Id"].as_str().unwrap_or(id).to_string();
         let kbps = max_kbps.unwrap_or(crate::plex::DEFAULT_KBPS);
         let (width, _) = crate::plex::resolution_for(kbps);
         let mut url = format!(

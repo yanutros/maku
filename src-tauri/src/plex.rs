@@ -549,6 +549,8 @@ struct RawImage {
 struct RawMedia {
     video_resolution: Option<String>,
     video_codec: Option<String>,
+    /// Débit moyen du fichier, en kb/s.
+    bitrate: Option<u64>,
     #[serde(rename = "Part")]
     part: Vec<RawPart>,
 }
@@ -669,6 +671,27 @@ pub struct ItemDetail {
     pub video: Option<String>,
     pub audio_tracks: Vec<Track>,
     pub subtitle_tracks: Vec<Track>,
+    /// Versions du même titre (4K, 1080p…), dans l'ordre du serveur ; la première est celle des
+    /// champs ci-dessus. Une seule version : pas de choix à proposer.
+    pub versions: Vec<Version>,
+}
+
+/// Une version d'un titre : un fichier, sa définition et ses pistes.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Version {
+    /// Ex. « 4K (HEVC) · 16,3 Mb/s ».
+    pub label: String,
+    pub video: Option<String>,
+    pub audio_tracks: Vec<Track>,
+    pub subtitle_tracks: Vec<Track>,
+}
+
+/// « 16,3 Mb/s » (virgule sauf en anglais), d'après un débit en kb/s.
+pub fn bitrate_label(kbps: u64) -> String {
+    let mbps = format!("{:.1}", kbps as f64 / 1000.0);
+    let mbps = if crate::i18n::language() == "en" { mbps } else { mbps.replace('.', ",") };
+    format!("{mbps} Mb/s")
 }
 
 #[derive(Serialize)]
@@ -1172,16 +1195,17 @@ impl PlexServer {
 
     pub async fn metadata(&self, rating_key: &str) -> Result<ItemDetail> {
         let mut m = self.raw_metadata(rating_key).await?;
-        let media = m.media.first();
-        let video = media.and_then(|x| x.video_resolution.as_ref()).map(|res| {
-            let res = if res.chars().all(|c| c.is_ascii_digit()) { format!("{res}p") } else { res.to_uppercase() };
-            match media.and_then(|x| x.video_codec.as_ref()) {
-                Some(codec) => format!("{res} ({})", codec.to_uppercase()),
-                None => res,
-            }
-        });
-        let streams: &[RawStream] = media.and_then(|x| x.part.first()).map_or(&[], |p| &p.stream);
-        let tracks = |kind: u8| -> Vec<Track> {
+        let video_of = |media: &RawMedia| {
+            media.video_resolution.as_ref().map(|res| {
+                let res = if res.chars().all(|c| c.is_ascii_digit()) { format!("{res}p") } else { res.to_uppercase() };
+                match media.video_codec.as_ref() {
+                    Some(codec) => format!("{res} ({})", codec.to_uppercase()),
+                    None => res,
+                }
+            })
+        };
+        let tracks = |media: &RawMedia, kind: u8| -> Vec<Track> {
+            let streams: &[RawStream] = media.part.first().map_or(&[], |p| &p.stream);
             streams
                 .iter()
                 .filter(|s| s.stream_type == kind)
@@ -1196,8 +1220,18 @@ impl PlexServer {
                 })
                 .collect()
         };
-        let audio_tracks = tracks(2);
-        let subtitle_tracks = tracks(3);
+        let versions: Vec<Version> = m
+            .media
+            .iter()
+            .map(|media| {
+                let video = video_of(media);
+                let label = [video.clone(), media.bitrate.map(bitrate_label)].into_iter().flatten().collect::<Vec<_>>().join(" · ");
+                Version { label, video, audio_tracks: tracks(media, 2), subtitle_tracks: tracks(media, 3) }
+            })
+            .collect();
+        let video = m.media.first().and_then(video_of);
+        let audio_tracks = m.media.first().map(|x| tracks(x, 2)).unwrap_or_default();
+        let subtitle_tracks = m.media.first().map(|x| tracks(x, 3)).unwrap_or_default();
         let cast = std::mem::take(&mut m.role)
             .into_iter()
             .take(30)
@@ -1217,6 +1251,7 @@ impl PlexServer {
             video,
             audio_tracks,
             subtitle_tracks,
+            versions,
             item: self.to_item(m),
         })
     }
@@ -1273,15 +1308,17 @@ impl PlexServer {
     pub async fn web_stream(
         &self,
         rating_key: &str,
+        media: Option<usize>,
         audio: Option<u64>,
         subtitle: Option<u64>,
         max_kbps: Option<u32>,
         session: &str,
     ) -> Result<WebStream> {
         let m = self.raw_metadata(rating_key).await?;
+        let media_index = media.filter(|&i| i < m.media.len()).unwrap_or(0);
         let part = m
             .media
-            .first()
+            .get(media_index)
             .and_then(|x| x.part.first())
             .ok_or_else(|| anyhow!(crate::i18n::tr_with("plex.noPlayableFile", &[("title", &m.title)])))?;
         if audio.is_some() || subtitle.is_some() {
@@ -1313,7 +1350,7 @@ impl PlexServer {
         let kbps = max_kbps.unwrap_or(DEFAULT_KBPS);
         let (width, height) = resolution_for(kbps);
         let url = format!(
-            "{base}/video/:/transcode/universal/start.m3u8?path={path}&mediaIndex=0&partIndex=0&protocol=hls\
+            "{base}/video/:/transcode/universal/start.m3u8?path={path}&mediaIndex={media_index}&partIndex=0&protocol=hls\
              &fastSeek=1&directPlay=0&directStream=1&directStreamAudio=1&videoQuality=100&maxVideoBitrate={kbps}\
              &videoResolution={width}x{height}&subtitles=burn&subtitleSize=100&audioBoost=100&location=lan\
              &session={session}&X-Plex-Session-Identifier={session}&X-Plex-Client-Identifier={cid}\
@@ -1366,11 +1403,13 @@ impl PlexServer {
         Ok(TrailerSource { local, youtube: None, tmdb_kind, tmdb_id })
     }
 
-    pub async fn play_info(&self, rating_key: &str, audio: Option<u64>, subtitle: Option<u64>) -> Result<PlayInfo> {
+    /// `media` : la version à lire (voir `ItemDetail::versions`), la première par défaut.
+    pub async fn play_info(&self, rating_key: &str, media: Option<usize>, audio: Option<u64>, subtitle: Option<u64>) -> Result<PlayInfo> {
         let m = self.raw_metadata(rating_key).await?;
         let part = m
             .media
-            .first()
+            .get(media.unwrap_or(0))
+            .or_else(|| m.media.first())
             .and_then(|x| x.part.first())
             .ok_or_else(|| anyhow!(crate::i18n::tr_with("plex.noPlayableFile", &[("title", &m.title)])))?;
         let (title, subtitle_line) = match (m.kind.as_str(), &m.grandparent_title) {

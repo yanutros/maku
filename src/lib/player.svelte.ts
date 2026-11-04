@@ -39,6 +39,8 @@ export const player = $state({
   transcoded: false,
   /** Pistes du serveur demandées pour la vidéo en cours (identifiants Plex ou Jellyfin). */
   streams: { audioStream: null as number | null, subtitleStream: null as number | null },
+  /** Version lue (voir `ItemDetail.versions`) ; 0 : la première. */
+  mediaIndex: 0,
   /** Pistes du serveur, proposées quand la vidéo est convertie (mpv n'y voit qu'une piste). */
   serverAudio: [] as Track[],
   serverSubs: [] as Track[],
@@ -122,6 +124,8 @@ export interface PlayOptions {
   fromStart?: boolean;
   /** Position de départ imposée (ms), pour reprendre au même endroit après un changement de qualité. */
   startMs?: number;
+  /** Version à lire (4K, 1080p…), la première par défaut. */
+  mediaIndex?: number;
 }
 
 /** Libère la conversion du serveur lancée pour mpv (qualité réduite sur ordinateur). */
@@ -181,12 +185,14 @@ export async function play(ratingKey: string, opts: PlayOptions = {}) {
     subtitleStream: opts.subtitleStream ?? null,
   };
   player.streams = streams;
+  const mediaIndex = opts.mediaIndex ?? 0;
+  player.mediaIndex = mediaIndex;
   const maxKbps = player.quality || null;
   const startMs = opts.startMs ?? null;
   try {
     // Qualité réduite : le serveur convertit, et le lecteur natif d'Android lit son flux.
     if (player.web && nativeVideo && maxKbps) {
-      const s = await invoke<WebStreamInfo>("video_stream", { ratingKey, ...streams, maxKbps });
+      const s = await invoke<WebStreamInfo>("video_stream", { ratingKey, ...streams, maxKbps, mediaIndex });
       Object.assign(player, { session: s.session, title: s.title, subtitle: s.subtitle, duration: s.durationMs / 1000, native: true });
       markTranscoded();
       web.startNativeStream(s.url, startMs ?? (opts.fromStart ? 0 : s.offsetMs), streams);
@@ -194,13 +200,13 @@ export async function play(ratingKey: string, opts: PlayOptions = {}) {
     }
     // Android : le fichier d'origine, lu par le lecteur natif (le serveur ne convertit qu'en secours).
     if (player.web && nativeVideo) {
-      const s = await invoke<NativeInfo>("native_video", { ratingKey, ...streams, fromStart: opts.fromStart ?? false, startMs });
+      const s = await invoke<NativeInfo>("native_video", { ratingKey, ...streams, fromStart: opts.fromStart ?? false, startMs, mediaIndex });
       Object.assign(player, { session: s.session, title: s.title, subtitle: s.subtitle, duration: s.durationMs / 1000, native: true });
       web.startNative(s, streams);
       return;
     }
     if (player.web) {
-      const s = await invoke<WebStreamInfo>("video_stream", { ratingKey, ...streams, maxKbps });
+      const s = await invoke<WebStreamInfo>("video_stream", { ratingKey, ...streams, maxKbps, mediaIndex });
       Object.assign(player, { session: s.session, title: s.title, subtitle: s.subtitle, duration: s.durationMs / 1000 });
       markTranscoded();
       web.startVideo(s.url, (startMs ?? (opts.fromStart ? 0 : s.offsetMs)) / 1000);
@@ -212,6 +218,7 @@ export async function play(ratingKey: string, opts: PlayOptions = {}) {
       fromStart: opts.fromStart ?? false,
       maxKbps,
       startMs,
+      mediaIndex,
     });
     Object.assign(player, now);
     if (maxKbps) markTranscoded();
@@ -234,11 +241,16 @@ interface WebStreamInfo {
 function markTranscoded() {
   player.transcoded = true;
   const key = player.ratingKey;
-  invoke<{ audioTracks: Track[]; subtitleTracks: Track[] }>("plex_metadata", { ratingKey: key }).then(
+  const index = player.mediaIndex;
+  invoke<{ audioTracks: Track[]; subtitleTracks: Track[]; versions: { audioTracks: Track[]; subtitleTracks: Track[] }[] }>(
+    "plex_metadata",
+    { ratingKey: key },
+  ).then(
     (d) => {
       if (player.ratingKey !== key) return;
-      player.serverAudio = d.audioTracks;
-      player.serverSubs = d.subtitleTracks;
+      const v = d.versions[index] ?? d;
+      player.serverAudio = v.audioTracks;
+      player.serverSubs = v.subtitleTracks;
     },
     () => {},
   );
@@ -247,9 +259,9 @@ function markTranscoded() {
 /** Relance la vidéo en cours au même endroit, avec d'autres pistes ou une autre qualité. */
 function restart(streams = player.streams) {
   if (!player.video || !player.ratingKey) return;
-  const { ratingKey, prevKey, nextKey, markers } = player;
+  const { ratingKey, prevKey, nextKey, markers, mediaIndex } = player;
   const startMs = Math.round(player.position * 1000);
-  const done = play(ratingKey, { ...streams, startMs });
+  const done = play(ratingKey, { ...streams, startMs, mediaIndex });
   // Les épisodes voisins et les repères ne changent pas : pas de clignotement des boutons.
   Object.assign(player, { prevKey, nextKey, markers });
   return done;
@@ -448,6 +460,7 @@ const web = (() => {
         ratingKey: key,
         ...nativeStreams,
         maxKbps: player.quality || null,
+        mediaIndex: player.mediaIndex,
       });
       if (player.ratingKey !== key || !player.native) return;
       player.session = s.session;

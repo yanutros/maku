@@ -95,6 +95,15 @@ export interface ItemDetail extends Item {
   video: string | null;
   audioTracks: Track[];
   subtitleTracks: Track[];
+  /** Versions du même titre (4K, 1080p…) ; la première correspond aux champs ci-dessus. */
+  versions: Version[];
+}
+
+export interface Version {
+  label: string;
+  video: string | null;
+  audioTracks: Track[];
+  subtitleTracks: Track[];
 }
 
 export interface Page {
