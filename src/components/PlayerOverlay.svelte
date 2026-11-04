@@ -353,6 +353,8 @@
       <div class="controls">
         <span class="time">{fmt(player.position)}</span>
         <div class="transport">
+          <!-- Contrepoids du bouton stop, pour garder lecture/pause au centre. -->
+          <span class="spacer" aria-hidden="true"></span>
           {#if player.prevKey || player.nextKey}
             <button class="icon-btn" disabled={!player.prevKey} onclick={() => goTo(player.prevKey)} aria-label={t("player.prevEpisode")} title={t("player.prevEpisode")}>
               <Icon name="skipPrev" size={20} filled />
@@ -372,6 +374,10 @@
               <Icon name="skipNext" size={20} filled />
             </button>
           {/if}
+          <!-- Arrêter : la lecture s'arrête et le lecteur se ferme (la reprise reste enregistrée). -->
+          <button class="icon-btn" onclick={close} aria-label={t("common.c1.stop")} title={t("common.c1.stop")}>
+            <Icon name="stop" size={28} filled />
+          </button>
         </div>
         <!-- Temps restant, comme sur Apple TV. -->
         <span class="time end">−{fmt(player.duration - player.position)}</span>
@@ -647,6 +653,10 @@
     display: flex;
     align-items: center;
     gap: 10px;
+  }
+
+  .spacer {
+    width: 42px;
   }
 
   .time {

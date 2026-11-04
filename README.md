@@ -54,7 +54,7 @@ visionnage. Tout se fait avec son compte Plex (ou Jellyfin) : aucune clé d'API 
       <h4>🎬 Il lit tout, dans sa propre fenêtre</h4>
       Vidéo intégrée avec des commandes façon Apple TV : une capsule translucide qui flotte en bas de l'image
       (titre, pistes audio et sous-titres en cours, progression, temps restant, ±10 s, épisode précédent et
-      suivant), retour, volume et plein écran en boutons ronds dans les coins, raccourcis clavier. Reprise là où
+      suivant, arrêt), retour, volume et plein écran en boutons ronds dans les coins, raccourcis clavier. Reprise là où
       vous vous étiez arrêté.
     </td>
     <td width="50%" valign="top">
