@@ -104,8 +104,20 @@ pub async fn installed_notes(http: &reqwest::Client) -> Result<UpdateInfo> {
     })
 }
 
+/// Installé depuis le Microsoft Store (paquet MSIX, dans `WindowsApps`) : c'est le Store qui met Maku
+/// à jour, la mise à jour intégrée se tait.
+pub fn from_store() -> bool {
+    cfg!(windows)
+        && std::env::current_exe()
+            .map(|p| p.to_string_lossy().to_lowercase().contains(r"\windowsapps\"))
+            .unwrap_or(false)
+}
+
 /// Version plus récente que celle-ci, s'il y en a une avec un paquet pour cet appareil.
 pub async fn check(http: &reqwest::Client) -> Result<Option<UpdateInfo>> {
+    if from_store() {
+        return Ok(None);
+    }
     let mut current = env!("CARGO_PKG_VERSION").to_string();
     // Développement seulement : se faire passer pour une ancienne version.
     if cfg!(debug_assertions) {

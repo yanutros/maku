@@ -58,7 +58,7 @@ jobs:
           releaseBody: |
             Paquets de Maku v__VERSION__.
 
-            - **Windows** : `Maku_…_x64-setup.exe` (ou le `.msi`), signés via SignPath.
+            - **Windows** : `Maku_…_x64-setup.exe` (ou le `.msi`), non signés pour l'instant.
             - **Fedora / RHEL** : `Maku-….x86_64.rpm` — `sudo dnf install ./Maku-*.rpm` (installe aussi mpv).
             - **Debian / Ubuntu** : `Maku_…_amd64.deb` — `sudo apt install ./Maku_*.deb`.
             - **Autres Linux** : `Maku_…_amd64.AppImage` (mpv à installer avec le gestionnaire de paquets).
@@ -179,3 +179,16 @@ jobs:
             }
           }
           gh release upload "v${{ steps.version.outputs.version }}" $fichiers.FullName --clobber
+
+      # Paquet MSIX pour le Microsoft Store (voir scripts/build-msix.ps1) : non signé, il n'est pas joint à la
+      # version (il ne s'installerait pas) mais à l'exécution, d'où il est envoyé à l'Espace partenaires. Le Store
+      # le signe à la publication.
+      - name: Paquet du Microsoft Store
+        shell: pwsh
+        run: ./scripts/build-msix.ps1
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: Maku-store-msix
+          path: src-tauri/target/msix/*.msix
+          retention-days: 30

@@ -322,7 +322,7 @@ télécharge le paquet qui convient et l'installe :
 
 | Système | Ce qui se passe |
 | --- | --- |
-| 🪟 Windows | l'installeur tourne avec une simple barre de progression, puis Maku redémarre |
+| 🪟 Windows | l'installeur tourne avec une simple barre de progression, puis Maku redémarre (version du Microsoft Store : c'est le Store qui la met à jour) |
 | 🤖 Android / TV | l'installateur d'Android s'ouvre ; la première fois, Android demande d'autoriser Maku à installer des applications |
 | 📦 Linux (AppImage) | le fichier est remplacé et Maku redémarre |
 | 🎩 Linux (RPM / DEB) | le paquet s'ouvre dans la logithèque du système |
@@ -399,6 +399,10 @@ variables de dépôt `SIGNPATH_ORGANIZATION_ID`, `SIGNPATH_PROJECT_SLUG` et `SIG
 configurations d'artefact à déclarer dans SignPath (`exe` et `installeurs`) sont dans
 [`.signpath/artifact-configurations/`](.signpath/artifact-configurations). Sans ces variables, les paquets
 Windows sont construits sans signature.
+
+Le même job construit aussi le paquet MSIX du Microsoft Store ([`scripts/build-msix.ps1`](scripts/build-msix.ps1),
+manifeste dans [`src-tauri/msix/`](src-tauri/msix/AppxManifest.xml)) et le joint à l'exécution, et non à la version :
+non signé, il ne s'installerait pas. Il s'envoie depuis l'Espace partenaires, où le Store le signe.
 
 L'APK Android est compilé et signé sur l'ordinateur du mainteneur (la clé de signature ne quitte pas sa
 machine), puis ajouté à la version avec `gh release upload`.
@@ -622,6 +626,8 @@ Maku par un « Job Object » qui le fait fermer par le système même si Maku pl
 
 ## 🔒 Confidentialité
 
+La politique de confidentialité complète, en français et en anglais, est dans [PRIVACY.md](PRIVACY.md).
+
 - Maku parle directement à votre serveur Plex, à plex.tv (connexion), à l'API publique de GitHub (pour savoir
   si une nouvelle version existe) et, si vous les configurez, à vos instances Seerr et Tracearr. Il n'envoie
   rien ailleurs et ne collecte aucune statistique d'usage.
@@ -636,14 +642,16 @@ Maku par un « Job Object » qui le fait fermer par le système même si Maku pl
 
 ## 🔏 Signature du code
 
-**Code signing policy** — Free code signing provided by [SignPath.io](https://about.signpath.io/), certificate by
-[SignPath Foundation](https://signpath.org/).
+Les installeurs Windows publiés sur GitHub ne sont pas signés : SignPath Foundation, qui signe gratuitement des
+projets libres, a jugé Maku encore trop jeune. Windows et son antivirus peuvent donc traiter une nouvelle version
+comme un programme inconnu, parfois à tort comme un logiciel malveillant (Microsoft Defender l'a déjà fait).
 
-L'application et les installeurs Windows sont signés dès que SignPath Foundation a accepté le projet (les versions
-précédentes ne le sont pas) : Windows et son antivirus reconnaissent ainsi l'éditeur, au lieu de traiter chaque
-nouvelle version comme un programme inconnu, parfois à tort comme un logiciel malveillant. Seuls sont signés les fichiers construits par
-GitHub Actions à partir du code de ce dépôt, et chaque signature est approuvée à la main. mpv, inclus dans
-l'installeur, est un programme tiers qui n'est pas signé par Maku.
+Une version pour le **Microsoft Store**, « Maku Player », est en préparation : le Store vérifie le paquet puis le signe
+avec le certificat de Microsoft, ce qui règle la question. Le paquet (MSIX) est construit à partir du même code, par
+GitHub Actions ; sa fiche est décrite dans [docs/store.md](docs/store.md). mpv, inclus dans les deux, est un
+programme tiers qui n'est pas signé par Maku.
+
+Le workflow reste prêt pour une signature par SignPath, pour le jour où le projet sera accepté :
 
 | Rôle | Membres |
 | --- | --- |
