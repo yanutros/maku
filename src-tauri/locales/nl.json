@@ -19,6 +19,7 @@
     "launchFailed": "Kan mpv niet starten ({{path}})"
   },
   "plex": {
+    "wrongPin": "Onjuiste pincode",
     "noReachableAddress": "Geen bereikbaar adres voor server ‘{{name}}’",
     "trackCount_one": "{{count}} nummer",
     "trackCount_other": "{{count}} nummers",

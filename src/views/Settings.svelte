@@ -5,7 +5,7 @@
   import QrCode from "../components/QrCode.svelte";
   import KofiLogo from "../components/KofiLogo.svelte";
   import { applyInvite, decodeInvite, encodeInvite, readQrImage, type InviteStatus } from "../lib/invite";
-  import { api, errorText, tracearrLogin, type Account, type Pref, type Section, type ServerKinds, type Session } from "../lib/api";
+  import { api, errorText, tracearrLogin, type Account, type HomeUser, type Pref, type Section, type ServerKinds, type Session } from "../lib/api";
   import { go, nav, toast } from "../lib/nav.svelte";
   import { ordered, saveSidebar, sidebar } from "../lib/sidebar.svelte";
   import { device } from "../lib/device";
@@ -351,8 +351,28 @@
     onChange();
   }
 
+  // Plex Home : la connexion automatique se règle depuis un compte complet (pas un profil géré).
+  let autoSignIn = $state(false);
+  let homeUsers = $state<HomeUser[]>([]);
+  let homeCurrent = $state<string | null>(null);
+  const restricted = $derived(homeUsers.find((u) => u.uuid === homeCurrent)?.restricted ?? false);
+
+  async function toggleAutoSignIn() {
+    try {
+      await api.setAutoSignIn(autoSignIn);
+    } catch (e) {
+      autoSignIn = !autoSignIn;
+      toast(errorText(e), true);
+    }
+  }
+
   onMount(() => {
     api.account().then((a) => (account = a), () => {});
+    // Valeur à jour : la session reçue par la page date de son ouverture.
+    api.session().then((s) => (autoSignIn = s.autoSignIn), () => {});
+    if (session.serverKind === "plex" && session.plexRemembered) {
+      api.homeUsers().then((h) => ((homeUsers = h.users), (homeCurrent = h.current)), () => {});
+    }
     if (device.tv) api.sections().then((s) => (sections = s), () => {});
     if (nav.admin) loadPrefs();
   });
@@ -401,6 +421,9 @@
         </div>
         <div class="hero-actions">
           <span class="chip"><Icon name="server" size={16} /> {t("settings.account.server")} <strong>{session.serverName}</strong></span>
+          {#if device.phone && homeUsers.length > 1}
+            <button class="btn" onclick={() => (nav.profiles = true)}><Icon name="user" size={16} /> {t("sidebar.switchUser")}</button>
+          {/if}
           <button class="btn" onclick={changeServer}>{t("settings.account.changeServer")}</button>
           <button class="btn" onclick={logout}><Icon name="logout" size={16} /> {t("settings.account.logout")}</button>
         </div>
@@ -408,6 +431,15 @@
 
       <!-- Les réglages du compte, en lignes : le texte à gauche, la commande à droite. -->
       <section class="card list">
+        {#if homeUsers.length > 1 && !restricted}
+          <label class="line">
+            <div class="line-text">
+              <strong>{t("settings.account.autoSignIn")}</strong>
+              <span class="muted small">{t("settings.account.autoSignInHint")}</span>
+            </div>
+            <input type="checkbox" bind:checked={autoSignIn} onchange={toggleAutoSignIn} />
+          </label>
+        {/if}
         <div class="line">
           <div class="line-text">
             <strong>{t("settings.account.serverKinds")}</strong>

@@ -35,7 +35,9 @@
       "serverKindsHint": "Avec un seul, Maku ne demande plus de choisir entre Plex et Jellyfin. Avec les deux, « Changer de serveur » propose le choix, sans perdre les connexions.",
       "support": "Soutenir Maku",
       "supportHint": "Maku est gratuit et libre. Un café sur Ko-fi aide à le faire vivre.",
-      "supportButton": "Offrir un café sur Ko-fi"
+      "supportButton": "Offrir un café sur Ko-fi",
+      "autoSignIn": "Connexion automatique",
+      "autoSignInHint": "Ouvre Maku sur le dernier profil utilisé, sans choix du profil ni code PIN. Sur cet appareil seulement : n'importe qui l'ouvrant arrive sur ce profil."
     },
     "services": {
       "seerrConnected": "Connecté à Seerr avec ton compte Plex",
@@ -606,7 +608,8 @@
     "requests": "Demandes",
     "discover": "Découvrir",
     "stats": "Mes statistiques",
-    "settings": "Réglages"
+    "settings": "Réglages",
+    "switchUser": "Changer d'utilisateur"
   },
   "trackGrid": {
     "previous": "Précédent",
@@ -704,5 +707,16 @@
     "ratingCleared": "Note retirée",
     "removeContinue": "Retirer de Continuer à regarder",
     "removedContinue": "Retiré de Continuer à regarder"
+  },
+  "profiles": {
+    "title": "Qui regarde ?",
+    "admin": "Administrateur",
+    "managed": "Profil géré",
+    "current": "Profil actuel",
+    "cancel": "Annuler",
+    "enterPin": "Code PIN de {{name}}",
+    "pin": "Code PIN",
+    "back": "Retour aux profils",
+    "erase": "Effacer"
   }
 }

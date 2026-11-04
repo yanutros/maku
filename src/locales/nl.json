@@ -35,7 +35,9 @@
       "serverKindsHint": "Met één vraagt Maku niet meer om te kiezen tussen Plex en Jellyfin. Met beide biedt „Andere server” de keuze, zonder de aanmeldingen kwijt te raken.",
       "support": "Maku steunen",
       "supportHint": "Maku is gratis en open source. Een koffie op Ko-fi helpt het door te laten gaan.",
-      "supportButton": "Een koffie geven op Ko-fi"
+      "supportButton": "Een koffie geven op Ko-fi",
+      "autoSignIn": "Automatisch aanmelden",
+      "autoSignInHint": "Opent Maku met het laatst gebruikte profiel, zonder profielkeuze of pincode. Alleen op dit apparaat: wie het opent, komt in dat profiel."
     },
     "services": {
       "seerrConnected": "Verbonden met Seerr via je Plex-account",
@@ -606,7 +608,8 @@
     "requests": "Verzoeken",
     "discover": "Ontdekken",
     "stats": "Mijn statistieken",
-    "settings": "Instellingen"
+    "settings": "Instellingen",
+    "switchUser": "Gebruiker wisselen"
   },
   "trackGrid": {
     "previous": "Vorige",
@@ -704,5 +707,16 @@
     "ratingCleared": "Beoordeling verwijderd",
     "removeContinue": "Uit Verder kijken verwijderen",
     "removedContinue": "Uit Verder kijken verwijderd"
+  },
+  "profiles": {
+    "title": "Wie kijkt er?",
+    "admin": "Beheerder",
+    "managed": "Beheerd profiel",
+    "current": "Huidig profiel",
+    "cancel": "Annuleren",
+    "enterPin": "Pincode van {{name}}",
+    "pin": "Pincode",
+    "back": "Terug naar profielen",
+    "erase": "Wissen"
   }
 }

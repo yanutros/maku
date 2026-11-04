@@ -5,6 +5,7 @@
   import { player, stop } from "./lib/player.svelte";
   import Login from "./views/Login.svelte";
   import ServerPicker from "./views/ServerPicker.svelte";
+  import ProfilePicker from "./views/ProfilePicker.svelte";
   import Home from "./views/Home.svelte";
   import Library from "./views/Library.svelte";
   import MusicLibrary from "./views/MusicLibrary.svelte";
@@ -43,8 +44,22 @@
   let content = $state<HTMLElement>();
   let searchTimer: ReturnType<typeof setTimeout> | undefined;
 
+  // Plex Home : « Qui regarde ? » une fois au lancement, sauf avec la connexion automatique.
+  let choosingProfile = $state(false);
+  let profileAsked = false;
+
   async function refresh() {
     session = await api.session();
+    if (session.loggedIn && session.plexRemembered && session.serverKind === "plex") {
+      const home = await api.homeUsers().catch(() => null);
+      nav.homeProfiles = home?.users.length ?? 0;
+      if (!profileAsked && !session.autoSignIn && nav.homeProfiles > 1) {
+        profileAsked = true;
+        choosingProfile = true;
+        return;
+      }
+      profileAsked = true;
+    }
     if (session.serverName) {
       sections = await api.sections().catch(() => []);
       // Édition des métadonnées et réglages du serveur : réservés à son administrateur.
@@ -56,7 +71,8 @@
 
   // Bouton Retour (Android, souris) : il ferme d'abord ce qui est ouvert par-dessus la page.
   onBack(() => {
-    if (nav.trailer) nav.trailer = null;
+    if (nav.profiles) nav.profiles = false;
+    else if (nav.trailer) nav.trailer = null;
     else if (nav.tvMenu) nav.tvMenu = null;
     else if (nav.menu) nav.menu = null;
     else if (nav.editing) nav.editing = null;
@@ -113,6 +129,20 @@
   <div class="center muted">{t("common.c1.loading")}</div>
 {:else if !session.loggedIn}
   <Login onDone={refresh} />
+{:else if choosingProfile || nav.profiles}
+  <!-- Nouveau profil : on repart de l'accueil, avec ses bibliothèques et ses droits. -->
+  <ProfilePicker
+    cancel={choosingProfile ? undefined : () => (nav.profiles = false)}
+    onDone={(switched) => {
+      choosingProfile = false;
+      nav.profiles = false;
+      if (switched) {
+        nav.history = [];
+        nav.view = { name: "home" };
+      }
+      refresh();
+    }}
+  />
 {:else if !session.serverName}
   <ServerPicker onDone={refresh} />
 {:else}

@@ -9,6 +9,9 @@ pub struct Config {
     /// Identifiant unique de ce client auprès de Plex (X-Plex-Client-Identifier).
     pub client_id: String,
     pub plex_token: Option<String>,
+    /// Plex Home : se connecter au dernier profil utilisé sans passer par le choix du profil (et son
+    /// code PIN), comme l'option « Connexion automatique » des applications Plex. Propre à l'appareil.
+    pub auto_sign_in: bool,
     pub server: Option<SavedServer>,
     /// Serveurs utilisés : « plex », « jellyfin » ou « both » (écran de choix à chaque changement).
     /// Vide : fixé à la première connexion.

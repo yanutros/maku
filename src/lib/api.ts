@@ -21,6 +21,20 @@ export interface Session {
   tracearrConnected: boolean;
   /** Une clé TMDB est enregistrée (logos des titres que Plex n'a pas). */
   tmdb: boolean;
+  /** Plex Home : connexion automatique au dernier profil, sans écran « Qui regarde ? ». */
+  autoSignIn: boolean;
+}
+
+/** Profil d'un Plex Home. */
+export interface HomeUser {
+  uuid: string;
+  title: string;
+  thumb: string | null;
+  admin: boolean;
+  /** Profil géré (enfant…) : contenu filtré par le serveur. */
+  restricted: boolean;
+  /** Protégé par un code PIN. */
+  protected: boolean;
 }
 
 export interface LoginPin {
@@ -381,6 +395,9 @@ export const api = {
 
   isAdmin: () => invoke<boolean>("plex_is_admin"),
   account: () => invoke<Account>("plex_account"),
+  homeUsers: () => invoke<{ users: HomeUser[]; current: string | null }>("plex_home_users"),
+  switchUser: (uuid: string, pin: string | null) => invoke<void>("plex_switch_user", { uuid, pin }),
+  setAutoSignIn: (on: boolean) => invoke<void>("set_auto_sign_in", { on }),
   editInfo: (ratingKey: string) => invoke<EditInfo>("plex_edit_info", { ratingKey }),
   edit: (ratingKey: string, changes: { name: string; value: string; locked: boolean }[], genres: string[] | null) =>
     invoke<void>("plex_edit", { ratingKey, changes, genres }),

@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, bail, Result};
 use futures::future::join_all;
 use reqwest::{Client, RequestBuilder};
 use serde::{Deserialize, Serialize};
@@ -292,6 +292,70 @@ pub async fn set_watchlist(http: &Client, client_id: &str, token: &str, guid: &s
     .await?
     .error_for_status()?;
     Ok(())
+}
+
+/// Profil d'un Plex Home : l'administrateur, les comptes complets et les profils gérés (enfants…).
+#[derive(Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct HomeUser {
+    pub uuid: String,
+    pub title: String,
+    pub thumb: Option<String>,
+    /// Administrateur du Plex Home.
+    pub admin: bool,
+    /// Profil géré : contenu filtré par le serveur, sans réglages.
+    pub restricted: bool,
+    /// Protégé par un code PIN.
+    pub protected: bool,
+}
+
+/// Profils du Plex Home du compte, et celui du compte lui-même. Hors Plex Home : un seul profil.
+pub async fn home_users(http: &Client, client_id: &str, token: &str) -> Result<(Vec<HomeUser>, Option<String>)> {
+    let get = |url: String| with_plex_headers(http.get(url), client_id, Some(token)).send();
+    let (users, me) = futures::join!(get(format!("{PLEX_TV}/home/users")), get(format!("{PLEX_TV}/user")));
+    let me: serde_json::Value = me?.error_for_status()?.json().await?;
+    let current = me["uuid"].as_str().map(str::to_owned);
+    // Compte hors Plex Home : plex.tv répond par une erreur, il n'y a rien à choisir.
+    let Ok(users) = users?.error_for_status() else { return Ok((Vec::new(), current)) };
+    let users: serde_json::Value = users.json().await?;
+    let list = users["users"]
+        .as_array()
+        .map(|a| {
+            a.iter()
+                .filter(|u| !u["guest"].as_bool().unwrap_or(false))
+                .filter_map(|u| {
+                    Some(HomeUser {
+                        uuid: u["uuid"].as_str()?.to_owned(),
+                        title: u["title"].as_str().or_else(|| u["friendlyName"].as_str()).unwrap_or_default().to_owned(),
+                        thumb: u["thumb"].as_str().map(str::to_owned),
+                        admin: u["admin"].as_bool().unwrap_or(false),
+                        restricted: u["restricted"].as_bool().unwrap_or(false),
+                        protected: u["protected"].as_bool().unwrap_or(false),
+                    })
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    Ok((list, current))
+}
+
+/// Passe sur un autre profil du Plex Home, avec son code PIN s'il en a un : renvoie le jeton
+/// plex.tv de ce profil (celui des serveurs s'obtient ensuite par `servers`).
+pub async fn switch_home_user(http: &Client, client_id: &str, token: &str, uuid: &str, pin: Option<&str>) -> Result<String> {
+    let mut url = format!("{PLEX_TV}/home/users/{}/switch", urlencoding::encode(uuid));
+    if let Some(pin) = pin.filter(|p| !p.is_empty()) {
+        url.push_str(&format!("?pin={}", urlencoding::encode(pin)));
+    }
+    let r = with_plex_headers(http.post(url), client_id, Some(token)).send().await?;
+    if matches!(r.status().as_u16(), 401 | 403 | 422) {
+        bail!(crate::i18n::tr("plex.wrongPin"));
+    }
+    let v: serde_json::Value = r.error_for_status()?.json().await?;
+    v["authToken"]
+        .as_str()
+        .or_else(|| v["authenticationToken"].as_str())
+        .map(str::to_owned)
+        .ok_or_else(|| anyhow!(crate::i18n::tr("plex.wrongPin")))
 }
 
 /// Photos des comptes Plex : celle de l'utilisateur et celles de ses amis (propriétaires des

@@ -137,6 +137,8 @@ struct Session {
     tracearr_connected: bool,
     /// Une clé TMDB est enregistrée (elle-même n'est jamais renvoyée à la page).
     tmdb: bool,
+    /// Plex Home : connexion automatique au dernier profil, sans écran de choix.
+    auto_sign_in: bool,
 }
 
 #[derive(Serialize)]
@@ -204,6 +206,7 @@ fn get_session(state: State<'_, AppState>) -> Session {
         tracearr_url: c.tracearr_url,
         tracearr_connected: c.tracearr_cookies.is_some(),
         tmdb: c.tmdb_key.is_some(),
+        auto_sign_in: c.auto_sign_in,
     }
 }
 
@@ -253,6 +256,69 @@ async fn plex_poll_login(state: State<'_, AppState>, pin_id: u64) -> CmdResult<b
     state.choosing.store(false, std::sync::atomic::Ordering::Relaxed);
     *state.seerr.lock().await = None;
     Ok(true)
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct HomeUsers {
+    users: Vec<plex::HomeUser>,
+    /// Profil connecté.
+    current: Option<String>,
+}
+
+/// Profils du Plex Home (vide hors Plex Home), pour l'écran « Qui regarde ? ».
+#[tauri::command]
+async fn plex_home_users(state: State<'_, AppState>) -> CmdResult<HomeUsers> {
+    let c = state.cfg();
+    let token = c.plex_token.ok_or_else(|| anyhow!(crate::i18n::tr("app.notLoggedIn")))?;
+    let (users, current) = plex::home_users(&state.http, &c.client_id, &token).await?;
+    Ok(HomeUsers { users, current })
+}
+
+/// Passe sur un autre profil du Plex Home. Le serveur en cours est gardé si ce profil y a accès
+/// (avec son propre jeton : le serveur applique ses restrictions), sinon on repasse par le choix du serveur.
+#[tauri::command]
+async fn plex_switch_user(state: State<'_, AppState>, uuid: String, pin: Option<String>) -> CmdResult<()> {
+    let c = state.cfg();
+    let token = c.plex_token.clone().ok_or_else(|| anyhow!(crate::i18n::tr("app.notLoggedIn")))?;
+    let user_token = plex::switch_home_user(&state.http, &c.client_id, &token, &uuid, pin.as_deref()).await?;
+    let saved = match c.server.as_ref().filter(|s| !s.is_jellyfin()) {
+        Some(current) => {
+            let res = plex::servers(&state.http, &c.client_id, &user_token)
+                .await?
+                .into_iter()
+                .find(|r| r.client_identifier == current.machine_id);
+            match res {
+                Some(res) => {
+                    let uri = plex::pick_connection(&state.http, &c.client_id, &res).await?;
+                    Some(SavedServer {
+                        name: res.name,
+                        machine_id: res.client_identifier,
+                        uri,
+                        token: res.access_token.unwrap_or_else(|| user_token.clone()),
+                        kind: String::new(),
+                        user_id: None,
+                    })
+                }
+                None => None,
+            }
+        }
+        None => c.server.clone(),
+    };
+    stop_player(&state);
+    state.update_cfg(|c| {
+        c.plex_token = Some(user_token);
+        c.server = saved;
+    })?;
+    // Seerr s'ouvre avec le compte Plex : il faut s'y reconnecter avec le nouveau profil.
+    *state.seerr.lock().await = None;
+    Ok(())
+}
+
+#[tauri::command]
+fn set_auto_sign_in(state: State<'_, AppState>, on: bool) -> CmdResult<()> {
+    state.update_cfg(|c| c.auto_sign_in = on)?;
+    Ok(())
 }
 
 /// Enregistre le serveur Jellyfin auquel on vient de se connecter : il devient le serveur de Maku.
@@ -1406,6 +1472,9 @@ pub fn run() {
             plex_search,
             plex_set_watched,
             plex_is_admin,
+            plex_home_users,
+            plex_switch_user,
+            set_auto_sign_in,
             plex_account,
             plex_edit_info,
             plex_edit,

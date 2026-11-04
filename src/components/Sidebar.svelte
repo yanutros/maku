@@ -205,7 +205,22 @@
   </nav>
 
   <div class="spacer"></div>
-  {#if desk}
+  {#if desk && nav.homeProfiles > 1 && serverKind === "plex"}
+    <!-- Plex Home : la carte ouvre « Qui regarde ? », la roue dentée les Réglages. -->
+    <div class="profile-card">
+      <button class="profile" onclick={() => (nav.profiles = true)} title={t("sidebar.switchUser")}>
+        {#if account?.thumb}<img class="avatar" src={account.thumb} alt="" />{:else}<span class="avatar"><Icon name="user" size={16} /></span>{/if}
+        <span class="label">
+          {account?.username ?? t("sidebar.switchUser")}
+          <small>{t("sidebar.switchUser")}</small>
+        </span>
+      </button>
+      <button class="gear-btn" class:active={isActive("settings")}
+              aria-current={isActive("settings") ? "page" : undefined} onclick={() => open({ name: "settings" })} title={t("sidebar.settings")}>
+        <Icon name="settings" size={17} />
+      </button>
+    </div>
+  {:else if desk}
     <button class="profile" class:active={isActive("settings")}
             aria-current={isActive("settings") ? "page" : undefined} onclick={() => open({ name: "settings" })} title={t("sidebar.settings")}>
       {#if account?.thumb}<img class="avatar" src={account.thumb} alt="" />{:else}<span class="avatar"><Icon name="user" size={16} /></span>{/if}
@@ -568,6 +583,65 @@
 
   .collapsed .profile .gear {
     display: none;
+  }
+
+  /* Plex Home : la carte du profil et la roue dentée des Réglages, côte à côte (l'une sous l'autre,
+     menu replié). */
+  .profile-card {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 10px;
+    border-radius: 14px;
+    background: #ffffff0a;
+  }
+
+  .profile-card .profile {
+    flex: 1;
+    min-width: 0;
+    margin-top: 0;
+    background: none;
+  }
+
+  .profile-card .profile:hover {
+    background: #ffffff14;
+  }
+
+  .profile-card .label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .gear-btn {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 36px;
+    height: 36px;
+    margin-right: 6px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: none;
+    color: var(--text-faint);
+    transition: color 0.15s, background 0.15s, transform 0.3s var(--ease);
+  }
+
+  .gear-btn:hover,
+  .gear-btn:focus-visible,
+  .gear-btn.active {
+    background: #ffffff14;
+    color: var(--accent);
+    transform: rotate(45deg);
+  }
+
+  .collapsed .profile-card {
+    flex-direction: column;
+    background: none;
+  }
+
+  .collapsed .profile-card .gear-btn {
+    margin: 0;
   }
 
   /* Téléviseur : sa colonne garde la largeur du menu replié (App.svelte) ; déplié, le menu s'élargit

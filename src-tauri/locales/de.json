@@ -19,6 +19,7 @@
     "launchFailed": "mpv konnte nicht gestartet werden ({{path}})"
   },
   "plex": {
+    "wrongPin": "Falsche PIN",
     "noReachableAddress": "Keine erreichbare Adresse für den Server „{{name}}“",
     "trackCount_one": "{{count}} Titel",
     "trackCount_other": "{{count}} Titel",

@@ -112,7 +112,9 @@ visionnage. Tout se fait avec son compte Plex (ou Jellyfin) : aucune clé d'API 
     <td valign="top">
       <h4>🔑 Il se connecte avec Plex</h4>
       Connexion par code PIN, choix du serveur avec test automatique des adresses ; Seerr et Tracearr
-      utilisent le même compte.
+      utilisent le même compte. Avec Plex Home, « Qui regarde ? » au lancement : profils, profils gérés et
+      code PIN, comme dans Plex, ou connexion automatique au dernier profil (Réglages → Compte) ; la carte du
+      profil, en bas du menu, change d'utilisateur à tout moment.
     </td>
   </tr>
   <tr>
