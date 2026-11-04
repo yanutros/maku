@@ -79,6 +79,29 @@ impl AppState {
         self.server()?.plex()
     }
 
+    /// Le compte Plex connecté possède-t-il le serveur en cours ? D'après plex.tv (« owned ») : les
+    /// membres d'un Plex Home lisent eux aussi les réglages du serveur, ce n'est donc pas un critère.
+    async fn owns_plex_server(&self) -> bool {
+        let c = self.cfg();
+        let (Some(token), Some(saved)) = (c.plex_token, c.server) else { return false };
+        if saved.is_jellyfin() {
+            return false;
+        }
+        plex::servers(&self.http, &c.client_id, &token)
+            .await
+            .ok()
+            .and_then(|list| list.into_iter().find(|r| r.client_identifier == saved.machine_id))
+            .is_some_and(|r| r.owned)
+    }
+
+    /// Le serveur Plex, pour une action réservée à son propriétaire (fiches, collections, réglages…).
+    async fn admin_plex(&self) -> anyhow::Result<PlexServer> {
+        if !self.owns_plex_server().await {
+            return Err(anyhow!(crate::i18n::tr("admin.forbidden")));
+        }
+        self.plex()
+    }
+
     /// Session Seerr ouverte à la demande, puis réutilisée.
     async fn seerr(&self) -> anyhow::Result<Arc<Seerr>> {
         let mut slot = self.seerr.lock().await;
@@ -586,7 +609,11 @@ async fn collection_choices(state: State<'_, AppState>, rating_key: String) -> C
 
 #[tauri::command]
 async fn add_to_collection(state: State<'_, AppState>, rating_key: String, collection: String) -> CmdResult<()> {
-    Ok(state.server()?.add_to_collection(&rating_key, &collection).await?)
+    let server = state.server()?;
+    if matches!(server, media::MediaServer::Plex(_)) {
+        state.admin_plex().await?;
+    }
+    Ok(server.add_to_collection(&rating_key, &collection).await?)
 }
 
 #[tauri::command]
@@ -595,7 +622,11 @@ async fn create_collection(state: State<'_, AppState>, rating_key: String, title
     if title.is_empty() {
         return Err(anyhow!(crate::i18n::tr("collection.noTitle")).into());
     }
-    Ok(state.server()?.create_collection(&rating_key, title).await?)
+    let server = state.server()?;
+    if matches!(server, media::MediaServer::Plex(_)) {
+        state.admin_plex().await?;
+    }
+    Ok(server.create_collection(&rating_key, title).await?)
 }
 
 /// Miniatures d'aperçu de la vidéo, pour la barre de progression (aucune si le serveur n'en a pas).
@@ -798,7 +829,7 @@ async fn plex_set_watched(state: State<'_, AppState>, rating_key: String, watche
 
 #[tauri::command]
 async fn plex_is_admin(state: State<'_, AppState>) -> CmdResult<bool> {
-    Ok(state.server()?.is_admin().await)
+    Ok(state.owns_plex_server().await)
 }
 
 #[tauri::command]
@@ -813,7 +844,7 @@ async fn plex_account(state: State<'_, AppState>) -> CmdResult<Account> {
 
 #[tauri::command]
 async fn plex_edit_info(state: State<'_, AppState>, rating_key: String) -> CmdResult<EditInfo> {
-    Ok(state.plex()?.edit_info(&rating_key).await?)
+    Ok(state.admin_plex().await?.edit_info(&rating_key).await?)
 }
 
 #[tauri::command]
@@ -823,52 +854,52 @@ async fn plex_edit(
     changes: Vec<FieldChange>,
     genres: Option<Vec<String>>,
 ) -> CmdResult<()> {
-    Ok(state.plex()?.edit(&rating_key, changes, genres).await?)
+    Ok(state.admin_plex().await?.edit(&rating_key, changes, genres).await?)
 }
 
 #[tauri::command]
 async fn plex_images(state: State<'_, AppState>, rating_key: String, kind: String) -> CmdResult<Vec<ImageChoice>> {
-    Ok(state.plex()?.images(&rating_key, &kind).await?)
+    Ok(state.admin_plex().await?.images(&rating_key, &kind).await?)
 }
 
 #[tauri::command]
 async fn plex_set_image(state: State<'_, AppState>, rating_key: String, kind: String, url: String) -> CmdResult<()> {
-    Ok(state.plex()?.set_image(&rating_key, &kind, &url).await?)
+    Ok(state.admin_plex().await?.set_image(&rating_key, &kind, &url).await?)
 }
 
 #[tauri::command]
 async fn plex_refresh_metadata(state: State<'_, AppState>, rating_key: String) -> CmdResult<()> {
-    Ok(state.plex()?.refresh_metadata(&rating_key).await?)
+    Ok(state.admin_plex().await?.refresh_metadata(&rating_key).await?)
 }
 
 #[tauri::command]
 async fn plex_analyze(state: State<'_, AppState>, rating_key: String) -> CmdResult<()> {
-    Ok(state.plex()?.analyze(&rating_key).await?)
+    Ok(state.admin_plex().await?.analyze(&rating_key).await?)
 }
 
 #[tauri::command]
 async fn plex_prefs(state: State<'_, AppState>) -> CmdResult<Vec<Pref>> {
-    Ok(state.plex()?.prefs().await?)
+    Ok(state.admin_plex().await?.prefs().await?)
 }
 
 #[tauri::command]
 async fn plex_set_prefs(state: State<'_, AppState>, changes: HashMap<String, String>) -> CmdResult<()> {
-    Ok(state.plex()?.set_prefs(changes).await?)
+    Ok(state.admin_plex().await?.set_prefs(changes).await?)
 }
 
 #[tauri::command]
 async fn plex_sessions(state: State<'_, AppState>) -> CmdResult<Vec<ServerSession>> {
-    Ok(state.plex()?.sessions().await?)
+    Ok(state.admin_plex().await?.sessions().await?)
 }
 
 #[tauri::command]
 async fn plex_scan_section(state: State<'_, AppState>, key: String) -> CmdResult<()> {
-    Ok(state.plex()?.scan_section(&key).await?)
+    Ok(state.admin_plex().await?.scan_section(&key).await?)
 }
 
 #[tauri::command]
 async fn plex_empty_trash(state: State<'_, AppState>, key: String) -> CmdResult<()> {
-    Ok(state.plex()?.empty_trash(&key).await?)
+    Ok(state.admin_plex().await?.empty_trash(&key).await?)
 }
 
 // ---------- Lecture ----------

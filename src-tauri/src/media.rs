@@ -87,14 +87,6 @@ impl MediaServer {
         }
     }
 
-    /// Le compte administre-t-il le serveur (édition des fiches, réglages) ? Plex seulement, pour l'instant.
-    pub async fn is_admin(&self) -> bool {
-        match self {
-            Self::Plex(p) => p.is_admin().await,
-            Self::Jellyfin(_) => false,
-        }
-    }
-
     /// Le serveur Plex, pour ce qui n'existe que chez lui.
     pub fn plex(self) -> Result<PlexServer> {
         match self {

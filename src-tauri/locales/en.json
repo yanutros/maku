@@ -60,7 +60,8 @@
       "albumSummary": "Description",
       "trackArtist": "Track artist",
       "trackNumber": "Track number"
-    }
+    },
+    "forbidden": "Only the server administrator can do this."
   },
   "seerr": {
     "plexRequired": "A Plex sign-in is required to connect to Seerr",

@@ -129,7 +129,8 @@ visionnage. Tout se fait avec son compte Plex (ou Jellyfin) : aucune clé d'API 
     <td valign="top">
       <h4>🛠️ Il administre le serveur</h4>
       Lectures en cours, entretien des bibliothèques et réglages du serveur (général, réseau, transcodeur…),
-      pour l'administrateur uniquement.
+      pour l'administrateur uniquement : le propriétaire du serveur selon plex.tv (pas les membres du Plex Home
+      ni les amis), et chaque action le vérifie.
     </td>
   </tr>
   <tr>

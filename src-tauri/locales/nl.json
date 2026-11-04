@@ -60,7 +60,8 @@
       "albumSummary": "Beschrijving",
       "trackArtist": "Artiest van nummer",
       "trackNumber": "Nummer op album"
-    }
+    },
+    "forbidden": "Alleen de serverbeheerder kan dit doen."
   },
   "seerr": {
     "plexRequired": "Je moet bij Plex inloggen om verbinding te maken met Seerr",

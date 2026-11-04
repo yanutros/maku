@@ -60,7 +60,8 @@
       "albumSummary": "Beschreibung",
       "trackArtist": "Titelkünstler",
       "trackNumber": "Titelnummer"
-    }
+    },
+    "forbidden": "Nur der Server-Administrator kann das tun."
   },
   "seerr": {
     "plexRequired": "Für die Verbindung mit Seerr ist eine Plex-Anmeldung nötig",

@@ -60,7 +60,8 @@
       "albumSummary": "Presentación",
       "trackArtist": "Artista de la canción",
       "trackNumber": "Número de pista"
-    }
+    },
+    "forbidden": "Solo el administrador del servidor puede hacerlo."
   },
   "seerr": {
     "plexRequired": "Hay que iniciar sesión en Plex para conectarse a Seerr",

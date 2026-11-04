@@ -177,15 +177,6 @@ impl PlexServer {
         self.json(method, path).await.map(|_| ())
     }
 
-    /// Le compte connecté administre-t-il ce serveur ? (seul l'administrateur lit ses réglages)
-    pub async fn is_admin(&self) -> bool {
-        self.request(Method::GET, "/:/prefs")
-            .send()
-            .await
-            .map(|r| r.status().is_success())
-            .unwrap_or(false)
-    }
-
     async fn metadata_value(&self, rating_key: &str) -> Result<(Value, Value)> {
         let c = self.json(Method::GET, &format!("/library/metadata/{rating_key}")).await?;
         let container = c["MediaContainer"].clone();
