@@ -5,7 +5,7 @@
 use anyhow::{anyhow, Result};
 
 use crate::jellyfin::JellyfinServer;
-use crate::plex::{Adjacent, Genre, Hub, Item, ItemDetail, Marker, Page, PlayInfo, PlexServer, QueueTrack, Section, TrailerSource, WebStream};
+use crate::plex::{Adjacent, Genre, Hub, Item, ItemDetail, Marker, Page, PlayInfo, PlexServer, Previews, QueueTrack, Section, TrailerSource, WebStream};
 
 #[derive(Clone)]
 pub enum MediaServer {
@@ -70,6 +70,7 @@ common! {
         fn rate(&self, rating_key: &str, rating: Option<f32>) -> ();
         fn remove_from_continue(&self, rating_key: &str) -> ();
         fn markers(&self, rating_key: &str) -> Vec<Marker>;
+        fn previews(&self, rating_key: &str, media: Option<usize>) -> Option<Previews>;
         fn trailer(&self, rating_key: &str) -> TrailerSource;
     }
     plex_only {}

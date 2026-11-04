@@ -620,6 +620,32 @@ impl JellyfinServer {
     /// Lecture directe : le fichier d'origine et ses pistes (numérotées comme dans mpv).
     /// Segments du serveur (Jellyfin 10.10 et plus, remplis par exemple par le plugin Intro Skipper) :
     /// intro et générique (« Outro »). Sans segments, rien.
+    /// Miniatures d'aperçu (« trickplay », Jellyfin 10.9 et plus) : des planches de vignettes,
+    /// dans la plus petite largeur disponible.
+    pub async fn previews(&self, id: &str, media: Option<usize>) -> Result<Option<crate::plex::Previews>> {
+        let v = self.json(&format!("/Users/{}/Items/{id}?Fields=Trickplay", self.uid())).await?;
+        let index = media.filter(|&i| v["MediaSources"][i].is_object()).unwrap_or(0);
+        let source_id = v["MediaSources"][index]["Id"].as_str().unwrap_or(id).to_string();
+        let Some(sizes) = v["Trickplay"][&source_id].as_object() else { return Ok(None) };
+        let Some((width, info)) = sizes.iter().filter_map(|(w, i)| Some((w.parse::<u32>().ok()?, i))).min_by_key(|(w, _)| *w) else {
+            return Ok(None);
+        };
+        let n = |k: &str| info[k].as_u64().unwrap_or(0) as u32;
+        Ok(Some(crate::plex::Previews {
+            kind: "tiles",
+            url: format!(
+                "{}/Videos/{id}/Trickplay/{width}/{{index}}.jpg?MediaSourceId={source_id}&api_key={}",
+                self.base, self.token
+            ),
+            interval_ms: info["Interval"].as_u64().unwrap_or(10_000),
+            width: n("Width"),
+            height: n("Height"),
+            columns: n("TileWidth").max(1),
+            rows: n("TileHeight").max(1),
+            count: n("ThumbnailCount"),
+        }))
+    }
+
     pub async fn markers(&self, id: &str) -> Result<Vec<Marker>> {
         let Ok(v) = self.json(&format!("/MediaSegments/{id}")).await else { return Ok(Vec::new()) };
         Ok(v["Items"]

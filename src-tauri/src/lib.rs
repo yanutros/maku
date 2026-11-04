@@ -510,6 +510,16 @@ async fn plex_markers(state: State<'_, AppState>, rating_key: String) -> CmdResu
     Ok(state.server()?.markers(&rating_key).await?)
 }
 
+/// Miniatures d'aperçu de la vidéo, pour la barre de progression (aucune si le serveur n'en a pas).
+#[tauri::command]
+async fn video_previews(
+    state: State<'_, AppState>,
+    rating_key: String,
+    media_index: Option<usize>,
+) -> CmdResult<Option<plex::Previews>> {
+    Ok(state.server()?.previews(&rating_key, media_index).await?)
+}
+
 /// Bande-annonce, dans la langue de l'interface autant que possible : une bande-annonce du serveur
 /// dont le titre dit cette langue, sinon celle de TMDB dans cette langue (avec la clé de
 /// l'utilisateur), sinon une bande-annonce du serveur, sinon le lien YouTube de la fiche (Jellyfin),
@@ -1376,6 +1386,7 @@ pub fn run() {
             plex_genres,
             plex_adjacent,
             plex_markers,
+            video_previews,
             plex_trailer,
             media_update,
             plex_playlists,

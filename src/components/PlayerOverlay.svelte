@@ -131,6 +131,37 @@
     return ratio * player.duration;
   }
 
+  // Aperçu au-dessus de la barre : la miniature du serveur la plus proche de l'instant survolé.
+  const PREVIEW_W = 240;
+  const preview = $derived.by(() => {
+    const p = player.previews;
+    if (!p || hoverTime === null || !bar) return null;
+    const ms = Math.max(0, hoverTime * 1000);
+    const width = PREVIEW_W;
+    const height = Math.round((PREVIEW_W * (p.height || 9)) / (p.width || 16));
+    // Centré sur la tête de lecture, sans dépasser des bords de la barre.
+    const left = Math.min(Math.max(hoverX, width / 2), bar.clientWidth - width / 2);
+    if (p.kind === "frame") {
+      const at = Math.round(ms / p.intervalMs) * p.intervalMs;
+      return { left, width, height, style: `background-image: url("${p.url.replace("{ms}", String(at))}"); background-size: cover` };
+    }
+    // Planches de vignettes (Jellyfin) : la bonne planche, puis la bonne case.
+    const per = p.columns * p.rows;
+    const i = Math.min(Math.floor(ms / p.intervalMs), Math.max(0, p.count - 1));
+    const sheet = Math.floor(i / per);
+    const cell = i % per;
+    const x = (cell % p.columns) * width;
+    const y = Math.floor(cell / p.columns) * height;
+    return {
+      left,
+      width,
+      height,
+      style:
+        `background-image: url("${p.url.replace("{index}", String(sheet))}");` +
+        ` background-size: ${p.columns * width}px ${p.rows * height}px; background-position: -${x}px -${y}px`,
+    };
+  });
+
   function onBarDown(e: PointerEvent) {
     dragging = true;
     bar!.setPointerCapture(e.pointerId);
@@ -431,7 +462,11 @@
           <div class="played" style:width="{progress}%"></div>
         </div>
         <div class="thumb" style:left="{progress}%"></div>
-        {#if hoverTime !== null}
+        {#if preview}
+          <div class="preview" style:left="{preview.left}px" style:width="{preview.width}px" style:height="{preview.height}px" style={preview.style}>
+            <span>{fmt(hoverTime ?? 0)}</span>
+          </div>
+        {:else if hoverTime !== null}
           <div class="hover-time" style:left="{hoverX}px">{fmt(hoverTime)}</div>
         {/if}
       </div>
@@ -726,6 +761,32 @@
     font-size: 12px;
     font-variant-numeric: tabular-nums;
     pointer-events: none;
+  }
+
+  /* Miniature d'aperçu, l'heure posée en bas, comme dans Plex. */
+  .preview {
+    position: absolute;
+    bottom: 24px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    overflow: hidden;
+    border: 2px solid #fff;
+    border-radius: 10px;
+    background-color: #000;
+    background-repeat: no-repeat;
+    box-shadow: 0 10px 30px #000a;
+    transform: translateX(-50%);
+    pointer-events: none;
+  }
+
+  .preview span {
+    margin-bottom: 6px;
+    padding: 2px 8px;
+    border-radius: 6px;
+    background: #000c;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
   }
 
   .controls {

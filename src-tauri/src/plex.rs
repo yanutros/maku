@@ -560,6 +560,8 @@ struct RawMedia {
 struct RawPart {
     id: u64,
     key: String,
+    /// « sd » quand le serveur a généré les miniatures d'aperçu du fichier.
+    indexes: Option<String>,
     #[serde(rename = "Stream")]
     stream: Vec<RawStream>,
 }
@@ -778,6 +780,22 @@ pub struct PlayInfo {
     pub sub_files: Vec<String>,
     /// Les mêmes, avec leur format et leur langue (lecteur natif d'Android).
     pub sub_tracks: Vec<SubFile>,
+}
+
+/// Miniatures d'aperçu d'une vidéo, pour la barre de progression du lecteur.
+/// `frame` : une image par instant, `url` contient `{ms}` (Plex) ;
+/// `tiles` : des planches de `columns` × `rows` vignettes, `url` contient `{index}` (Jellyfin).
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Previews {
+    pub kind: &'static str,
+    pub url: String,
+    pub interval_ms: u64,
+    pub width: u32,
+    pub height: u32,
+    pub columns: u32,
+    pub rows: u32,
+    pub count: u32,
 }
 
 /// Débit d'une conversion quand aucune qualité n'est choisie (kb/s).
@@ -1388,6 +1406,23 @@ impl PlexServer {
             .filter(|k| k.end_time_offset > k.start_time_offset)
             .map(|k| Marker { kind: k.kind.clone(), start_ms: k.start_time_offset, end_ms: k.end_time_offset })
             .collect())
+    }
+
+    /// Miniatures d'aperçu du fichier, si le serveur les a générées (réglage « Générer les miniatures
+    /// d'aperçu vidéo ») : une image JPEG par instant, toutes les 2 s.
+    pub async fn previews(&self, rating_key: &str, media: Option<usize>) -> Result<Option<Previews>> {
+        let m = self.raw_metadata(rating_key).await?;
+        let part = m.media.get(media.unwrap_or(0)).or_else(|| m.media.first()).and_then(|x| x.part.first());
+        Ok(part.filter(|p| p.indexes.as_deref() == Some("sd")).map(|p| Previews {
+            kind: "frame",
+            url: self.file_url(&format!("/library/parts/{}/indexes/sd/{{ms}}", p.id)),
+            interval_ms: 2000,
+            width: 320,
+            height: 180,
+            columns: 1,
+            rows: 1,
+            count: 0,
+        }))
     }
 
     /// Bande-annonce du serveur (extra), et l'identifiant TMDB pour en chercher une en ligne sinon.

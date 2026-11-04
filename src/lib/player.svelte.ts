@@ -54,6 +54,8 @@ export const player = $state({
   duration: 0,
   /** Repères de l'épisode (intro, générique), pour le bouton « Passer ». */
   markers: [] as { kind: string; startMs: number; endMs: number }[],
+  /** Miniatures d'aperçu, si le serveur en a pour cette vidéo. */
+  previews: null as Previews | null,
   bufferedUntil: 0,
   paused: false,
   buffering: true,
@@ -117,6 +119,18 @@ interface NativeInfo {
   subFiles: { url: string; codec: string; language: string | null; title: string | null }[];
 }
 
+/** Miniatures d'aperçu de la barre de progression (voir `plex::Previews`). */
+export interface Previews {
+  kind: "frame" | "tiles";
+  url: string;
+  intervalMs: number;
+  width: number;
+  height: number;
+  columns: number;
+  rows: number;
+  count: number;
+}
+
 export interface PlayOptions {
   /** Identifiants de pistes Plex ; `subtitleStream: 0` désactive les sous-titres. */
   audioStream?: number | null;
@@ -154,6 +168,7 @@ function reset(video: boolean) {
     position: 0,
     duration: 0,
     markers: [],
+    previews: null,
     bufferedUntil: 0,
     paused: false,
     tracks: [],
@@ -187,6 +202,12 @@ export async function play(ratingKey: string, opts: PlayOptions = {}) {
   player.streams = streams;
   const mediaIndex = opts.mediaIndex ?? 0;
   player.mediaIndex = mediaIndex;
+  invoke<Previews | null>("video_previews", { ratingKey, mediaIndex }).then(
+    (p) => {
+      if (player.ratingKey === ratingKey && player.mediaIndex === mediaIndex) player.previews = p;
+    },
+    () => {},
+  );
   const maxKbps = player.quality || null;
   const startMs = opts.startMs ?? null;
   try {
@@ -259,11 +280,11 @@ function markTranscoded() {
 /** Relance la vidéo en cours au même endroit, avec d'autres pistes ou une autre qualité. */
 function restart(streams = player.streams) {
   if (!player.video || !player.ratingKey) return;
-  const { ratingKey, prevKey, nextKey, markers, mediaIndex } = player;
+  const { ratingKey, prevKey, nextKey, markers, mediaIndex, previews } = player;
   const startMs = Math.round(player.position * 1000);
   const done = play(ratingKey, { ...streams, startMs, mediaIndex });
-  // Les épisodes voisins et les repères ne changent pas : pas de clignotement des boutons.
-  Object.assign(player, { prevKey, nextKey, markers });
+  // Les épisodes voisins, les repères et les aperçus ne changent pas : pas de clignotement.
+  Object.assign(player, { prevKey, nextKey, markers, previews });
   return done;
 }
 
