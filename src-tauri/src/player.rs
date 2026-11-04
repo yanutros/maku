@@ -34,6 +34,8 @@ const OBSERVED: &[&str] = &[
     "demuxer-cache-time",
     "playlist-pos",
     "loop-playlist",
+    // Vrai dès que mpv affiche l'image : la page ne devient transparente qu'à ce moment-là.
+    "vo-configured",
 ];
 
 trait IpcStream: AsyncRead + AsyncWrite + Unpin + Send {}

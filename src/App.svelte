@@ -70,9 +70,10 @@
   const watching = $derived(player.active && player.video);
   const listening = $derived(player.active && !player.video);
 
-  // La vidéo est dessinée sous la page : on rend le fond transparent pendant la lecture.
+  // La vidéo est dessinée sous la page : on rend le fond transparent pendant la lecture. Sur ordinateur,
+  // seulement quand mpv affiche l'image : avant, la fenêtre transparente laisserait voir le bureau.
   $effect(() => {
-    document.documentElement.classList.toggle("playing", watching && player.embedded);
+    document.documentElement.classList.toggle("playing", watching && player.embedded && (player.web || player.videoReady));
   });
 
   // Largeur de la barre latérale, reprise par les fonds plein écran des fiches.

@@ -279,7 +279,7 @@
 <svelte:window onkeydown={onKey} />
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="overlay" class:hidden={!visible} class:remote={!player.embedded} class:web={player.web && !player.native} onpointermove={poke}>
+<div class="overlay" class:hidden={!visible} class:remote={!player.embedded} class:web={player.web && !player.native} class:loading={!player.web && player.embedded && !player.videoReady} onpointermove={poke}>
   <!-- Android : la vidéo est dessinée sous la page par le lecteur natif ; sinon par cet élément. -->
   {#if player.web && !player.native}
     <!-- svelte-ignore a11y_media_has_caption -->
@@ -514,6 +514,11 @@
     z-index: 40;
     color: #fff;
     user-select: none;
+  }
+
+  /* Ordinateur, avant la première image de mpv : fond noir, la roue de chargement au milieu. */
+  .overlay.loading {
+    background: #000;
   }
 
   /* Fenêtre mpv séparée : fond opaque, la page sert de télécommande. */

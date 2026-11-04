@@ -57,6 +57,8 @@ export const player = $state({
   /** Miniatures d'aperçu, si le serveur en a pour cette vidéo. */
   previews: null as Previews | null,
   bufferedUntil: 0,
+  /** Ordinateur : mpv affiche déjà l'image sous la page (sinon, la page reste opaque). */
+  videoReady: false,
   paused: false,
   buffering: true,
   volume: 100,
@@ -170,6 +172,7 @@ function reset(video: boolean) {
     markers: [],
     previews: null,
     bufferedUntil: 0,
+    videoReady: false,
     paused: false,
     tracks: [],
     queue: [],
@@ -703,6 +706,11 @@ listen<{ name: string; data: unknown }>("player-prop", ({ payload: { name, data 
       break;
     case "loop-playlist":
       player.repeat = data !== false && data !== "no";
+      break;
+    case "vo-configured":
+      // Un court délai laisse mpv peindre sa première image avant que la page ne s'efface.
+      if (data === true) setTimeout(() => player.active && player.video && (player.videoReady = true), 150);
+      else player.videoReady = false;
       break;
   }
 });

@@ -52,7 +52,7 @@ visionnage. Tout se fait avec son compte Plex (ou Jellyfin) : aucune clé d'API 
   <tr>
     <td width="50%" valign="top">
       <h4>🎬 Il lit tout, dans sa propre fenêtre</h4>
-      Vidéo intégrée avec des commandes façon Apple TV : une capsule translucide qui flotte en bas de l'image
+      Vidéo intégrée, qui s'ouvre sur un fond noir jusqu'à sa première image, avec des commandes façon Apple TV : une capsule translucide qui flotte en bas de l'image
       (titre, pistes audio et sous-titres en cours, progression, temps restant, ±10 s, épisode précédent et
       suivant, arrêt), retour, volume et plein écran en boutons ronds dans les coins, raccourcis clavier. Reprise là où
       vous vous étiez arrêté. Qualité au choix, comme dans Plex : le fichier d'origine, ou une conversion par le
