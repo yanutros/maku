@@ -108,7 +108,13 @@
       "collapsedHint": "Zeigt nur die Symbole, damit der Inhalt den ganzen Platz bekommt.",
       "reorderHint": "Um Mediatheken neu anzuordnen oder auszublenden, klicke im Menü auf den Stift neben „Mediatheken“.",
       "language": "Sprache",
-      "languageAuto": "Automatisch"
+      "languageAuto": "Automatisch",
+      "home": "Startseite",
+      "homeHint": "Wähle die Reihen aus, die angezeigt werden sollen, und ordne sie. Eine ausgewählte Mediathek wird mit ihren neuesten Inhalten an die Startseite angeheftet. Gilt für dieses Gerät.",
+      "homePinned": "Mediathek",
+      "rowUp": "Nach oben",
+      "rowDown": "Nach unten",
+      "resetHome": "Startseite zurücksetzen"
     },
     "tmdb": {
       "title": "Titel-Logos (TMDB)",
@@ -231,7 +237,9 @@
     "new": "Neu",
     "continueWatching": "Weiterschauen",
     "recentlyAdded": "Kürzlich hinzugefügt",
-    "trendingToRequest": "Trends zum Anfragen"
+    "trendingToRequest": "Trends zum Anfragen",
+    "recentIn": "Zuletzt hinzugefügt · {{library}}",
+    "customize": "Startseite anpassen"
   },
   "library": {
     "tabs": {
@@ -718,5 +726,17 @@
     "pin": "PIN",
     "back": "Zurück zu den Profilen",
     "erase": "Löschen"
+  },
+  "collection": {
+    "addTo": "Zur Sammlung hinzufügen…",
+    "title": "Zur Sammlung hinzufügen",
+    "search": "Sammlung suchen",
+    "none": "Noch keine Sammlungen in dieser Mediathek.",
+    "noMatch": "Keine passende Sammlung.",
+    "newName": "Name der neuen Sammlung",
+    "create": "Erstellen",
+    "cancel": "Schließen",
+    "added": "„{{title}}“ zu „{{collection}}“ hinzugefügt",
+    "created": "Sammlung „{{collection}}“ erstellt"
   }
 }

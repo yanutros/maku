@@ -108,7 +108,13 @@
       "collapsedHint": "Shows only the icons, to leave all the room for content.",
       "reorderHint": "To reorder or hide libraries, click the pencil next to “Libraries” in the menu.",
       "language": "Language",
-      "languageAuto": "Automatic"
+      "languageAuto": "Automatic",
+      "home": "Home",
+      "homeHint": "Tick the rows to show and put them in the order you want. A ticked library is pinned to the home screen with its latest additions. This applies to this device.",
+      "homePinned": "library",
+      "rowUp": "Move up",
+      "rowDown": "Move down",
+      "resetHome": "Reset home"
     },
     "tmdb": {
       "title": "Title logos (TMDB)",
@@ -231,7 +237,9 @@
     "new": "New",
     "continueWatching": "Continue watching",
     "recentlyAdded": "Recently added",
-    "trendingToRequest": "Trending to request"
+    "trendingToRequest": "Trending to request",
+    "recentIn": "Recently added · {{library}}",
+    "customize": "Customize home"
   },
   "library": {
     "tabs": {
@@ -718,5 +726,17 @@
     "pin": "PIN",
     "back": "Back to profiles",
     "erase": "Delete"
+  },
+  "collection": {
+    "addTo": "Add to collection…",
+    "title": "Add to collection",
+    "search": "Search collections",
+    "none": "No collections in this library yet.",
+    "noMatch": "No matching collection.",
+    "newName": "New collection name",
+    "create": "Create",
+    "cancel": "Close",
+    "added": "“{{title}}” added to “{{collection}}”",
+    "created": "Collection “{{collection}}” created"
   }
 }

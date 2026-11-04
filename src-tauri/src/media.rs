@@ -70,6 +70,9 @@ common! {
         fn rate(&self, rating_key: &str, rating: Option<f32>) -> ();
         fn remove_from_continue(&self, rating_key: &str) -> ();
         fn markers(&self, rating_key: &str) -> Vec<Marker>;
+        fn collection_choices(&self, rating_key: &str) -> Vec<Item>;
+        fn add_to_collection(&self, rating_key: &str, collection: &str) -> ();
+        fn create_collection(&self, rating_key: &str, title: &str) -> ();
         fn previews(&self, rating_key: &str, media: Option<usize>) -> Option<Previews>;
         fn trailer(&self, rating_key: &str) -> TrailerSource;
     }

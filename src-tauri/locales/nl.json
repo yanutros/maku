@@ -138,5 +138,8 @@
     },
     "quickConnectOff": "Quick Connect staat uit op deze Jellyfin-server (Dashboard → Algemeen).",
     "sessionExpired": "Jellyfin-sessie verlopen: meld je opnieuw aan."
+  },
+  "collection": {
+    "noTitle": "Geef de collectie een naam."
   }
 }

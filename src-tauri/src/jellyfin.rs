@@ -475,6 +475,26 @@ impl JellyfinServer {
         self.items(&format!("/Users/{}/Items?IncludeItemTypes=Playlist&Recursive=true&MediaTypes=Audio&{FIELDS}", self.uid())).await
     }
 
+    // ---------- Collections : « Ajouter à la collection » ----------
+
+    /// Chez Jellyfin, les collections ne dépendent pas d'une bibliothèque : toutes sont proposées.
+    pub async fn collection_choices(&self, _id: &str) -> Result<Vec<Item>> {
+        self.collections("").await
+    }
+
+    pub async fn add_to_collection(&self, id: &str, collection: &str) -> Result<()> {
+        self.send(reqwest::Method::POST, &format!("/Collections/{collection}/Items?ids={id}")).send().await?.error_for_status()?;
+        Ok(())
+    }
+
+    pub async fn create_collection(&self, id: &str, title: &str) -> Result<()> {
+        self.send(reqwest::Method::POST, &format!("/Collections?name={}&ids={id}", urlencoding::encode(title)))
+            .send()
+            .await?
+            .error_for_status()?;
+        Ok(())
+    }
+
     pub async fn collections(&self, _key: &str) -> Result<Vec<Item>> {
         self.items(&format!("/Users/{}/Items?IncludeItemTypes=BoxSet&Recursive=true&SortBy=SortName&{FIELDS}", self.uid())).await
     }

@@ -108,7 +108,13 @@
       "collapsedHint": "N'affiche que les icônes, pour laisser toute la place au contenu.",
       "reorderHint": "Pour réordonner ou masquer des bibliothèques, clique sur le crayon à côté de « Bibliothèques » dans le menu.",
       "language": "Langue",
-      "languageAuto": "Automatique"
+      "languageAuto": "Automatique",
+      "home": "Accueil",
+      "homeHint": "Coche les rangées à afficher et range-les dans l'ordre voulu. Une bibliothèque cochée est épinglée à l'accueil avec ses derniers ajouts. Ce choix vaut pour cet appareil.",
+      "homePinned": "bibliothèque",
+      "rowUp": "Monter",
+      "rowDown": "Descendre",
+      "resetHome": "Rétablir l'accueil"
     },
     "tmdb": {
       "title": "Logos des titres (TMDB)",
@@ -231,7 +237,9 @@
     "new": "Nouveauté",
     "continueWatching": "Continuer à regarder",
     "recentlyAdded": "Ajouts récents",
-    "trendingToRequest": "Tendances à demander"
+    "trendingToRequest": "Tendances à demander",
+    "recentIn": "Ajouts récents · {{library}}",
+    "customize": "Personnaliser l'accueil"
   },
   "library": {
     "tabs": {
@@ -718,5 +726,17 @@
     "pin": "Code PIN",
     "back": "Retour aux profils",
     "erase": "Effacer"
+  },
+  "collection": {
+    "addTo": "Ajouter à la collection…",
+    "title": "Ajouter à la collection",
+    "search": "Rechercher une collection",
+    "none": "Aucune collection dans cette bibliothèque pour l'instant.",
+    "noMatch": "Aucune collection ne correspond.",
+    "newName": "Nom de la nouvelle collection",
+    "create": "Créer",
+    "cancel": "Fermer",
+    "added": "« {{title}} » ajouté à « {{collection}} »",
+    "created": "Collection « {{collection}} » créée"
   }
 }

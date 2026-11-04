@@ -576,6 +576,28 @@ async fn plex_markers(state: State<'_, AppState>, rating_key: String) -> CmdResu
     Ok(state.server()?.markers(&rating_key).await?)
 }
 
+// ---------- Collections (administrateur) ----------
+
+/// Collections où ranger un titre : celles de sa bibliothèque.
+#[tauri::command]
+async fn collection_choices(state: State<'_, AppState>, rating_key: String) -> CmdResult<Vec<Item>> {
+    Ok(state.server()?.collection_choices(&rating_key).await?)
+}
+
+#[tauri::command]
+async fn add_to_collection(state: State<'_, AppState>, rating_key: String, collection: String) -> CmdResult<()> {
+    Ok(state.server()?.add_to_collection(&rating_key, &collection).await?)
+}
+
+#[tauri::command]
+async fn create_collection(state: State<'_, AppState>, rating_key: String, title: String) -> CmdResult<()> {
+    let title = title.trim();
+    if title.is_empty() {
+        return Err(anyhow!(crate::i18n::tr("collection.noTitle")).into());
+    }
+    Ok(state.server()?.create_collection(&rating_key, title).await?)
+}
+
 /// Miniatures d'aperçu de la vidéo, pour la barre de progression (aucune si le serveur n'en a pas).
 #[tauri::command]
 async fn video_previews(
@@ -1453,6 +1475,9 @@ pub fn run() {
             plex_adjacent,
             plex_markers,
             video_previews,
+            collection_choices,
+            add_to_collection,
+            create_collection,
             plex_trailer,
             media_update,
             plex_playlists,

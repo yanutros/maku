@@ -138,5 +138,8 @@
     },
     "quickConnectOff": "Quick Connect est désactivé sur ce serveur Jellyfin (Tableau de bord → Général).",
     "sessionExpired": "Session Jellyfin expirée : reconnecte-toi."
+  },
+  "collection": {
+    "noTitle": "Donne un nom à la collection."
   }
 }

@@ -84,6 +84,9 @@
         });
       }
     }
+    if (nav.admin && (item.kind === "movie" || item.kind === "show")) {
+      a.push({ icon: "library", label: t("collection.addTo"), run: () => ((nav.tvMenu = null), (nav.collectionFor = item)) });
+    }
     a.push({ icon: "star", label: item.userRating ? t("tvMenu.rated", { stars: Math.round(item.userRating / 2) }) : t("tvMenu.rate"), run: () => (rating = true) });
     if (!music) {
       if (started) a.push({ icon: "x", label: t("tvMenu.removeContinue"), run: () => run(() => api.removeFromContinue(item.ratingKey), t("tvMenu.removedContinue"), true) });

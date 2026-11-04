@@ -138,5 +138,8 @@
     },
     "quickConnectOff": "Quick Connect is disabled on this Jellyfin server (Dashboard → General).",
     "sessionExpired": "Jellyfin session expired: sign in again."
+  },
+  "collection": {
+    "noTitle": "Give the collection a name."
   }
 }

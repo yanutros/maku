@@ -14,11 +14,12 @@
   import { checkForUpdate, showReleaseNotes, update } from "../lib/update.svelte";
   import { applyTheme, savedTheme, THEME_COLORS, THEMES, type Theme } from "../lib/theme";
   import Icon, { type IconName } from "../components/Icon.svelte";
+  import HomeEditor from "../components/HomeEditor.svelte";
   import ServerPrefs from "../components/ServerPrefs.svelte";
   import ServerDashboard from "../components/ServerDashboard.svelte";
   import { LANGUAGES, savedLanguage, setLanguage, t } from "../lib/i18n";
 
-  let { session, onChange }: { session: Session; onChange: () => void } = $props();
+  let { session, onChange, initialPage }: { session: Session; onChange: () => void; initialPage?: string } = $props();
 
   // Rubriques de Maku, puis celles du serveur Plex (administrateur seulement), comme dans Plex Web.
   const GROUPS: Record<string, { label: string; icon: IconName }> = {
@@ -31,7 +32,8 @@
     butler: { label: t("settings.groups.butler"), icon: "clock" },
   };
 
-  let page = $state("account");
+  // svelte-ignore state_referenced_locally
+  let page = $state(initialPage ?? "account");
   const KOFI = "https://ko-fi.com/yanutros";
   let account = $state<Account | null>(null);
   let prefs = $state<Pref[] | null>(null);
@@ -669,6 +671,11 @@
             </button>
           {/each}
         </div>
+      </section>
+      <section class="card">
+        <h2>{t("settings.interface.home")}</h2>
+        <p class="muted">{t("settings.interface.homeHint")}</p>
+        <HomeEditor />
       </section>
       {#if device.tv}
       <section class="card">

@@ -91,6 +91,11 @@
   {#if nav.admin && editable}
     <div class="sep"></div>
     <button role="menuitem" onclick={edit}><Icon name="edit" size={16} /> {t("cardMenu.edit")}</button>
+    {#if item.kind === "movie" || item.kind === "show"}
+      <button role="menuitem" onclick={() => ((nav.collectionFor = item), close())}>
+        <Icon name="library" size={16} /> {t("collection.addTo")}
+      </button>
+    {/if}
     <button role="menuitem" onclick={() => run(() => api.refreshMetadata(item.ratingKey), t("cardMenu.refreshStarted"))}>
       <Icon name="restart" size={16} /> {t("cardMenu.refreshMetadata")}
     </button>

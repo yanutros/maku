@@ -108,7 +108,13 @@
       "collapsedHint": "Toont alleen de pictogrammen, zodat de content alle ruimte krijgt.",
       "reorderHint": "Klik op het potlood naast ‘Bibliotheken’ in het menu om bibliotheken te verplaatsen of te verbergen.",
       "language": "Taal",
-      "languageAuto": "Automatisch"
+      "languageAuto": "Automatisch",
+      "home": "Startscherm",
+      "homeHint": "Vink de rijen aan die je wilt zien en zet ze in de gewenste volgorde. Een aangevinkte bibliotheek wordt met de nieuwste toevoegingen op het startscherm vastgezet. Geldt voor dit apparaat.",
+      "homePinned": "bibliotheek",
+      "rowUp": "Omhoog",
+      "rowDown": "Omlaag",
+      "resetHome": "Startscherm herstellen"
     },
     "tmdb": {
       "title": "Titellogo's (TMDB)",
@@ -231,7 +237,9 @@
     "new": "Nieuw",
     "continueWatching": "Verder kijken",
     "recentlyAdded": "Recent toegevoegd",
-    "trendingToRequest": "Trending om aan te vragen"
+    "trendingToRequest": "Trending om aan te vragen",
+    "recentIn": "Recent toegevoegd · {{library}}",
+    "customize": "Startscherm aanpassen"
   },
   "library": {
     "tabs": {
@@ -718,5 +726,17 @@
     "pin": "Pincode",
     "back": "Terug naar profielen",
     "erase": "Wissen"
+  },
+  "collection": {
+    "addTo": "Aan collectie toevoegen…",
+    "title": "Aan collectie toevoegen",
+    "search": "Collectie zoeken",
+    "none": "Nog geen collecties in deze bibliotheek.",
+    "noMatch": "Geen collectie gevonden.",
+    "newName": "Naam van de nieuwe collectie",
+    "create": "Maken",
+    "cancel": "Sluiten",
+    "added": "‘{{title}}’ toegevoegd aan ‘{{collection}}’",
+    "created": "Collectie ‘{{collection}}’ gemaakt"
   }
 }

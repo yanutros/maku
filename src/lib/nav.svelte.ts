@@ -22,7 +22,7 @@ export type View =
   | { name: "seerr"; mediaType: "movie" | "tv"; tmdbId: number }
   | { name: "stats" }
   | { name: "person"; id: string; personName: string; photo: string | null }
-  | { name: "settings" };
+  | { name: "settings"; page?: string };
 
 export const nav = $state({
   view: { name: "home" } as View,
@@ -42,6 +42,8 @@ export const nav = $state({
   /** Téléviseur : lien d'autorisation Tracearr, montré en QR code à scanner avec un téléphone. */
   authUrl: null as string | null,
   toast: null as { text: string; error: boolean } | null,
+  /** Film ou série à ranger dans une collection (fenêtre « Ajouter à la collection » ouverte). */
+  collectionFor: null as Item | null,
   /** Écran « Qui regarde ? » ouvert depuis la carte du profil (Plex Home). */
   profiles: false,
   /** Le Plex Home du compte a plusieurs profils : la carte du profil ouvre leur choix. */

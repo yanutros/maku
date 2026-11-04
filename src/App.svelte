@@ -33,6 +33,7 @@
   import EditDialog from "./components/EditDialog.svelte";
   import UpdateDialog from "./components/UpdateDialog.svelte";
   import TrailerOverlay from "./components/TrailerOverlay.svelte";
+  import AddToCollection from "./components/AddToCollection.svelte";
   import QrCode from "./components/QrCode.svelte";
   import { sidebar } from "./lib/sidebar.svelte";
   import { device } from "./lib/device";
@@ -72,6 +73,7 @@
   // Bouton Retour (Android, souris) : il ferme d'abord ce qui est ouvert par-dessus la page.
   onBack(() => {
     if (nav.profiles) nav.profiles = false;
+    else if (nav.collectionFor) nav.collectionFor = null;
     else if (nav.trailer) nav.trailer = null;
     else if (nav.tvMenu) nav.tvMenu = null;
     else if (nav.menu) nav.menu = null;
@@ -214,7 +216,7 @@
           {:else if nav.view.name === "stats"}
             <Stats {session} onChange={refresh} />
           {:else if nav.view.name === "settings"}
-            <Settings {session} onChange={refresh} />
+            {#key nav.view.page}<Settings {session} onChange={refresh} initialPage={nav.view.page} />{/key}
           {/if}
         {/key}
       </div>
@@ -248,6 +250,10 @@
 
 {#if nav.editing}
   <EditDialog />
+{/if}
+
+{#if nav.collectionFor}
+  <AddToCollection />
 {/if}
 
 {#if nav.requesting}

@@ -66,6 +66,8 @@ visionnage. Tout se fait avec son compte Plex (ou Jellyfin) : aucune clé d'API 
       Accueil et bibliothèques avec un bandeau qui fait défiler cinq titres, puis un « Continuer à regarder »
       façon plateforme de streaming : grandes affiches, et celle survolée s'ouvre en grand avec sa scène, son
       épisode, sa progression et le bouton Reprendre ; un clic sur la carte ouvre la fiche. Puis de grands panneaux « À la une » et les rangées de Plex. Au survol d'une affiche, un simple triangle blanc lance la lecture.
+      L'accueil se personnalise (Réglages → Interface, ou le bouton en bas de l'accueil) : rangées à masquer ou à
+      réordonner, et bibliothèques à épingler avec leurs derniers ajouts, pour chaque appareil.
       La fiche d'un film ou d'une série plonge dans son ambiance, comme Jellyfin : son fond en haute définition
       sur toute la largeur (celui de la saison pour une série), le logo en grand et centré avec le titre
       d'origine, la note et l'heure de fin, le résumé dessous, puis deux panneaux — l'équipe d'un côté, la
@@ -121,7 +123,8 @@ visionnage. Tout se fait avec son compte Plex (ou Jellyfin) : aucune clé d'API 
     <td valign="top">
       <h4>✏️ Il modifie vos fiches</h4>
       Titre, résumé, dates, genres, affiche et fond d'écran d'un film, d'une série ou d'un album, avec les
-      verrous de champ de Plex. Menu ⋮ (ou clic droit) sur chaque jaquette.
+      verrous de champ de Plex. Menu ⋮ (ou clic droit) sur chaque jaquette. « Ajouter à la collection… » range un
+      film ou une série dans une collection de sa bibliothèque, ou en crée une nouvelle, comme dans Plex.
     </td>
     <td valign="top">
       <h4>🛠️ Il administre le serveur</h4>

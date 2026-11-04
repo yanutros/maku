@@ -540,6 +540,9 @@ struct RawMetadata {
     /// Playlist intelligente (générée par Plex selon des règles).
     #[serde(deserialize_with = "flag")]
     smart: bool,
+    /// Bibliothèque de l'élément (ses collections y sont rangées).
+    #[serde(rename = "librarySectionID")]
+    library_section_id: Option<u64>,
     audience_rating: Option<f32>,
     /// Note donnée par l'utilisateur (0 à 10).
     user_rating: Option<f32>,
@@ -1195,6 +1198,55 @@ impl PlexServer {
             .metadata;
         list.sort_by_key(|m| m.smart);
         Ok(self.to_items(list))
+    }
+
+    // ---------- Collections : « Ajouter à la collection » ----------
+
+    /// Collections de la bibliothèque d'un titre, parmi lesquelles le ranger.
+    pub async fn collection_choices(&self, rating_key: &str) -> Result<Vec<Item>> {
+        let m = self.raw_metadata(rating_key).await?;
+        match m.library_section_id {
+            Some(section) => self.collections(&section.to_string()).await,
+            None => Ok(Vec::new()),
+        }
+    }
+
+    /// Adresse d'un élément de la bibliothèque, au format attendu par les collections de Plex.
+    async fn library_uri(&self, rating_key: &str) -> Result<String> {
+        let v: serde_json::Value = self.get("/identity").send().await?.error_for_status()?.json().await?;
+        let machine = v["MediaContainer"]["machineIdentifier"].as_str().unwrap_or_default();
+        Ok(urlencoding::encode(&format!("server://{machine}/com.plexapp.plugins.library/library/metadata/{rating_key}")).into_owned())
+    }
+
+    pub async fn add_to_collection(&self, rating_key: &str, collection: &str) -> Result<()> {
+        let uri = self.library_uri(rating_key).await?;
+        self.request(reqwest::Method::PUT, &format!("/library/collections/{collection}/items?uri={uri}"))
+            .send()
+            .await?
+            .error_for_status()?;
+        Ok(())
+    }
+
+    /// Nouvelle collection dans la bibliothèque du titre, qui en est le premier élément.
+    pub async fn create_collection(&self, rating_key: &str, title: &str) -> Result<()> {
+        let m = self.raw_metadata(rating_key).await?;
+        let section = m.library_section_id.ok_or_else(|| anyhow!(crate::i18n::tr_with("plex.notFound", &[("id", rating_key)])))?;
+        // Types Plex : 1 film, 2 série, 3 saison, 4 épisode.
+        let kind = match m.kind.as_str() {
+            "show" => 2,
+            "season" => 3,
+            "episode" => 4,
+            _ => 1,
+        };
+        let uri = self.library_uri(rating_key).await?;
+        self.request(
+            reqwest::Method::POST,
+            &format!("/library/collections?type={kind}&smart=0&sectionId={section}&title={}&uri={uri}", urlencoding::encode(title)),
+        )
+        .send()
+        .await?
+        .error_for_status()?;
+        Ok(())
     }
 
     async fn raw_metadata(&self, rating_key: &str) -> Result<RawMetadata> {
