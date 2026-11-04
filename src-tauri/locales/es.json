@@ -90,6 +90,10 @@
   "update": {
     "invalidName": "nombre de paquete no válido",
     "emptyDownload": "la descarga está vacía",
+    "badSource": "dirección de descarga rechazada",
+    "noChecksum": "GitHub no publica la huella de este paquete: descárgalo manualmente",
+    "badChecksum": "el paquete descargado no coincide con el publicado: instalación cancelada",
+    "noUpdate": "no hay ninguna actualización disponible",
     "unsupported": "actualización automática no disponible en {{os}}"
   },
   "relay": {

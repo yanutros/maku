@@ -90,6 +90,10 @@
   "update": {
     "invalidName": "invalid package name",
     "emptyDownload": "the download is empty",
+    "badSource": "download address refused",
+    "noChecksum": "GitHub does not publish this package's checksum: download it manually",
+    "badChecksum": "the downloaded package does not match the published one: installation cancelled",
+    "noUpdate": "no update available",
     "unsupported": "automatic updates aren't available on {{os}}"
   },
   "relay": {

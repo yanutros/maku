@@ -24,6 +24,8 @@ futures = "0.3"
 anyhow = "1"
 uuid = { version = "1", features = ["v4"] }
 urlencoding = "2"
+# Empreinte des paquets de mise à jour, comparée à celle que publie GitHub.
+sha2 = "0.10"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 # Touches multimédia et commandes du bureau (GNOME, KDE) : Maku se présente comme lecteur MPRIS.

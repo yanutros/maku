@@ -90,6 +90,10 @@
   "update": {
     "invalidName": "ungültiger Paketname",
     "emptyDownload": "der Download ist leer",
+    "badSource": "Download-Adresse abgelehnt",
+    "noChecksum": "GitHub veröffentlicht keine Prüfsumme für dieses Paket: bitte manuell herunterladen",
+    "badChecksum": "das heruntergeladene Paket stimmt nicht mit dem veröffentlichten überein: Installation abgebrochen",
+    "noUpdate": "kein Update verfügbar",
     "unsupported": "automatische Updates sind unter {{os}} nicht verfügbar"
   },
   "relay": {

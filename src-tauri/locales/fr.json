@@ -90,6 +90,10 @@
   "update": {
     "invalidName": "nom de paquet invalide",
     "emptyDownload": "le téléchargement est vide",
+    "badSource": "adresse de téléchargement refusée",
+    "noChecksum": "GitHub ne publie pas l'empreinte de ce paquet : téléchargez-le à la main",
+    "badChecksum": "le paquet téléchargé ne correspond pas à celui publié : installation annulée",
+    "noUpdate": "aucune mise à jour disponible",
     "unsupported": "mise à jour automatique indisponible sur {{os}}"
   },
   "relay": {

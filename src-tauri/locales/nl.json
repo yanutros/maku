@@ -90,6 +90,10 @@
   "update": {
     "invalidName": "ongeldige pakketnaam",
     "emptyDownload": "de download is leeg",
+    "badSource": "downloadadres geweigerd",
+    "noChecksum": "GitHub publiceert geen controlesom voor dit pakket: download het handmatig",
+    "badChecksum": "het gedownloade pakket komt niet overeen met het gepubliceerde: installatie geannuleerd",
+    "noUpdate": "geen update beschikbaar",
     "unsupported": "automatische updates zijn niet beschikbaar op {{os}}"
   },
   "relay": {

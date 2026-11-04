@@ -3,11 +3,14 @@
 
 use anyhow::{anyhow, bail, Result};
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
 use tauri::{AppHandle, Emitter};
 use tokio::io::AsyncWriteExt;
 
 const LATEST: &str = "https://api.github.com/repos/yanutros/maku/releases/latest";
+/// Seuls les fichiers publiés du dépôt de Maku peuvent être téléchargés et installés.
+const ASSETS: &str = "https://api.github.com/repos/yanutros/maku/releases/assets/";
 
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -19,6 +22,9 @@ pub struct UpdateInfo {
     pub asset_url: String,
     pub asset_name: String,
     pub size: u64,
+    /// Empreinte SHA-256 publiée par GitHub pour ce fichier (en hexadécimal).
+    #[serde(default)]
+    pub sha256: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -39,6 +45,9 @@ struct Asset {
     /// Adresse de l'API : avec `Accept: application/octet-stream`, elle renvoie le fichier.
     url: String,
     size: u64,
+    /// « sha256:… », calculée par GitHub à la publication du fichier.
+    #[serde(default)]
+    digest: Option<String>,
 }
 
 /// « v1.2.3 » → (1, 2, 3).
@@ -91,6 +100,7 @@ pub async fn installed_notes(http: &reqwest::Client) -> Result<UpdateInfo> {
         asset_url: String::new(),
         asset_name: String::new(),
         size: 0,
+        sha256: None,
     })
 }
 
@@ -120,11 +130,18 @@ pub async fn check(http: &reqwest::Client) -> Result<Option<UpdateInfo>> {
         asset_url: asset.url.clone(),
         asset_name: asset.name.clone(),
         size: asset.size,
+        sha256: asset.digest.as_deref().and_then(|d| d.strip_prefix("sha256:")).map(str::to_lowercase),
     }))
 }
 
 /// Télécharge le paquet dans `dir`, en signalant l'avancement (événement `update-progress`, de 0 à 1).
+/// Le fichier doit venir des versions publiées du dépôt, et son empreinte SHA-256 correspondre à celle
+/// que publie GitHub : sinon il est supprimé, et rien n'est installé.
 pub async fn download(app: &AppHandle, http: &reqwest::Client, info: &UpdateInfo, dir: &Path) -> Result<PathBuf> {
+    if !info.asset_url.starts_with(ASSETS) {
+        bail!(crate::i18n::tr("update.badSource"));
+    }
+    let expected = info.sha256.clone().ok_or_else(|| anyhow!(crate::i18n::tr("update.noChecksum")))?;
     // Le nom vient de GitHub : on n'en garde que la partie fichier.
     let name = Path::new(&info.asset_name).file_name().ok_or_else(|| anyhow!(crate::i18n::tr("update.invalidName")))?;
     tokio::fs::create_dir_all(dir).await?;
@@ -138,7 +155,9 @@ pub async fn download(app: &AppHandle, http: &reqwest::Client, info: &UpdateInfo
     let mut file = tokio::fs::File::create(&path).await?;
     let mut done = 0u64;
     let mut last = 0.0;
+    let mut hasher = Sha256::new();
     while let Some(chunk) = resp.chunk().await? {
+        hasher.update(&chunk);
         file.write_all(&chunk).await?;
         done += chunk.len() as u64;
         let progress = done as f64 / total as f64;
@@ -148,8 +167,14 @@ pub async fn download(app: &AppHandle, http: &reqwest::Client, info: &UpdateInfo
         }
     }
     file.flush().await?;
+    drop(file);
     if done == 0 {
         bail!(crate::i18n::tr("update.emptyDownload"));
+    }
+    let actual: String = hasher.finalize().iter().map(|b| format!("{b:02x}")).collect();
+    if actual != expected {
+        let _ = tokio::fs::remove_file(&path).await;
+        bail!(crate::i18n::tr("update.badChecksum"));
     }
     Ok(path)
 }

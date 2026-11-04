@@ -332,6 +332,9 @@ télécharge le paquet qui convient et l'installe :
 lance la même vérification à la demande. Rien n'est envoyé : Maku lit seulement la page publique des versions
 sur GitHub.
 
+Avant d'installer, Maku vérifie que le paquet vient bien des versions publiées de ce dépôt, puis que son empreinte
+SHA-256 est exactement celle que GitHub publie pour ce fichier. Sinon, le fichier est supprimé et rien n'est installé.
+
 **Depuis Plexr** : la mise à jour se fait comme d'habitude, les réglages et les connexions sont gardés (l'identifiant
 de l'application ne change pas). Sous Windows, l'installeur de Maku désinstalle l'ancien Plexr pour qu'il n'en
 reste pas deux ; sur Linux et macOS, l'ancien Plexr peut être supprimé à la main. Le dépôt est passé de
