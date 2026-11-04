@@ -34,16 +34,16 @@ jobs:
 
       - run: npm ci
 
-      # Les icônes iOS sont tirées de l'icône principale, le temps de la construction (non versionnées).
-      - name: Icônes iOS
-        run: |
-          npx tauri icon src-tauri/icons/icon.png -o "$RUNNER_TEMP/icons"
-          mkdir -p src-tauri/icons/ios
-          cp -R "$RUNNER_TEMP/icons/ios/." src-tauri/icons/ios/
-
       # Le projet Xcode ne peut être créé que sur un Mac : il est régénéré à chaque construction.
       - name: Projet Xcode
         run: npx tauri ios init --ci
+
+      # Icônes de l'app, posées dans le projet Xcode qui vient d'être créé (sinon il garde celle de Tauri).
+      # Source : icons/ios.png, un carré plein qu'iPadOS arrondit lui-même (voir docs/logo-ios.html).
+      - name: Icônes iOS
+        run: |
+          npx tauri icon src-tauri/icons/ios.png
+          ls src-tauri/gen/apple/Assets.xcassets/AppIcon.appiconset
 
       - name: Sans signature
         run: |
