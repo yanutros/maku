@@ -579,7 +579,9 @@ produit les captures de cette page (avec Edge en mode sans interface, `--screens
 **iPad (essai).** Une app iPad se compile seulement sur un Mac : la construction « iPad (essai) » de l'onglet
 Actions la produit sur un Mac de GitHub, sans signature (`Maku-ipad.ipa`, joint à l'exécution). Un outil comme
 Sideloadly la signe avec un compte Apple en l'installant ; avec un compte gratuit, elle est à réinstaller tous les
-7 jours. Les vidéos y passent par le flux converti du serveur, que l'iPad lit nativement.
+7 jours. Les vidéos y passent par le flux converti du serveur, que l'iPad lit nativement ; la qualité et les
+pistes audio et sous-titres se changent pendant la lecture. L'icône de l'app vient de `src-tauri/icons/ios.png`, un
+carré plein qu'iPadOS arrondit lui-même (voir `docs/logo-ios.html`).
 
 ### 🌍 Traductions
 
