@@ -104,9 +104,13 @@ pub async fn installed_notes(http: &reqwest::Client) -> Result<UpdateInfo> {
     })
 }
 
-/// Installé depuis le Microsoft Store (paquet MSIX, dans `WindowsApps`) : c'est le Store qui met Maku
-/// à jour, la mise à jour intégrée se tait.
+/// Installé depuis un magasin d'applications, qui met Maku à jour lui-même : la mise à jour intégrée
+/// se tait. Microsoft Store : paquet MSIX, dans `WindowsApps`. Google Play : version construite avec
+/// `MAKU_PLAY` (scripts/build-play.ps1), car Google Play interdit qu'une app se mette à jour seule.
 pub fn from_store() -> bool {
+    if option_env!("MAKU_PLAY").is_some() {
+        return true;
+    }
     cfg!(windows)
         && std::env::current_exe()
             .map(|p| p.to_string_lossy().to_lowercase().contains(r"\windowsapps\"))

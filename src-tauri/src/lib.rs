@@ -162,6 +162,9 @@ struct Session {
     tmdb: bool,
     /// Plex Home : connexion automatique au dernier profil, sans écran de choix.
     auto_sign_in: bool,
+    /// Version d'un magasin (Microsoft Store, Google Play) : pas de mise à jour intégrée ni de dons
+    /// par un lien externe, que leurs règles interdisent.
+    store: bool,
 }
 
 #[derive(Serialize)]
@@ -230,6 +233,7 @@ fn get_session(state: State<'_, AppState>) -> Session {
         tracearr_connected: c.tracearr_cookies.is_some(),
         tmdb: c.tmdb_key.is_some(),
         auto_sign_in: c.auto_sign_in,
+        store: update::from_store(),
     }
 }
 

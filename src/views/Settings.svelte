@@ -463,10 +463,12 @@
         <div class="line">
           <div class="line-text"><strong>{t("settings.account.version", { version })}</strong></div>
           <div class="row">
-            <button class="btn" disabled={update.checking} onclick={checkUpdates}>
-              <Icon name="restart" size={16} />
-              {update.checking ? t("settings.account.checking") : t("settings.account.checkUpdates")}
-            </button>
+            {#if !session.store}
+              <button class="btn" disabled={update.checking} onclick={checkUpdates}>
+                <Icon name="restart" size={16} />
+                {update.checking ? t("settings.account.checking") : t("settings.account.checkUpdates")}
+              </button>
+            {/if}
             <button class="btn" disabled={update.checking} onclick={openNotes}>
               <Icon name="library" size={16} />
               {t("settings.account.releaseNotes")}
@@ -475,7 +477,9 @@
         </div>
       </section>
 
-      <!-- Ko-fi, en bannière : un seul logo, en grand. Sur téléviseur, pas de navigateur : un QR code. -->
+      <!-- Ko-fi, en bannière : un seul logo, en grand. Sur téléviseur, pas de navigateur : un QR code.
+           Pas dans les versions des magasins, dont les règles interdisent les dons par un lien externe. -->
+      {#if !session.store}
       <section class="card kofi">
         <span class="kofi-badge"><KofiLogo size={30} /></span>
         <div class="kofi-text">
@@ -488,6 +492,7 @@
           <button class="btn kofi-btn" onclick={() => invoke("open_url", { url: KOFI }).catch((e) => toast(errorText(e), true))}>{t("settings.account.supportButton")}</button>
         {/if}
       </section>
+      {/if}
     {:else if page === "services"}
       <h1 class="title">{t("settings.menu.services")}</h1>
       <section class="card">

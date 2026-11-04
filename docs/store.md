@@ -19,7 +19,7 @@ par `scripts/build-msix.ps1` après `npx tauri build --no-bundle`.
 
 **Description courte**
 
-Vos films, séries et musiques Plex et Jellyfin, dans une application rapide et élégante.
+Vos films, séries et musiques Plex et Jellyfin, dans une app rapide et élégante.
 
 **Description**
 

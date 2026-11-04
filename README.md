@@ -250,8 +250,9 @@ Maku s'ouvre ensuite comme n'importe quel logiciel (menu Démarrer, lanceur d'ap
 
 ### 📱 Android : téléphones, tablettes et TV
 
-L'APK n'est pas sur le Play Store : il s'installe à la main (« sideload »), une seule fois — les versions
-suivantes s'installent depuis Maku (voir *Mises à jour*).
+L'APK s'installe à la main (« sideload »), une seule fois — les versions suivantes s'installent depuis Maku
+(voir *Mises à jour*). Une version **Google Play**, « Maku Player », est en test fermé : celle-là est mise à jour par
+le Play Store.
 
 - **Téléphone et tablette** : copiez l'APK sur l'appareil et ouvrez-le ; Android demande d'autoriser
   l'installation depuis le gestionnaire de fichiers ou le navigateur.
@@ -333,7 +334,7 @@ télécharge le paquet qui convient et l'installe :
 | Système | Ce qui se passe |
 | --- | --- |
 | 🪟 Windows | l'installeur tourne avec une simple barre de progression, puis Maku redémarre (version du Microsoft Store : c'est le Store qui la met à jour) |
-| 🤖 Android / TV | l'installateur d'Android s'ouvre ; la première fois, Android demande d'autoriser Maku à installer des applications |
+| 🤖 Android / TV | l'installateur d'Android s'ouvre ; la première fois, Android demande d'autoriser Maku à installer des applications (version Google Play : c'est le Play Store qui la met à jour) |
 | 📦 Linux (AppImage) | le fichier est remplacé et Maku redémarre |
 | 🎩 Linux (RPM / DEB) | le paquet s'ouvre dans la logithèque du système |
 | 🍎 macOS | l'image disque s'ouvre ; glissez Maku dans Applications |
@@ -416,6 +417,12 @@ non signé, il ne s'installerait pas. Il s'envoie depuis l'Espace partenaires, o
 
 L'APK Android est compilé et signé sur l'ordinateur du mainteneur (la clé de signature ne quitte pas sa
 machine), puis ajouté à la version avec `gh release upload`.
+
+La version Google Play est un `.aab` construit par [`scripts/build-play.ps1`](scripts/build-play.ps1), signé avec la
+même clé (clé d'importation ; Google signe ensuite l'app). Google Play interdit qu'une app se mette à jour seule :
+elle est construite avec `MAKU_PLAY` (mise à jour intégrée désactivée) et sans la permission
+`REQUEST_INSTALL_PACKAGES`. Comme celle du Microsoft Store, elle n'affiche pas non plus le lien de dons Ko-fi, que les
+règles des magasins n'autorisent pas.
 
 ## ▶️ Premiers pas
 

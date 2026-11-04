@@ -23,6 +23,8 @@ export interface Session {
   tmdb: boolean;
   /** Plex Home : connexion automatique au dernier profil, sans écran « Qui regarde ? ». */
   autoSignIn: boolean;
+  /** Version d'un magasin (Microsoft Store, Google Play) : ni mise à jour intégrée, ni lien Ko-fi. */
+  store: boolean;
 }
 
 /** Profil d'un Plex Home. */
