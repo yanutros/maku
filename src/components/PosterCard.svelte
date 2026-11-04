@@ -61,7 +61,7 @@
     <button class="open" onclick={open} title={item.title} aria-label={t("posterCard.openTitle", { title: item.title })}></button>
     {#if canPlay}
       <button class="play" onclick={playNow} aria-label={t("common.c1.playTitle", { title: item.title })}>
-        <Icon name="play" size={22} filled />
+        <Icon name="play" size={40} filled />
       </button>
     {/if}
     <button class="more" onclick={openMenu} aria-label={t("common.c1.moreActions")}><Icon name="more" size={18} /></button>
@@ -141,17 +141,19 @@
     width: 48px;
     height: 48px;
     margin: -24px 0 0 -24px;
-    padding: 0 0 0 3px;
+    /* Triangle seul, comme dans le lecteur : l'icône le place déjà un peu à droite pour l'œil, sans
+       retrait en plus. Une ombre douce le détache de l'affiche. */
+    padding: 0;
     border: none;
-    border-radius: 50%;
-    background: var(--accent);
-    color: var(--accent-text);
+    background: none;
+    color: #fff;
+    filter: drop-shadow(0 2px 10px #000c);
     opacity: 0;
     transform: scale(0.85);
     transition:
       opacity 0.2s,
       transform 0.2s var(--ease),
-      background 0.15s;
+      color 0.15s;
   }
 
   .card:hover .play,
@@ -161,7 +163,7 @@
   }
 
   .play:hover {
-    background: var(--accent-hover);
+    color: var(--accent);
     transform: scale(1.12) !important;
   }
 

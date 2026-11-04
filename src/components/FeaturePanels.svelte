@@ -79,7 +79,7 @@
               {/if}
             </button>
             {#if p.onplay}
-              <button class="play" onclick={p.onplay} aria-label={t("common.c1.playTitle", { title: p.title })}><Icon name="play" size={22} filled /></button>
+              <button class="play" onclick={p.onplay} aria-label={t("common.c1.playTitle", { title: p.title })}><Icon name="play" size={40} filled /></button>
             {/if}
           </div>
         </article>
@@ -302,12 +302,12 @@
     place-items: center;
     width: 48px;
     height: 48px;
-    padding: 0 0 0 3px;
+    /* Triangle seul, comme dans le lecteur, détaché de l'image par une ombre douce. */
+    padding: 0;
     border: none;
-    border-radius: 50%;
-    background: var(--accent);
-    color: var(--accent-text);
-    box-shadow: 0 8px 22px #0009;
+    background: none;
+    color: #fff;
+    filter: drop-shadow(0 2px 10px #000c);
     opacity: 0;
     transform: scale(0.85);
     transition:
@@ -322,6 +322,7 @@
   }
 
   .play:hover {
+    color: var(--accent);
     transform: scale(1.1) !important;
   }
 </style>
