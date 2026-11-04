@@ -522,6 +522,8 @@
     "trendingToRequest": "Trending to request"
   },
   "player": {
+    "quality": "Quality",
+    "qualityOriginal": "Original",
     "channels": "{{channels}} ch.",
     "forced": "forced",
     "trackNumber": "Track {{id}}",

@@ -711,15 +711,27 @@ impl JellyfinServer {
     }
 
     /// Flux converti par le serveur (HLS, H.264 / AAC, 1080p), quand l'appareil ne lit pas le fichier.
-    pub async fn web_stream(&self, id: &str, audio: Option<u64>, subtitle: Option<u64>, session: &str) -> Result<WebStream> {
+    pub async fn web_stream(
+        &self,
+        id: &str,
+        audio: Option<u64>,
+        subtitle: Option<u64>,
+        max_kbps: Option<u32>,
+        session: &str,
+    ) -> Result<WebStream> {
         let info = self.play_info(id, audio, subtitle).await?;
         let v = self.json(&format!("/Users/{}/Items/{id}", self.uid())).await?;
         let source_id = v["MediaSources"][0]["Id"].as_str().unwrap_or(id).to_string();
+        let kbps = max_kbps.unwrap_or(crate::plex::DEFAULT_KBPS);
+        let (width, _) = crate::plex::resolution_for(kbps);
         let mut url = format!(
             "{}/Videos/{id}/master.m3u8?MediaSourceId={source_id}&PlaySessionId={session}&DeviceId={}&api_key={}\
-             &VideoCodec=h264&AudioCodec=aac&MaxStreamingBitrate=12000000&MaxWidth=1920&TranscodingMaxAudioChannels=2\
+             &VideoCodec=h264&AudioCodec=aac&MaxStreamingBitrate={}&MaxWidth={width}&TranscodingMaxAudioChannels=2\
              &SegmentContainer=ts&SubtitleMethod=Encode",
-            self.base, self.client_id, self.token
+            self.base,
+            self.client_id,
+            self.token,
+            kbps * 1000
         );
         if let Some(a) = audio {
             url.push_str(&format!("&AudioStreamIndex={a}"));
@@ -745,10 +757,16 @@ impl JellyfinServer {
     }
 
     /// Progression envoyée au serveur (alimente « Reprendre » et « À suivre »).
-    pub async fn timeline(&self, id: &str, state: &str, time_ms: u64, _duration_ms: u64) -> Result<()> {
+    pub async fn timeline(&self, id: &str, state: &str, time_ms: u64, _duration_ms: u64, session: &str) -> Result<()> {
         let path = if state == "stopped" { "/Sessions/Playing/Stopped" } else { "/Sessions/Playing/Progress" };
         self.send(reqwest::Method::POST, path)
-            .json(&serde_json::json!({ "ItemId": id, "PositionTicks": time_ms * 10_000, "IsPaused": state == "paused", "CanSeek": true }))
+            .json(&serde_json::json!({
+                "ItemId": id,
+                "PlaySessionId": session,
+                "PositionTicks": time_ms * 10_000,
+                "IsPaused": state == "paused",
+                "CanSeek": true
+            }))
             .send()
             .await?
             .error_for_status()?;

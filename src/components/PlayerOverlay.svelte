@@ -3,7 +3,19 @@
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import { errorText } from "../lib/api";
   import { toast } from "../lib/nav.svelte";
-  import { attachVideo, detachVideo, mpv, play, player, stop, trackLabel } from "../lib/player.svelte";
+  import {
+    QUALITIES,
+    attachVideo,
+    detachVideo,
+    mpv,
+    play,
+    player,
+    qualityLabel,
+    setQuality,
+    setServerStream,
+    stop,
+    trackLabel,
+  } from "../lib/player.svelte";
   import Icon from "./Icon.svelte";
   import { t } from "../lib/i18n";
   import { device } from "../lib/device";
@@ -15,7 +27,7 @@
 
   let visible = $state(true);
   let fullscreen = $state(false);
-  let menu = $state<"audio" | "sub" | null>(null);
+  let menu = $state<"audio" | "sub" | "quality" | null>(null);
   let hoverTime = $state<number | null>(null);
   let hoverX = $state(0);
   let dragging = $state(false);
@@ -34,6 +46,23 @@
   const subTracks = $derived(player.tracks.filter((t) => t.type === "sub"));
   const currentAudio = $derived(audioTracks.find((t) => t.id === player.aid));
   const currentSub = $derived(subTracks.find((t) => t.id === player.sid));
+  // Vidéo convertie par le serveur : les pistes sont celles du serveur, choisies en relançant la conversion.
+  const serverAudioId = $derived(player.streams.audioStream ?? player.serverAudio.find((t) => t.selected)?.id ?? null);
+  const serverSubId = $derived(player.streams.subtitleStream ?? player.serverSubs.find((t) => t.selected)?.id ?? 0);
+  const audioLabel = $derived(
+    player.transcoded
+      ? (player.serverAudio.find((t) => t.id === serverAudioId)?.label ?? t("player.audio"))
+      : currentAudio
+        ? trackLabel(currentAudio)
+        : t("player.audio"),
+  );
+  const subLabel = $derived(
+    player.transcoded
+      ? (player.serverSubs.find((t) => t.id === serverSubId)?.label ?? t("player.none"))
+      : currentSub
+        ? trackLabel(currentSub)
+        : t("player.none"),
+  );
   const progress = $derived(player.duration ? (player.position / player.duration) * 100 : 0);
   const buffered = $derived(player.duration ? Math.min(100, (player.bufferedUntil / player.duration) * 100) : 0);
 
@@ -128,6 +157,17 @@
   function selectTrack(kind: "aid" | "sid", id: number | "no") {
     mpv("set_property", kind, id);
     menu = null;
+  }
+
+  function selectServerTrack(kind: "audio" | "subtitle", id: number) {
+    menu = null;
+    if (id === (kind === "audio" ? serverAudioId : serverSubId)) return;
+    setServerStream(kind, id)?.catch((e) => toast(errorText(e), true));
+  }
+
+  function selectQuality(kbps: number) {
+    menu = null;
+    setQuality(kbps)?.catch((e) => toast(errorText(e), true));
   }
 
   // Repère (intro, générique) sous la tête de lecture : le bouton « Passer », qui prend le focus sur
@@ -269,9 +309,32 @@
           {#if player.subtitle}<div class="subtitle">{player.subtitle}</div>{/if}
           <div class="title">{player.title}</div>
         </div>
-        <!-- Avec un flux converti (navigateur), l'audio et les sous-titres se choisissent sur la fiche. -->
-        {#if !player.web || player.native}
-          <div class="pills">
+        <!-- Qualité, sous-titres et audio. Une vidéo convertie par le serveur change de piste ou de qualité
+             en relançant la conversion au même endroit. -->
+        <div class="pills">
+            <div class="menu-anchor">
+              <button
+                class="pill"
+                class:on={menu === "quality"}
+                onclick={() => (menu = menu === "quality" ? null : "quality")}
+                aria-label={t("player.quality")}
+                title={t("player.quality")}
+              >
+                <Icon name="sliders" size={16} />
+                <span>{qualityLabel(player.quality)}</span>
+              </button>
+              {#if menu === "quality"}
+                <div class="menu">
+                  <div class="menu-title">{t("player.quality")}</div>
+                  {#each QUALITIES as kbps (kbps)}
+                    <button class:selected={player.quality === kbps} onclick={() => selectQuality(kbps)}>
+                      <span class="tick">{#if player.quality === kbps}<Icon name="check" size={16} />{/if}</span>
+                      {qualityLabel(kbps)}
+                    </button>
+                  {/each}
+                </div>
+              {/if}
+            </div>
             <div class="menu-anchor">
               <button
                 class="pill"
@@ -281,9 +344,23 @@
                 title={t("player.subtitles")}
               >
                 <Icon name="subtitles" size={16} />
-                <span>{currentSub ? trackLabel(currentSub) : t("player.none")}</span>
+                <span>{subLabel}</span>
               </button>
-              {#if menu === "sub"}
+              {#if menu === "sub" && player.transcoded}
+                <div class="menu">
+                  <div class="menu-title">{t("player.subtitles")}</div>
+                  <button class:selected={serverSubId === 0} onclick={() => selectServerTrack("subtitle", 0)}>
+                    <span class="tick">{#if serverSubId === 0}<Icon name="check" size={16} />{/if}</span>
+                    {t("player.none")}
+                  </button>
+                  {#each player.serverSubs as track (track.id)}
+                    <button class:selected={serverSubId === track.id} onclick={() => selectServerTrack("subtitle", track.id)}>
+                      <span class="tick">{#if serverSubId === track.id}<Icon name="check" size={16} />{/if}</span>
+                      {track.label}
+                    </button>
+                  {/each}
+                </div>
+              {:else if menu === "sub"}
                 <div class="menu">
                   <div class="menu-title">{t("player.subtitles")}</div>
                   <button class:selected={player.sid === null} onclick={() => selectTrack("sid", "no")}>
@@ -308,9 +385,19 @@
                 title={t("player.audioTracks")}
               >
                 <Icon name="audio" size={16} />
-                <span>{currentAudio ? trackLabel(currentAudio) : t("player.audio")}</span>
+                <span>{audioLabel}</span>
               </button>
-              {#if menu === "audio"}
+              {#if menu === "audio" && player.transcoded}
+                <div class="menu">
+                  <div class="menu-title">{t("player.audio")}</div>
+                  {#each player.serverAudio as track (track.id)}
+                    <button class:selected={serverAudioId === track.id} onclick={() => selectServerTrack("audio", track.id)}>
+                      <span class="tick">{#if serverAudioId === track.id}<Icon name="check" size={16} />{/if}</span>
+                      {track.label}
+                    </button>
+                  {/each}
+                </div>
+              {:else if menu === "audio"}
                 <div class="menu">
                   <div class="menu-title">{t("player.audio")}</div>
                   {#each audioTracks as track (track.id)}
@@ -323,7 +410,6 @@
               {/if}
             </div>
           </div>
-        {/if}
       </div>
 
       <div

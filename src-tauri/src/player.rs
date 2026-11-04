@@ -329,7 +329,7 @@ pub fn launch(
     let (commands, command_rx) = mpsc::unbounded_channel();
     let (stop, stop_rx) = oneshot::channel();
     tauri::async_runtime::spawn(async move {
-        let session = Session { app: &app, server: &server, entries: &entries, parent };
+        let session = Session { app: &app, server: &server, entries: &entries, parent, id: &session_id };
         if let Err(e) = session.follow(child, stop_rx, command_rx, &pipe, start, offset_ms).await {
             eprintln!("Suivi de lecture interrompu : {e:#}");
         }
@@ -346,6 +346,8 @@ struct Session<'a> {
     server: &'a MediaServer,
     entries: &'a [Entry],
     parent: Option<isize>,
+    /// Identifiant de la lecture, envoyé avec la progression (voir `PlexServer::timeline`).
+    id: &'a str,
 }
 
 impl Session<'_> {
@@ -473,7 +475,7 @@ impl Session<'_> {
     async fn report(&self, index: usize, state: &str, position: f64, duration: f64) {
         let Some(entry) = self.entries.get(index) else { return };
         let to_ms = |s: f64| (s.max(0.0) * 1000.0) as u64;
-        if let Err(e) = self.server.timeline(&entry.rating_key, state, to_ms(position), to_ms(duration)).await {
+        if let Err(e) = self.server.timeline(&entry.rating_key, state, to_ms(position), to_ms(duration), self.id).await {
             eprintln!("Timeline Plex non envoyée : {e:#}");
         }
     }

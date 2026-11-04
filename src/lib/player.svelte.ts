@@ -1,7 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { untrack } from "svelte";
-import type { QueueTrack } from "./api";
+import type { QueueTrack, Track } from "./api";
 import { t } from "./i18n";
 import { device } from "./device";
 
@@ -33,6 +33,15 @@ export const player = $state({
   native: false,
   /** Identifiant de la lecture : les événements d'une lecture remplacée sont ignorés. */
   session: "",
+  /** Qualité choisie dans le lecteur, en kb/s ; 0 : le fichier d'origine, sans conversion. */
+  quality: loadQuality(),
+  /** La vidéo en cours est convertie par le serveur (qualité réduite, ou format non lu). */
+  transcoded: false,
+  /** Pistes du serveur demandées pour la vidéo en cours (identifiants Plex ou Jellyfin). */
+  streams: { audioStream: null as number | null, subtitleStream: null as number | null },
+  /** Pistes du serveur, proposées quand la vidéo est convertie (mpv n'y voit qu'une piste). */
+  serverAudio: [] as Track[],
+  serverSubs: [] as Track[],
   /** Vidéo en cours et épisodes voisins (pour les boutons précédent / suivant). */
   ratingKey: "",
   prevKey: null as string | null,
@@ -60,6 +69,25 @@ export const player = $state({
   /** Incrémenté à chaque saut dans le morceau (pour la notification Android). */
   seeks: 0,
 });
+
+/** Qualités proposées, comme dans les applications Plex (kb/s ; 0 : originale). */
+export const QUALITIES = [0, 20000, 12000, 8000, 4000, 2000, 1500];
+
+function loadQuality(): number {
+  try {
+    const q = Number(localStorage.getItem("maku.quality"));
+    return QUALITIES.includes(q) ? q : 0;
+  } catch {
+    return 0;
+  }
+}
+
+/** « 8 Mb/s · 1080p », d'après le débit (même règle que le serveur, voir plex::resolution_for). */
+export function qualityLabel(kbps: number): string {
+  if (!kbps) return t("player.qualityOriginal");
+  const rate = kbps >= 1000 ? `${(kbps / 1000).toLocaleString()} Mb/s` : `${kbps} kb/s`;
+  return `${rate} · ${kbps >= 8000 ? "1080p" : kbps >= 2000 ? "720p" : "480p"}`;
+}
 
 // Rien après un arrêt : la file reste en mémoire, mais plus aucun titre n'est « en cours ».
 export const current = () => (player.video || !player.active ? null : (player.queue[player.index] ?? null));
@@ -92,15 +120,26 @@ export interface PlayOptions {
   audioStream?: number | null;
   subtitleStream?: number | null;
   fromStart?: boolean;
+  /** Position de départ imposée (ms), pour reprendre au même endroit après un changement de qualité. */
+  startMs?: number;
+}
+
+/** Libère la conversion du serveur lancée pour mpv (qualité réduite sur ordinateur). */
+function endTranscode() {
+  if (!player.web && player.transcoded && player.session) invoke("stop_transcode", { session: player.session }).catch(() => {});
 }
 
 function reset(video: boolean) {
+  endTranscode();
   web.teardown();
   Object.assign(player, {
     active: true,
     video,
     embedded: true,
     native: false,
+    transcoded: false,
+    serverAudio: [],
+    serverSubs: [],
     session: "",
     ratingKey: "",
     prevKey: null,
@@ -141,37 +180,99 @@ export async function play(ratingKey: string, opts: PlayOptions = {}) {
     audioStream: opts.audioStream ?? null,
     subtitleStream: opts.subtitleStream ?? null,
   };
+  player.streams = streams;
+  const maxKbps = player.quality || null;
+  const startMs = opts.startMs ?? null;
   try {
+    // Qualité réduite : le serveur convertit, et le lecteur natif d'Android lit son flux.
+    if (player.web && nativeVideo && maxKbps) {
+      const s = await invoke<WebStreamInfo>("video_stream", { ratingKey, ...streams, maxKbps });
+      Object.assign(player, { session: s.session, title: s.title, subtitle: s.subtitle, duration: s.durationMs / 1000, native: true });
+      markTranscoded();
+      web.startNativeStream(s.url, startMs ?? (opts.fromStart ? 0 : s.offsetMs), streams);
+      return;
+    }
     // Android : le fichier d'origine, lu par le lecteur natif (le serveur ne convertit qu'en secours).
     if (player.web && nativeVideo) {
-      const s = await invoke<NativeInfo>("native_video", { ratingKey, ...streams, fromStart: opts.fromStart ?? false });
+      const s = await invoke<NativeInfo>("native_video", { ratingKey, ...streams, fromStart: opts.fromStart ?? false, startMs });
       Object.assign(player, { session: s.session, title: s.title, subtitle: s.subtitle, duration: s.durationMs / 1000, native: true });
       web.startNative(s, streams);
       return;
     }
     if (player.web) {
-      const s = await invoke<{
-        session: string;
-        url: string;
-        title: string;
-        subtitle: string | null;
-        offsetMs: number;
-        durationMs: number;
-      }>("video_stream", { ratingKey, ...streams });
+      const s = await invoke<WebStreamInfo>("video_stream", { ratingKey, ...streams, maxKbps });
       Object.assign(player, { session: s.session, title: s.title, subtitle: s.subtitle, duration: s.durationMs / 1000 });
-      web.startVideo(s.url, opts.fromStart ? 0 : s.offsetMs / 1000);
+      markTranscoded();
+      web.startVideo(s.url, (startMs ?? (opts.fromStart ? 0 : s.offsetMs)) / 1000);
       return;
     }
     const now = await invoke<{ session: string; title: string; subtitle: string | null; embedded: boolean }>("play", {
       ratingKey,
       ...streams,
       fromStart: opts.fromStart ?? false,
+      maxKbps,
+      startMs,
     });
     Object.assign(player, now);
+    if (maxKbps) markTranscoded();
   } catch (e) {
     player.active = false;
     throw e;
   }
+}
+
+interface WebStreamInfo {
+  session: string;
+  url: string;
+  title: string;
+  subtitle: string | null;
+  offsetMs: number;
+  durationMs: number;
+}
+
+/** Vidéo convertie : ses pistes se choisissent parmi celles du serveur, en relançant la conversion. */
+function markTranscoded() {
+  player.transcoded = true;
+  const key = player.ratingKey;
+  invoke<{ audioTracks: Track[]; subtitleTracks: Track[] }>("plex_metadata", { ratingKey: key }).then(
+    (d) => {
+      if (player.ratingKey !== key) return;
+      player.serverAudio = d.audioTracks;
+      player.serverSubs = d.subtitleTracks;
+    },
+    () => {},
+  );
+}
+
+/** Relance la vidéo en cours au même endroit, avec d'autres pistes ou une autre qualité. */
+function restart(streams = player.streams) {
+  if (!player.video || !player.ratingKey) return;
+  const { ratingKey, prevKey, nextKey, markers } = player;
+  const startMs = Math.round(player.position * 1000);
+  const done = play(ratingKey, { ...streams, startMs });
+  // Les épisodes voisins et les repères ne changent pas : pas de clignotement des boutons.
+  Object.assign(player, { prevKey, nextKey, markers });
+  return done;
+}
+
+/** Change la qualité de lecture (retenue pour les vidéos suivantes) et relance la vidéo en cours. */
+export function setQuality(kbps: number) {
+  if (kbps === player.quality) return;
+  player.quality = kbps;
+  try {
+    localStorage.setItem("maku.quality", String(kbps));
+  } catch {
+    // Stockage indisponible : le choix vaut pour cette session.
+  }
+  return restart();
+}
+
+/** Vidéo convertie : change de piste audio ou de sous-titres (0 : aucun) en relançant la conversion. */
+export function setServerStream(kind: "audio" | "subtitle", id: number) {
+  const streams = { ...player.streams };
+  if (kind === "audio") streams.audioStream = id;
+  else streams.subtitleStream = id;
+  return restart(streams);
 }
 
 /**
@@ -214,6 +315,7 @@ export function mpv(...args: unknown[]) {
 }
 
 export function stop() {
+  endTranscode();
   if (player.web) web.teardown();
   else invoke("player_stop");
   player.active = false;
@@ -264,6 +366,7 @@ const web = (() => {
       playback: state,
       timeMs: Math.round(player.position * 1000),
       durationMs: Math.round(player.duration * 1000),
+      session: player.session || null,
     }).catch(() => {});
   }
 
@@ -341,10 +444,15 @@ const web = (() => {
     fallbackTried = true;
     const key = player.ratingKey;
     try {
-      const s = await invoke<{ session: string; url: string }>("video_stream", { ratingKey: key, ...nativeStreams });
+      const s = await invoke<{ session: string; url: string }>("video_stream", {
+        ratingKey: key,
+        ...nativeStreams,
+        maxKbps: player.quality || null,
+      });
       if (player.ratingKey !== key || !player.native) return;
       player.session = s.session;
       transcoding = true;
+      markTranscoded();
       bridge!.videoOpen!(JSON.stringify({ url: s.url, offsetMs: Math.round(player.position * 1000), aid: null, sid: "auto", subFiles: [] }));
     } catch {
       stop();
@@ -406,6 +514,17 @@ const web = (() => {
       fallbackTried = false;
       transcoding = false;
       bridge!.videoOpen!(JSON.stringify({ url: s.url, offsetMs: s.offsetMs, aid: s.aid, sid: s.sid, subFiles: s.subFiles }));
+      clearInterval(reportTimer);
+      reportTimer = setInterval(() => report(player.paused ? "paused" : "playing"), 10000);
+    },
+
+    /** Flux converti par le serveur (qualité réduite), lu par le lecteur natif d'Android. */
+    startNativeStream(url: string, offsetMs: number, streams: { audioStream: number | null; subtitleStream: number | null }) {
+      reportedKey = player.ratingKey;
+      nativeStreams = streams;
+      fallbackTried = true;
+      transcoding = true;
+      bridge!.videoOpen!(JSON.stringify({ url, offsetMs, aid: null, sid: "auto", subFiles: [] }));
       clearInterval(reportTimer);
       reportTimer = setInterval(() => report(player.paused ? "paused" : "playing"), 10000);
     },
@@ -557,6 +676,8 @@ listen<{ name: string; data: unknown }>("player-prop", ({ payload: { name, data 
 // Une lecture remplacée signale sa fin après le démarrage de la suivante : on l'ignore.
 listen<string>("player-stopped", ({ payload }) => {
   if (payload === player.session) {
+    endTranscode();
+    player.transcoded = false;
     player.active = false;
     player.expanded = false;
   }

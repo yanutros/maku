@@ -522,6 +522,8 @@
     "trendingToRequest": "Tendencias para solicitar"
   },
   "player": {
+    "quality": "Calidad",
+    "qualityOriginal": "Original",
     "channels": "{{channels}} can.",
     "forced": "forzados",
     "trackNumber": "Pista {{id}}",

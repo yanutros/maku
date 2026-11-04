@@ -522,6 +522,8 @@
     "trendingToRequest": "Trending om aan te vragen"
   },
   "player": {
+    "quality": "Kwaliteit",
+    "qualityOriginal": "Origineel",
     "channels": "{{channels}} kan.",
     "forced": "geforceerd",
     "trackNumber": "Spoor {{id}}",

@@ -55,7 +55,9 @@ visionnage. Tout se fait avec son compte Plex (ou Jellyfin) : aucune clé d'API 
       Vidéo intégrée avec des commandes façon Apple TV : une capsule translucide qui flotte en bas de l'image
       (titre, pistes audio et sous-titres en cours, progression, temps restant, ±10 s, épisode précédent et
       suivant, arrêt), retour, volume et plein écran en boutons ronds dans les coins, raccourcis clavier. Reprise là où
-      vous vous étiez arrêté.
+      vous vous étiez arrêté. Qualité au choix, comme dans Plex : le fichier d'origine, ou une conversion par le
+      serveur de 20 Mb/s en 1080p à 1,5 Mb/s en 480p, retenue pour les vidéos suivantes et visible telle quelle
+      dans Tautulli et Tracearr.
     </td>
     <td width="50%" valign="top">
       <h4>🏠 Il met vos bibliothèques en valeur</h4>

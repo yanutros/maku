@@ -757,6 +757,19 @@ pub struct PlayInfo {
     pub sub_tracks: Vec<SubFile>,
 }
 
+/// Débit d'une conversion quand aucune qualité n'est choisie (kb/s).
+pub const DEFAULT_KBPS: u32 = 12000;
+
+/// Définition maximale d'une conversion selon son débit, comme dans les applications Plex :
+/// 1080p à partir de 8 Mb/s, 720p à partir de 2 Mb/s, 480p en dessous.
+pub fn resolution_for(kbps: u32) -> (u32, u32) {
+    match kbps {
+        8000.. => (1920, 1080),
+        2000.. => (1280, 720),
+        _ => (854, 480),
+    }
+}
+
 /// Repère d'un épisode : `intro` ou `credits` (générique), en millisecondes.
 #[derive(Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -1262,6 +1275,7 @@ impl PlexServer {
         rating_key: &str,
         audio: Option<u64>,
         subtitle: Option<u64>,
+        max_kbps: Option<u32>,
         session: &str,
     ) -> Result<WebStream> {
         let m = self.raw_metadata(rating_key).await?;
@@ -1294,12 +1308,14 @@ impl PlexServer {
             _ => (m.title.clone(), m.year.map(|y| y.to_string())),
         };
         let path = urlencoding::encode(&format!("/library/metadata/{rating_key}")).into_owned();
-        // Profil « navigateur » : le serveur produit du H.264 / AAC en HLS, lisible partout,
-        // limité au 1080p pour ménager le serveur et le réseau.
+        // Profil « navigateur » : le serveur produit du H.264 / AAC en HLS, lisible partout, au débit
+        // choisi dans le lecteur (par défaut 12 Mb/s en 1080p, pour ménager le serveur et le réseau).
+        let kbps = max_kbps.unwrap_or(DEFAULT_KBPS);
+        let (width, height) = resolution_for(kbps);
         let url = format!(
             "{base}/video/:/transcode/universal/start.m3u8?path={path}&mediaIndex=0&partIndex=0&protocol=hls\
-             &fastSeek=1&directPlay=0&directStream=1&directStreamAudio=1&videoQuality=100&maxVideoBitrate=12000\
-             &videoResolution=1920x1080&subtitles=burn&subtitleSize=100&audioBoost=100&location=lan\
+             &fastSeek=1&directPlay=0&directStream=1&directStreamAudio=1&videoQuality=100&maxVideoBitrate={kbps}\
+             &videoResolution={width}x{height}&subtitles=burn&subtitleSize=100&audioBoost=100&location=lan\
              &session={session}&X-Plex-Session-Identifier={session}&X-Plex-Client-Identifier={cid}\
              &X-Plex-Product=Maku&X-Plex-Platform=Chrome&X-Plex-Device=Maku&X-Plex-Token={token}",
             base = self.base,
@@ -1422,10 +1438,13 @@ impl PlexServer {
     }
 
     /// Informe le serveur de la progression (alimente « Reprendre » et « À suivre »).
-    pub async fn timeline(&self, rating_key: &str, state: &str, time_ms: u64, duration_ms: u64) -> Result<()> {
+    /// `session` relie la lecture à sa conversion (`web_stream`) : sans lui, Plex (et Tautulli, Tracearr)
+    /// la croit lue en direct, dans la qualité du fichier d'origine.
+    pub async fn timeline(&self, rating_key: &str, state: &str, time_ms: u64, duration_ms: u64, session: &str) -> Result<()> {
         self.get(&format!(
             "/:/timeline?ratingKey={rating_key}&key=%2Flibrary%2Fmetadata%2F{rating_key}&state={state}&time={time_ms}&duration={duration_ms}&identifier=com.plexapp.plugins.library"
         ))
+        .header("X-Plex-Session-Identifier", session)
         .send()
         .await?
         .error_for_status()?;

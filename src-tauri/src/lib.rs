@@ -812,11 +812,34 @@ async fn play(
     audio_stream: Option<u64>,
     subtitle_stream: Option<u64>,
     from_start: Option<bool>,
+    max_kbps: Option<u32>,
+    start_ms: Option<u64>,
 ) -> CmdResult<NowPlaying> {
     let server = state.server()?;
-    let mut info = server.play_info(&rating_key, audio_stream, subtitle_stream).await?;
+    let session = uuid::Uuid::new_v4().simple().to_string();
+    let mut info = match max_kbps {
+        // Qualité réduite : mpv lit le flux converti par le serveur, pistes choisies et sous-titres incrustés.
+        Some(kbps) => {
+            let s = server.web_stream(&rating_key, audio_stream, subtitle_stream, Some(kbps), &session).await?;
+            plex::PlayInfo {
+                url: s.url,
+                title: s.title,
+                subtitle: s.subtitle,
+                offset_ms: s.offset_ms,
+                duration_ms: s.duration_ms,
+                aid: None,
+                sid: "auto".into(),
+                sub_files: Vec::new(),
+                sub_tracks: Vec::new(),
+            }
+        }
+        None => server.play_info(&rating_key, audio_stream, subtitle_stream).await?,
+    };
     if from_start == Some(true) {
         info.offset_ms = 0;
+    }
+    if let Some(ms) = start_ms {
+        info.offset_ms = ms;
     }
     let mpv = player::find_mpv(state.cfg().mpv_path.as_deref())?;
     stop_player(&state);
@@ -831,7 +854,6 @@ async fn play(
     #[cfg(not(windows))]
     let parent = None;
 
-    let session = uuid::Uuid::new_v4().to_string();
     let now = NowPlaying {
         session: session.clone(),
         title: info.title.clone(),
@@ -908,9 +930,10 @@ async fn video_stream(
     rating_key: String,
     audio_stream: Option<u64>,
     subtitle_stream: Option<u64>,
+    max_kbps: Option<u32>,
 ) -> CmdResult<WebStream> {
     let session = uuid::Uuid::new_v4().simple().to_string();
-    Ok(state.server()?.web_stream(&rating_key, audio_stream, subtitle_stream, &session).await?)
+    Ok(state.server()?.web_stream(&rating_key, audio_stream, subtitle_stream, max_kbps, &session).await?)
 }
 
 /// Lecture native sur Android (ExoPlayer) : le fichier d'origine, sans conversion, avec les
@@ -937,6 +960,7 @@ async fn native_video(
     audio_stream: Option<u64>,
     subtitle_stream: Option<u64>,
     from_start: Option<bool>,
+    start_ms: Option<u64>,
 ) -> CmdResult<NativeVideo> {
     let info = state.server()?.play_info(&rating_key, audio_stream, subtitle_stream).await?;
     Ok(NativeVideo {
@@ -944,7 +968,7 @@ async fn native_video(
         url: info.url,
         title: info.title,
         subtitle: info.subtitle,
-        offset_ms: if from_start == Some(true) { 0 } else { info.offset_ms },
+        offset_ms: start_ms.unwrap_or(if from_start == Some(true) { 0 } else { info.offset_ms }),
         duration_ms: info.duration_ms,
         aid: info.aid,
         sid: info.sid,
@@ -965,9 +989,10 @@ async fn report_timeline(
     playback: String,
     time_ms: u64,
     duration_ms: u64,
+    session: Option<String>,
 ) -> CmdResult<()> {
     let server = state.server()?;
-    server.timeline(&rating_key, &playback, time_ms, duration_ms).await?;
+    server.timeline(&rating_key, &playback, time_ms, duration_ms, session.as_deref().unwrap_or_default()).await?;
     if playback == "stopped" && duration_ms > 0 && time_ms as f64 / duration_ms as f64 >= 0.9 {
         server.set_watched(&rating_key, true).await?;
     }

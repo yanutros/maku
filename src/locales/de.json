@@ -522,6 +522,8 @@
     "trendingToRequest": "Trends zum Anfragen"
   },
   "player": {
+    "quality": "Qualität",
+    "qualityOriginal": "Original",
     "channels": "{{channels}} Kan.",
     "forced": "erzwungen",
     "trackNumber": "Spur {{id}}",

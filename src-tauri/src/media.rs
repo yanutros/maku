@@ -61,10 +61,10 @@ common! {
         fn related(&self, rating_key: &str) -> Vec<Item>;
         fn children(&self, rating_key: &str) -> Vec<Item>;
         fn search(&self, query: &str) -> Vec<Item>;
-        fn web_stream(&self, rating_key: &str, audio: Option<u64>, subtitle: Option<u64>, session: &str) -> WebStream;
+        fn web_stream(&self, rating_key: &str, audio: Option<u64>, subtitle: Option<u64>, max_kbps: Option<u32>, session: &str) -> WebStream;
         fn stop_transcode(&self, session: &str) -> ();
         fn play_info(&self, rating_key: &str, audio: Option<u64>, subtitle: Option<u64>) -> PlayInfo;
-        fn timeline(&self, rating_key: &str, state: &str, time_ms: u64, duration_ms: u64) -> ();
+        fn timeline(&self, rating_key: &str, state: &str, time_ms: u64, duration_ms: u64, session: &str) -> ();
         fn set_watched(&self, rating_key: &str, watched: bool) -> ();
         fn person_items(&self, id: &str) -> Vec<Item>;
         fn rate(&self, rating_key: &str, rating: Option<f32>) -> ();
