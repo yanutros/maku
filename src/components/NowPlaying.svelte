@@ -1,6 +1,6 @@
 <script lang="ts">
   import { formatClock } from "../lib/api";
-  import { current, mpv, next, player, previous } from "../lib/player.svelte";
+  import { current, mpv, next, player, previous, stop } from "../lib/player.svelte";
   import { device } from "../lib/device";
   import Icon from "./Icon.svelte";
   import { t } from "../lib/i18n";
@@ -47,10 +47,11 @@
               <Icon name="repeat" size={20} />
             </button>
             <button class="ctl" onclick={previous} aria-label={t("common.c1.previous")}><Icon name="backward" size={30} filled /></button>
-            <button class="play" onclick={() => mpv("cycle", "pause")} aria-label={player.paused ? t("common.c1.playback") : t("common.c1.pause")}>
+            <button class="ctl" onclick={() => mpv("cycle", "pause")} aria-label={player.paused ? t("common.c1.playback") : t("common.c1.pause")}>
               <Icon name={player.paused ? "play" : "pause"} size={30} filled />
             </button>
             <button class="ctl" onclick={next} aria-label={t("common.c1.next")}><Icon name="forward" size={30} filled /></button>
+            <button class="ctl" onclick={stop} aria-label={t("common.c1.stop")}><Icon name="stop" size={28} filled /></button>
             <button class="ctl" onclick={() => mpv("cycle", "mute")} aria-label={t("common.c1.mute")}>
               <Icon name={player.muted ? "mute" : "volume"} size={20} />
             </button>
@@ -350,17 +351,5 @@
 
   .ctl.on {
     color: var(--accent);
-  }
-
-  .play {
-    display: grid;
-    place-items: center;
-    width: 68px;
-    height: 68px;
-    padding: 0;
-    border: none;
-    border-radius: 50%;
-    background: #fff;
-    color: #0d0e10;
   }
 </style>

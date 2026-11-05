@@ -273,7 +273,7 @@ les bandes d'onglets, l'onglet touché se centre. Les vidéos passent en paysage
 **Musique en arrière-plan** : sur téléphone comme sur tablette, la musique continue quand Maku est quitté, avec
 une notification (pochette, titre, précédent / lecture / suivant, progression) qui la pilote aussi depuis l'écran
 de verrouillage et les boutons d'un casque Bluetooth. Fermer Maku depuis les applications récentes l'arrête.
-Le mini-lecteur, façon Spotify, ouvre en plein écran la pochette, la progression et toutes les commandes.
+Le mini-lecteur, façon Spotify (lecture, suivant et arrêt), ouvre en plein écran la pochette, la progression et toutes les commandes, arrêt compris ; comme sur ordinateur, le bouton lecture a la taille des autres.
 
 **Android Auto** : Maku apparaît parmi les applications de musique de la voiture, avec quatre onglets —
 **Accueil** (ajouts récents), **Artistes** (avec une lecture aléatoire de toute la bibliothèque), **Albums** et

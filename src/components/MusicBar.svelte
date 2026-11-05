@@ -135,7 +135,7 @@
         >
           <Icon name="forward" size={24} filled />
         </button>
-        <button class="ctl small" onclick={stop} aria-label={t("common.c1.stop")} title={t("common.c1.stop")}><Icon name="stop" size={18} filled /></button>
+        <button class="ctl small stop" onclick={stop} aria-label={t("common.c1.stop")} title={t("common.c1.stop")}><Icon name="stop" size={18} filled /></button>
       </div>
 
       <div class="scrub">
@@ -429,13 +429,6 @@
     background: var(--accent);
   }
 
-  /* Sur ordinateur, le bouton lecture est un bouton comme les autres (`ctl`) ; le téléphone garde son
-     disque blanc (plus bas). */
-  :global(html.phone) .play {
-    background: #fff;
-    color: #0d0e10;
-  }
-
   .scrub {
     display: grid;
     grid-template-columns: 44px minmax(0, 1fr) 48px;
@@ -689,9 +682,13 @@
     border-radius: 9px;
   }
 
-  :global(html.phone) .play {
-    width: 42px;
-    height: 42px;
+  /* Lecture, suivant et arrêt : même cercle, même couleur, comme sur ordinateur. */
+  :global(html.phone) .transport .ctl,
+  :global(html.phone) .transport .ctl.stop {
+    display: grid;
+    width: 40px;
+    height: 40px;
+    color: #fff;
   }
 
   :global(html.phone) .transport {
@@ -723,7 +720,8 @@
     border-radius: 1px;
   }
 
-  /* Mini-lecteur : lecture et suivant seulement (précédent est dans le lecteur plein écran). */
+  /* Mini-lecteur : lecture, suivant et arrêt (répétition et précédent sont dans le lecteur plein écran). */
+  :global(html.phone) .transport > .ctl:nth-child(1),
   :global(html.phone) .transport > .ctl:nth-child(2) {
     display: none;
   }
