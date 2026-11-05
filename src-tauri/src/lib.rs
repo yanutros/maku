@@ -1484,10 +1484,13 @@ async fn update_install(app: AppHandle, state: State<'_, AppState>, info: update
 
 // ---------- Invitation par téléphone ----------
 
-/// Ouvre le relais sur le réseau local ; renvoie l'adresse à mettre dans le QR code.
+/// Ouvre le relais sur le réseau local ; renvoie l'adresse à mettre dans le QR code. Avec `login`
+/// (« Jellyfin » ou « Emby ») : la page de connexion à ce serveur, avec l'adresse `url` déjà saisie.
 #[tauri::command]
-async fn relay_start(app: AppHandle, state: State<'_, AppState>) -> CmdResult<String> {
-    let relay = relay::start(app).await?;
+async fn relay_start(app: AppHandle, state: State<'_, AppState>, login: Option<String>, url: Option<String>) -> CmdResult<String> {
+    let login = login.filter(|l| matches!(l.as_str(), "Jellyfin" | "Emby"));
+    let url = url.unwrap_or_default();
+    let relay = relay::start(app, login.as_deref().map(|l| (l, url.as_str()))).await?;
     let url = relay.url.clone();
     *state.relay.lock().unwrap() = Some(relay);
     Ok(url)

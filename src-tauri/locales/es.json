@@ -142,5 +142,17 @@
   },
   "collection": {
     "noTitle": "Ponle un nombre a la colección."
+  },
+  "relayLogin": {
+    "title": "Iniciar sesión en {server}",
+    "intro": "Escribe aquí los datos de tu servidor: la tele inicia sesión sola.",
+    "url": "Dirección del servidor",
+    "username": "Usuario",
+    "password": "Contraseña",
+    "send": "Iniciar sesión",
+    "connecting": "Conectando…",
+    "done": "¡Listo! Ya puedes dejar el teléfono.",
+    "failed": "No se pudo iniciar sesión.",
+    "tvGone": "La tele no responde: vuelve a abrir la pantalla de inicio de sesión."
   }
 }

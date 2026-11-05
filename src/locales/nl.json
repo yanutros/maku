@@ -153,7 +153,8 @@
     "quickConnect": "Met Quick Connect",
     "quickConnectHint": "Open in Jellyfin je profiel → Quick Connect en voer deze code in:",
     "connected": "Aangemeld",
-    "otherAccount": "Ander account"
+    "otherAccount": "Ander account",
+    "phoneQr": "Makkelijker: scan deze QR-code met je telefoon (op dezelfde wifi als de tv) en vul daar je gegevens in."
   },
   "servers": {
     "title": "Kies een server",

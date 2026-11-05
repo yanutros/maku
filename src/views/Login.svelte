@@ -1,10 +1,12 @@
 <script lang="ts">
-  import { onDestroy, onMount } from "svelte";
+  import { onDestroy, onMount, untrack } from "svelte";
+  import { listen } from "@tauri-apps/api/event";
   import { api, errorText, type LoginPin, type Session } from "../lib/api";
   import { device } from "../lib/device";
   import { t } from "../lib/i18n";
   import Logo from "../components/Logo.svelte";
   import Wordmark from "../components/Wordmark.svelte";
+  import QrCode from "../components/QrCode.svelte";
 
   let { onDone }: { onDone: () => void } = $props();
 
@@ -96,19 +98,65 @@
   let jfPassword = $state("");
   let jfBusy = $state(false);
 
-  async function loginJellyfin(e: SubmitEvent) {
-    e.preventDefault();
+  async function loginJellyfin(e?: SubmitEvent) {
+    e?.preventDefault();
     jfBusy = true;
     error = null;
     try {
       await api.jellyfinLogin(jfUrl, jfUser, jfPassword, server === "emby");
-      onDone();
+      return true;
     } catch (err) {
       error = errorText(err);
+      return false;
     } finally {
       jfBusy = false;
     }
   }
+
+  async function submitJellyfin(e: SubmitEvent) {
+    if (await loginJellyfin(e)) onDone();
+  }
+
+  // Téléviseur : un QR code ouvre sur le téléphone une page où saisir l'adresse, l'identifiant et le mot
+  // de passe (relais sur le réseau local, voir relay.rs), plutôt qu'au clavier de la télécommande.
+  let relayUrl = $state<string | null>(null);
+  $effect(() => {
+    const brand = server === "emby" ? "Emby" : server === "jellyfin" ? "Jellyfin" : null;
+    if (!device.tv || !brand || quickCode) return;
+    let closed = false;
+    let unlisten: (() => void) | undefined;
+    // Adresse déjà saisie sur la télé : lue une fois, sans relancer le relais à chaque touche.
+    api.relayStart(brand, untrack(() => jfUrl.trim())).then(
+      (url) => {
+        if (!closed) relayUrl = url;
+      },
+      () => {},
+    );
+    listen<string>("relay-login", async (e) => {
+      let form: { url?: string; username?: string; password?: string };
+      try {
+        form = JSON.parse(e.payload);
+      } catch {
+        return;
+      }
+      jfUrl = form.url ?? "";
+      jfUser = form.username ?? "";
+      jfPassword = form.password ?? "";
+      api.relayStatus({ step: "connecting" }).catch(() => {});
+      const ok = await loginJellyfin();
+      await api.relayStatus(ok ? { step: "done" } : { step: "error", error }).catch(() => {});
+      if (ok) {
+        jfPassword = "";
+        onDone();
+      }
+    }).then((f) => (closed ? f() : (unlisten = f)));
+    return () => {
+      closed = true;
+      unlisten?.();
+      api.relayStop().catch(() => {});
+      relayUrl = null;
+    };
+  });
 
   // Quick Connect : un code à valider dans Jellyfin (Profil → Quick Connect), sans mot de passe.
   let quickCode = $state<string | null>(null);
@@ -210,7 +258,8 @@
       <p class="muted small">{t("login.autoConnect")}</p>
       <div class="row"><button class="btn" onclick={back}>{t("login.back")}</button></div>
     {:else if server === "jellyfin" || server === "emby"}
-      <form class="jf" onsubmit={loginJellyfin}>
+      <div class="jf-wrap" class:with-qr={device.tv}>
+      <form class="jf" onsubmit={submitJellyfin}>
         <label>{server === "emby" ? t("login.embyUrl") : t("login.jellyfinUrl")} <input bind:value={jfUrl} placeholder="http://192.168.1.10:8096" autocomplete="url" spellcheck="false" required /></label>
         <label>{t("login.username")} <input bind:value={jfUser} autocomplete="username" spellcheck="false" /></label>
         <label>{t("login.password")} <input type="password" bind:value={jfPassword} autocomplete="current-password" /></label>
@@ -222,6 +271,13 @@
           {/if}
         </div>
       </form>
+      {#if device.tv}
+        <div class="phone-qr">
+          {#if relayUrl}<QrCode text={relayUrl} size={220} />{:else}<div class="qr-wait skeleton"></div>{/if}
+          <p class="muted small">{t("login.phoneQr")}</p>
+        </div>
+      {/if}
+      </div>
     {:else if pin && mode === "link"}
       <p>{t("login.goTo")}</p>
       <p class="site">plex.tv/link</p>
@@ -357,6 +413,35 @@
     width: 100%;
     margin-top: 14px;
     text-align: left;
+  }
+
+  /* Téléviseur : le formulaire et, à côté, le QR code pour tout saisir sur le téléphone. */
+  .jf-wrap {
+    width: 100%;
+  }
+
+  .jf-wrap.with-qr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 240px;
+    align-items: center;
+    gap: 36px;
+  }
+
+  .card:has(.with-qr) {
+    width: min(920px, 92vw);
+  }
+
+  .phone-qr {
+    display: grid;
+    justify-items: center;
+    gap: 10px;
+    text-align: center;
+  }
+
+  .qr-wait {
+    width: 220px;
+    height: 220px;
+    border-radius: 12px;
   }
 
   .jf label {

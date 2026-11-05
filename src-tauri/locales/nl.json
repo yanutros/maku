@@ -142,5 +142,17 @@
   },
   "collection": {
     "noTitle": "Geef de collectie een naam."
+  },
+  "relayLogin": {
+    "title": "Aanmelden bij {server}",
+    "intro": "Vul hier de gegevens van je server in: de tv meldt zich zelf aan.",
+    "url": "Serveradres",
+    "username": "Gebruikersnaam",
+    "password": "Wachtwoord",
+    "send": "Aanmelden",
+    "connecting": "Aanmelden…",
+    "done": "Klaar! Je kunt je telefoon wegleggen.",
+    "failed": "Aanmelden is mislukt.",
+    "tvGone": "De tv reageert niet meer: open het aanmeldscherm opnieuw."
   }
 }

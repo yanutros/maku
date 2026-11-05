@@ -142,5 +142,17 @@
   },
   "collection": {
     "noTitle": "Gib der Sammlung einen Namen."
+  },
+  "relayLogin": {
+    "title": "Bei {server} anmelden",
+    "intro": "Gib hier die Daten deines Servers ein: Der Fernseher meldet sich selbst an.",
+    "url": "Serveradresse",
+    "username": "Benutzername",
+    "password": "Passwort",
+    "send": "Anmelden",
+    "connecting": "Anmeldung…",
+    "done": "Fertig! Du kannst dein Telefon weglegen.",
+    "failed": "Die Anmeldung ist fehlgeschlagen.",
+    "tvGone": "Der Fernseher antwortet nicht mehr: Öffne den Anmeldebildschirm erneut."
   }
 }

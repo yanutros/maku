@@ -153,7 +153,8 @@
     "quickConnect": "Con Quick Connect",
     "quickConnectHint": "En Jellyfin, abre tu perfil → Quick Connect e introduce este código:",
     "connected": "Conectado",
-    "otherAccount": "Otra cuenta"
+    "otherAccount": "Otra cuenta",
+    "phoneQr": "Más fácil: escanea este código QR con tu teléfono (en la misma wifi que la tele) y escribe allí tus datos."
   },
   "servers": {
     "title": "Elige un servidor",

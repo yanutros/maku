@@ -142,5 +142,17 @@
   },
   "collection": {
     "noTitle": "Donne un nom à la collection."
+  },
+  "relayLogin": {
+    "title": "Se connecter à {server}",
+    "intro": "Saisis ici les informations de ton serveur : la télé se connecte toute seule.",
+    "url": "Adresse du serveur",
+    "username": "Identifiant",
+    "password": "Mot de passe",
+    "send": "Se connecter",
+    "connecting": "Connexion…",
+    "done": "C'est fait ! Tu peux reposer ton téléphone.",
+    "failed": "La connexion a échoué.",
+    "tvGone": "La télé ne répond plus : rouvre l'écran de connexion."
   }
 }

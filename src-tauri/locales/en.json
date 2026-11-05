@@ -142,5 +142,17 @@
   },
   "collection": {
     "noTitle": "Give the collection a name."
+  },
+  "relayLogin": {
+    "title": "Sign in to {server}",
+    "intro": "Enter your server details here: the TV signs in by itself.",
+    "url": "Server address",
+    "username": "Username",
+    "password": "Password",
+    "send": "Sign in",
+    "connecting": "Signing in…",
+    "done": "Done! You can put your phone down.",
+    "failed": "Sign-in failed.",
+    "tvGone": "The TV isn't answering: reopen the sign-in screen."
   }
 }

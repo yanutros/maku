@@ -437,6 +437,10 @@ règles des magasins n'autorisent pas.
    **Emby** (dont Jellyfin est issu, avec la même API) passe par le même client et les mêmes fonctions, avec
    identifiant et mot de passe (Emby n'a pas Quick Connect) ; les aperçus sur la barre de progression ne sont pas
    encore pris en charge. Une seule connexion est gardée pour Jellyfin et Emby : celle du dernier utilisé.
+   Sur téléviseur, un QR code s'affiche à côté du formulaire Jellyfin ou Emby : scanné avec un téléphone (iPhone
+   ou Android, sur le même Wi-Fi), il ouvre une page où saisir l'adresse, l'identifiant et le mot de passe, et la
+   télé se connecte seule, sans le clavier de la télécommande (page servie sur le réseau local, à une adresse
+   secrète, tant que l'écran est ouvert ; le mot de passe n'est pas enregistré).
    L'écran de choix montre les trois services avec leur icône. Maku retient ensuite les serveurs utilisés
    (**Réglages → Compte → Serveurs de médias** : Plex, Jellyfin / Emby ou les deux) : avec un seul, il ne repose plus la
    question. Avec les deux, **Changer de serveur** ramène au choix sans perdre les connexions : le compte Plex reste
@@ -620,7 +624,7 @@ traduisez les valeurs sans toucher aux clés ni aux `{{variables}}`, puis décla
 | `src-tauri/src/plex_admin.rs` | administration : édition des métadonnées, images, réglages et lectures du serveur |
 | `src-tauri/src/net.rs` | règles de redirection des clients HTTP : même machine pour les serveurs, domaines GitHub pour les mises à jour |
 | `src-tauri/src/update.rs` | dernière version sur GitHub, paquet adapté à l'appareil, téléchargement et installation |
-| `src-tauri/src/relay.rs`, `relay.html` | relais d'invitation : petite page servie sur le réseau local au téléphone (lecture du QR code avec jsQR) |
+| `src-tauri/src/relay.rs`, `relay.html`, `relay-login.html` | relais du téléphone : petite page servie sur le réseau local, pour l'invitation (lecture du QR code avec jsQR) ou la connexion Jellyfin / Emby d'un téléviseur |
 | `src-tauri/src/lib.rs` | état de l'application et commandes Tauri |
 | `src-tauri/src/media.rs` | couche commune aux serveurs : Plex (`plex.rs`) ou Jellyfin et Emby (`jellyfin.rs`), vus de la même façon par l'interface |
 | `src/views/` | pages : accueil, bibliothèques, fiches, musique, découverte, statistiques, réglages |

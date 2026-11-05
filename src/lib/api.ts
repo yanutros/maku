@@ -449,7 +449,7 @@ export const api = {
   /** Sur Android, renvoie l'APK téléchargé, à confier à `PlexrDevice.installApk`. */
   updateInstall: (info: UpdateInfo) => invoke<string | null>("update_install", { info }),
 
-  relayStart: () => invoke<string>("relay_start"),
+  relayStart: (login?: "Jellyfin" | "Emby", url?: string) => invoke<string>("relay_start", { login, url }),
   relayStatus: (status: object) => invoke<void>("relay_status", { status: JSON.stringify(status) }),
   relayStop: () => invoke<void>("relay_stop"),
 };
