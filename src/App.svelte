@@ -213,7 +213,7 @@
       {/if}
       <!-- Sur téléviseur, la recherche passe par le menu : la barre n'apparaît que sur sa page. -->
       {#if !device.phone && (!device.tv || nav.view.name === "search")}
-      <header data-nav-low>
+      <header data-nav-low class:clear={nav.view.name === "stats"}>
         <button class="btn round ghost" disabled={!nav.history.length} onclick={back} aria-label={t("common.c1.back")}>
           <Icon name="back" />
         </button>
@@ -429,6 +429,11 @@
     padding: 14px 40px;
     background: linear-gradient(var(--bg) 0%, #14151800 100%);
     pointer-events: none;
+  }
+
+  /* Mes statistiques : le fond de la page couvre toute la fenêtre, le dégradé du haut y ferait une marque. */
+  header.clear {
+    background: none;
   }
 
   header > :global(*) {

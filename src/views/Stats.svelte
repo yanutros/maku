@@ -136,10 +136,12 @@
     {/if}
   </div>
 {:else}
-  <!-- Bandeau d'ambiance : affiche du titre le plus regardé, très floutée. -->
-  <section class="hero">
+  <!-- Bandeau d'ambiance : affiche du titre le plus regardé, très floutée. Elle est fixée à la fenêtre,
+       sur toute sa largeur : elle passe derrière le menu translucide, comme dans « En cours de lecture ». -->
+  <div class="backdrop" aria-hidden="true">
     {#if ambient}<div class="ambient" style:background-image={`url("${ambient}")`}></div>{/if}
-    <div class="hero-shade"></div>
+  </div>
+  <section class="hero">
     <div class="hero-body">
       <div class="eyebrow">{t("stats.hero.last30Days")}</div>
       <h1>{t("stats.hero.hello", { name: data.username ?? "" })}</h1>
@@ -307,25 +309,30 @@
     position: relative;
     margin-top: -68px;
     padding: 120px 40px 36px;
-    overflow: hidden;
   }
 
+  /* Toute la fenêtre, menu compris, comme dans « En cours de lecture » : le menu translucide flotte par-dessus. */
+  .backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  /* Le contenu de la page passe au-dessus du fond fixé. */
+  .backdrop ~ * {
+    position: relative;
+  }
+
+  /* Même traitement que le fond d'« En cours de lecture » : uniforme sur toute la fenêtre. */
   .ambient {
     position: absolute;
-    inset: -60px;
+    inset: -80px;
     background-size: cover;
-    background-position: center 30%;
-    filter: blur(60px) saturate(1.6);
-    opacity: 0.55;
+    background-position: center;
+    filter: blur(70px) saturate(1.5) brightness(0.45);
     transform: scale(1.1);
-  }
-
-  .hero-shade {
-    position: absolute;
-    inset: 0;
-    background:
-      radial-gradient(80% 120% at 10% 0%, transparent 0%, #14151880 60%),
-      linear-gradient(#14151800 40%, var(--bg) 100%);
   }
 
   .hero-body {

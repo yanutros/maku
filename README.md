@@ -102,7 +102,7 @@ visionnage. Tout se fait avec son compte Plex (ou Jellyfin) : aucune clé d'API 
     <td valign="top">
       <h4>📊 Il raconte vos habitudes</h4>
       Avec Tracearr : temps passé devant l'écran, top 10 du mois, plus long marathon, genres préférés… dans
-      une page façon Apple TV.
+      une page façon Apple TV, sur un fond aux couleurs de votre titre le plus regardé qui couvre toute la fenêtre, menu compris.
     </td>
   </tr>
   <tr>
