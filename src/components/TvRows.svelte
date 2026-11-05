@@ -5,6 +5,7 @@
   import TitleLogo from "./TitleLogo.svelte";
   import Icon from "./Icon.svelte";
   import type { TvRow } from "../lib/tvcards";
+  import { useAmbient } from "../lib/ambient.svelte";
 
   /**
    * Rangées des téléviseurs, à la manière des applications TV : en haut, la fiche de l'élément
@@ -12,8 +13,10 @@
    * rangée active remonte toujours au même endroit et la jaquette active reste à gauche : tout
    * se déplace par translation, sans redimensionnement, pour rester fluide sur les petites TV.
    * `header` (onglets d'une bibliothèque) s'affiche au-dessus et se rejoint avec la flèche haut.
+   * `blur` (musique) : au lieu d'une image de fond, les couleurs floutées de la pochette sélectionnée,
+   * sur toute la page (une pochette carrée agrandie en fond 16/9 serait floue et coupée).
    */
-  let { rows, header }: { rows: TvRow[]; header?: Snippet } = $props();
+  let { rows, header, blur = false }: { rows: TvRow[]; header?: Snippet; blur?: boolean } = $props();
 
   // Position de la sélection, et colonne retenue pour chaque rangée.
   let row = $state(0);
@@ -24,10 +27,13 @@
   // Le fond suit la sélection avec un léger délai, pour ne pas charger chaque image survolée.
   let backdrop = $state<string | null>(null);
   $effect(() => {
-    const next = current?.backdrop ?? null;
+    const next = (blur ? current?.image : null) ?? current?.backdrop ?? null;
     const t = setTimeout(() => (backdrop = next), backdrop ? 280 : 0);
     return () => clearTimeout(t);
   });
+
+  // Musique : la pochette floutée sur toute la fenêtre, menu compris (dessinée par App.svelte).
+  $effect(() => (blur ? useAmbient(backdrop) : undefined));
 
   let root = $state<HTMLElement>();
 
@@ -82,9 +88,9 @@
 
 <div class="tv-rows" class:with-header={!!header} bind:this={root} role="presentation" onfocusin={onFocusIn} onkeydown={onKey}>
   {#key backdrop}
-    {#if backdrop}<img class="backdrop" src={backdrop} alt="" decoding="async" />{/if}
+    {#if backdrop && !blur}<img class="backdrop" src={backdrop} alt="" decoding="async" />{/if}
   {/key}
-  <div class="shade"></div>
+  {#if !blur}<div class="shade"></div>{/if}
 
   {#if header}<div class="header">{@render header()}</div>{/if}
 

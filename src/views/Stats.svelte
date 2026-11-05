@@ -3,6 +3,8 @@
   import { api, errorText, formatClock, formatLongDuration, tracearrLogin, type Session, type TracearrDashboard } from "../lib/api";
   import { genreLabel } from "../lib/genres";
   import { go } from "../lib/nav.svelte";
+  import { device } from "../lib/device";
+  import { useAmbient } from "../lib/ambient.svelte";
   import Icon from "../components/Icon.svelte";
   import { t, locale } from "../lib/i18n";
 
@@ -97,6 +99,8 @@
 
   // Fond d'ambiance : l'affiche du titre le plus regardé.
   const ambient = $derived(data?.topTitles[0]?.poster ?? data?.bingeArt?.backdrop ?? null);
+  // Téléviseur : la page glisse quand le menu se déplie ; le fond, lui, reste derrière toute la fenêtre.
+  $effect(() => (device.tv ? useAmbient(ambient) : undefined));
   const genres = $derived(data?.allTime.topGenres?.slice(0, 5) ?? []);
   const maxGenre = $derived(Math.max(1, ...genres.map((g) => g.plays)));
 
@@ -318,6 +322,10 @@
     z-index: 0;
     overflow: hidden;
     pointer-events: none;
+  }
+
+  :global(html.tv) .backdrop {
+    display: none;
   }
 
   /* Le contenu de la page passe au-dessus du fond fixé. */

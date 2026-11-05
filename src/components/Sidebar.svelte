@@ -481,7 +481,7 @@
 
   /* Téléviseur : pas de flou d'arrière-plan, coûteux pour son processeur graphique. */
   :global(html.tv) .desk {
-    background: var(--bg-sidebar);
+    background: color-mix(in srgb, var(--bg-sidebar) 72%, transparent);
     backdrop-filter: none;
   }
 

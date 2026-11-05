@@ -18,6 +18,7 @@
   import SeerrDetail from "./views/SeerrDetail.svelte";
   import Settings from "./views/Settings.svelte";
   import Stats from "./views/Stats.svelte";
+  import { ambient } from "./lib/ambient.svelte";
   import RequestDialog from "./components/RequestDialog.svelte";
   import PlayerOverlay from "./components/PlayerOverlay.svelte";
   import MusicBar from "./components/MusicBar.svelte";
@@ -188,6 +189,12 @@
   <ServerPicker onDone={refresh} />
 {:else}
   <div class="app">
+  <!-- Téléviseur : fond flouté de la page (musique, statistiques), derrière le menu translucide. -->
+  {#if device.tv}
+    {#key ambient.image}
+      {#if ambient.image}<div class="tv-ambient" aria-hidden="true"><div style:background-image={`url("${ambient.image}")`}></div></div>{/if}
+    {/key}
+  {/if}
   <div class="shell" class:behind={watching} class:collapsed={sidebar.collapsed} class:phone={device.phone}>
     {#if !device.phone}<Sidebar {sections} serverName={session.serverName} />{/if}
 
@@ -325,6 +332,41 @@
     display: grid;
     grid-template-rows: minmax(0, 1fr) auto auto;
     height: 100%;
+  }
+
+  /* Le flou se fait sur un calque dix fois plus petit, agrandi ensuite : même rendu qu'un grand flou,
+     pour une fraction du travail du processeur graphique de la TV. */
+  .tv-ambient {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    pointer-events: none;
+    animation: ambient-in 0.5s ease-out;
+  }
+
+  .tv-ambient div {
+    position: absolute;
+    top: -1%;
+    left: -1%;
+    width: 10.2%;
+    height: 10.2%;
+    background-position: center;
+    background-size: cover;
+    filter: blur(5px) saturate(1.5) brightness(0.42);
+    transform: scale(10);
+    transform-origin: 0 0;
+  }
+
+  @keyframes ambient-in {
+    from {
+      opacity: 0;
+    }
+  }
+
+  :global(html.tv) .shell {
+    position: relative;
+    z-index: 1;
   }
 
   /* minmax(0, …) : sans ça, la grille grandit avec le contenu et la page ne défile plus. */

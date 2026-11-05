@@ -154,7 +154,7 @@
 
 {#if device.tv}
   {#if tab === "recommended" && hubs && tvRows.length}
-    <TvRows rows={tvRows} header={tvHead} />
+    <TvRows rows={tvRows} header={tvHead} blur />
   {:else}
     <div class="page tv-page">
       {@render tvHead()}

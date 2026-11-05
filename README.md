@@ -163,6 +163,8 @@ visionnage. Tout se fait avec son compte Plex (ou Jellyfin) : aucune clé d'API 
       <h4>📺 Il passe sur la télé</h4>
       Sur Android TV, une interface faite pour la télécommande, à la manière des applications TV : la fiche de
       l'élément sélectionné en haut, des rangées de jaquettes en dessous, un menu qui se déplie quand on y entre.
+      Dans la musique et les statistiques, la page prend les couleurs floutées de la pochette sélectionnée, jusque
+      derrière le menu.
       Connexion par un code à saisir sur plex.tv/link depuis son téléphone.
     </td>
     <td valign="top">
