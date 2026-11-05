@@ -44,14 +44,14 @@
   }
 
   // Connexions gardées : on revient à Plex ou au serveur Jellyfin sans se reconnecter.
-  let remembered = $state<Pick<Session, "plexRemembered" | "jellyfinRemembered" | "serverKinds"> | null>(null);
+  let remembered = $state<Pick<Session, "plexRemembered" | "jellyfinRemembered" | "embyRemembered" | "serverKinds"> | null>(null);
   let resuming = $state(false);
   onMount(() => {
     api.session().then((s) => {
       remembered = s;
-      // Un seul type de serveur utilisé (Réglages → Compte) : on va droit à sa connexion.
+      // Plex seul (Réglages → Compte) : on va droit à sa connexion. « Jellyfin / Emby » laisse le choix
+      // entre les deux, avec la connexion gardée : pas de formulaire vide à remplir à chaque changement.
       if (s.serverKinds === "plex") choosePlex();
-      else if (s.serverKinds === "jellyfin") otherJellyfin(!!s.jellyfinRemembered?.emby);
     }, () => {});
   });
 
@@ -64,9 +64,9 @@
     else server = "plex";
   }
 
-  // Une seule connexion gardée pour Jellyfin et Emby : celle du serveur utilisé en dernier.
-  const savedJellyfin = $derived(remembered?.jellyfinRemembered && !remembered.jellyfinRemembered.emby ? remembered.jellyfinRemembered : null);
-  const savedEmby = $derived(remembered?.jellyfinRemembered?.emby ? remembered.jellyfinRemembered : null);
+  // Connexions gardées, chacune à part : passer de l'un à l'autre ne fait perdre ni Jellyfin ni Emby.
+  const savedJellyfin = $derived(remembered?.jellyfinRemembered ?? null);
+  const savedEmby = $derived(remembered?.embyRemembered ?? null);
 
   async function chooseJellyfin(emby = false) {
     const saved = emby ? savedEmby : savedJellyfin;
@@ -74,7 +74,7 @@
     resuming = true;
     error = null;
     try {
-      await api.resumeJellyfin();
+      await api.resumeJellyfin(emby);
       onDone();
     } catch (e) {
       // Session fermée ou serveur injoignable : le formulaire, avec l'adresse déjà remplie.
@@ -249,8 +249,11 @@
           </span>
         </button>
       </div>
-      {#if remembered?.jellyfinRemembered}
-        <button class="btn link-btn" onclick={() => otherJellyfin(!!savedEmby)}>{t("login.otherAccount")} · {savedEmby ? "Emby" : "Jellyfin"}</button>
+      {#if savedJellyfin || savedEmby}
+        <div class="others">
+          {#if savedJellyfin}<button class="btn link-btn" onclick={() => otherJellyfin(false)}>{t("login.otherAccount")} · Jellyfin</button>{/if}
+          {#if savedEmby}<button class="btn link-btn" onclick={() => otherJellyfin(true)}>{t("login.otherAccount")} · Emby</button>{/if}
+        </div>
       {/if}
     {:else if server === "jellyfin" && quickCode}
       <p>{t("login.quickConnectHint")}</p>
@@ -400,6 +403,13 @@
     height: 64px;
     justify-self: center;
     margin-bottom: 4px;
+  }
+
+  .others {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
   }
 
   .link-btn {

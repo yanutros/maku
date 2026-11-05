@@ -14,6 +14,7 @@ export interface Session {
   /** Connexions gardées, pour revenir sans se reconnecter (écran de choix). */
   plexRemembered: boolean;
   jellyfinRemembered: { name: string; url: string; emby: boolean } | null;
+  embyRemembered: { name: string; url: string; emby: boolean } | null;
   /** Serveurs utilisés : un seul (plus d'écran de choix), ou les deux. */
   serverKinds: ServerKinds;
   serverName: string | null;
@@ -358,7 +359,8 @@ export const api = {
   logout: () => invoke<void>("plex_logout"),
   forgetServer: () => invoke<void>("plex_forget_server"),
   resumePlex: () => invoke<void>("resume_plex"),
-  resumeJellyfin: () => invoke<void>("resume_jellyfin"),
+  /** Sans `emby` : la dernière des deux connexions gardées (Jellyfin ou Emby). */
+  resumeJellyfin: (emby?: boolean) => invoke<void>("resume_jellyfin", { emby }),
   setServerKinds: (kinds: ServerKinds) => invoke<void>("set_server_kinds", { kinds }),
   servers: () => invoke<ServerSummary[]>("plex_servers"),
   selectServer: (machineId: string) => invoke<string>("plex_select_server", { machineId }),

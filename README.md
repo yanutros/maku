@@ -436,15 +436,15 @@ règles des magasins n'autorisent pas.
    Tracearr garde sa connexion par compte plex.tv.
    **Emby** (dont Jellyfin est issu, avec la même API) passe par le même client et les mêmes fonctions, avec
    identifiant et mot de passe (Emby n'a pas Quick Connect) ; les aperçus sur la barre de progression ne sont pas
-   encore pris en charge. Une seule connexion est gardée pour Jellyfin et Emby : celle du dernier utilisé.
+   encore pris en charge. Jellyfin et Emby ont chacun leur connexion gardée : passer de l'un à l'autre ne fait perdre ni l'une ni l'autre.
    Sur téléviseur, un QR code s'affiche à côté du formulaire Jellyfin ou Emby : scanné avec un téléphone (iPhone
    ou Android, sur le même Wi-Fi), il ouvre une page où saisir l'adresse, l'identifiant et le mot de passe, et la
    télé se connecte seule, sans le clavier de la télécommande (page servie sur le réseau local, à une adresse
    secrète, tant que l'écran est ouvert ; le mot de passe n'est pas enregistré).
    L'écran de choix montre les trois services avec leur icône. Maku retient ensuite les serveurs utilisés
-   (**Réglages → Compte → Serveurs de médias** : Plex, Jellyfin / Emby ou les deux) : avec un seul, il ne repose plus la
-   question. Avec les deux, **Changer de serveur** ramène au choix sans perdre les connexions : le compte Plex reste
-   connecté, et la dernière connexion Jellyfin est gardée 30 jours sans utilisation (vérifiée auprès du serveur à
+   (**Réglages → Compte → Serveurs de médias** : Plex, Jellyfin / Emby ou les deux) : avec Plex seul, il ne repose plus la
+   question. Sinon, **Changer de serveur** ramène au choix sans perdre les connexions : le compte Plex reste
+   connecté, et les dernières connexions Jellyfin et Emby sont gardées 30 jours sans utilisation (vérifiée auprès du serveur à
    chaque retour ; le mot de passe n'est jamais enregistré). **Se déconnecter** efface tout et ferme aussi les
    sessions Jellyfin sur le serveur.
 2. Choisissez votre serveur, présenté comme un profil avec la photo du compte Plex de son propriétaire : Maku

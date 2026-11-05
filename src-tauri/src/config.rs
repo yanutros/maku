@@ -21,6 +21,9 @@ pub struct Config {
     pub jellyfin_saved: Option<SavedServer>,
     /// Date de la dernière utilisation de `jellyfin_saved` (secondes depuis 1970).
     pub jellyfin_saved_at: Option<u64>,
+    /// Dernière connexion Emby, gardée à part : passer de Jellyfin à Emby ne fait perdre ni l'une ni l'autre.
+    pub emby_saved: Option<SavedServer>,
+    pub emby_saved_at: Option<u64>,
     /// Seerr s'ouvre avec le compte Plex de l'utilisateur, ou son compte Jellyfin.
     pub seerr_url: Option<String>,
     /// Cookies de session Seerr d'un compte Jellyfin (le mot de passe n'est jamais gardé).
@@ -127,6 +130,11 @@ impl Config {
             // Premier lancement : Seerr et Tracearr se configurent ensuite (à la main ou par invitation).
             Err(_) => Config::default(),
         };
+        // Versions précédentes : une connexion Emby gardée à la place de celle de Jellyfin.
+        if config.jellyfin_saved.as_ref().is_some_and(SavedServer::is_emby) && config.emby_saved.is_none() {
+            config.emby_saved = config.jellyfin_saved.take();
+            config.emby_saved_at = config.jellyfin_saved_at.take();
+        }
         if config.client_id.is_empty() {
             config.client_id = uuid::Uuid::new_v4().to_string();
         }
