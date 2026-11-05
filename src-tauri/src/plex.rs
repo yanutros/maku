@@ -532,6 +532,8 @@ struct RawMetadata {
     duration: Option<u64>,
     view_offset: Option<u64>,
     view_count: Option<u32>,
+    /// Dernière lecture (secondes depuis 1970).
+    last_viewed_at: Option<u64>,
     leaf_count: Option<u32>,
     viewed_leaf_count: Option<u32>,
     /// Nombre d'éléments d'une collection.
@@ -712,6 +714,8 @@ pub struct Item {
     pub genres: Vec<String>,
     pub resolution: Option<String>,
     pub playable: bool,
+    /// Dernière lecture sur le serveur (millisecondes depuis 1970), pour trier les playlists.
+    pub last_played: Option<u64>,
 }
 
 #[derive(Serialize)]
@@ -1035,6 +1039,7 @@ impl PlexServer {
         };
         let media = m.media.first();
         Item {
+            last_played: m.last_viewed_at.map(|t| t * 1000),
             show_title,
             show_key,
             album_title,

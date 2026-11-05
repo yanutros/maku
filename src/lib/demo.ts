@@ -183,7 +183,7 @@ function tracksOf(album: Item): Item[] {
   );
 }
 const playlists: Item[] = ["Chill du dimanche", "Route des vacances", "Concentration", "Soirée entre amis"].map((title) =>
-  item({ kind: "playlist", title, subtitle: "24 titres", poster: cover(title, "Liste de lecture") }),
+  item({ kind: "playlist", title, subtitle: "24 titres", poster: cover(title, "Playlist") }),
 );
 
 // ---------- Bibliothèques ----------
@@ -213,7 +213,7 @@ function hubs(key: string): Hub[] {
   return [
     { title: "Musique écoutée récemment", identifier: "music.recent.played.3", items: artists },
     { title: "Récemment ajoutés dans Musique", identifier: "music.recent.added.3", items: albums },
-    { title: "Listes de lecture", identifier: "plexr.playlists", items: playlists },
+    { title: "Playlists", identifier: "plexr.playlists", items: playlists },
   ];
 }
 

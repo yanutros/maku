@@ -94,6 +94,8 @@ export interface Item {
   genres: string[];
   resolution: string | null;
   playable: boolean;
+  /** Dernière lecture sur le serveur (ms depuis 1970). */
+  lastPlayed?: number | null;
 }
 
 export interface Track {

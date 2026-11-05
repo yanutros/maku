@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { notePlay } from "./playlistPlays";
 import { listen } from "@tauri-apps/api/event";
 import { untrack } from "svelte";
 import type { QueueTrack, Track } from "./api";
@@ -320,6 +321,7 @@ export async function playMusic(
   opts: { start?: string; shuffle?: boolean; keys?: string[] } = {},
 ) {
   const wasExpanded = player.expanded && !player.video;
+  notePlay(ratingKey);
   reset(false);
   // Téléviseur : le lecteur plein écran s'ouvre, comme dans Plex.
   player.expanded = wasExpanded || device.tv;

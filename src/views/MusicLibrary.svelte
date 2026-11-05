@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { byLastPlay } from "../lib/playlistPlays";
   import { onMount } from "svelte";
   import { api, errorText, type Hub, type Item } from "../lib/api";
   import PosterCard from "../components/PosterCard.svelte";
@@ -35,12 +36,16 @@
   let error = $state<string | null>(null);
   let sentinel = $state<HTMLElement>();
 
-  // Onglet Recommandé, façon Apple Music : grands panneaux des derniers albums, listes de lecture
+  // Onglet Recommandé, façon Apple Music : grands panneaux des derniers albums, playlists
   // tout de suite après, « Titres du moment », nouveautés en grandes pochettes, puis les rangées Plex.
   let newAlbums = $state<Item[]>([]);
   let hotTracks = $state<Item[]>([]);
   const isPlaylistHub = (h: Hub) => h.items.every((i) => i.kind === "playlist");
-  const playlistHub = $derived(hubs?.find(isPlaylistHub) ?? null);
+  // Playlists : la dernière lue d'abord, comme Plexamp.
+  const playlistHub = $derived.by(() => {
+    const h = hubs?.find(isPlaylistHub);
+    return h ? { ...h, items: byLastPlay(h.items) } : null;
+  });
   // « Récemment ajouté » ferait doublon avec les nouveautés.
   const otherHubs = $derived(
     hubs?.filter((h) => !isPlaylistHub(h) && !(newAlbums.length && /recent\.added/.test(h.identifier))) ?? [],

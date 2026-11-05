@@ -352,6 +352,7 @@ impl JellyfinServer {
             _ => (None, None),
         };
         Item {
+            last_played: v["UserData"]["LastPlayedDate"].as_str().and_then(iso_ms),
             rating_key: id,
             kind: kind.into(),
             title: v["Name"].as_str().unwrap_or_default().into(),
@@ -942,6 +943,21 @@ impl JellyfinServer {
     }
 }
 
+/// Date ISO de Jellyfin et Emby (« 2026-11-05T20:12:34.0000000Z », en UTC) en millisecondes depuis 1970.
+fn iso_ms(s: &str) -> Option<u64> {
+    let num = |a: usize, b: usize| s.get(a..b)?.parse::<i64>().ok();
+    let (y, m, d) = (num(0, 4)?, num(5, 7)?, num(8, 10)?);
+    let (h, min, sec) = (num(11, 13).unwrap_or(0), num(14, 16).unwrap_or(0), num(17, 19).unwrap_or(0));
+    // Jours depuis 1970 (algorithme « days from civil » de Howard Hinnant).
+    let y = if m <= 2 { y - 1 } else { y };
+    let era = y.div_euclid(400);
+    let yoe = y - era * 400;
+    let doy = (153 * (m + if m > 2 { -3 } else { 9 }) + 2) / 5 + d - 1;
+    let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+    let days = era * 146_097 + doe - 719_468;
+    u64::try_from(((days * 24 + h) * 60 + min) * 60 + sec).ok().map(|t| t * 1000).filter(|&t| t > 0)
+}
+
 /// Marqueurs tirés des chapitres d'Emby : intro de `IntroStart` à `IntroEnd`, générique de
 /// `CreditsStart` à la fin du titre.
 fn chapter_markers(item: &Value) -> Vec<Marker> {
@@ -980,6 +996,14 @@ mod tests {
         assert_eq!(m.len(), 2);
         assert_eq!((m[0].kind.as_str(), m[0].start_ms, m[0].end_ms), ("intro", 60_000, 150_000));
         assert_eq!((m[1].kind.as_str(), m[1].start_ms, m[1].end_ms), ("credits", 2_800_000, 3_000_000));
+    }
+
+    #[test]
+    fn iso_dates() {
+        assert_eq!(iso_ms("1970-01-02T00:00:00Z"), Some(86_400_000));
+        assert_eq!(iso_ms("2026-11-05T20:12:34.0000000Z"), Some(1_793_909_554_000));
+        assert_eq!(iso_ms("0001-01-01T00:00:00.0000000Z"), None);
+        assert_eq!(iso_ms("n/a"), None);
     }
 
     #[test]

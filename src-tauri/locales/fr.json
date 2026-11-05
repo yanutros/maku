@@ -23,7 +23,7 @@
     "noReachableAddress": "Aucune adresse joignable pour le serveur « {{name}} »",
     "trackCount_one": "{{count}} titre",
     "trackCount_other": "{{count}} titres",
-    "playlists": "Listes de lecture",
+    "playlists": "Playlists",
     "notFound": "Élément {{id}} introuvable",
     "noMusic": "« {{title}} » ne contient pas de musique",
     "track": "Piste {{id}}",
