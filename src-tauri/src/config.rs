@@ -38,7 +38,7 @@ pub struct SavedServer {
     pub machine_id: String,
     pub uri: String,
     pub token: String,
-    /// « jellyfin », ou vide pour Plex (les configurations d'avant Jellyfin n'ont pas ce champ).
+    /// « jellyfin », « emby », ou vide pour Plex (les configurations d'avant Jellyfin n'ont pas ce champ).
     #[serde(default)]
     pub kind: String,
     /// Jellyfin : identifiant de l'utilisateur connecté.
@@ -47,8 +47,13 @@ pub struct SavedServer {
 }
 
 impl SavedServer {
+    /// Serveur Jellyfin ou Emby : même API, même client (`jellyfin.rs`).
     pub fn is_jellyfin(&self) -> bool {
-        self.kind == "jellyfin"
+        matches!(self.kind.as_str(), "jellyfin" | "emby")
+    }
+
+    pub fn is_emby(&self) -> bool {
+        self.kind == "emby"
     }
 }
 

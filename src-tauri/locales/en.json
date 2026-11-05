@@ -123,9 +123,9 @@
     "invalidKey": "This TMDB key was not accepted."
   },
   "jellyfin": {
-    "notYet": "Not available with Jellyfin yet.",
+    "notYet": "Not available with Jellyfin and Emby yet.",
     "unreachable": "No server reachable at this address.",
-    "notJellyfin": "This address doesn't answer like a Jellyfin server.",
+    "notJellyfin": "This address doesn't answer like a Jellyfin or Emby server.",
     "badCredentials": "Wrong username or password.",
     "hubs": {
       "continue": "Continue Watching",
@@ -138,7 +138,7 @@
       "playlists": "Playlists"
     },
     "quickConnectOff": "Quick Connect is disabled on this Jellyfin server (Dashboard → General).",
-    "sessionExpired": "Jellyfin session expired: sign in again."
+    "sessionExpired": "Jellyfin or Emby session expired: sign in again."
   },
   "collection": {
     "noTitle": "Give the collection a name."

@@ -21,10 +21,11 @@
   const desk = !device.phone;
   let account = $state<Account | null>(null);
   let serverKind = $state<"plex" | "jellyfin">("plex");
+  let serverBrand = $state("Plex");
   $effect(() => {
     if (!desk || !serverName) return;
     api.account().then((a) => (account = a), () => (account = null));
-    api.session().then((s) => (serverKind = s.serverKind), () => {});
+    api.session().then((s) => ((serverKind = s.serverKind), (serverBrand = s.serverBrand)), () => {});
   });
 
   function icon(kind: string): IconName {
@@ -226,7 +227,7 @@
       {#if account?.thumb}<img class="avatar" src={account.thumb} alt="" />{:else}<span class="avatar"><Icon name="user" size={16} /></span>{/if}
       <span class="label">
         {account?.username ?? t("sidebar.settings")}
-        <small>{serverKind === "jellyfin" ? "Jellyfin" : "Plex"} · {serverName}</small>
+        <small>{serverBrand} · {serverName}</small>
       </span>
       <span class="gear"><Icon name="settings" size={17} /></span>
     </button>

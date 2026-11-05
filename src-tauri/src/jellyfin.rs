@@ -1,7 +1,11 @@
-//! Client Jellyfin : connexion (identifiant et mot de passe), bibliothèques, rangées, fiches, lecture
+//! Client Jellyfin et Emby : connexion (identifiant et mot de passe), bibliothèques, rangées, fiches, lecture
 //! (fichier d'origine ou flux converti), progression et musique, dans les types communs de `plex.rs`.
+//! Jellyfin est né d'Emby et en garde l'API : le même client sert aux deux. Seuls changent l'en-tête
+//! d'authentification (envoyé sous les deux noms), Quick Connect (Jellyfin seulement), les miniatures
+//! d'aperçu (Jellyfin seulement) et les marqueurs d'intro (segments chez Jellyfin, chapitres chez Emby).
 
 use anyhow::{anyhow, bail, Result};
+use reqwest::header::{HeaderMap, HeaderValue};
 use reqwest::{Client, RequestBuilder};
 use serde::Deserialize;
 
@@ -18,6 +22,20 @@ fn authorization(client_id: &str, token: Option<&str>) -> String {
         value.push_str(&format!(r#", Token="{t}""#));
     }
     value
+}
+
+/// En-têtes d'authentification : `Authorization` pour Jellyfin, `X-Emby-Authorization` et `X-Emby-Token`
+/// pour Emby. Chacun ignore ceux de l'autre.
+fn auth(client_id: &str, token: Option<&str>) -> HeaderMap {
+    let mut headers = HeaderMap::new();
+    if let Ok(value) = HeaderValue::from_str(&authorization(client_id, token)) {
+        headers.insert("Authorization", value.clone());
+        headers.insert("X-Emby-Authorization", value);
+    }
+    if let Some(t) = token.and_then(|t| HeaderValue::from_str(t).ok()) {
+        headers.insert("X-Emby-Token", t);
+    }
+    headers
 }
 
 /// Adresse saisie par l'utilisateur, sans barre finale ; « http:// » si le schéma manque.
@@ -63,7 +81,7 @@ pub async fn login(http: &Client, base: &str, client_id: &str, username: &str, p
     let server_name = server_name(http, base).await?;
     let resp = http
         .post(format!("{base}/Users/AuthenticateByName"))
-        .header("Authorization", authorization(client_id, None))
+        .headers(auth(client_id, None))
         .json(&serde_json::json!({ "Username": username, "Pw": password }))
         .send()
         .await?;
@@ -84,7 +102,7 @@ pub async fn quick_connect_start(http: &Client, base: &str, client_id: &str) -> 
     server_name(http, base).await?;
     let resp = http
         .post(format!("{base}/QuickConnect/Initiate"))
-        .header("Authorization", authorization(client_id, None))
+        .headers(auth(client_id, None))
         .send()
         .await?;
     if !resp.status().is_success() {
@@ -101,7 +119,7 @@ pub async fn quick_connect_start(http: &Client, base: &str, client_id: &str) -> 
 pub async fn quick_connect_poll(http: &Client, base: &str, client_id: &str, secret: &str) -> Result<Option<Login>> {
     let v: serde_json::Value = http
         .get(format!("{base}/QuickConnect/Connect?Secret={secret}"))
-        .header("Authorization", authorization(client_id, None))
+        .headers(auth(client_id, None))
         .send()
         .await?
         .error_for_status()?
@@ -112,7 +130,7 @@ pub async fn quick_connect_poll(http: &Client, base: &str, client_id: &str, secr
     }
     let auth: AuthResult = http
         .post(format!("{base}/Users/AuthenticateWithQuickConnect"))
-        .header("Authorization", authorization(client_id, None))
+        .headers(auth(client_id, None))
         .json(&serde_json::json!({ "Secret": secret }))
         .send()
         .await?
@@ -127,12 +145,12 @@ pub async fn quick_connect_poll(http: &Client, base: &str, client_id: &str, secr
 pub async fn logout(http: &Client, base: &str, client_id: &str, token: &str) {
     let _ = http
         .post(format!("{base}/Sessions/Logout"))
-        .header("Authorization", authorization(client_id, Some(token)))
+        .headers(auth(client_id, Some(token)))
         .send()
         .await;
 }
 
-/// Nom du serveur, et vérification que l'adresse est bien celle d'un serveur Jellyfin.
+/// Nom du serveur, et vérification que l'adresse est bien celle d'un serveur Jellyfin ou Emby.
 async fn server_name(http: &Client, base: &str) -> Result<String> {
     let info: PublicInfo = http
         .get(format!("{base}/System/Info/Public"))
@@ -147,7 +165,7 @@ async fn server_name(http: &Client, base: &str) -> Result<String> {
     Ok(info.server_name)
 }
 
-/// Serveur Jellyfin connecté.
+/// Serveur Jellyfin ou Emby connecté.
 #[derive(Clone)]
 pub struct JellyfinServer {
     pub http: Client,
@@ -177,7 +195,7 @@ impl JellyfinServer {
     fn get(&self, path: &str) -> RequestBuilder {
         self.http
             .get(format!("{}{}", self.base, path))
-            .header("Authorization", authorization(&self.client_id, Some(&self.token)))
+            .headers(auth(&self.client_id, Some(&self.token)))
     }
 
     /// Compte connecté : nom, photo de profil et rôle d'administrateur.
@@ -253,7 +271,7 @@ impl JellyfinServer {
     fn send(&self, method: reqwest::Method, path: &str) -> RequestBuilder {
         self.http
             .request(method, format!("{}{}", self.base, path))
-            .header("Authorization", authorization(&self.client_id, Some(&self.token)))
+            .headers(auth(&self.client_id, Some(&self.token)))
     }
 
     async fn json(&self, path: &str) -> Result<Value> {
@@ -667,7 +685,7 @@ impl JellyfinServer {
     }
 
     pub async fn markers(&self, id: &str) -> Result<Vec<Marker>> {
-        let Ok(v) = self.json(&format!("/MediaSegments/{id}")).await else { return Ok(Vec::new()) };
+        let Ok(v) = self.json(&format!("/MediaSegments/{id}")).await else { return self.chapter_markers(id).await };
         Ok(v["Items"]
             .as_array()
             .map(|a| {
@@ -687,6 +705,12 @@ impl JellyfinServer {
                     .collect()
             })
             .unwrap_or_default())
+    }
+
+    /// Emby : l'intro et le générique sont des chapitres marqués (`IntroStart`, `IntroEnd`, `CreditsStart`).
+    async fn chapter_markers(&self, id: &str) -> Result<Vec<Marker>> {
+        let Ok(v) = self.json(&format!("/Users/{}/Items/{id}?Fields=Chapters", self.uid())).await else { return Ok(Vec::new()) };
+        Ok(chapter_markers(&v))
     }
 
     /// Bande-annonce : un fichier local du serveur, sinon un lien YouTube de la fiche ; et
@@ -915,5 +939,54 @@ impl JellyfinServer {
                 duration_ms: t.duration_ms.unwrap_or(0),
             })
             .collect())
+    }
+}
+
+/// Marqueurs tirés des chapitres d'Emby : intro de `IntroStart` à `IntroEnd`, générique de
+/// `CreditsStart` à la fin du titre.
+fn chapter_markers(item: &Value) -> Vec<Marker> {
+    let chapters = item["Chapters"].as_array().cloned().unwrap_or_default();
+    let at = |t: &str| chapters.iter().find(|c| c["MarkerType"] == t).and_then(|c| c["StartPositionTicks"].as_u64()).map(|t| t / 10_000);
+    let mut out = Vec::new();
+    if let (Some(start), Some(end)) = (at("IntroStart"), at("IntroEnd")) {
+        if end > start {
+            out.push(Marker { kind: "intro".into(), start_ms: start, end_ms: end });
+        }
+    }
+    if let (Some(start), Some(end)) = (at("CreditsStart"), ms(&item["RunTimeTicks"])) {
+        if end > start {
+            out.push(Marker { kind: "credits".into(), start_ms: start, end_ms: end });
+        }
+    }
+    out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn emby_chapters_give_intro_and_credits() {
+        let item = serde_json::json!({
+            "RunTimeTicks": 30_000_000_000u64,
+            "Chapters": [
+                { "StartPositionTicks": 0, "MarkerType": "Chapter" },
+                { "StartPositionTicks": 600_000_000u64, "MarkerType": "IntroStart" },
+                { "StartPositionTicks": 1_500_000_000u64, "MarkerType": "IntroEnd" },
+                { "StartPositionTicks": 28_000_000_000u64, "MarkerType": "CreditsStart" }
+            ]
+        });
+        let m = chapter_markers(&item);
+        assert_eq!(m.len(), 2);
+        assert_eq!((m[0].kind.as_str(), m[0].start_ms, m[0].end_ms), ("intro", 60_000, 150_000));
+        assert_eq!((m[1].kind.as_str(), m[1].start_ms, m[1].end_ms), ("credits", 2_800_000, 3_000_000));
+    }
+
+    #[test]
+    fn auth_sends_both_header_names() {
+        let h = auth("id", Some("tok"));
+        assert!(h.contains_key("Authorization"));
+        assert!(h.contains_key("X-Emby-Authorization"));
+        assert_eq!(h["X-Emby-Token"], "tok");
     }
 }

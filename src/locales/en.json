@@ -128,7 +128,7 @@
     }
   },
   "login": {
-    "tagline": "Your Plex and Jellyfin client, with Seerr requests built in.",
+    "tagline": "Your Plex, Jellyfin and Emby client, with Seerr requests built in.",
     "goTo": "On your phone or computer, go to",
     "enterCode": "and enter this code:",
     "autoConnect": "You'll be signed in automatically as soon as the code is confirmed.",
@@ -143,6 +143,8 @@
     "plexHint": "Plex account",
     "jellyfinHint": "Jellyfin server",
     "jellyfinUrl": "Jellyfin server address",
+    "embyHint": "Emby server",
+    "embyUrl": "Emby server address",
     "username": "Username",
     "password": "Password",
     "connect": "Sign in",
@@ -162,7 +164,7 @@
     "sharedBy": "Shared by {{owner}}",
     "shared": "Shared",
     "switchAccount": "Switch account",
-    "chooseKind": "Plex or Jellyfin"
+    "chooseKind": "Plex, Jellyfin or Emby"
   },
   "search": {
     "hint": "Type the title of a movie, a show or an artist.",

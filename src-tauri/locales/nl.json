@@ -123,9 +123,9 @@
     "invalidKey": "Deze TMDB-sleutel wordt niet geaccepteerd."
   },
   "jellyfin": {
-    "notYet": "Nog niet beschikbaar met Jellyfin.",
+    "notYet": "Nog niet beschikbaar met Jellyfin en Emby.",
     "unreachable": "Geen server bereikbaar op dit adres.",
-    "notJellyfin": "Dit adres antwoordt niet als een Jellyfin-server.",
+    "notJellyfin": "Dit adres antwoordt niet als een Jellyfin- of Emby-server.",
     "badCredentials": "Onjuiste gebruikersnaam of wachtwoord.",
     "hubs": {
       "continue": "Verder kijken",
@@ -138,7 +138,7 @@
       "playlists": "Afspeellijsten"
     },
     "quickConnectOff": "Quick Connect staat uit op deze Jellyfin-server (Dashboard → Algemeen).",
-    "sessionExpired": "Jellyfin-sessie verlopen: meld je opnieuw aan."
+    "sessionExpired": "Jellyfin- of Emby-sessie verlopen: meld je opnieuw aan."
   },
   "collection": {
     "noTitle": "Geef de collectie een naam."

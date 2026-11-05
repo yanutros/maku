@@ -2,7 +2,7 @@
   <img src="docs/banner.png" alt="Maku, le client Plex et Jellyfin" width="100%" />
 </p>
 
-<h3 align="center">Vos films, vos séries et votre musique Plex ou Jellyfin, dans une application rapide et soignée.</h3>
+<h3 align="center">Vos films, vos séries et votre musique Plex, Jellyfin ou Emby, dans une application rapide et soignée.</h3>
 
 <p align="center">
   <img alt="Windows" src="https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4?logo=windows&logoColor=white" />
@@ -32,7 +32,7 @@
 
 ---
 
-Maku (anciennement **Plexr**) est un client [Plex](https://www.plex.tv) et [Jellyfin](https://jellyfin.org) pour PC,
+Maku (anciennement **Plexr**) est un client [Plex](https://www.plex.tv), [Jellyfin](https://jellyfin.org) et [Emby](https://emby.media) pour PC,
 écrit en Rust avec [Tauri](https://tauri.app). Son nom vient de 幕, « rideau » en japonais : celui qui s'ouvre sur la
 séance ; son logo, un soleil couchant rayé, prend la couleur choisie dans l'interface. La vidéo
 et la musique sont lues par [mpv](https://mpv.io), directement dans la fenêtre de l'application, et l'interface est
@@ -426,7 +426,7 @@ règles des magasins n'autorisent pas.
 
 ## ▶️ Premiers pas
 
-1. Choisissez votre serveur de médias, **Plex** ou **Jellyfin**. Avec Plex, cliquez sur **Se connecter avec
+1. Choisissez votre serveur de médias, **Plex**, **Jellyfin** ou **Emby**. Avec Plex, cliquez sur **Se connecter avec
    Plex** : votre navigateur s'ouvre, validez le code. Avec Jellyfin, saisissez l'adresse du serveur, votre
    identifiant et votre mot de passe, ou utilisez **Quick Connect** (un code à valider depuis une autre application
    Jellyfin déjà connectée, pratique sur téléviseur) : accueil, bibliothèques (mixtes comprises), fiches, séries,
@@ -434,8 +434,11 @@ règles des magasins n'autorisent pas.
    Continuer à regarder » et musique fonctionnent comme avec Plex ; la carte Compte des Réglages montre le nom,
    la photo de profil et le rôle du compte Jellyfin. Seerr se connecte avec le compte Jellyfin ;
    Tracearr garde sa connexion par compte plex.tv.
-   L'écran de choix montre les deux services avec leur icône. Maku retient ensuite les serveurs utilisés
-   (**Réglages → Compte → Serveurs de médias** : Plex, Jellyfin ou les deux) : avec un seul, il ne repose plus la
+   **Emby** (dont Jellyfin est issu, avec la même API) passe par le même client et les mêmes fonctions, avec
+   identifiant et mot de passe (Emby n'a pas Quick Connect) ; les aperçus sur la barre de progression ne sont pas
+   encore pris en charge. Une seule connexion est gardée pour Jellyfin et Emby : celle du dernier utilisé.
+   L'écran de choix montre les trois services avec leur icône. Maku retient ensuite les serveurs utilisés
+   (**Réglages → Compte → Serveurs de médias** : Plex, Jellyfin / Emby ou les deux) : avec un seul, il ne repose plus la
    question. Avec les deux, **Changer de serveur** ramène au choix sans perdre les connexions : le compte Plex reste
    connecté, et la dernière connexion Jellyfin est gardée 30 jours sans utilisation (vérifiée auprès du serveur à
    chaque retour ; le mot de passe n'est jamais enregistré). **Se déconnecter** efface tout et ferme aussi les
@@ -451,7 +454,7 @@ règles des magasins n'autorisent pas.
    « French », ou celle de TMDB en français), sinon n'importe laquelle ; une vidéo YouTube s'ouvre par-dessus
    la page, Retour la ferme. Pendant un épisode, **Passer l'intro** et **Passer le générique** apparaissent sur les
    repères détectés par le serveur : Plex les fournit à tous les comptes (seules ses propres applications
-   réservent le bouton au Plex Pass) ; Jellyfin via ses segments (10.10 et plus, plugin Intro Skipper). En
+   réservent le bouton au Plex Pass) ; Jellyfin via ses segments (10.10 et plus, plugin Intro Skipper) ; Emby via ses chapitres d'intro et de générique. En
    revenant d'une fiche, la bibliothèque rouvre l'onglet où l'on était (Bibliothèque, Collections, ou la
    catégorie choisie), au même endroit : titres rechargés, défilement retrouvé et, sur téléviseur, la même
    jaquette sélectionnée. Sur téléviseur, les catégories sont les mêmes grandes tuiles colorées que sur ordinateur.
@@ -488,7 +491,7 @@ lui parviennent donc même sans la fenêtre au premier plan, et ce qui joue appa
 
 Sur ordinateur et sur téléviseur, le menu est un panneau flottant aux coins arrondis, légèrement translucide ; la page ouverte est
 marquée d'une barre lumineuse dans la couleur de l'interface. Il donne accès à la recherche, à l'accueil, aux
-bibliothèques, à Découvrir et aux statistiques ; en bas, la carte du profil (photo, nom, serveur Plex ou Jellyfin)
+bibliothèques, à Découvrir et aux statistiques ; en bas, la carte du profil (photo, nom, serveur Plex, Jellyfin ou Emby)
 ouvre les Réglages. Sur téléviseur, le fond reste opaque (pas de flou, plus léger pour le processeur graphique).
 
 Le bouton ☰ replie le menu pour ne garder que les icônes. Le crayon à côté de « Bibliothèques » permet de les
@@ -619,7 +622,7 @@ traduisez les valeurs sans toucher aux clés ni aux `{{variables}}`, puis décla
 | `src-tauri/src/update.rs` | dernière version sur GitHub, paquet adapté à l'appareil, téléchargement et installation |
 | `src-tauri/src/relay.rs`, `relay.html` | relais d'invitation : petite page servie sur le réseau local au téléphone (lecture du QR code avec jsQR) |
 | `src-tauri/src/lib.rs` | état de l'application et commandes Tauri |
-| `src-tauri/src/media.rs` | couche commune aux serveurs : Plex (`plex.rs`) ou Jellyfin (`jellyfin.rs`), vus de la même façon par l'interface |
+| `src-tauri/src/media.rs` | couche commune aux serveurs : Plex (`plex.rs`) ou Jellyfin et Emby (`jellyfin.rs`), vus de la même façon par l'interface |
 | `src/views/` | pages : accueil, bibliothèques, fiches, musique, découverte, statistiques, réglages |
 | `src/components/` | bandeau, cartes, lecteur vidéo, barre de musique… |
 | `src/lib/demo.ts` | mode démo (bibliothèque fictive) |
@@ -684,7 +687,7 @@ Le workflow reste prêt pour une signature par SignPath, pour le jour où le pro
 | Approbateurs (approuvent chaque signature) | [yanutros](https://github.com/yanutros) |
 
 Confidentialité : voir [Confidentialité](#-confidentialité) ci-dessus. Maku ne communique qu'avec les services que
-l'utilisateur utilise ou configure (serveur Plex ou Jellyfin, plex.tv, Seerr, Tracearr, TMDB, YouTube pour les
+l'utilisateur utilise ou configure (serveur Plex, Jellyfin ou Emby, plex.tv, Seerr, Tracearr, TMDB, YouTube pour les
 bandes-annonces qu'il ouvre) et avec l'API publique de GitHub pour les mises à jour.
 
 ## ⚖️ Mentions légales
@@ -714,7 +717,7 @@ d'auteur. Maku est fourni **sans aucune garantie**.
 Les bibliothèques utilisées gardent leur propre licence (Tauri, Svelte et qrcode-generator sous MIT, jsQR et
 hls.js sous Apache-2.0, les polices Bebas Neue, Cinzel, Orbitron, Fredoka, Playfair Display et Creepster sous
 SIL Open Font License via Fontsource, notamment ; le logo Jellyfin de l'écran de connexion sous CC BY-SA 4.0,
-projet Jellyfin) ; Plex est une marque de Plex, Inc. : son nom désigne seulement le service, son logo n'est pas utilisé ; mpv est un
+projet Jellyfin) ; Plex est une marque de Plex, Inc. et Emby une marque d'Emby LLC : leur nom désigne seulement le service, leur logo n'est pas utilisé ; mpv est un
 programme séparé, lancé par Maku, et reste sous sa licence. L'installeur Windows en inclut une version
 compilée par [mpv-winbuild-cmake](https://github.com/shinchiro/mpv-winbuild-cmake), sous GPL, dont le code source
 est disponible sur [github.com/mpv-player/mpv](https://github.com/mpv-player/mpv).

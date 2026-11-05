@@ -152,8 +152,10 @@ struct Session {
     jellyfin_remembered: Option<RememberedServer>,
     /// « plex », « jellyfin » ou « both ».
     server_kinds: String,
-    /// « plex » ou « jellyfin ».
+    /// « plex » ou « jellyfin » (Emby compris : même API).
     server_kind: &'static str,
+    /// Nom affiché du type de serveur : « Plex », « Jellyfin » ou « Emby ».
+    server_brand: &'static str,
     server_name: Option<String>,
     seerr_url: Option<String>,
     mpv_path: Option<String>,
@@ -172,6 +174,8 @@ struct Session {
 struct RememberedServer {
     name: String,
     url: String,
+    /// Serveur Emby (sinon Jellyfin).
+    emby: bool,
 }
 
 /// Une connexion Jellyfin gardée ne sert plus au-delà de 30 jours sans utilisation.
@@ -225,8 +229,13 @@ fn get_session(state: State<'_, AppState>) -> Session {
         logged_in: !choosing && (c.plex_token.is_some() || c.server.as_ref().is_some_and(|s| s.is_jellyfin())),
         plex_remembered: c.plex_token.is_some(),
         server_kinds: server_kinds(&c),
-        jellyfin_remembered: remembered_jellyfin(&c).map(|s| RememberedServer { name: s.name, url: s.uri }),
+        jellyfin_remembered: remembered_jellyfin(&c).map(|s| RememberedServer { emby: s.is_emby(), name: s.name, url: s.uri }),
         server_kind: if c.server.as_ref().is_some_and(|s| s.is_jellyfin()) { "jellyfin" } else { "plex" },
+        server_brand: match c.server.as_ref() {
+            Some(s) if s.is_emby() => "Emby",
+            Some(s) if s.is_jellyfin() => "Jellyfin",
+            _ => "Plex",
+        },
         server_name: c.server.map(|s| s.name),
         seerr_url: c.seerr_url,
         mpv_path: c.mpv_path,
@@ -349,15 +358,15 @@ fn set_auto_sign_in(state: State<'_, AppState>, on: bool) -> CmdResult<()> {
     Ok(())
 }
 
-/// Enregistre le serveur Jellyfin auquel on vient de se connecter : il devient le serveur de Maku.
-fn save_jellyfin(state: &AppState, base: String, login: jellyfin::Login) -> anyhow::Result<String> {
+/// Enregistre le serveur Jellyfin (ou Emby) auquel on vient de se connecter : il devient le serveur de Maku.
+fn save_jellyfin(state: &AppState, base: String, login: jellyfin::Login, emby: bool) -> anyhow::Result<String> {
     let name = login.server_name.clone();
     let saved = SavedServer {
         name: login.server_name,
         machine_id: login.server_id,
         uri: base,
         token: login.token,
-        kind: "jellyfin".into(),
+        kind: if emby { "emby" } else { "jellyfin" }.into(),
         user_id: Some(login.user_id),
     };
     state.update_cfg(|c| {
@@ -412,13 +421,13 @@ async fn resume_jellyfin(state: State<'_, AppState>) -> CmdResult<()> {
     Ok(())
 }
 
-/// Connexion à un serveur Jellyfin par identifiant et mot de passe.
+/// Connexion à un serveur Jellyfin ou Emby (`emby`) par identifiant et mot de passe.
 #[tauri::command]
-async fn jellyfin_login(state: State<'_, AppState>, url: String, username: String, password: String) -> CmdResult<String> {
+async fn jellyfin_login(state: State<'_, AppState>, url: String, username: String, password: String, emby: Option<bool>) -> CmdResult<String> {
     let base = jellyfin::normalize_url(&url);
     let client_id = state.cfg().client_id;
     let login = jellyfin::login(&state.http, &base, &client_id, username.trim(), &password).await?;
-    Ok(save_jellyfin(&state, base, login)?)
+    Ok(save_jellyfin(&state, base, login, emby.unwrap_or(false))?)
 }
 
 /// Quick Connect : demande un code à valider dans Jellyfin.
@@ -440,7 +449,7 @@ async fn jellyfin_quick_poll(state: State<'_, AppState>, url: String, secret: St
     let base = jellyfin::normalize_url(&url);
     match jellyfin::quick_connect_poll(&state.http, &base, &state.cfg().client_id, &secret).await? {
         Some(login) => {
-            save_jellyfin(&state, base, login)?;
+            save_jellyfin(&state, base, login, false)?;
             Ok(true)
         }
         None => Ok(false),

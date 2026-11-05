@@ -128,7 +128,7 @@
     }
   },
   "login": {
-    "tagline": "Je client voor Plex en Jellyfin, met ingebouwde Seerr-verzoeken.",
+    "tagline": "Je client voor Plex, Jellyfin en Emby, met ingebouwde Seerr-verzoeken.",
     "goTo": "Ga op je telefoon of computer naar",
     "enterCode": "en voer deze code in:",
     "autoConnect": "Je wordt automatisch ingelogd zodra de code is bevestigd.",
@@ -143,6 +143,8 @@
     "plexHint": "Plex-account",
     "jellyfinHint": "Jellyfin-server",
     "jellyfinUrl": "Adres van de Jellyfin-server",
+    "embyHint": "Emby-server",
+    "embyUrl": "Adres van de Emby-server",
     "username": "Gebruikersnaam",
     "password": "Wachtwoord",
     "connect": "Aanmelden",
@@ -162,7 +164,7 @@
     "sharedBy": "Gedeeld door {{owner}}",
     "shared": "Gedeeld",
     "switchAccount": "Ander account",
-    "chooseKind": "Plex of Jellyfin"
+    "chooseKind": "Plex, Jellyfin of Emby"
   },
   "search": {
     "hint": "Typ de titel van een film of serie, of een artiest.",

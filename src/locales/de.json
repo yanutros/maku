@@ -128,7 +128,7 @@
     }
   },
   "login": {
-    "tagline": "Dein Client für Plex und Jellyfin, mit integrierten Seerr-Anfragen.",
+    "tagline": "Dein Client für Plex, Jellyfin und Emby, mit integrierten Seerr-Anfragen.",
     "goTo": "Öffne auf deinem Handy oder Computer",
     "enterCode": "und gib diesen Code ein:",
     "autoConnect": "Du wirst automatisch angemeldet, sobald der Code bestätigt ist.",
@@ -143,6 +143,8 @@
     "plexHint": "Plex-Konto",
     "jellyfinHint": "Jellyfin-Server",
     "jellyfinUrl": "Adresse des Jellyfin-Servers",
+    "embyHint": "Emby-Server",
+    "embyUrl": "Adresse des Emby-Servers",
     "username": "Benutzername",
     "password": "Passwort",
     "connect": "Anmelden",
@@ -162,7 +164,7 @@
     "sharedBy": "Geteilt von {{owner}}",
     "shared": "Geteilt",
     "switchAccount": "Konto wechseln",
-    "chooseKind": "Plex oder Jellyfin"
+    "chooseKind": "Plex, Jellyfin oder Emby"
   },
   "search": {
     "hint": "Gib den Titel eines Films, einer Serie oder einen Künstler ein.",

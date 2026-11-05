@@ -7,11 +7,13 @@ export type ServerKinds = "plex" | "jellyfin" | "both";
 
 export interface Session {
   loggedIn: boolean;
-  /** Serveur de médias : Plex ou Jellyfin. */
+  /** Serveur de médias : Plex ou Jellyfin (Emby compris : même API). */
   serverKind: "plex" | "jellyfin";
+  /** Nom affiché du type de serveur. */
+  serverBrand: "Plex" | "Jellyfin" | "Emby";
   /** Connexions gardées, pour revenir sans se reconnecter (écran de choix). */
   plexRemembered: boolean;
-  jellyfinRemembered: { name: string; url: string } | null;
+  jellyfinRemembered: { name: string; url: string; emby: boolean } | null;
   /** Serveurs utilisés : un seul (plus d'écran de choix), ou les deux. */
   serverKinds: ServerKinds;
   serverName: string | null;
@@ -349,8 +351,8 @@ export const api = {
   /** `link` : code court pour plex.tv/link, sans ouvrir de navigateur (téléviseurs). */
   startLogin: (link = false) => invoke<LoginPin>("plex_start_login", { link }),
   pollLogin: (pinId: number) => invoke<boolean>("plex_poll_login", { pinId }),
-  jellyfinLogin: (url: string, username: string, password: string) =>
-    invoke<string>("jellyfin_login", { url, username, password }),
+  jellyfinLogin: (url: string, username: string, password: string, emby = false) =>
+    invoke<string>("jellyfin_login", { url, username, password, emby }),
   jellyfinQuickStart: (url: string) => invoke<{ code: string; secret: string }>("jellyfin_quick_start", { url }),
   jellyfinQuickPoll: (url: string, secret: string) => invoke<boolean>("jellyfin_quick_poll", { url, secret }),
   logout: () => invoke<void>("plex_logout"),

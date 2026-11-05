@@ -8,8 +8,8 @@
 
   let { onDone }: { onDone: () => void } = $props();
 
-  // D'abord le choix du serveur : Plex ou Jellyfin.
-  let server = $state<"plex" | "jellyfin" | null>(null);
+  // D'abord le choix du serveur : Plex, Jellyfin ou Emby (le même formulaire, sans Quick Connect pour Emby).
+  let server = $state<"plex" | "jellyfin" | "emby" | null>(null);
   let pin = $state<LoginPin | null>(null);
   let mode = $state<"browser" | "link">("browser");
   let error = $state<string | null>(null);
@@ -49,7 +49,7 @@
       remembered = s;
       // Un seul type de serveur utilisé (Réglages → Compte) : on va droit à sa connexion.
       if (s.serverKinds === "plex") choosePlex();
-      else if (s.serverKinds === "jellyfin") otherJellyfin();
+      else if (s.serverKinds === "jellyfin") otherJellyfin(!!s.jellyfinRemembered?.emby);
     }, () => {});
   });
 
@@ -62,9 +62,13 @@
     else server = "plex";
   }
 
-  async function chooseJellyfin() {
-    const saved = remembered?.jellyfinRemembered;
-    if (!saved) return (server = "jellyfin");
+  // Une seule connexion gardée pour Jellyfin et Emby : celle du serveur utilisé en dernier.
+  const savedJellyfin = $derived(remembered?.jellyfinRemembered && !remembered.jellyfinRemembered.emby ? remembered.jellyfinRemembered : null);
+  const savedEmby = $derived(remembered?.jellyfinRemembered?.emby ? remembered.jellyfinRemembered : null);
+
+  async function chooseJellyfin(emby = false) {
+    const saved = emby ? savedEmby : savedJellyfin;
+    if (!saved) return otherJellyfin(emby);
     resuming = true;
     error = null;
     try {
@@ -73,17 +77,17 @@
     } catch (e) {
       // Session fermée ou serveur injoignable : le formulaire, avec l'adresse déjà remplie.
       jfUrl = saved.url;
-      server = "jellyfin";
+      server = emby ? "emby" : "jellyfin";
       error = errorText(e);
     } finally {
       resuming = false;
     }
   }
 
-  /** Jellyfin, avec un autre compte ou un autre serveur que celui gardé. */
-  function otherJellyfin() {
-    jfUrl = remembered?.jellyfinRemembered?.url ?? "";
-    server = "jellyfin";
+  /** Jellyfin (ou Emby), avec un autre compte ou un autre serveur que celui gardé. */
+  function otherJellyfin(emby = false) {
+    jfUrl = (emby ? savedEmby : savedJellyfin)?.url ?? "";
+    server = emby ? "emby" : "jellyfin";
   }
 
   // --- Jellyfin : adresse du serveur, identifiant, mot de passe ---
@@ -97,7 +101,7 @@
     jfBusy = true;
     error = null;
     try {
-      await api.jellyfinLogin(jfUrl, jfUser, jfPassword);
+      await api.jellyfinLogin(jfUrl, jfUser, jfPassword, server === "emby");
       onDone();
     } catch (err) {
       error = errorText(err);
@@ -150,7 +154,7 @@
     <p class="muted">{t("login.tagline")}</p>
 
     {#if server === null}
-      <!-- Le serveur de médias : Plex ou Jellyfin. -->
+      <!-- Le serveur de médias : Plex, Jellyfin ou Emby. -->
       <p>{t("login.chooseServer")}</p>
       <div class="servers">
         <button class="server-btn" onclick={choosePlex}>
@@ -164,7 +168,7 @@
           <span class="server-name">Plex</span>
           <span class="muted small">{remembered?.plexRemembered ? t("login.connected") : t("login.plexHint")}</span>
         </button>
-        <button class="server-btn" onclick={chooseJellyfin} disabled={resuming}>
+        <button class="server-btn" onclick={() => chooseJellyfin()} disabled={resuming}>
           <!-- Logo Jellyfin (CC BY-SA 4.0, projet Jellyfin). -->
           <svg class="server-icon" viewBox="0 0 512 512" aria-hidden="true">
             <defs>
@@ -181,27 +185,41 @@
           </svg>
           <span class="server-name">Jellyfin</span>
           <span class="muted small">
-            {resuming ? t("login.connecting") : (remembered?.jellyfinRemembered?.name ?? t("login.jellyfinHint"))}
+            {resuming && savedJellyfin ? t("login.connecting") : (savedJellyfin?.name ?? t("login.jellyfinHint"))}
+          </span>
+        </button>
+        <button class="server-btn" onclick={() => chooseJellyfin(true)} disabled={resuming}>
+          <!-- Pictogramme neutre (le logo d'Emby est une marque déposée) : un cercle et sa lecture. -->
+          <svg class="server-icon" viewBox="0 0 512 512" aria-hidden="true">
+            <rect width="512" height="512" rx="96" fill="#282a2d" />
+            <circle cx="256" cy="256" r="150" fill="none" stroke="#52b54b" stroke-width="28" />
+            <path d="M224 196v120l96-60z" fill="#52b54b" />
+          </svg>
+          <span class="server-name">Emby</span>
+          <span class="muted small">
+            {resuming && savedEmby ? t("login.connecting") : (savedEmby?.name ?? t("login.embyHint"))}
           </span>
         </button>
       </div>
       {#if remembered?.jellyfinRemembered}
-        <button class="btn link-btn" onclick={otherJellyfin}>{t("login.otherAccount")} · Jellyfin</button>
+        <button class="btn link-btn" onclick={() => otherJellyfin(!!savedEmby)}>{t("login.otherAccount")} · {savedEmby ? "Emby" : "Jellyfin"}</button>
       {/if}
     {:else if server === "jellyfin" && quickCode}
       <p>{t("login.quickConnectHint")}</p>
       <div class="code">{#each quickCode.split("") as c, i (i)}<span>{c}</span>{/each}</div>
       <p class="muted small">{t("login.autoConnect")}</p>
       <div class="row"><button class="btn" onclick={back}>{t("login.back")}</button></div>
-    {:else if server === "jellyfin"}
+    {:else if server === "jellyfin" || server === "emby"}
       <form class="jf" onsubmit={loginJellyfin}>
-        <label>{t("login.jellyfinUrl")} <input bind:value={jfUrl} placeholder="http://192.168.1.10:8096" autocomplete="url" spellcheck="false" required /></label>
+        <label>{server === "emby" ? t("login.embyUrl") : t("login.jellyfinUrl")} <input bind:value={jfUrl} placeholder="http://192.168.1.10:8096" autocomplete="url" spellcheck="false" required /></label>
         <label>{t("login.username")} <input bind:value={jfUser} autocomplete="username" spellcheck="false" /></label>
         <label>{t("login.password")} <input type="password" bind:value={jfPassword} autocomplete="current-password" /></label>
         <div class="row">
           <button type="button" class="btn" onclick={back}>{t("login.back")}</button>
           <button type="submit" class="btn primary" disabled={jfBusy}>{jfBusy ? t("login.connecting") : t("login.connect")}</button>
-          <button type="button" class="btn" disabled={!jfUrl.trim()} onclick={quickConnect}>{t("login.quickConnect")}</button>
+          {#if server === "jellyfin"}
+            <button type="button" class="btn" disabled={!jfUrl.trim()} onclick={quickConnect}>{t("login.quickConnect")}</button>
+          {/if}
         </div>
       </form>
     {:else if pin && mode === "link"}
@@ -293,7 +311,7 @@
 
   .servers {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 14px;
     width: 100%;
     margin-top: 14px;

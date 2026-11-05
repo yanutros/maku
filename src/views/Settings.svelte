@@ -448,7 +448,7 @@
             <span class="muted small">{t("settings.account.serverKindsHint")}</span>
           </div>
           <div class="seg" role="radiogroup" aria-label={t("settings.account.serverKinds")}>
-            {#each [{ id: "plex", label: "Plex" }, { id: "jellyfin", label: "Jellyfin" }, { id: "both", label: t("settings.account.bothKinds") }] as k (k.id)}
+            {#each [{ id: "plex", label: "Plex" }, { id: "jellyfin", label: "Jellyfin / Emby" }, { id: "both", label: t("settings.account.bothKinds") }] as k (k.id)}
               <button
                 class:on={serverKinds === k.id}
                 role="radio"

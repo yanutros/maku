@@ -123,9 +123,9 @@
     "invalidKey": "Esta clave de TMDB no es válida."
   },
   "jellyfin": {
-    "notYet": "Todavía no disponible con Jellyfin.",
+    "notYet": "Todavía no disponible con Jellyfin y Emby.",
     "unreachable": "Ningún servidor accesible en esta dirección.",
-    "notJellyfin": "Esta dirección no responde como un servidor Jellyfin.",
+    "notJellyfin": "Esta dirección no responde como un servidor Jellyfin o Emby.",
     "badCredentials": "Usuario o contraseña incorrectos.",
     "hubs": {
       "continue": "Seguir viendo",
@@ -138,7 +138,7 @@
       "playlists": "Listas"
     },
     "quickConnectOff": "Quick Connect está desactivado en este servidor Jellyfin (Panel → General).",
-    "sessionExpired": "La sesión de Jellyfin ha caducado: vuelve a iniciar sesión."
+    "sessionExpired": "La sesión de Jellyfin o Emby ha caducado: vuelve a iniciar sesión."
   },
   "collection": {
     "noTitle": "Ponle un nombre a la colección."
