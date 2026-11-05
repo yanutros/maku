@@ -164,6 +164,14 @@
     loading = false;
   }
 
+  // Téléviseur : l'onglet s'ouvre dès qu'on y arrive avec les flèches, sans appuyer sur OK. Un court
+  // délai évite de charger chaque onglet traversé.
+  let tabTimer: ReturnType<typeof setTimeout> | undefined;
+  function focusTab(next: Tab) {
+    clearTimeout(tabTimer);
+    if (next !== tab) tabTimer = setTimeout(() => select(next), 250);
+  }
+
   function select(next: Tab) {
     tab = next;
     keepTabFocus();
@@ -286,7 +294,7 @@
     <h1>{title}</h1>
     <div class="tabs" role="tablist" data-nav-low>
       {#each TABS as tb (tb.id)}
-        <button role="tab" aria-selected={tab === tb.id} class:active={tab === tb.id} onclick={() => select(tb.id)}>{tb.label}</button>
+        <button role="tab" aria-selected={tab === tb.id} class:active={tab === tb.id} onclick={() => select(tb.id)} onfocus={() => focusTab(tb.id)}>{tb.label}</button>
       {/each}
     </div>
     {#if tab === "library" && genre}

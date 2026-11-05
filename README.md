@@ -476,6 +476,8 @@ Les flèches déplacent la sélection (entourée en doré), **OK** ouvre ou lanc
 puis revient à la page précédente. Sur « Continuer à regarder », OK reprend directement la lecture. Pendant une
 vidéo, les touches lecture / pause et suivant / précédent de la télécommande fonctionnent. Les champs de saisie
 (connexion, réglages, recherche) se traversent aux flèches sans ouvrir le clavier : **OK** l'ouvre.
+Les onglets du haut des bibliothèques (films, séries, musique) s'ouvrent dès qu'on y arrive avec les flèches,
+sans appuyer sur OK.
 
 ### ⌨️ Raccourcis
 
