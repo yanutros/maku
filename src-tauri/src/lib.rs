@@ -37,6 +37,9 @@ struct AppState {
     config: Mutex<Config>,
     seerr: tokio::sync::Mutex<Option<Arc<Seerr>>>,
     tracearr: tokio::sync::Mutex<Option<Arc<Tracearr>>>,
+    /// Le serveur a changé : les sessions Seerr et Tracearr ouvertes sont celles de l'ancien.
+    seerr_stale: std::sync::atomic::AtomicBool,
+    tracearr_stale: std::sync::atomic::AtomicBool,
     player: Mutex<Option<PlayerControl>>,
     relay: Mutex<Option<relay::Relay>>,
     /// Logos trouvés (ou non) sur le service en ligne de Plex, par identifiant.
@@ -54,7 +57,14 @@ impl AppState {
 
     fn update_cfg(&self, f: impl FnOnce(&mut Config)) -> anyhow::Result<()> {
         let mut config = self.config.lock().unwrap();
+        let before = config.services_key();
         f(&mut config);
+        // Chaque serveur a ses propres Seerr et Tracearr.
+        if config.services_key() != before {
+            config.switch_services(before);
+            self.seerr_stale.store(true, std::sync::atomic::Ordering::Relaxed);
+            self.tracearr_stale.store(true, std::sync::atomic::Ordering::Relaxed);
+        }
         config.save(&self.config_path)
     }
 
@@ -106,6 +116,9 @@ impl AppState {
     /// Session Seerr ouverte à la demande, puis réutilisée.
     async fn seerr(&self) -> anyhow::Result<Arc<Seerr>> {
         let mut slot = self.seerr.lock().await;
+        if self.seerr_stale.swap(false, std::sync::atomic::Ordering::Relaxed) {
+            *slot = None;
+        }
         if let Some(s) = slot.as_ref() {
             return Ok(s.clone());
         }
@@ -121,6 +134,9 @@ impl AppState {
     /// Client Tracearr, recréé depuis la configuration (adresse et cookies de session).
     async fn tracearr(&self) -> anyhow::Result<Arc<Tracearr>> {
         let mut slot = self.tracearr.lock().await;
+        if self.tracearr_stale.swap(false, std::sync::atomic::Ordering::Relaxed) {
+            *slot = None;
+        }
         if let Some(t) = slot.as_ref() {
             return Ok(t.clone());
         }
@@ -469,8 +485,11 @@ async fn plex_logout(state: State<'_, AppState>) -> CmdResult<()> {
         c.server = None;
         c.jellyfin_saved = None;
         c.jellyfin_saved_at = None;
-        // La session Seerr d'un compte Jellyfin part avec lui.
+        // Les sessions Seerr des comptes Jellyfin et Emby partent avec eux.
         c.seerr_cookies = None;
+        for s in c.services.values_mut() {
+            s.seerr_cookies = None;
+        }
     })?;
     *state.seerr.lock().await = None;
     Ok(())
@@ -1523,6 +1542,8 @@ pub fn run() {
                 config: Mutex::new(config),
                 seerr: tokio::sync::Mutex::new(None),
                 tracearr: tokio::sync::Mutex::new(None),
+                seerr_stale: Default::default(),
+                tracearr_stale: Default::default(),
                 player: Mutex::new(None),
                 relay: Mutex::new(None),
                 remote_logos: Mutex::new(Default::default()),

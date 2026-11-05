@@ -559,6 +559,9 @@ connecte à Seerr avec le compte Plex et lance la connexion Tracearr.
 Sur téléviseur, la connexion manuelle à Tracearr affiche elle aussi le lien d'autorisation en QR code, à
 scanner avec le téléphone.
 
+Seerr et Tracearr sont propres à chaque serveur (Plex, Jellyfin, Emby, et chaque serveur Plex) : en changeant de
+serveur, Maku range leurs adresses et leurs sessions, et retrouve celles du serveur rejoint, sans rien ressaisir.
+
 ### 📥 Seerr
 
 Maku ouvre la session Seerr avec **le compte Plex de l'utilisateur** : les demandes sont faites à son nom, avec
