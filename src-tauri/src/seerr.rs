@@ -124,6 +124,7 @@ impl Seerr {
         let http = Client::builder()
             .cookie_provider(cookies.clone())
             .timeout(Duration::from_secs(20))
+            .redirect(crate::net::same_host())
             .build()?;
         Ok(Seerr { http, cookies, base, plex_token })
     }

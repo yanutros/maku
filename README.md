@@ -615,6 +615,7 @@ traduisez les valeurs sans toucher aux clés ni aux `{{variables}}`, puis décla
 | `src-tauri/src/seerr.rs` | Seerr : connexion Plex ou Jellyfin, découverte, fiches détaillées, demandes |
 | `src-tauri/src/tracearr.rs` | Tracearr : connexion Plex et tableau de bord personnel |
 | `src-tauri/src/plex_admin.rs` | administration : édition des métadonnées, images, réglages et lectures du serveur |
+| `src-tauri/src/net.rs` | règles de redirection des clients HTTP : même machine pour les serveurs, domaines GitHub pour les mises à jour |
 | `src-tauri/src/update.rs` | dernière version sur GitHub, paquet adapté à l'appareil, téléchargement et installation |
 | `src-tauri/src/relay.rs`, `relay.html` | relais d'invitation : petite page servie sur le réseau local au téléphone (lecture du QR code avec jsQR) |
 | `src-tauri/src/lib.rs` | état de l'application et commandes Tauri |
@@ -658,6 +659,10 @@ La politique de confidentialité complète, en français et en anglais, est dans
   le jeton Plex et les cookies de session Tracearr **en clair** : ne la partagez pas.
 - Les affiches et images affichées viennent de votre serveur Plex, de Seerr ou de TMDB, comme dans leurs propres
   applications.
+- Un serveur ne peut rediriger Maku que vers lui-même (de `http` vers `https`, par exemple) : jamais vers une autre
+  adresse, où partiraient ses jetons. Seul le téléchargement des mises à jour suit les redirections de GitHub vers son stockage.
+- L'interface ne transmet à mpv que des commandes de lecture (pause, position, volume, pistes, file d'attente) ;
+  celles qui lancent un programme ou écrivent un fichier sont refusées.
 
 ## 🔏 Signature du code
 

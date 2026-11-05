@@ -3,6 +3,7 @@ mod error;
 mod i18n;
 mod jellyfin;
 mod media;
+mod net;
 #[cfg(target_os = "linux")]
 mod mpris;
 mod player;
@@ -1185,9 +1186,30 @@ async fn play_music(
 /// Commande mpv envoyée par la barre de lecture, par ex. `["cycle", "pause"]`.
 #[tauri::command]
 fn player_command(state: State<'_, AppState>, args: Vec<Value>) -> CmdResult<()> {
+    if !allowed_player_command(&args) {
+        return Err(anyhow!("commande refusée").into());
+    }
     let player = state.player.lock().unwrap();
     let control = player.as_ref().ok_or_else(|| anyhow!(crate::i18n::tr("app.noPlayback")))?;
     Ok(control.send(args)?)
+}
+
+/// Commandes que l'interface peut envoyer à mpv : les commandes de lecture, rien d'autre. mpv sait aussi
+/// lancer des programmes (`run`, `subprocess`), ouvrir ou écrire des fichiers (`loadfile`, `write-watch-later-config`…) :
+/// ces commandes-là ne viennent que du code Rust, jamais de la page.
+fn allowed_player_command(args: &[Value]) -> bool {
+    const PROPERTIES: [&str; 6] = ["volume", "mute", "loop-playlist", "playlist-pos", "aid", "sid"];
+    let arg = |i: usize| args.get(i).and_then(Value::as_str);
+    let scalar = |i: usize| args.get(i).is_some_and(|v| v.is_number() || v.is_string() || v.is_boolean());
+    match (arg(0), args.len()) {
+        (Some("cycle"), 2) => matches!(arg(1), Some("pause" | "mute")),
+        (Some("seek"), 2) => args[1].is_number(),
+        (Some("seek"), 3) => args[1].is_number() && matches!(arg(2), Some("relative" | "absolute")),
+        (Some("add"), 3) => arg(1) == Some("volume") && args[2].is_number(),
+        (Some("playlist-next" | "playlist-prev"), 1) => true,
+        (Some("set_property"), 3) => arg(1).is_some_and(|p| PROPERTIES.contains(&p)) && scalar(2),
+        _ => false,
+    }
 }
 
 #[tauri::command]
@@ -1435,7 +1457,11 @@ async fn update_install(app: AppHandle, state: State<'_, AppState>, info: update
         _ => return Err(anyhow!(crate::i18n::tr("update.noUpdate")).into()),
     };
     // Le téléchargement peut être long : pas de délai maximal, contrairement aux requêtes habituelles.
-    let http = reqwest::Client::builder().connect_timeout(Duration::from_secs(20)).build().map_err(anyhow::Error::from)?;
+    let http = reqwest::Client::builder()
+        .connect_timeout(Duration::from_secs(20))
+        .redirect(net::github_only())
+        .build()
+        .map_err(anyhow::Error::from)?;
     let dir = app.path().app_cache_dir().map_err(anyhow::Error::from)?.join("updates");
     let path = update::download(&app, &http, &info, &dir).await?;
     if cfg!(target_os = "android") {
@@ -1480,7 +1506,7 @@ pub fn run() {
             let config = Config::load(&config_path);
             config.save(&config_path)?;
             app.manage(AppState {
-                http: reqwest::Client::builder().timeout(Duration::from_secs(30)).build()?,
+                http: reqwest::Client::builder().timeout(Duration::from_secs(30)).redirect(net::same_host()).build()?,
                 config_path,
                 config: Mutex::new(config),
                 seerr: tokio::sync::Mutex::new(None),
@@ -1614,4 +1640,40 @@ pub fn run() {
                 }
             }
         });
+}
+
+#[cfg(test)]
+mod player_command_tests {
+    use super::allowed_player_command;
+    use serde_json::json;
+
+    fn ok(v: serde_json::Value) -> bool {
+        allowed_player_command(v.as_array().unwrap())
+    }
+
+    #[test]
+    fn accepts_playback_commands() {
+        assert!(ok(json!(["cycle", "pause"])));
+        assert!(ok(json!(["cycle", "mute"])));
+        assert!(ok(json!(["seek", 10, "relative"])));
+        assert!(ok(json!(["seek", 12.5, "absolute"])));
+        assert!(ok(json!(["add", "volume", -5])));
+        assert!(ok(json!(["playlist-next"])));
+        assert!(ok(json!(["set_property", "volume", 40])));
+        assert!(ok(json!(["set_property", "loop-playlist", "inf"])));
+        assert!(ok(json!(["set_property", "sid", "no"])));
+        assert!(ok(json!(["set_property", "mute", false])));
+    }
+
+    #[test]
+    fn rejects_everything_else() {
+        assert!(!ok(json!(["run", "id"])));
+        assert!(!ok(json!(["subprocess", "bash", "-c", "whoami"])));
+        assert!(!ok(json!(["loadfile", "/etc/passwd"])));
+        assert!(!ok(json!(["write-watch-later-config"])));
+        assert!(!ok(json!(["set_property", "script-opts", "x"])));
+        assert!(!ok(json!(["set_property", "volume", ["run", "id"]])));
+        assert!(!ok(json!(["seek", "10", "relative"])));
+        assert!(!ok(json!([])));
+    }
 }
