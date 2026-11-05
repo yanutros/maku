@@ -153,7 +153,9 @@
     "connecting": "Connexion…",
     "done": "C'est fait ! Tu peux reposer ton téléphone.",
     "failed": "La connexion a échoué.",
-    "tvGone": "La télé ne répond plus : rouvre l'écran de connexion."
+    "tvGone": "La télé ne répond plus : rouvre l'écran de connexion.",
+    "showPassword": "Afficher le mot de passe",
+    "hidePassword": "Masquer le mot de passe"
   },
   "relayTmdb": {
     "title": "Clé d'API TMDB",

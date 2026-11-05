@@ -3,6 +3,7 @@
   import { onMount, tick } from "svelte";
   import { listen } from "@tauri-apps/api/event";
   import QrCode from "../components/QrCode.svelte";
+  import PasswordInput from "../components/PasswordInput.svelte";
   import KofiLogo from "../components/KofiLogo.svelte";
   import { applyInvite, decodeInvite, encodeInvite, readQrImage, type InviteStatus } from "../lib/invite";
   import { api, errorText, tracearrLogin, type Account, type HomeUser, type Pref, type Section, type ServerKinds, type Session } from "../lib/api";
@@ -595,7 +596,7 @@
         <label>{t("settings.services.seerrAddress")} <input bind:value={seerrUrl} placeholder="https://seerr.mondomaine.fr" /></label>
         {#if session.serverKind === "jellyfin"}
           <label>{t("login.username")} <input bind:value={seerrUser} autocomplete="username" spellcheck="false" /></label>
-          <label>{t("login.password")} <input type="password" bind:value={seerrPassword} autocomplete="current-password" /></label>
+          <label>{t("login.password")} <PasswordInput bind:value={seerrPassword} /></label>
         {/if}
         <div>
           <button class="btn primary" disabled={seerrBusy} onclick={saveSeerr}>

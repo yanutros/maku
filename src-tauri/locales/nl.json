@@ -153,7 +153,9 @@
     "connecting": "Aanmelden…",
     "done": "Klaar! Je kunt je telefoon wegleggen.",
     "failed": "Aanmelden is mislukt.",
-    "tvGone": "De tv reageert niet meer: open het aanmeldscherm opnieuw."
+    "tvGone": "De tv reageert niet meer: open het aanmeldscherm opnieuw.",
+    "showPassword": "Wachtwoord tonen",
+    "hidePassword": "Wachtwoord verbergen"
   },
   "relayTmdb": {
     "title": "TMDB-API-sleutel",

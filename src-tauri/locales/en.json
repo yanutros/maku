@@ -153,7 +153,9 @@
     "connecting": "Signing in…",
     "done": "Done! You can put your phone down.",
     "failed": "Sign-in failed.",
-    "tvGone": "The TV isn't answering: reopen the sign-in screen."
+    "tvGone": "The TV isn't answering: reopen the sign-in screen.",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password"
   },
   "relayTmdb": {
     "title": "TMDB API key",

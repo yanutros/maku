@@ -153,7 +153,9 @@
     "connecting": "Anmeldung…",
     "done": "Fertig! Du kannst dein Telefon weglegen.",
     "failed": "Die Anmeldung ist fehlgeschlagen.",
-    "tvGone": "Der Fernseher antwortet nicht mehr: Öffne den Anmeldebildschirm erneut."
+    "tvGone": "Der Fernseher antwortet nicht mehr: Öffne den Anmeldebildschirm erneut.",
+    "showPassword": "Passwort anzeigen",
+    "hidePassword": "Passwort verbergen"
   },
   "relayTmdb": {
     "title": "TMDB-API-Schlüssel",

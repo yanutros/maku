@@ -155,7 +155,9 @@
     "quickConnectHint": "In Jellyfin, open your profile → Quick Connect and enter this code:",
     "connected": "Signed in",
     "otherAccount": "Other account",
-    "phoneQr": "Easier: scan this QR code with your phone (on the same Wi-Fi as the TV) and enter your details there."
+    "phoneQr": "Easier: scan this QR code with your phone (on the same Wi-Fi as the TV) and enter your details there.",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password"
   },
   "servers": {
     "title": "Choose a server",

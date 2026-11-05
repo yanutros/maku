@@ -16,6 +16,9 @@
   label { display: grid; gap: 6px; margin-bottom: 14px; color: var(--dim); font-size: 14px; }
   input { width: 100%; min-height: 50px; padding: 0 14px; border: 1px solid #ffffff1a; border-radius: 14px; background: var(--elev); color: #f1f1f3; font: inherit; }
   input:focus { outline: none; border-color: var(--accent); }
+  .pw { position: relative; }
+  .pw input { padding-right: 52px; }
+  .eye { position: absolute; top: 50%; right: 6px; display: grid; place-items: center; width: 40px; height: 40px; padding: 0; border: none; border-radius: 50%; background: none; color: var(--dim); transform: translateY(-50%); cursor: pointer; }
   .btn { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 54px; margin-top: 8px; border: none; border-radius: 14px; background: var(--accent); color: #1a1300; font: inherit; font-weight: 700; cursor: pointer; }
   .btn:disabled { opacity: 0.5; }
   .msg { min-height: 24px; margin: 14px 0 0; text-align: center; color: var(--err); }
@@ -32,7 +35,12 @@
   <form id="form">
     <label><span data-i18n="url"></span><input id="url" type="url" inputmode="url" placeholder="http://192.168.1.10:8096" autocomplete="url" autocapitalize="off" spellcheck="false" required /></label>
     <label><span data-i18n="username"></span><input id="username" autocomplete="username" autocapitalize="off" spellcheck="false" /></label>
-    <label><span data-i18n="password"></span><input id="password" type="password" autocomplete="current-password" /></label>
+    <label><span data-i18n="password"></span>
+      <span class="pw">
+        <input id="password" type="password" autocomplete="current-password" />
+        <button class="eye" id="eye" type="button"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path id="eye-path" d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/></svg></button>
+      </span>
+    </label>
     <button class="btn" id="send" type="submit" data-i18n="send"></button>
     <p class="msg" id="msg"></p>
   </form>
@@ -45,6 +53,20 @@
   document.querySelectorAll("[data-i18n]").forEach((el) => (el.textContent = L[el.dataset.i18n] || ""));
   $("title").textContent = (L.title || "").replace("{server}", SERVER);
   if (URL_HINT) $("url").value = URL_HINT;
+
+  // Œil : afficher le mot de passe en clair, ou le masquer.
+  const EYE = "M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z";
+  const EYE_OFF = "M3 3l18 18M10.6 5.1A10 10 0 0 1 12 5c7 0 11 7 11 7a18 18 0 0 1-3.2 4M6.6 6.6A18 18 0 0 0 1 12s4 7 11 7a10 10 0 0 0 5.4-1.6M9.9 9.9a3 3 0 0 0 4.2 4.2";
+  const eye = () => {
+    const shown = $("password").type === "text";
+    $("eye").setAttribute("aria-label", shown ? L.hidePassword : L.showPassword);
+    $("eye-path").setAttribute("d", shown ? EYE_OFF : EYE);
+  };
+  $("eye").addEventListener("click", () => {
+    $("password").type = $("password").type === "password" ? "text" : "password";
+    eye();
+  });
+  eye();
 
   // La télé se connecte, puis publie le résultat (voir Login.svelte) : on le suit.
   async function poll() {

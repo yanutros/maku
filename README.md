@@ -435,7 +435,7 @@ règles des magasins n'autorisent pas.
    la photo de profil et le rôle du compte Jellyfin. Seerr se connecte avec le compte Jellyfin ;
    Tracearr garde sa connexion par compte plex.tv.
    **Emby** (dont Jellyfin est issu, avec la même API) passe par le même client et les mêmes fonctions, avec
-   identifiant et mot de passe (Emby n'a pas Quick Connect) ; les aperçus sur la barre de progression ne sont pas
+   identifiant et mot de passe (Emby n'a pas Quick Connect ; partout, un œil affiche le mot de passe en clair) ; les aperçus sur la barre de progression ne sont pas
    encore pris en charge. Jellyfin et Emby ont chacun leur connexion gardée : passer de l'un à l'autre ne fait perdre ni l'une ni l'autre.
    Sur téléviseur, un QR code s'affiche à côté du formulaire Jellyfin ou Emby : scanné avec un téléphone (iPhone
    ou Android, sur le même Wi-Fi), il ouvre une page où saisir l'adresse, l'identifiant et le mot de passe, et la

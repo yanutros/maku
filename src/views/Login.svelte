@@ -7,6 +7,7 @@
   import Logo from "../components/Logo.svelte";
   import Wordmark from "../components/Wordmark.svelte";
   import QrCode from "../components/QrCode.svelte";
+  import PasswordInput from "../components/PasswordInput.svelte";
 
   let { onDone }: { onDone: () => void } = $props();
 
@@ -265,7 +266,7 @@
       <form class="jf" onsubmit={submitJellyfin}>
         <label>{server === "emby" ? t("login.embyUrl") : t("login.jellyfinUrl")} <input bind:value={jfUrl} placeholder="http://192.168.1.10:8096" autocomplete="url" spellcheck="false" required /></label>
         <label>{t("login.username")} <input bind:value={jfUser} autocomplete="username" spellcheck="false" /></label>
-        <label>{t("login.password")} <input type="password" bind:value={jfPassword} autocomplete="current-password" /></label>
+        <label>{t("login.password")} <PasswordInput bind:value={jfPassword} /></label>
         <div class="row">
           <button type="button" class="btn" onclick={back}>{t("login.back")}</button>
           <button type="submit" class="btn primary" disabled={jfBusy}>{jfBusy ? t("login.connecting") : t("login.connect")}</button>
