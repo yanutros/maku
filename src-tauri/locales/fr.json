@@ -154,5 +154,15 @@
     "done": "C'est fait ! Tu peux reposer ton téléphone.",
     "failed": "La connexion a échoué.",
     "tvGone": "La télé ne répond plus : rouvre l'écran de connexion."
+  },
+  "relayTmdb": {
+    "title": "Clé d'API TMDB",
+    "intro": "Colle ici ta clé d'API TMDB (gratuite) : la télé la vérifie et l'enregistre. Elle se trouve dans les réglages API de",
+    "key": "Clé d'API (ou jeton de lecture)",
+    "send": "Envoyer à la télé",
+    "checking": "Vérification…",
+    "done": "Clé enregistrée ! Tu peux reposer ton téléphone.",
+    "failed": "La clé n'a pas pu être enregistrée.",
+    "tvGone": "La télé ne répond plus : rouvre les réglages Seerr et Tracearr."
   }
 }

@@ -154,5 +154,15 @@
     "done": "Klaar! Je kunt je telefoon wegleggen.",
     "failed": "Aanmelden is mislukt.",
     "tvGone": "De tv reageert niet meer: open het aanmeldscherm opnieuw."
+  },
+  "relayTmdb": {
+    "title": "TMDB-API-sleutel",
+    "intro": "Plak hier je (gratis) TMDB-API-sleutel: de tv controleert en bewaart hem. Je vindt hem in de API-instellingen van",
+    "key": "API-sleutel (of leestoegangstoken)",
+    "send": "Naar de tv sturen",
+    "checking": "Controleren…",
+    "done": "Sleutel opgeslagen! Je kunt je telefoon wegleggen.",
+    "failed": "De sleutel kon niet worden opgeslagen.",
+    "tvGone": "De tv reageert niet meer: open de Seerr- en Tracearr-instellingen opnieuw."
   }
 }

@@ -124,7 +124,8 @@
       "remove": "Remove",
       "active": "Key saved",
       "saved": "TMDB key saved",
-      "removed": "TMDB key removed"
+      "removed": "TMDB key removed",
+      "phoneHint": "Easier: scan this QR code with your phone (same Wi-Fi as the TV) and paste your key there."
     }
   },
   "login": {

@@ -154,5 +154,15 @@
     "done": "Fertig! Du kannst dein Telefon weglegen.",
     "failed": "Die Anmeldung ist fehlgeschlagen.",
     "tvGone": "Der Fernseher antwortet nicht mehr: Öffne den Anmeldebildschirm erneut."
+  },
+  "relayTmdb": {
+    "title": "TMDB-API-Schlüssel",
+    "intro": "Füge hier deinen (kostenlosen) TMDB-API-Schlüssel ein: Der Fernseher prüft und speichert ihn. Du findest ihn in den API-Einstellungen von",
+    "key": "API-Schlüssel (oder Lesezugriffs-Token)",
+    "send": "An den Fernseher senden",
+    "checking": "Wird geprüft…",
+    "done": "Schlüssel gespeichert! Du kannst dein Telefon weglegen.",
+    "failed": "Der Schlüssel konnte nicht gespeichert werden.",
+    "tvGone": "Der Fernseher antwortet nicht mehr: Öffne die Seerr- und Tracearr-Einstellungen erneut."
   }
 }

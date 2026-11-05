@@ -1541,11 +1541,11 @@ async fn relay_start(app: AppHandle, state: State<'_, AppState>, login: Option<S
     Ok(url)
 }
 
-/// Avancement de la configuration, affiché par la page du téléphone (JSON).
+/// Avancement de la configuration, affiché par la page du téléphone (JSON) ; `tmdb` : celle de la clé TMDB.
 #[tauri::command]
-fn relay_status(state: State<'_, AppState>, status: String) {
+fn relay_status(state: State<'_, AppState>, status: String, tmdb: Option<bool>) {
     if let Some(relay) = state.relay.lock().unwrap().as_ref() {
-        relay.set_status(status);
+        relay.set_status(status, tmdb.unwrap_or(false));
     }
 }
 

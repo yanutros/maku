@@ -124,7 +124,8 @@
       "remove": "Verwijderen",
       "active": "Sleutel opgeslagen",
       "saved": "TMDB-sleutel opgeslagen",
-      "removed": "TMDB-sleutel verwijderd"
+      "removed": "TMDB-sleutel verwijderd",
+      "phoneHint": "Makkelijker: scan deze QR-code met je telefoon (zelfde wifi als de tv) en plak daar je sleutel."
     }
   },
   "login": {

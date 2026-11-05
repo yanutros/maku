@@ -76,11 +76,20 @@
       tmdbKey = "";
       toast(remove ? t("settings.tmdb.removed") : t("settings.tmdb.saved"));
       onChange();
+      return true;
     } catch (e) {
       tmdbError = errorText(e);
+      return false;
     } finally {
       tmdbBusy = false;
     }
+  }
+
+  // Clé collée sur le téléphone (page …/tmdb du relais) : vérifiée ici, résultat renvoyé au téléphone.
+  async function tmdbFromPhone(key: string) {
+    tmdbKey = key;
+    const ok = await saveTmdb();
+    api.relayStatus(ok ? { step: "done" } : { step: "error", error: tmdbError }, true).catch(() => {});
   }
 
   async function loadPrefs() {
@@ -223,9 +232,12 @@
       (e) => (relayError = errorText(e)),
     );
     listen<string>("relay-code", (e) => runInvite(e.payload, true)).then((f) => (closed ? f() : (unlisten = f)));
+    let unlistenTmdb: (() => void) | undefined;
+    listen<string>("relay-tmdb", (e) => tmdbFromPhone(e.payload)).then((f) => (closed ? f() : (unlistenTmdb = f)));
     return () => {
       closed = true;
       unlisten?.();
+      unlistenTmdb?.();
       api.relayStop().catch(() => {});
       relayUrl = null;
     };
@@ -511,7 +523,9 @@
             </button>
           </div>
         {:else if device.mobile}
-          <div class="phone-setup">
+          <!-- Téléviseur : un arrêt de la télécommande, pour faire défiler la page jusqu'au QR code. -->
+          <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+          <div class="phone-setup" tabindex={device.tv ? 0 : undefined}>
             {#if relayUrl}<QrCode text={relayUrl} size={device.tv ? 300 : 190} />{:else}<div class="qr-wait skeleton"></div>{/if}
             <p class="muted">
               {t("settings.invite.phoneHint")}
@@ -633,6 +647,15 @@
           {/if}
         </div>
         {#if tmdbError}<p class="error">{tmdbError}</p>{/if}
+        <!-- Tablette et téléviseur : la clé se colle sur le téléphone, plutôt qu'au clavier de la télécommande. -->
+        {#if device.mobile && !device.phone && relayUrl}
+          <!-- Téléviseur : un arrêt de la télécommande, pour faire défiler la page jusqu'au QR code. -->
+          <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+          <div class="phone-setup" tabindex={device.tv ? 0 : undefined}>
+            <QrCode text={relayUrl + "/tmdb"} size={device.tv ? 240 : 160} />
+            <p class="muted">{t("settings.tmdb.phoneHint")}</p>
+          </div>
+        {/if}
       </section>
     {:else if page === "player"}
       <h1 class="title">{t("settings.menu.player")}</h1>
@@ -741,6 +764,12 @@
     display: flex;
     align-items: center;
     gap: 24px;
+  }
+
+  .phone-setup:focus-visible {
+    border-radius: 14px;
+    outline: 3px solid var(--accent);
+    outline-offset: 8px;
   }
 
   .phone-setup p {

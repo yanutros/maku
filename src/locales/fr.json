@@ -124,7 +124,8 @@
       "remove": "Retirer",
       "active": "Clé enregistrée",
       "saved": "Clé TMDB enregistrée",
-      "removed": "Clé TMDB retirée"
+      "removed": "Clé TMDB retirée",
+      "phoneHint": "Plus simple : scanne ce QR code avec ton téléphone (même Wi-Fi que la télé) et colles-y ta clé."
     }
   },
   "login": {

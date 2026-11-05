@@ -154,5 +154,15 @@
     "done": "¡Listo! Ya puedes dejar el teléfono.",
     "failed": "No se pudo iniciar sesión.",
     "tvGone": "La tele no responde: vuelve a abrir la pantalla de inicio de sesión."
+  },
+  "relayTmdb": {
+    "title": "Clave de API de TMDB",
+    "intro": "Pega aquí tu clave de API de TMDB (gratuita): la tele la comprueba y la guarda. Está en los ajustes de API de",
+    "key": "Clave de API (o token de lectura)",
+    "send": "Enviar a la tele",
+    "checking": "Comprobando…",
+    "done": "¡Clave guardada! Ya puedes dejar el teléfono.",
+    "failed": "No se pudo guardar la clave.",
+    "tvGone": "La tele no responde: vuelve a abrir los ajustes de Seerr y Tracearr."
   }
 }

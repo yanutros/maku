@@ -452,7 +452,7 @@ export const api = {
   updateInstall: (info: UpdateInfo) => invoke<string | null>("update_install", { info }),
 
   relayStart: (login?: "Jellyfin" | "Emby", url?: string) => invoke<string>("relay_start", { login, url }),
-  relayStatus: (status: object) => invoke<void>("relay_status", { status: JSON.stringify(status) }),
+  relayStatus: (status: object, tmdb = false) => invoke<void>("relay_status", { status: JSON.stringify(status), tmdb }),
   relayStop: () => invoke<void>("relay_stop"),
 };
 

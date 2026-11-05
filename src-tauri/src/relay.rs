@@ -5,6 +5,9 @@
 //!
 //! Même relais pour se connecter à Jellyfin ou Emby sur un téléviseur : le téléphone saisit l'adresse,
 //! l'identifiant et le mot de passe (page `relay-login.html`), la télé se connecte et publie le résultat.
+//!
+//! Le relais des Réglages sert aussi, à l'adresse `…/tmdb`, une page où coller sa clé d'API TMDB
+//! (`relay-tmdb.html`), avec son propre avancement.
 
 use anyhow::{anyhow, Result};
 use std::net::{IpAddr, UdpSocket};
@@ -15,18 +18,36 @@ use tokio::net::{TcpListener, TcpStream};
 
 const PAGE: &str = include_str!("relay.html");
 const LOGIN_PAGE: &str = include_str!("relay-login.html");
+const TMDB_PAGE: &str = include_str!("relay-tmdb.html");
 /// Lecture des QR codes sur le téléphone (jsQR, Apache-2.0), intégrée à la page.
 const JSQR: &str = include_str!("../../node_modules/jsqr/dist/jsQR.js");
 
 pub struct Relay {
     pub url: String,
-    status: Arc<Mutex<String>>,
+    shared: Arc<Shared>,
     task: tauri::async_runtime::JoinHandle<()>,
 }
 
+/// Pages servies et avancement publié par l'interface, pour chacune.
+struct Shared {
+    token: String,
+    page: String,
+    /// Invitation (« code ») ou connexion (« login ») : chemin où la page envoie ce qu'on a saisi.
+    route: &'static str,
+    status: Mutex<String>,
+    /// Page de la clé TMDB (relais des Réglages seulement).
+    tmdb_page: Option<String>,
+    tmdb_status: Mutex<String>,
+}
+
+const WAITING: &str = r#"{"step":"waiting"}"#;
+const RECEIVED: &str = r#"{"step":"received"}"#;
+
 impl Relay {
-    pub fn set_status(&self, json: String) {
-        *self.status.lock().unwrap() = json;
+    /// Avancement de la page principale, ou de celle de la clé TMDB (`tmdb`).
+    pub fn set_status(&self, json: String, tmdb: bool) {
+        let slot = if tmdb { &self.shared.tmdb_status } else { &self.shared.status };
+        *slot.lock().unwrap() = json;
     }
 }
 
@@ -51,8 +72,8 @@ pub async fn start(app: AppHandle, login: Option<(&str, &str)>) -> Result<Relay>
     let listener = TcpListener::bind("0.0.0.0:0").await?;
     let port = listener.local_addr()?.port();
     let token = uuid::Uuid::new_v4().simple().to_string();
-    let status = Arc::new(Mutex::new(r#"{"step":"waiting"}"#.to_string()));
-    // Textes de la page dans la langue de l'interface.
+    // Textes des pages dans la langue de l'interface.
+    let lang = |page: String| page.replace("<html lang=\"fr\">", &format!("<html lang=\"{}\">", crate::i18n::language()));
     let page = match login {
         None => PAGE.replace("/*I18N*/{}", &crate::i18n::section_json("relay")).replace("/*JSQR*/", JSQR),
         Some((server, url)) => LOGIN_PAGE
@@ -60,21 +81,27 @@ pub async fn start(app: AppHandle, login: Option<(&str, &str)>) -> Result<Relay>
             .replace("/*SERVER*/", &js_text(server))
             .replace("/*URL*/", &js_text(url)),
     };
-    let page = Arc::new(page.replace("<html lang=\"fr\">", &format!("<html lang=\"{}\">", crate::i18n::language())));
-    let route = if login.is_some() { "login" } else { "code" };
+    let shared = Arc::new(Shared {
+        token: token.clone(),
+        page: lang(page),
+        route: if login.is_some() { "login" } else { "code" },
+        status: Mutex::new(WAITING.into()),
+        tmdb_page: login.is_none().then(|| lang(TMDB_PAGE.replace("/*I18N*/{}", &crate::i18n::section_json("relayTmdb")))),
+        tmdb_status: Mutex::new(WAITING.into()),
+    });
 
     let task = {
-        let (token, status) = (token.clone(), status.clone());
+        let shared = shared.clone();
         tauri::async_runtime::spawn(async move {
             while let Ok((conn, _)) = listener.accept().await {
-                let (app, token, status, page) = (app.clone(), token.clone(), status.clone(), page.clone());
+                let (app, shared) = (app.clone(), shared.clone());
                 tauri::async_runtime::spawn(async move {
-                    let _ = serve(conn, &app, &token, &status, &page, route).await;
+                    let _ = serve(conn, &app, &shared).await;
                 });
             }
         })
     };
-    Ok(Relay { url: format!("http://{ip}:{port}/{token}"), status, task })
+    Ok(Relay { url: format!("http://{ip}:{port}/{token}"), shared, task })
 }
 
 /// Texte placé dans une chaîne JavaScript de la page, sans pouvoir en sortir.
@@ -83,7 +110,7 @@ fn js_text(text: &str) -> String {
     quoted[1..quoted.len().saturating_sub(1)].replace('<', "\\u003c")
 }
 
-async fn serve(mut conn: TcpStream, app: &AppHandle, token: &str, status: &Mutex<String>, page: &str, route: &str) -> Result<()> {
+async fn serve(mut conn: TcpStream, app: &AppHandle, shared: &Shared) -> Result<()> {
     // En-têtes puis corps (8 Ko au plus : un code d'invitation est bien plus court).
     let mut buf = Vec::new();
     let mut chunk = [0u8; 4096];
@@ -117,14 +144,24 @@ async fn serve(mut conn: TcpStream, app: &AppHandle, token: &str, status: &Mutex
     }
     let body = String::from_utf8_lossy(&buf[header_end..buf.len().min(header_end + length)]).to_string();
 
-    let base = format!("/{token}");
-    let (code, kind, content) = match (method, path) {
-        ("GET", p) if p == base => ("200 OK", "text/html; charset=utf-8", page.to_string()),
-        ("GET", p) if p == format!("{base}/status") => ("200 OK", "application/json", status.lock().unwrap().clone()),
-        ("POST", p) if p == format!("{base}/{route}") => {
-            *status.lock().unwrap() = r#"{"step":"received"}"#.to_string();
-            app.emit(if route == "login" { "relay-login" } else { "relay-code" }, body.trim().to_string())?;
-            ("200 OK", "application/json", r#"{"ok":true}"#.to_string())
+    let base = format!("/{}", shared.token);
+    let tmdb = format!("{base}/tmdb");
+    let html = "text/html; charset=utf-8";
+    let ok = || ("200 OK", "application/json", r#"{"ok":true}"#.to_string());
+    let (code, kind, content) = match (method, path, shared.tmdb_page.as_ref()) {
+        ("GET", p, _) if p == base => ("200 OK", html, shared.page.clone()),
+        ("GET", p, _) if p == format!("{base}/status") => ("200 OK", "application/json", shared.status.lock().unwrap().clone()),
+        ("POST", p, _) if p == format!("{base}/{}", shared.route) => {
+            *shared.status.lock().unwrap() = RECEIVED.into();
+            app.emit(if shared.route == "login" { "relay-login" } else { "relay-code" }, body.trim().to_string())?;
+            ok()
+        }
+        ("GET", p, Some(page)) if p == tmdb => ("200 OK", html, page.clone()),
+        ("GET", p, Some(_)) if p == format!("{tmdb}/status") => ("200 OK", "application/json", shared.tmdb_status.lock().unwrap().clone()),
+        ("POST", p, Some(_)) if p == tmdb => {
+            *shared.tmdb_status.lock().unwrap() = RECEIVED.into();
+            app.emit("relay-tmdb", body.trim().to_string())?;
+            ok()
         }
         _ => ("404 Not Found", "text/plain", crate::i18n::tr("relay.notFound")),
     };

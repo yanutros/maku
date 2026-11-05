@@ -124,7 +124,8 @@
       "remove": "Entfernen",
       "active": "Schlüssel gespeichert",
       "saved": "TMDB-Schlüssel gespeichert",
-      "removed": "TMDB-Schlüssel entfernt"
+      "removed": "TMDB-Schlüssel entfernt",
+      "phoneHint": "Einfacher: Scanne diesen QR-Code mit deinem Telefon (selbes WLAN wie der Fernseher) und füge dort deinen Schlüssel ein."
     }
   },
   "login": {

@@ -154,5 +154,15 @@
     "done": "Done! You can put your phone down.",
     "failed": "Sign-in failed.",
     "tvGone": "The TV isn't answering: reopen the sign-in screen."
+  },
+  "relayTmdb": {
+    "title": "TMDB API key",
+    "intro": "Paste your (free) TMDB API key here: the TV checks and saves it. You'll find it in the API settings of",
+    "key": "API key (or read access token)",
+    "send": "Send to the TV",
+    "checking": "Checking…",
+    "done": "Key saved! You can put your phone down.",
+    "failed": "The key couldn't be saved.",
+    "tvGone": "The TV isn't answering: reopen the Seerr and Tracearr settings."
   }
 }
