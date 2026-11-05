@@ -445,8 +445,9 @@ règles des magasins n'autorisent pas.
    (**Réglages → Compte → Serveurs de médias** : Plex, Jellyfin / Emby ou les deux) : avec Plex seul, il ne repose plus la
    question. Sinon, **Changer de serveur** ramène au choix sans perdre les connexions : le compte Plex reste
    connecté, et les dernières connexions Jellyfin et Emby sont gardées 30 jours sans utilisation (vérifiée auprès du serveur à
-   chaque retour ; le mot de passe n'est jamais enregistré). **Se déconnecter** efface tout et ferme aussi les
-   sessions Jellyfin sur le serveur.
+   chaque retour ; le mot de passe n'est jamais enregistré). Depuis la liste des serveurs Plex, **Autre service
+   (Jellyfin, Emby)** ramène à ce choix, et **Changer de compte Plex** n'oublie que le compte Plex : Jellyfin et Emby
+   restent connectés. **Se déconnecter** efface tout et ferme aussi les sessions Jellyfin et Emby sur le serveur.
 2. Choisissez votre serveur, présenté comme un profil avec la photo du compte Plex de son propriétaire : Maku
    teste ses adresses et garde la plus rapide (locale, distante, puis relais), et la revérifie à chaque lancement.
    Si le routeur ou le DNS bloque les adresses locales `*.plex.direct` (protection contre le « DNS rebinding »),

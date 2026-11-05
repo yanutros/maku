@@ -44,9 +44,16 @@
     return h;
   }
 
-  // Les deux types de serveur sont utilisés : on peut revenir à l'écran de choix Plex / Jellyfin.
-  let bothKinds = $state(false);
-  api.session().then((s) => (bothKinds = s.serverKinds === "both"), () => {});
+  // Autre service (Jellyfin, Emby) : l'écran de choix des services, connexions gardées. Avec « Plex »
+  // seul dans les Réglages, Maku passe à « les deux » : on utilise désormais plusieurs services.
+  let plexOnly = $state(false);
+  api.session().then((s) => (plexOnly = s.serverKinds === "plex"), () => {});
+
+  async function otherService() {
+    if (plexOnly) await api.setServerKinds("both");
+    await api.forgetServer();
+    onDone();
+  }
 </script>
 
 <div class="picker">
@@ -88,8 +95,8 @@
 
   {#if error}<p class="error">{error}</p>{/if}
   <div class="row logout">
-    {#if bothKinds}<button class="btn" onclick={() => api.forgetServer().then(onDone)}>{t("servers.chooseKind")}</button>{/if}
-    <button class="btn" onclick={() => api.logout().then(onDone)}>{t("servers.switchAccount")}</button>
+    <button class="btn" onclick={otherService}>{t("servers.chooseKind")}</button>
+    <button class="btn" onclick={() => api.switchPlexAccount().then(onDone)}>{t("servers.switchAccount")}</button>
   </div>
 </div>
 

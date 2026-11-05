@@ -165,8 +165,8 @@
     "mine": "Mijn server",
     "sharedBy": "Gedeeld door {{owner}}",
     "shared": "Gedeeld",
-    "switchAccount": "Ander account",
-    "chooseKind": "Plex, Jellyfin of Emby"
+    "switchAccount": "Ander Plex-account",
+    "chooseKind": "Andere dienst (Jellyfin, Emby)"
   },
   "search": {
     "hint": "Typ de titel van een film of serie, of een artiest.",

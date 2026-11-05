@@ -360,6 +360,8 @@ export const api = {
   jellyfinQuickPoll: (url: string, secret: string) => invoke<boolean>("jellyfin_quick_poll", { url, secret }),
   logout: () => invoke<void>("plex_logout"),
   forgetServer: () => invoke<void>("plex_forget_server"),
+  /** Oublie seulement le compte Plex : Jellyfin et Emby restent connectés. */
+  switchPlexAccount: () => invoke<void>("plex_switch_account"),
   resumePlex: () => invoke<void>("resume_plex"),
   /** Sans `emby` : la dernière des deux connexions gardées (Jellyfin ou Emby). */
   resumeJellyfin: (emby?: boolean) => invoke<void>("resume_jellyfin", { emby }),

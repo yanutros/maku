@@ -165,8 +165,8 @@
     "mine": "My server",
     "sharedBy": "Shared by {{owner}}",
     "shared": "Shared",
-    "switchAccount": "Switch account",
-    "chooseKind": "Plex, Jellyfin or Emby"
+    "switchAccount": "Switch Plex account",
+    "chooseKind": "Other service (Jellyfin, Emby)"
   },
   "search": {
     "hint": "Type the title of a movie, a show or an artist.",

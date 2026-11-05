@@ -522,6 +522,22 @@ async fn plex_logout(state: State<'_, AppState>) -> CmdResult<()> {
     Ok(())
 }
 
+/// « Changer de compte Plex » : seul le compte Plex est oublié (on se reconnecte avec un autre) ; les
+/// connexions Jellyfin et Emby gardées restent, comme les réglages Seerr et Tracearr de chaque serveur.
+#[tauri::command]
+async fn plex_switch_account(state: State<'_, AppState>) -> CmdResult<()> {
+    *state.seerr.lock().await = None;
+    state.update_cfg(|c| {
+        c.plex_token = None;
+        match c.server.take() {
+            Some(s) if s.is_jellyfin() => remember_saved(c, s),
+            _ => {}
+        }
+    })?;
+    state.choosing.store(false, std::sync::atomic::Ordering::Relaxed);
+    Ok(())
+}
+
 /// « Changer de serveur » : retour à l'écran de choix Plex / Jellyfin, sans perdre les connexions.
 #[tauri::command]
 async fn plex_forget_server(state: State<'_, AppState>) -> CmdResult<()> {
@@ -1603,6 +1619,7 @@ pub fn run() {
             plex_poll_login,
             plex_logout,
             plex_forget_server,
+            plex_switch_account,
             resume_plex,
             resume_jellyfin,
             set_server_kinds,

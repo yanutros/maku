@@ -165,8 +165,8 @@
     "mine": "Mein Server",
     "sharedBy": "Geteilt von {{owner}}",
     "shared": "Geteilt",
-    "switchAccount": "Konto wechseln",
-    "chooseKind": "Plex, Jellyfin oder Emby"
+    "switchAccount": "Plex-Konto wechseln",
+    "chooseKind": "Anderer Dienst (Jellyfin, Emby)"
   },
   "search": {
     "hint": "Gib den Titel eines Films, einer Serie oder einen Künstler ein.",
