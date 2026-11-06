@@ -16,6 +16,15 @@ Set-Location $root
 # Version du Store : quatre nombres, le dernier à 0.
 $version = (Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version + ".0"
 
+# Le programme emballé doit être celui de cette version : un plexr.exe resté d'une compilation précédente
+# donnerait un paquet au bon numéro mais à l'ancien contenu (le Store afficherait une version, l'application une autre).
+$exe = "src-tauri/target/release/plexr.exe"
+if (-not (Test-Path $exe)) { throw "$exe introuvable : lance d'abord npx tauri build --no-bundle" }
+$exeVersion = (Get-Item $exe).VersionInfo.ProductVersion
+if ("$exeVersion.0" -ne $version) {
+  throw "$exe est en version $exeVersion, pas en $version : lance d'abord npx tauri build --no-bundle"
+}
+
 $layout = Join-Path $Out "layout"
 if (Test-Path $layout) { Remove-Item $layout -Recurse -Force }
 New-Item -ItemType Directory -Force "$layout/Assets", "$layout/mpv/mpv" | Out-Null

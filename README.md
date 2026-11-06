@@ -422,7 +422,8 @@ Le même job construit aussi le paquet MSIX du Microsoft Store ([`scripts/build-
 manifeste dans [`src-tauri/msix/`](src-tauri/msix/AppxManifest.xml)) et le joint à l'exécution, et non à la version :
 non signé, il ne s'installerait pas. Il s'envoie depuis l'Espace partenaires, où le Store le signe. Le script y
 ajoute les icônes « sans plaque » de la barre des tâches (toutes les tailles, thèmes sombre et clair) et leur index
-`resources.pri` : sans elles, Windows pose l'icône réduite sur une plaque de couleur.
+`resources.pri` : sans elles, Windows pose l'icône réduite sur une plaque de couleur. Il refuse d'emballer un `plexr.exe` qui ne serait
+pas à la version du projet (compilation précédente restée dans `target/release`).
 
 L'APK Android est compilé et signé sur l'ordinateur du mainteneur (la clé de signature ne quitte pas sa
 machine), puis ajouté à la version avec `gh release upload`.
