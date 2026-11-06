@@ -30,6 +30,29 @@ foreach ($name in "StoreLogo", "Square44x44Logo", "Square150x150Logo") {
   Copy-Item "src-tauri/icons/$name.png" "$layout/Assets/$name.png"
 }
 
+# Barre des tâches, menu Démarrer, Alt+Tab : sans ces variantes « unplated », Windows pose l'icône, réduite,
+# sur une plaque de couleur. Avec elles, elle s'affiche en entier, comme celle de l'installeur classique.
+Add-Type -AssemblyName System.Drawing
+$source = [System.Drawing.Image]::FromFile((Resolve-Path "src-tauri/icons/icon.png"))
+$assets = (Resolve-Path "$layout/Assets").Path
+try {
+  foreach ($size in 16, 20, 24, 30, 32, 36, 40, 48, 60, 64, 72, 80, 96, 256) {
+    $bitmap = New-Object System.Drawing.Bitmap $size, $size
+    $g = [System.Drawing.Graphics]::FromImage($bitmap)
+    $g.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+    $g.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
+    $g.CompositingQuality = [System.Drawing.Drawing2D.CompositingQuality]::HighQuality
+    $g.DrawImage($source, 0, 0, $size, $size)
+    $g.Dispose()
+    foreach ($variant in "targetsize-$size", "targetsize-$($size)_altform-unplated", "targetsize-$($size)_altform-lightunplated") {
+      $bitmap.Save((Join-Path $assets "Square44x44Logo.$variant.png"), [System.Drawing.Imaging.ImageFormat]::Png)
+    }
+    $bitmap.Dispose()
+  }
+} finally {
+  $source.Dispose()
+}
+
 $manifest = (Get-Content src-tauri/msix/AppxManifest.xml -Raw).Replace("{{VERSION}}", $version)
 Set-Content "$layout/AppxManifest.xml" $manifest -Encoding utf8
 
@@ -37,6 +60,14 @@ Set-Content "$layout/AppxManifest.xml" $manifest -Encoding utf8
 $makeappx = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\makeappx.exe" |
   Sort-Object FullName | Select-Object -Last 1
 if (-not $makeappx) { throw "makeappx.exe introuvable (SDK Windows)" }
+
+# Index des ressources (resources.pri) : c'est lui qui fait choisir à Windows la bonne variante d'icône.
+$makepri = Join-Path $makeappx.DirectoryName "makepri.exe"
+$priconfig = Join-Path $Out "priconfig.xml"
+& $makepri createconfig /cf $priconfig /dq "fr-FR_en-US_es-ES_de-DE_nl-NL" /pv 10.0.0 /o | Out-Host
+if ($LASTEXITCODE) { throw "makepri createconfig a échoué ($LASTEXITCODE)" }
+& $makepri new /pr $layout /cf $priconfig /mn "$layout/AppxManifest.xml" /of "$layout/resources.pri" /o | Out-Host
+if ($LASTEXITCODE) { throw "makepri new a échoué ($LASTEXITCODE)" }
 
 $msix = Join-Path $Out "Maku_${version}_x64.msix"
 & $makeappx.FullName pack /o /d $layout /p $msix | Out-Host
