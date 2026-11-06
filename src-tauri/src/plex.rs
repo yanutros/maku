@@ -1452,6 +1452,7 @@ impl PlexServer {
         subtitle: Option<u64>,
         max_kbps: Option<u32>,
         session: &str,
+        copy_video: bool,
     ) -> Result<WebStream> {
         let m = self.raw_metadata(rating_key).await?;
         let media_index = media.filter(|&i| i < m.media.len()).unwrap_or(0);
@@ -1488,6 +1489,35 @@ impl PlexServer {
         // choisi dans le lecteur (par défaut 12 Mb/s en 1080p, pour ménager le serveur et le réseau).
         let kbps = max_kbps.unwrap_or(DEFAULT_KBPS);
         let (width, height) = resolution_for(kbps);
+        // Son seulement (lecteur Android, qualité d'origine) : la vidéo est copiée telle quelle, seul le son
+        // est converti. Le profil « Generic », sans plateforme et complété de la cible ci-dessous (HEVC avant H.264 :
+        // dans l'autre ordre, Plex reconvertit le HEVC), accepte les deux en HLS ;
+        // pas de limite de débit ni de taille, et les sous-titres ne sont incrustés que si on en a choisi.
+        if copy_video {
+            let extra = urlencoding::encode(
+                "add-transcode-target(type=videoProfile&context=streaming&protocol=hls&container=mpegts&videoCodec=hevc,h264&audioCodec=ac3,aac)",
+            );
+            let subtitles = if subtitle.is_some_and(|s| s > 0) { "burn" } else { "none" };
+            let url = format!(
+                "{base}/video/:/transcode/universal/start.m3u8?path={path}&mediaIndex={media_index}&partIndex=0&protocol=hls\
+                 &fastSeek=1&directPlay=0&directStream=1&directStreamAudio=0&videoQuality=100&maxVideoBitrate=200000\
+                 &videoResolution=3840x2160&subtitles={subtitles}&subtitleSize=100&audioBoost=100&location=lan\
+                 &session={session}&X-Plex-Session-Identifier={session}&X-Plex-Client-Identifier={cid}\
+                 &X-Plex-Product=Maku&X-Plex-Client-Profile-Name=Generic\
+                 &X-Plex-Client-Profile-Extra={extra}&X-Plex-Device=Maku&X-Plex-Token={token}",
+                base = self.base,
+                cid = urlencoding::encode(&self.client_id),
+                token = self.token,
+            );
+            return Ok(WebStream {
+                session: session.to_owned(),
+                url,
+                title,
+                subtitle: subtitle_line,
+                offset_ms: m.view_offset.unwrap_or(0),
+                duration_ms: m.duration.unwrap_or(0),
+            });
+        }
         let url = format!(
             "{base}/video/:/transcode/universal/start.m3u8?path={path}&mediaIndex={media_index}&partIndex=0&protocol=hls\
              &fastSeek=1&directPlay=0&directStream=1&directStreamAudio=1&videoQuality=100&maxVideoBitrate={kbps}\

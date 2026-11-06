@@ -87,7 +87,13 @@
       "saved": "mpv path saved",
       "intro": "Playback uses mpv. Leave empty to find it automatically.",
       "mpvPath": "mpv path",
-      "save": "Save"
+      "save": "Save",
+      "passthrough": "Sound to the receiver or soundbar",
+      "passthroughHint": "On automatic, Maku sends Dolby, DTS or Atmos sound untouched to the receiver or soundbar that supports it. If a movie stays silent, choose “Decoded here”: all sound is then decoded by the device.",
+      "passthroughAuto": "Automatic",
+      "passthroughOff": "Decoded here",
+      "passthroughDetected": "Formats the audio output takes untouched: {{formats}} · {{channels}} channels.",
+      "passthroughNone": "The current audio output takes no format untouched: sound is decoded by the device ({{channels}} channels)."
     },
     "interface": {
       "menuReset": "Menu reset",

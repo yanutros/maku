@@ -113,6 +113,10 @@ class MainActivity : TauriActivity() {
       @JavascriptInterface
       fun isTv(): Boolean = tv
 
+      /** Réglages : formats audio que l'ampli, la barre de son ou la TV acceptent tels quels (JSON). */
+      @JavascriptInterface
+      fun audioPassthrough(): String = NativeVideo.passthroughFormats(this@MainActivity)
+
 
       /** Téléviseur : OK sur un champ de saisie ouvre le clavier (il ne s'ouvre pas au simple passage). */
       @JavascriptInterface

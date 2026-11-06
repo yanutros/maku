@@ -87,7 +87,13 @@
       "saved": "mpv-pad opgeslagen",
       "intro": "Afspelen gebeurt met mpv. Laat leeg om het automatisch te zoeken.",
       "mpvPath": "mpv-pad",
-      "save": "Opslaan"
+      "save": "Opslaan",
+      "passthrough": "Geluid naar de receiver of soundbar",
+      "passthroughHint": "Automatisch stuurt Maku Dolby-, DTS- of Atmos-geluid ongewijzigd naar de receiver of soundbar die het ondersteunt. Blijft een film stil, kies dan „Hier gedecodeerd”: al het geluid wordt dan door het apparaat gedecodeerd.",
+      "passthroughAuto": "Automatisch",
+      "passthroughOff": "Hier gedecodeerd",
+      "passthroughDetected": "Formaten die de audio-uitgang ongewijzigd aanneemt: {{formats}} · {{channels}} kanalen.",
+      "passthroughNone": "De huidige audio-uitgang neemt geen enkel formaat ongewijzigd aan: het geluid wordt door het apparaat gedecodeerd ({{channels}} kanalen)."
     },
     "interface": {
       "menuReset": "Menu hersteld",

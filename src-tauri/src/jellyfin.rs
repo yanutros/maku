@@ -814,6 +814,7 @@ impl JellyfinServer {
         subtitle: Option<u64>,
         max_kbps: Option<u32>,
         session: &str,
+        copy_video: bool,
     ) -> Result<WebStream> {
         let info = self.play_info(id, media, audio, subtitle).await?;
         let v = self.json(&format!("/Users/{}/Items/{id}", self.uid())).await?;
@@ -821,6 +822,31 @@ impl JellyfinServer {
         let source_id = v["MediaSources"][index]["Id"].as_str().unwrap_or(id).to_string();
         let kbps = max_kbps.unwrap_or(crate::plex::DEFAULT_KBPS);
         let (width, _) = crate::plex::resolution_for(kbps);
+        // Son seulement (lecteur Android, qualité d'origine) : la vidéo est copiée telle quelle (segments fMP4,
+        // nécessaires au HEVC), seul le son est converti, en 5.1. Les sous-titres ne sont incrustés que si on en a
+        // choisi un. Emby lit les mêmes paramètres.
+        if copy_video {
+            let mut url = format!(
+                "{}/Videos/{id}/master.m3u8?MediaSourceId={source_id}&PlaySessionId={session}&DeviceId={}&api_key={}\
+                 &VideoCodec=hevc,h264,av1,vp9&AllowVideoStreamCopy=true&EnableAutoStreamCopy=true&AllowAudioStreamCopy=false\
+                 &AudioCodec=ac3,aac&TranscodingMaxAudioChannels=6&MaxStreamingBitrate=200000000&SegmentContainer=mp4",
+                self.base, self.client_id, self.token
+            );
+            if let Some(a) = audio {
+                url.push_str(&format!("&AudioStreamIndex={a}"));
+            }
+            if let Some(s) = subtitle.filter(|&s| s > 0) {
+                url.push_str(&format!("&SubtitleStreamIndex={s}&SubtitleMethod=Encode"));
+            }
+            return Ok(WebStream {
+                session: session.to_owned(),
+                url,
+                title: info.title,
+                subtitle: info.subtitle,
+                offset_ms: info.offset_ms,
+                duration_ms: info.duration_ms,
+            });
+        }
         let mut url = format!(
             "{}/Videos/{id}/master.m3u8?MediaSourceId={source_id}&PlaySessionId={session}&DeviceId={}&api_key={}\
              &VideoCodec=h264&AudioCodec=aac&MaxStreamingBitrate={}&MaxWidth={width}&TranscodingMaxAudioChannels=2\

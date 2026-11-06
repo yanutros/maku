@@ -1,10 +1,13 @@
 package io.github.yanutros.plexr
 
 import android.app.Activity
+import android.content.Context
 import android.graphics.Color
 import android.net.Uri
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.view.Gravity
 import android.view.SurfaceView
 import android.view.View
@@ -26,6 +29,9 @@ import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.audio.AudioCapabilities
+import androidx.media3.exoplayer.audio.AudioSink
+import androidx.media3.exoplayer.audio.DefaultAudioSink
 import androidx.media3.ui.SubtitleView
 import org.json.JSONArray
 import org.json.JSONObject
@@ -99,7 +105,26 @@ class NativeVideo(private val activity: Activity, private val webView: WebView) 
     // Les bandes-annonces de plex.tv sont servies par le serveur en http puis redirigées en https :
     // ExoPlayer refuse ce changement de protocole par défaut.
     val http = DefaultHttpDataSource.Factory().setAllowCrossProtocolRedirects(true)
-    val p = ExoPlayer.Builder(activity, DefaultRenderersFactory(activity).setEnableDecoderFallback(true))
+    // Décodeurs de l'appareil d'abord (et son transmis tel quel à l'ampli quand il le prend) ; FFmpeg ensuite,
+    // pour les sons que l'appareil ne décode pas : sans lui, une piste DTS ou TrueHD faisait tout convertir.
+    // « passthrough » : « auto » (Dolby, DTS… envoyés tels quels à l'ampli ou à la barre de son qui les
+    // annonce, comme Kodi et Moonfin) ou « off » (tout décodé ici, pour un appareil qui annonce à tort des
+    // formats qu'il ne sait pas lire : film muet).
+    val passthrough = o.optString("passthrough", "auto") != "off"
+    val renderers = object : DefaultRenderersFactory(activity) {
+      override fun buildAudioSink(context: Context, enableFloatOutput: Boolean, enableAudioOutputPlaybackParams: Boolean): AudioSink {
+        val builder = DefaultAudioSink.Builder(context)
+          .setEnableFloatOutput(enableFloatOutput)
+          .setEnableAudioTrackPlaybackParams(enableAudioOutputPlaybackParams)
+        @Suppress("DEPRECATION")
+        if (!passthrough) builder.setAudioCapabilities(AudioCapabilities.DEFAULT_AUDIO_CAPABILITIES)
+        else rememberedCapabilities(context)?.let { builder.setAudioCapabilities(it) }
+        return builder.build()
+      }
+    }
+      .setEnableDecoderFallback(true)
+      .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
+    val p = ExoPlayer.Builder(activity, renderers)
       .setMediaSourceFactory(DefaultMediaSourceFactory(DefaultDataSource.Factory(activity, http)))
       .setAudioAttributes(AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(), true)
       .setVideoChangeFrameRateStrategy(C.VIDEO_CHANGE_FRAME_RATE_STRATEGY_ONLY_IF_SEAMLESS)
@@ -270,5 +295,59 @@ class NativeVideo(private val activity: Activity, private val webView: WebView) 
     "vtt", "webvtt" -> MimeTypes.TEXT_VTT
     "ttml", "dfxp" -> MimeTypes.APPLICATION_TTML
     else -> MimeTypes.APPLICATION_SUBRIP
+  }
+
+  companion object {
+    private val PASSTHROUGH = listOf(
+      "AC3" to C.ENCODING_AC3,
+      "E-AC3" to C.ENCODING_E_AC3,
+      "Dolby Atmos (E-AC3 JOC)" to C.ENCODING_E_AC3_JOC,
+      "DTS" to C.ENCODING_DTS,
+      "DTS-HD" to C.ENCODING_DTS_HD,
+      "TrueHD" to C.ENCODING_DOLBY_TRUEHD,
+    )
+    private const val PREFS = "maku.audio"
+    /** Après le démarrage de l'appareil, la liaison HDMI peut ne pas être encore établie. */
+    private const val BOOT_WINDOW_MS = 10 * 60 * 1000L
+
+    /**
+     * Comme Moonfin : au démarrage à froid, la sortie audio peut répondre qu'elle n'accepte rien tel quel,
+     * le temps que la liaison HDMI avec l'ampli s'établisse — le son serait alors décodé ici, sans Dolby
+     * ni DTS. La dernière réponse valable est gardée (pour ce système : une mise à jour l'efface) et reprise
+     * dans les minutes qui suivent le démarrage, si la réponse du moment est vide. Une vraie réponse, même
+     * différente (barre de son débranchée), la remplace : elle n'est jamais écrasée par une réponse vide.
+     */
+    fun rememberedCapabilities(context: Context): AudioCapabilities? {
+      @Suppress("DEPRECATION")
+      val live = AudioCapabilities.getCapabilities(context)
+      val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+      val build = Build.FINGERPRINT
+      if (PASSTHROUGH.any { live.supportsEncoding(it.second) }) {
+        val encodings = PASSTHROUGH.map { it.second }.filter { live.supportsEncoding(it) }
+        prefs.edit()
+          .putString("build", build)
+          .putString("encodings", encodings.joinToString(","))
+          .putInt("channels", live.maxChannelCount)
+          .apply()
+        return null
+      }
+      if (SystemClock.elapsedRealtime() > BOOT_WINDOW_MS || prefs.getString("build", null) != build) return null
+      val saved = prefs.getString("encodings", null)?.split(",")?.mapNotNull { it.toIntOrNull() } ?: return null
+      if (saved.isEmpty()) return null
+      val encodings = (listOf(C.ENCODING_PCM_16BIT) + saved).toIntArray()
+      @Suppress("DEPRECATION")
+      return AudioCapabilities(encodings, prefs.getInt("channels", 2))
+    }
+
+    /** Formats que la sortie audio accepte tels quels (JSON), et son nombre de canaux. */
+    fun passthroughFormats(context: Context): String {
+      @Suppress("DEPRECATION")
+      val caps = rememberedCapabilities(context) ?: AudioCapabilities.getCapabilities(context)
+      val formats = JSONArray()
+      for ((name, encoding) in PASSTHROUGH) {
+        if (caps.supportsEncoding(encoding)) formats.put(name)
+      }
+      return JSONObject().put("formats", formats).put("channels", caps.maxChannelCount).toString()
+    }
   }
 }

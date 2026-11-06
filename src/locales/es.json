@@ -87,7 +87,13 @@
       "saved": "Ruta de mpv guardada",
       "intro": "La reproducción se hace con mpv. Déjalo vacío para buscarlo automáticamente.",
       "mpvPath": "Ruta de mpv",
-      "save": "Guardar"
+      "save": "Guardar",
+      "passthrough": "Sonido al amplificador o la barra de sonido",
+      "passthroughHint": "En automático, Maku envía el sonido Dolby, DTS o Atmos tal cual al amplificador o la barra de sonido que lo admite. Si una película queda muda, elige «Decodificado aquí»: todo el sonido lo decodifica el dispositivo.",
+      "passthroughAuto": "Automático",
+      "passthroughOff": "Decodificado aquí",
+      "passthroughDetected": "Formatos que la salida de audio acepta tal cual: {{formats}} · {{channels}} canales.",
+      "passthroughNone": "La salida de audio actual no acepta ningún formato tal cual: el sonido lo decodifica el dispositivo ({{channels}} canales)."
     },
     "interface": {
       "menuReset": "Menú restablecido",

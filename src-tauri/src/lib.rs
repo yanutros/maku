@@ -1045,7 +1045,7 @@ async fn play(
     let mut info = match max_kbps {
         // Qualité réduite : mpv lit le flux converti par le serveur, pistes choisies et sous-titres incrustés.
         Some(kbps) => {
-            let s = server.web_stream(&rating_key, media_index, audio_stream, subtitle_stream, Some(kbps), &session).await?;
+            let s = server.web_stream(&rating_key, media_index, audio_stream, subtitle_stream, Some(kbps), &session, false).await?;
             plex::PlayInfo {
                 url: s.url,
                 title: s.title,
@@ -1157,9 +1157,12 @@ async fn video_stream(
     subtitle_stream: Option<u64>,
     max_kbps: Option<u32>,
     media_index: Option<usize>,
+    copy_video: Option<bool>,
 ) -> CmdResult<WebStream> {
     let session = uuid::Uuid::new_v4().simple().to_string();
-    Ok(state.server()?.web_stream(&rating_key, media_index, audio_stream, subtitle_stream, max_kbps, &session).await?)
+    // `copy_video` : seul le son est illisible (lecteur Android) ; la vidéo d'origine est gardée.
+    let copy = copy_video.unwrap_or(false) && max_kbps.is_none();
+    Ok(state.server()?.web_stream(&rating_key, media_index, audio_stream, subtitle_stream, max_kbps, &session, copy).await?)
 }
 
 /// Lecture native sur Android (ExoPlayer) : le fichier d'origine, sans conversion, avec les

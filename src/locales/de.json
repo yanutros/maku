@@ -87,7 +87,13 @@
       "saved": "mpv-Pfad gespeichert",
       "intro": "Die Wiedergabe läuft über mpv. Leer lassen, um es automatisch zu suchen.",
       "mpvPath": "mpv-Pfad",
-      "save": "Speichern"
+      "save": "Speichern",
+      "passthrough": "Ton an den Receiver oder die Soundbar",
+      "passthroughHint": "Automatisch sendet Maku Dolby-, DTS- oder Atmos-Ton unverändert an den Receiver oder die Soundbar, die ihn unterstützt. Bleibt ein Film stumm, wähle „Hier dekodiert“: Der ganze Ton wird dann vom Gerät dekodiert.",
+      "passthroughAuto": "Automatisch",
+      "passthroughOff": "Hier dekodiert",
+      "passthroughDetected": "Formate, die der Audioausgang unverändert annimmt: {{formats}} · {{channels}} Kanäle.",
+      "passthroughNone": "Der aktuelle Audioausgang nimmt kein Format unverändert an: Der Ton wird vom Gerät dekodiert ({{channels}} Kanäle)."
     },
     "interface": {
       "menuReset": "Menü zurückgesetzt",

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { passthroughAvailable, passthroughFormats, passthroughMode, setPassthroughMode } from "../lib/player.svelte";
   import { invoke } from "@tauri-apps/api/core";
   import { onMount, tick } from "svelte";
   import { listen } from "@tauri-apps/api/event";
@@ -64,6 +65,14 @@
   let tracearrError = $state<string | null>(null);
 
   // --- TMDB : logos des titres que Plex n'a pas ---
+  // Android : son vers l'ampli (automatique) ou décodé sur l'appareil.
+  let passthrough = $state(passthroughMode());
+  const audioOut = passthroughAvailable ? passthroughFormats() : null;
+  function choosePassthrough(mode: "auto" | "off") {
+    passthrough = mode;
+    setPassthroughMode(mode);
+  }
+
   let tmdbKey = $state("");
   let tmdbBusy = $state(false);
   let tmdbError = $state<string | null>(null);
@@ -402,7 +411,7 @@
     <div class="menu-group">Maku</div>
     {@render link("account", t("settings.menu.account"), "user")}
     {@render link("services", t("settings.menu.services"), "compass")}
-    {#if !device.tv}{@render link("player", t("settings.menu.player"), "play")}{/if}
+    {#if !device.tv || passthroughAvailable}{@render link("player", t("settings.menu.player"), "play")}{/if}
     {@render link("interface", t("settings.menu.interface"), "menu")}
 
     <div class="menu-group">{t("settings.menu.server", { name: session.serverName ?? "" })}</div>
@@ -660,11 +669,31 @@
       </section>
     {:else if page === "player"}
       <h1 class="title">{t("settings.menu.player")}</h1>
-      <section class="card">
-        <p class="muted">{t("settings.player.intro")}</p>
-        <label>{t("settings.player.mpvPath")} <input bind:value={mpvPath} placeholder="C:\Program Files\mpv\mpv.exe" /></label>
-        <div><button class="btn" onclick={saveMpv}>{t("settings.player.save")}</button></div>
-      </section>
+      {#if passthroughAvailable}
+        <!-- Android : son envoyé tel quel à l'ampli, ou décodé sur l'appareil. -->
+        <section class="card">
+          <h2>{t("settings.player.passthrough")}</h2>
+          <p class="muted">{t("settings.player.passthroughHint")}</p>
+          <div class="seg" role="radiogroup" aria-label={t("settings.player.passthrough")}>
+            {#each [{ id: "auto", label: t("settings.player.passthroughAuto") }, { id: "off", label: t("settings.player.passthroughOff") }] as m (m.id)}
+              <button role="radio" class:on={passthrough === m.id} aria-checked={passthrough === m.id} onclick={() => choosePassthrough(m.id as "auto" | "off")}>
+                {m.label}
+              </button>
+            {/each}
+          </div>
+          <p class="muted small">
+            {audioOut?.formats.length
+              ? t("settings.player.passthroughDetected", { formats: audioOut.formats.join(", "), channels: audioOut.channels })
+              : t("settings.player.passthroughNone", { channels: audioOut?.channels ?? 2 })}
+          </p>
+        </section>
+      {:else}
+        <section class="card">
+          <p class="muted">{t("settings.player.intro")}</p>
+          <label>{t("settings.player.mpvPath")} <input bind:value={mpvPath} placeholder="C:\Program Files\mpv\mpv.exe" /></label>
+          <div><button class="btn" onclick={saveMpv}>{t("settings.player.save")}</button></div>
+        </section>
+      {/if}
     {:else if page === "interface"}
       <h1 class="title">{t("settings.menu.interface")}</h1>
       <section class="card">

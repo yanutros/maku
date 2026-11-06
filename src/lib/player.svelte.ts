@@ -106,9 +106,40 @@ invoke<string | null>("platform").then(
 );
 
 /** Lecteur vidéo natif d'Android (NativeVideo.kt), quand l'application le fournit. */
-type VideoBridge = { videoOpen?(json: string): void; videoCommand?(name: string, value: string): void; videoClose?(): void };
+type VideoBridge = {
+  videoOpen?(json: string): void;
+  videoCommand?(name: string, value: string): void;
+  videoClose?(): void;
+  audioPassthrough?(): string;
+};
 const bridge = (globalThis as { PlexrDevice?: VideoBridge }).PlexrDevice;
 const nativeVideo = !!bridge?.videoOpen;
+
+/** Lecteur natif d'Android : le son peut être envoyé tel quel à l'ampli (réglage de l'appareil). */
+export const passthroughAvailable = nativeVideo && !!bridge?.audioPassthrough;
+const PASSTHROUGH_KEY = "maku.passthrough";
+export function passthroughMode(): "auto" | "off" {
+  try {
+    return localStorage.getItem(PASSTHROUGH_KEY) === "off" ? "off" : "auto";
+  } catch {
+    return "auto";
+  }
+}
+export function setPassthroughMode(mode: "auto" | "off") {
+  try {
+    localStorage.setItem(PASSTHROUGH_KEY, mode);
+  } catch {
+    // Stockage indisponible : le mode automatique reste.
+  }
+}
+/** Formats que la sortie audio accepte tels quels, et son nombre de canaux. */
+export function passthroughFormats(): { formats: string[]; channels: number } | null {
+  try {
+    return bridge?.audioPassthrough ? JSON.parse(bridge.audioPassthrough()) : null;
+  } catch {
+    return null;
+  }
+}
 
 interface NativeInfo {
   session: string;
@@ -393,6 +424,8 @@ const web = (() => {
   // Lecteur natif : pistes demandées (pour le secours) et conversion du serveur en cours.
   let nativeStreams: { audioStream: number | null; subtitleStream: number | null } = { audioStream: null, subtitleStream: null };
   let fallbackTried = false;
+  /** Le secours en cours ne convertit que le son (la vidéo d'origine est copiée). */
+  let copyTried = false;
   let transcoding = false;
 
   const key = () => (player.video ? player.ratingKey : (player.queue[player.index]?.ratingKey ?? ""));
@@ -459,8 +492,10 @@ const web = (() => {
     if (!player.native) return;
     if (e.ended) return stop();
     if (e.unsupported !== undefined || e.error !== undefined) {
-      // Codec ou format que l'appareil ne lit pas : le serveur convertit, comme avant.
-      if (!fallbackTried) fallback();
+      // Codec ou format que l'appareil ne lit pas : le serveur convertit. Si seul le son pose problème,
+      // d'abord en gardant la vidéo d'origine ; en cas d'échec, la conversion complète, comme avant.
+      if (!fallbackTried) fallback(e.unsupported === "audio" && !player.quality);
+      else if (copyTried) fallback(false);
       else stop();
       return;
     }
@@ -478,8 +513,11 @@ const web = (() => {
     if (e.sid !== undefined) player.sid = e.sid;
   };
 
-  async function fallback() {
+  async function fallback(copyVideo: boolean) {
+    // Une conversion « son seulement » qui a échoué : on l'arrête avant la conversion complète.
+    if (copyTried && player.session) invoke("stop_transcode", { session: player.session }).catch(() => {});
     fallbackTried = true;
+    copyTried = copyVideo;
     const key = player.ratingKey;
     try {
       const s = await invoke<{ session: string; url: string }>("video_stream", {
@@ -487,12 +525,13 @@ const web = (() => {
         ...nativeStreams,
         maxKbps: player.quality || null,
         mediaIndex: player.mediaIndex,
+        copyVideo,
       });
       if (player.ratingKey !== key || !player.native) return;
       player.session = s.session;
       transcoding = true;
       markTranscoded();
-      bridge!.videoOpen!(JSON.stringify({ url: s.url, offsetMs: Math.round(player.position * 1000), aid: null, sid: "auto", subFiles: [] }));
+      bridge!.videoOpen!(JSON.stringify({ passthrough: passthroughMode(),  url: s.url, offsetMs: Math.round(player.position * 1000), aid: null, sid: "auto", subFiles: [] }));
     } catch {
       stop();
     }
@@ -551,8 +590,9 @@ const web = (() => {
       reportedKey = player.ratingKey;
       nativeStreams = streams;
       fallbackTried = false;
+      copyTried = false;
       transcoding = false;
-      bridge!.videoOpen!(JSON.stringify({ url: s.url, offsetMs: s.offsetMs, aid: s.aid, sid: s.sid, subFiles: s.subFiles }));
+      bridge!.videoOpen!(JSON.stringify({ passthrough: passthroughMode(),  url: s.url, offsetMs: s.offsetMs, aid: s.aid, sid: s.sid, subFiles: s.subFiles }));
       clearInterval(reportTimer);
       reportTimer = setInterval(() => report(player.paused ? "paused" : "playing"), 10000);
     },
@@ -562,8 +602,9 @@ const web = (() => {
       reportedKey = player.ratingKey;
       nativeStreams = streams;
       fallbackTried = true;
+      copyTried = false;
       transcoding = true;
-      bridge!.videoOpen!(JSON.stringify({ url, offsetMs, aid: null, sid: "auto", subFiles: [] }));
+      bridge!.videoOpen!(JSON.stringify({ passthrough: passthroughMode(),  url, offsetMs, aid: null, sid: "auto", subFiles: [] }));
       clearInterval(reportTimer);
       reportTimer = setInterval(() => report(player.paused ? "paused" : "playing"), 10000);
     },

@@ -105,6 +105,9 @@ dependencies {
     // Vidéo native (NativeVideo.kt) : flux HLS converti par le serveur en secours, rendu des sous-titres.
     implementation("androidx.media3:media3-exoplayer-hls:1.8.0")
     implementation("androidx.media3:media3-ui:1.8.0")
+    // Décodage sur l'appareil des sons que les TV ne savent pas lire (DTS, DTS-HD, TrueHD…) : la vidéo passe
+    // telle quelle au lieu d'être convertie par le serveur. Version de Jellyfin, accordée à Media3 1.8.0.
+    implementation("org.jellyfin.media3:media3-ffmpeg-decoder:1.8.0+1")
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.4")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.0")

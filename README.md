@@ -302,8 +302,13 @@ pour l'instant que Plex.
 > aussi Plex et Wholphin : le fichier d'origine (4K, HEVC, HDR compris) est décodé par l'appareil et affiché dans
 > sa propre couche, sous l'interface de lecture de Maku — fluide même sur un téléviseur modeste, au bon format
 > (bandes noires pour un film plus large que l'écran). Les pistes audio
-> et les sous-titres (intégrés ou externes) se choisissent pendant la lecture. Si l'appareil ne sait pas lire un
-> format, le serveur Plex le convertit à la volée (HLS, 1080p). La musique est lue directement. La reprise,
+> et les sous-titres (intégrés ou externes) se choisissent pendant la lecture. Comme Moonfin, Maku convertit le
+> moins possible : les sons que l'appareil ne décode pas (DTS, DTS-HD, TrueHD) le sont par FFmpeg, et le son
+> Dolby, DTS ou Atmos part tel quel vers l'ampli ou la barre de son qui l'accepte (**Réglages → Lecteur** :
+> Automatique, ou « Décodé ici » si un film reste muet ; la page montre les formats acceptés). La dernière
+> détection valable de la sortie audio est gardée pour le démarrage à froid, quand la liaison HDMI n'est pas encore
+> établie. Si seul le son reste illisible, le serveur (Plex, Jellyfin ou Emby) copie la vidéo d'origine et ne
+> convertit que le son ; sinon, il convertit tout à la volée (HLS, 1080p). La musique est lue directement. La reprise,
 > l'épisode suivant et la progression fonctionnent comme sur ordinateur.
 
 > [!TIP]
@@ -648,7 +653,7 @@ traduisez les valeurs sans toucher aux clés ni aux `{{variables}}`, puis décla
 | `src/lib/device.ts` | type d'appareil (ordinateur, tablette tactile, téléviseur) et échelle de l'interface sur TV |
 | `src/lib/spatial.ts`, `src/lib/nav.svelte.ts` | navigation à la télécommande (flèches) et bouton Retour d'Android |
 | `src/components/TvRows.svelte`, `TvGrid.svelte`, `src/lib/tvcards.ts` | interface TV : rangées avec fiche en haut, grilles légères ; menu d'un titre à l'appui long (`TvMenu.svelte`, `src/lib/longpress.ts`) |
-| `src/lib/player.svelte.ts` | lecture : mpv sur ordinateur, ExoPlayer natif sur Android (HLS converti par Plex en secours) |
+| `src/lib/player.svelte.ts` | lecture : mpv sur ordinateur, ExoPlayer natif sur Android (décodeur audio FFmpeg, son transmis à l'ampli ; en secours, flux du serveur qui ne convertit que le son, puis tout) |
 | `src-tauri/gen/android/` | projet Android : manifeste (Android TV, bannière, icônes par couleur), signature, détection du téléviseur et du téléphone, barres système, vidéo en paysage (`MainActivity.kt`), lecteur vidéo natif sous la page (`NativeVideo.kt`), musique en arrière-plan, notification et Android Auto (`MediaService.kt`, bibliothèque lue auprès de Plex dans `PlexLibrary.kt`, pochettes servies à la voiture par `ArtProvider.kt`) |
 | `src/components/PhoneTabs.svelte`, `src/views/Libraries.svelte` | téléphone : barre d'onglets et liste des bibliothèques |
 | `src-tauri/tauri.conf.json`, `tauri.windows.conf.json` | configuration et paquets ; la fenêtre transparente n'est activée que sous Windows |

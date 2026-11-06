@@ -87,7 +87,13 @@
       "saved": "Chemin de mpv enregistré",
       "intro": "La lecture se fait avec mpv. Laisse vide pour le chercher automatiquement.",
       "mpvPath": "Chemin de mpv",
-      "save": "Enregistrer"
+      "save": "Enregistrer",
+      "passthrough": "Son vers l'ampli ou la barre de son",
+      "passthroughHint": "En automatique, Maku envoie le son Dolby, DTS ou Atmos tel quel à l'ampli ou à la barre de son qui le prend en charge, sans le convertir. Si un film reste muet, choisis « Décodé ici » : tout le son est alors décodé par l'appareil.",
+      "passthroughAuto": "Automatique",
+      "passthroughOff": "Décodé ici",
+      "passthroughDetected": "Formats acceptés tels quels par la sortie audio : {{formats}} · {{channels}} canaux.",
+      "passthroughNone": "La sortie audio actuelle n'accepte aucun format tel quel : le son est décodé par l'appareil ({{channels}} canaux)."
     },
     "interface": {
       "menuReset": "Menu réinitialisé",

@@ -61,7 +61,7 @@ common! {
         fn related(&self, rating_key: &str) -> Vec<Item>;
         fn children(&self, rating_key: &str) -> Vec<Item>;
         fn search(&self, query: &str) -> Vec<Item>;
-        fn web_stream(&self, rating_key: &str, media: Option<usize>, audio: Option<u64>, subtitle: Option<u64>, max_kbps: Option<u32>, session: &str) -> WebStream;
+        fn web_stream(&self, rating_key: &str, media: Option<usize>, audio: Option<u64>, subtitle: Option<u64>, max_kbps: Option<u32>, session: &str, copy_video: bool) -> WebStream;
         fn stop_transcode(&self, session: &str) -> ();
         fn play_info(&self, rating_key: &str, media: Option<usize>, audio: Option<u64>, subtitle: Option<u64>) -> PlayInfo;
         fn timeline(&self, rating_key: &str, state: &str, time_ms: u64, duration_ms: u64, session: &str) -> ();
