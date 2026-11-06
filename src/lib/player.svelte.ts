@@ -99,9 +99,13 @@ export function qualityLabel(kbps: number): string {
 // Rien après un arrêt : la file reste en mémoire, mais plus aucun titre n'est « en cours ».
 export const current = () => (player.video || !player.active ? null : (player.queue[player.index] ?? null));
 
-// Sur Android et iOS, mpv n'existe pas : le lecteur du système prend le relais.
+// Sur Android et iOS, mpv n'existe pas : le lecteur du système prend le relais. Sur un Mac où mpv ne
+// peut pas tourner (avant macOS 15, sans Homebrew), le lecteur intégré de la page lit un flux converti.
 invoke<string | null>("platform").then(
-  (os) => (player.web = os === "android" || os === "ios"),
+  (os) => {
+    player.web = os === "android" || os === "ios";
+    if (os === "macos") invoke<boolean>("mpv_available").then((ok) => (player.web = !ok), () => {});
+  },
   () => {},
 );
 

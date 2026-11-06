@@ -1098,6 +1098,13 @@ fn platform() -> &'static str {
     std::env::consts::OS
 }
 
+/// mpv est-il utilisable ? Sinon (Mac d'avant macOS 15 sans Homebrew), l'interface lit les vidéos avec le
+/// lecteur intégré de la page, sur un flux converti par le serveur.
+#[tauri::command]
+fn mpv_available(state: State<'_, AppState>) -> bool {
+    player::find_mpv(state.cfg().mpv_path.as_deref()).is_ok()
+}
+
 /// Construit une file de lecture musicale (voir `play_music`) sans la lancer.
 async fn build_queue(
     server: &media::MediaServer,
@@ -1673,6 +1680,7 @@ pub fn run() {
             play,
             play_music,
             platform,
+            mpv_available,
             music_queue,
             video_stream,
             native_video,

@@ -1,0 +1,47 @@
+# Essai macOS : construit le .dmg d'une branche de travail (sans version GitHub), téléchargeable depuis
+# l'onglet Actions. Pour tester sur un Mac avant de publier.
+name: Essai macOS
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["essai/**"]
+
+permissions:
+  contents: read
+
+jobs:
+  dmg:
+    name: macOS (Apple Silicon et Intel)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - run: npm ci
+
+      - name: Paquet
+        run: npx tauri build --target universal-apple-darwin --bundles dmg
+
+      - name: Contenu (mpv embarqué)
+        run: |
+          ls -la src-tauri/target/universal-apple-darwin/release/bundle/macos/Maku.app/Contents/Resources/mpv
+          ls -la src-tauri/target/universal-apple-darwin/release/bundle/dmg
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Maku-macos-essai
+          path: src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg
+          retention-days: 14

@@ -1,0 +1,13 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "build": {
+    "beforeDevCommand": "node scripts/fetch-mpv.mjs && npm run dev",
+    "beforeBuildCommand": "node scripts/fetch-mpv.mjs && npm run build"
+  },
+  "bundle": {
+    "resources": {
+      "mpv-mac/mpv-arm64.tar.gz": "mpv/mpv-arm64.tar.gz",
+      "mpv-mac/mpv-x86_64.tar.gz": "mpv/mpv-x86_64.tar.gz"
+    }
+  }
+}

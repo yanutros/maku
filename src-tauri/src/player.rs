@@ -135,6 +135,12 @@ pub fn find_mpv(configured: Option<&str>) -> Result<PathBuf> {
     if let Some(dir) = std::env::current_exe().ok().and_then(|e| e.parent().map(|p| p.to_path_buf())) {
         candidates.push(dir.join("mpv").join(MPV_EXE));
         candidates.push(dir.join(MPV_EXE));
+        // macOS : le mpv livré avec Maku (Contents/Resources/mpv), déployé au premier lancement.
+        if cfg!(target_os = "macos") {
+            if let Some(path) = bundled_mac_mpv(&dir) {
+                candidates.push(path);
+            }
+        }
     }
     if let Some(path) = std::env::var_os("PATH") {
         candidates.extend(std::env::split_paths(&path).map(|d| d.join(MPV_EXE)));
@@ -163,6 +169,45 @@ pub fn find_mpv(configured: Option<&str>) -> Result<PathBuf> {
         .into_iter()
         .find(|p| p.is_file())
         .with_context(|| crate::i18n::tr("player.mpvNotFound"))
+}
+
+/// macOS : Maku livre mpv (versions officielles, Apple Silicon et Intel) en archive, dans ses ressources.
+/// Il est déployé une fois dans « Application Support » : tar y restaure le mpv.app avec ses
+/// signatures, et un fichier écrit par Maku n'est pas mis en quarantaine par macOS. Ces versions
+/// demandent macOS 15 ; avant, rien (Homebrew, ou le lecteur intégré, prennent le relais).
+fn bundled_mac_mpv(exe_dir: &std::path::Path) -> Option<PathBuf> {
+    let arch = if cfg!(target_arch = "aarch64") { "arm64" } else { "x86_64" };
+    let archive = exe_dir.parent()?.join("Resources").join("mpv").join(format!("mpv-{arch}.tar.gz"));
+    let meta = std::fs::metadata(&archive).ok()?;
+    if mac_major_version().is_some_and(|v| v < 15) {
+        return None;
+    }
+    // Un dossier par version de l'archive (taille), pour redéployer après une mise à jour de Maku.
+    let home = std::env::var_os("HOME")?;
+    let dir = PathBuf::from(home).join("Library/Application Support/io.github.yanutros.plexr/mpv").join(format!("{arch}-{}", meta.len()));
+    let exe = dir.join("mpv.app/Contents/MacOS/mpv");
+    if exe.is_file() {
+        return Some(exe);
+    }
+    // Anciennes versions déployées : remplacées.
+    if let Some(parent) = dir.parent() {
+        let _ = std::fs::remove_dir_all(parent);
+    }
+    std::fs::create_dir_all(&dir).ok()?;
+    let ok = std::process::Command::new("/usr/bin/tar")
+        .arg("-xzf")
+        .arg(&archive)
+        .arg("-C")
+        .arg(&dir)
+        .status()
+        .is_ok_and(|s| s.success());
+    (ok && exe.is_file()).then_some(exe)
+}
+
+/// Version de macOS (« 15 » pour 15.1).
+fn mac_major_version() -> Option<u32> {
+    let out = std::process::Command::new("/usr/bin/sw_vers").arg("-productVersion").output().ok()?;
+    String::from_utf8_lossy(&out.stdout).trim().split('.').next()?.parse().ok()
 }
 
 fn ipc_path() -> String {

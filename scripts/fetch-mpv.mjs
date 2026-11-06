@@ -1,7 +1,11 @@
-// Windows : prépare le lecteur mpv embarqué dans l'installeur de Maku (src-tauri/mpv-win), pour
-// que la lecture fonctionne sans rien installer d'autre. Version épinglée de mpv-winbuild-cmake
-// (https://github.com/shinchiro/mpv-winbuild-cmake, GPL), vérifiée par son empreinte SHA-256.
-// Lancé avant chaque compilation Windows (voir tauri.windows.conf.json) ; ne fait rien ailleurs.
+// Prépare le lecteur mpv embarqué dans le paquet de Maku, pour que la lecture fonctionne sans rien
+// installer d'autre, et lise directement presque tous les fichiers (sans conversion par le serveur) :
+// - Windows (src-tauri/mpv-win) : version épinglée de mpv-winbuild-cmake
+//   (https://github.com/shinchiro/mpv-winbuild-cmake, GPL) ;
+// - macOS (src-tauri/mpv-mac) : versions officielles de mpv (https://github.com/mpv-player/mpv, GPL),
+//   Apple Silicon et Intel, gardées en archives : Maku les déploie au premier lancement (player.rs).
+// Chaque archive est vérifiée par son empreinte SHA-256. Lancé avant chaque compilation Windows et
+// macOS (voir tauri.windows.conf.json et tauri.macos.conf.json) ; ne fait rien ailleurs.
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -18,9 +22,51 @@ const MPV = {
 // polices des sous-titres.
 const FILES = ["mpv.exe", "d3dcompiler_43.dll", "mpv/fonts.conf"];
 
-if (process.platform !== "win32") process.exit(0);
-
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+
+// mpv pour macOS 15 et plus (versions officielles) : le .app complet, bibliothèques comprises.
+const MAC = {
+  release: "v0.42.0",
+  builds: [
+    { arch: "arm64", file: "mpv-v0.42.0-macos-15-arm.zip", sha256: "be1b8d2445e6880860869c080b8710dee189721f1fa4689840db6a2c10d7be69" },
+    { arch: "x86_64", file: "mpv-v0.42.0-macos-15-intel.zip", sha256: "2d2f34350ff844b6014c35f21ca142937275e19c0c673150a8564fcd2f3bfa14" },
+  ],
+};
+
+async function download(url, sha256) {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`mpv : téléchargement impossible (${response.status})`);
+  const data = Buffer.from(await response.arrayBuffer());
+  const digest = createHash("sha256").update(data).digest("hex");
+  if (digest !== sha256) throw new Error(`mpv : empreinte inattendue (${digest}), archive refusée`);
+  return data;
+}
+
+if (process.platform === "darwin") {
+  const out = join(root, "src-tauri", "mpv-mac");
+  const stamp = join(out, "VERSION");
+  const ready = () => MAC.builds.every((b) => existsSync(join(out, `mpv-${b.arch}.tar.gz`)));
+  if (existsSync(stamp) && readFileSync(stamp, "utf8").trim() === MAC.release && ready()) process.exit(0);
+  rmSync(out, { recursive: true, force: true });
+  mkdirSync(out, { recursive: true });
+  const work = mkdtempSync(join(tmpdir(), "plexr-mpv-"));
+  try {
+    for (const b of MAC.builds) {
+      console.log(`mpv ${MAC.release} (${b.arch}) : téléchargement…`);
+      const zip = join(work, b.file);
+      writeFileSync(zip, await download(`https://github.com/mpv-player/mpv/releases/download/${MAC.release}/${b.file}`, b.sha256));
+      // L'archive contient mpv.tar.gz, qui garde les signatures de mpv.app : on le garde tel quel.
+      writeFileSync(join(out, `mpv-${b.arch}.tar.gz`), execFileSync("unzip", ["-p", zip, "mpv.tar.gz"], { maxBuffer: 512 * 1024 * 1024 }));
+    }
+    writeFileSync(stamp, MAC.release + "\n");
+    console.log(`mpv ${MAC.release} : prêt dans src-tauri/mpv-mac`);
+  } finally {
+    rmSync(work, { recursive: true, force: true });
+  }
+  process.exit(0);
+}
+
+if (process.platform !== "win32") process.exit(0);
 const out = join(root, "src-tauri", "mpv-win");
 const stamp = join(out, "VERSION");
 
@@ -30,11 +76,7 @@ if (existsSync(stamp) && readFileSync(stamp, "utf8").trim() === MPV.release && F
 
 const url = `https://github.com/shinchiro/mpv-winbuild-cmake/releases/download/${MPV.release}/${MPV.file}`;
 console.log(`mpv ${MPV.release} : téléchargement…`);
-const response = await fetch(url);
-if (!response.ok) throw new Error(`mpv : téléchargement impossible (${response.status})`);
-const archive = Buffer.from(await response.arrayBuffer());
-const digest = createHash("sha256").update(archive).digest("hex");
-if (digest !== MPV.sha256) throw new Error(`mpv : empreinte inattendue (${digest}), archive refusée`);
+const archive = await download(url, MPV.sha256);
 
 const work = mkdtempSync(join(tmpdir(), "plexr-mpv-"));
 try {
