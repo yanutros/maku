@@ -33,7 +33,7 @@ jobs:
       - run: npm ci
 
       - name: Paquet
-        run: npx tauri build --target universal-apple-darwin --bundles dmg
+        run: npx tauri build --target universal-apple-darwin --bundles app,dmg
 
       - name: Contenu (mpv embarqué)
         run: |
