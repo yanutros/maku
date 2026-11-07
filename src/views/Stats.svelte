@@ -587,11 +587,15 @@
     line-height: 0.8;
     letter-spacing: -0.08em;
     color: var(--bg);
-    -webkit-text-stroke: 3px #ffffff40;
+    /* Sur Android, la police du chiffre est faite de formes qui se chevauchent (3, 4, 6, 8) : le contour seul
+       montrait leurs jointures. Le contour est peint d'abord et le chiffre plein par-dessus, qui les cache :
+       il ne reste que le bord extérieur (d'où 6 px, dont la moitié visible). */
+    -webkit-text-stroke: 6px #ffffff40;
+    paint-order: stroke fill;
     transition: -webkit-text-stroke-color 0.2s;
   }
 
-  .chart:not(:disabled):hover .rank {
+  :global(html:not(.tv)) .chart:not(:disabled):hover .rank {
     -webkit-text-stroke-color: var(--accent);
   }
 
@@ -605,8 +609,34 @@
     transition: transform 0.25s var(--ease);
   }
 
-  .chart:not(:disabled):hover .chart-poster {
+  :global(html:not(.tv)) .chart:not(:disabled):hover .chart-poster {
     transform: translateY(-4px);
+  }
+
+  /* Télécommande : comme pour les acteurs, la sélection entoure l'affiche seule (plus le numéro et le
+     titre en couleur), plutôt qu'un cadre autour de tout le bloc. Le survol est réservé à la souris :
+     Android laisse le titre ouvert « survolé » au retour. */
+  :global(html.tv) .top {
+    padding-top: 14px;
+    margin-top: -14px;
+  }
+
+  :global(html.tv) .chart:focus {
+    outline: none;
+  }
+
+  :global(html.tv) .chart:focus .chart-poster {
+    outline: 3px solid var(--accent);
+    outline-offset: 3px;
+    transform: scale(1.04);
+  }
+
+  :global(html.tv) .chart:focus .rank {
+    -webkit-text-stroke-color: var(--accent);
+  }
+
+  :global(html.tv) .chart:focus .chart-name {
+    color: var(--accent);
   }
 
   .chart-poster img {
