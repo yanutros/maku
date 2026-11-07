@@ -390,7 +390,11 @@
     overflow: hidden;
   }
 
+  /* translateX(0) plutôt que rien : la page reste le repère de ses fonds fixés (fiches, chargement de l'accueil),
+     menu plié, déplié ou en train de se replier. Sans cela, ils changeaient de repère à la fin du repli et l'on
+     voyait le fond noir une demi-seconde. */
   :global(html.tv) main {
+    transform: translateX(0);
     transition: transform 0.25s var(--ease);
   }
 

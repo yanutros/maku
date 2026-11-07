@@ -131,6 +131,20 @@
     mask-image: linear-gradient(180deg, #000 0%, transparent 85%);
   }
 
+  /* Téléviseur : la page est le repère de ce fond fixé (App.svelte) et commence après la colonne de 72 px du menu.
+     Le fond est ramené au bord de l'écran, sur toute sa largeur ; menu déplié, la page glisse de 164 px et il
+     repart d'autant vers la gauche, au même rythme : il ne bouge pas à l'écran. */
+  :global(html.tv) .hero-skeleton {
+    right: auto;
+    left: -72px;
+    width: 100vw;
+    transition: transform 0.25s var(--ease);
+  }
+
+  :global(html.tv .shell:not(.collapsed)) .hero-skeleton {
+    transform: translateX(-164px);
+  }
+
   .rows {
     padding-top: 0;
   }

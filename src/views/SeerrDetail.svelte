@@ -238,13 +238,28 @@
 <style>
   .backdrop {
     position: fixed;
-    inset: 0 0 0 var(--sidebar-w, 237px);
+    /* Jusqu'au bord gauche de la fenêtre, derrière le menu (translucide sur ordinateur, replié ou en pilule sur TV). */
+    inset: 0;
     z-index: 0;
     background-size: cover;
     background-position: center top;
     opacity: 0.35;
     mask-image: linear-gradient(#000 0%, #0008 40%, transparent 75%);
     pointer-events: none;
+  }
+
+  /* Téléviseur : la page est le repère de ce fond fixé (App.svelte) et commence après la colonne de 72 px du menu.
+     Le fond est ramené au bord de l'écran, sur toute sa largeur ; menu déplié, la page glisse de 164 px et il
+     repart d'autant vers la gauche, au même rythme : il ne bouge pas à l'écran. */
+  :global(html.tv) .backdrop {
+    right: auto;
+    left: -72px;
+    width: 100vw;
+    transition: transform 0.25s var(--ease);
+  }
+
+  :global(html.tv .shell:not(.collapsed)) .backdrop {
+    transform: translateX(-164px);
   }
 
   .detail {
