@@ -781,6 +781,8 @@
     font-size: 16px;
     font-weight: 600;
     text-align: left;
+    /* Cadre de sélection (télécommande) arrondi, comme celui de la vignette et des boutons. */
+    border-radius: 6px;
   }
 
   .ep-title:hover {
