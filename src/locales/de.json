@@ -709,7 +709,9 @@
   "person": {
     "titles_one": "{{count}} Titel in deinen Mediatheken",
     "titles_other": "{{count}} Titel in deinen Mediatheken",
-    "none": "Nichts in deinen Mediatheken."
+    "none": "Nichts in deinen Mediatheken.",
+    "credits": "{{count}} Filme und Serien",
+    "noCredits": "Keine bekannten Filme oder Serien"
   },
   "tvMenu": {
     "resume": "Fortsetzen · noch {{time}}",

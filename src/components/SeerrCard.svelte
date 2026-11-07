@@ -107,6 +107,26 @@
     opacity: 1;
   }
 
+  /* Téléviseur : le bouton qui ouvre la fiche reste « visible » (transparent) : à opacité nulle, la télécommande
+     l'ignorait et les rangées de jaquettes Seerr ne se sélectionnaient pas. Le synopsis n'apparaît qu'à la sélection. */
+  :global(html.tv) .open {
+    opacity: 1;
+    background: none;
+  }
+
+  :global(html.tv) .open .hover-info {
+    visibility: hidden;
+  }
+
+  :global(html.tv) .open:focus {
+    outline: none;
+    background: linear-gradient(transparent 20%, #000000f0 85%);
+  }
+
+  :global(html.tv) .open:focus .hover-info {
+    visibility: visible;
+  }
+
   .hover-info {
     display: grid;
     gap: 2px;

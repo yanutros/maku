@@ -252,7 +252,7 @@
           {:else if nav.view.name === "item"}
             <ItemDetail ratingKey={nav.view.ratingKey} />
           {:else if nav.view.name === "person"}
-            <Person id={nav.view.id} name={nav.view.personName} photo={nav.view.photo} />
+            <Person id={nav.view.id} name={nav.view.personName} photo={nav.view.photo} seerr={nav.view.seerr ?? false} />
           {:else if nav.view.name === "search"}
             <Search query={nav.view.query} />
           {:else if nav.view.name === "discover"}

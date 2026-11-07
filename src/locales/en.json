@@ -709,7 +709,9 @@
   "person": {
     "titles_one": "{{count}} title in your libraries",
     "titles_other": "{{count}} titles in your libraries",
-    "none": "Nothing in your libraries."
+    "none": "Nothing in your libraries.",
+    "credits": "{{count}} movies and shows",
+    "noCredits": "No known movies or shows"
   },
   "tvMenu": {
     "resume": "Resume · {{time}} left",

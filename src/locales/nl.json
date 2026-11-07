@@ -709,7 +709,9 @@
   "person": {
     "titles_one": "{{count}} titel in je bibliotheken",
     "titles_other": "{{count}} titels in je bibliotheken",
-    "none": "Niets in je bibliotheken."
+    "none": "Niets in je bibliotheken.",
+    "credits": "{{count}} films en series",
+    "noCredits": "Geen bekende films of series"
   },
   "tvMenu": {
     "resume": "Hervatten · nog {{time}}",

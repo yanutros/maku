@@ -344,11 +344,11 @@ function seerrDetail(tmdbId: number): SeerrDetail {
     seasons: m.mediaType === "tv" ? 2 : null,
     episodes: m.mediaType === "tv" ? 16 : null,
     crew: [
-      { name: "Claire Vasseur", role: "Réalisation", photo: null },
-      { name: "Antoine Rey", role: "Scénario", photo: null },
-      { name: "Nadia Ferrand", role: "Production", photo: null },
+      { id: null, name: "Claire Vasseur", role: "Réalisation", photo: null },
+      { id: null, name: "Antoine Rey", role: "Scénario", photo: null },
+      { id: null, name: "Nadia Ferrand", role: "Production", photo: null },
     ],
-    cast: CAST.map((name, i) => ({ id: String(i + 1), name, role: ROLES[i], photo: avatar(name) })),
+    cast: CAST.map((name, i) => ({ id: i + 1, name, role: ROLES[i], photo: avatar(name) })),
     trailer: "https://example.org",
     ratings: { rtCritics: 87, rtAudience: 91, rtUrl: null, imdb: 7.8, imdbUrl: null, tmdb: 7.6 },
     collection: null,
@@ -471,6 +471,7 @@ function handle(cmd: string, a: Args): unknown {
     case "seerr_watchlist":
       return [...seerr].reverse();
     case "seerr_related":
+    case "seerr_person_credits":
       return [...seerr].reverse();
     case "seerr_details":
       return seerrDetail(a.tmdbId);

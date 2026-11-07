@@ -597,6 +597,10 @@ Avec un serveur **Jellyfin**, Maku demande une fois l'identifiant et le mot de p
 Seerr est relié à Jellyfin ou Emby, sinon l'adresse e-mail et le mot de passe du compte local Seerr. Le mot de passe
 n'est jamais enregistré, seule la session Seerr l'est ; quand elle expire, Maku invite à se reconnecter.
 
+Sur la fiche d'un titre à demander, un acteur ouvre toute sa filmographie (TMDB, par Seerr), les titres les plus
+connus d'abord : chacun ouvre sa fiche, d'où le demander. Sur téléviseur, la fiche se parcourt rangée par rangée,
+jusqu'aux recommandations et aux titres similaires.
+
 ### 📊 Tracearr
 
 Dans **Réglages → Tracearr**, indiquez l'adresse de l'instance puis cliquez sur **Se connecter avec Plex**.

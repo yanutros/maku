@@ -188,6 +188,8 @@ export interface SeerrMedia {
 }
 
 export interface SeerrPerson {
+  /** Identifiant TMDB (casting) : ouvre ses autres films et séries. */
+  id: number | null;
   name: string;
   role: string | null;
   photo: string | null;
@@ -435,6 +437,7 @@ export const api = {
   seerrDetails: (mediaType: string, tmdbId: number) => invoke<SeerrDetail>("seerr_details", { mediaType, tmdbId }),
   seerrRelated: (mediaType: string, tmdbId: number, relation: "recommendations" | "similar") =>
     invoke<SeerrMedia[]>("seerr_related", { mediaType, tmdbId, relation }),
+  seerrPersonCredits: (personId: number) => invoke<SeerrMedia[]>("seerr_person_credits", { personId }),
   seerrSlider: (slider: SeerrSlider, page = 1) => invoke<SeerrMedia[]>("seerr_slider", { slider, page }),
   seerrRecentRequests: () => invoke<SeerrMedia[]>("seerr_recent_requests"),
   seerrWatchlist: () => invoke<SeerrMedia[]>("seerr_watchlist"),

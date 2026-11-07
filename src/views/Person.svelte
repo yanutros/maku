@@ -1,19 +1,29 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { api, errorText, type Item } from "../lib/api";
+  import { api, errorText, type Item, type SeerrMedia } from "../lib/api";
   import { device } from "../lib/device";
   import { t } from "../lib/i18n";
-  import { fromItem } from "../lib/tvcards";
+  import { fromItem, fromSeerr } from "../lib/tvcards";
+  import SeerrCard from "../components/SeerrCard.svelte";
   import PosterCard from "../components/PosterCard.svelte";
   import TvGrid from "../components/TvGrid.svelte";
 
   /** Une personne (acteur) : ses films et séries dans les bibliothèques du serveur, comme dans Plex. */
-  let { id, name, photo }: { id: string; name: string; photo: string | null } = $props();
+  /** `seerr` : acteur ouvert depuis une fiche Seerr : tous ses films et séries (TMDB), à demander. */
+  let { id, name, photo, seerr = false }: { id: string; name: string; photo: string | null; seerr?: boolean } = $props();
 
   let items = $state<Item[] | null>(null);
+  let credits = $state<SeerrMedia[] | null>(null);
   let error = $state<string | null>(null);
 
   onMount(() => {
+    if (seerr) {
+      api.seerrPersonCredits(Number(id)).then(
+        (list) => (credits = list),
+        (e) => (error = errorText(e)),
+      );
+      return;
+    }
     api.personItems(id).then(
       (list) => (items = list),
       (e) => (error = errorText(e)),
@@ -28,12 +38,22 @@
       <h1>{name}</h1>
       {#if items}
         <p class="muted">{items.length ? t("person.titles", { count: items.length }) : t("person.none")}</p>
+      {:else if credits}
+        <p class="muted">{credits.length ? t("person.credits", { count: credits.length }) : t("person.noCredits")}</p>
       {/if}
     </div>
   </header>
 
   {#if error}
     <p class="error">{error}</p>
+  {:else if credits}
+    {#if device.tv}
+      <TvGrid cards={credits.map((m) => ({ ...fromSeerr(m), eyebrow: name }))} />
+    {:else}
+      <div class="grid">
+        {#each credits as m (m.mediaType + m.tmdbId)}<SeerrCard media={m} />{/each}
+      </div>
+    {/if}
   {:else if !items}
     <p class="muted">{t("common.c1.loading")}</p>
   {:else if device.tv}

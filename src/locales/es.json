@@ -709,7 +709,9 @@
   "person": {
     "titles_one": "{{count}} título en tus bibliotecas",
     "titles_other": "{{count}} títulos en tus bibliotecas",
-    "none": "Nada en tus bibliotecas."
+    "none": "Nada en tus bibliotecas.",
+    "credits": "{{count}} películas y series",
+    "noCredits": "Ninguna película ni serie conocida"
   },
   "tvMenu": {
     "resume": "Reanudar · quedan {{time}}",

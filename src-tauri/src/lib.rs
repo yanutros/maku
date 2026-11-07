@@ -1445,6 +1445,11 @@ async fn seerr_related(
 }
 
 #[tauri::command]
+async fn seerr_person_credits(state: State<'_, AppState>, person_id: u64) -> CmdResult<Vec<SeerrMedia>> {
+    Ok(state.seerr().await?.person_credits(person_id).await?)
+}
+
+#[tauri::command]
 async fn seerr_slider(state: State<'_, AppState>, slider: Slider, page: u32) -> CmdResult<Vec<SeerrMedia>> {
     Ok(state.seerr().await?.slider(slider, page).await?)
 }
@@ -1700,6 +1705,7 @@ pub fn run() {
             seerr_details,
             seerr_related,
             seerr_slider,
+            seerr_person_credits,
             seerr_recent_requests,
             seerr_watchlist,
             tracearr_configure,

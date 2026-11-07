@@ -7,6 +7,7 @@
   import Row from "../components/Row.svelte";
   import Icon from "../components/Icon.svelte";
   import { locale, t } from "../lib/i18n";
+  import { device } from "../lib/device";
 
   let { mediaType, tmdbId }: { mediaType: "movie" | "tv"; tmdbId: number } = $props();
 
@@ -38,6 +39,11 @@
       ? new Date(item.releaseDate).toLocaleDateString(locale, { day: "numeric", month: "long", year: "numeric" })
       : null,
   );
+
+  /** Acteur : ses autres films et séries (TMDB, par Seerr). */
+  function openPerson(p: { id: number | null; name: string; photo: string | null }) {
+    if (p.id !== null) go({ name: "person", id: String(p.id), personName: p.name, photo: p.photo, seerr: true });
+  }
 
   function language(code: string | null): string | null {
     if (!code) return null;
@@ -85,7 +91,9 @@
 {:else}
   <div class="backdrop" style:background-image={item.backdrop ? `url("${item.backdrop}")` : undefined}></div>
 
-  <div class="page detail">
+  <!-- Télécommande : la fiche se parcourt rangée par rangée, comme celles de la bibliothèque (boutons, distribution,
+       recommandations, titres similaires) : la page descend jusqu'en bas. -->
+  <div class="page detail" data-nav-rows>
     <div class="head">
       <div class="poster">{#if item.poster}<img src={item.poster} alt="" />{/if}</div>
       <div class="info">
@@ -101,7 +109,7 @@
           {/if}
           {#if item.genres.length}<span>{item.genres.join(", ")}</span>{/if}
         </div>
-        <div class="actions">
+        <div class="actions" data-nav-row>
           {#if item.plexRatingKey && item.status >= 4}
             <button class="btn primary big" onclick={() => go({ name: "item", ratingKey: item!.plexRatingKey! })}>
               <Icon name="play" size={18} filled /> {t("seerr.detail.watchInPlexr")}
@@ -145,22 +153,22 @@
         {#if item.ratings.rtCritics !== null || item.ratings.imdb !== null || item.ratings.tmdb}
           <div class="ratings">
             {#if item.ratings.rtCritics !== null}
-              <button class="rating" title={t("seerr.detail.rtCritics")} onclick={() => item!.ratings.rtUrl && openLink(item!.ratings.rtUrl)}>
+              <button class="rating" tabindex={device.tv ? -1 : undefined} title={t("seerr.detail.rtCritics")} onclick={() => item!.ratings.rtUrl && openLink(item!.ratings.rtUrl)}>
                 <span class="logo rt">RT</span>{t("seerr.detail.percent", { value: item.ratings.rtCritics })}
               </button>
             {/if}
             {#if item.ratings.rtAudience !== null}
-              <button class="rating" title={t("seerr.detail.rtAudience")} onclick={() => item!.ratings.rtUrl && openLink(item!.ratings.rtUrl)}>
+              <button class="rating" tabindex={device.tv ? -1 : undefined} title={t("seerr.detail.rtAudience")} onclick={() => item!.ratings.rtUrl && openLink(item!.ratings.rtUrl)}>
                 <span class="logo pop">🍿</span>{t("seerr.detail.percent", { value: item.ratings.rtAudience })}
               </button>
             {/if}
             {#if item.ratings.imdb !== null}
-              <button class="rating" title="IMDb" onclick={() => item!.ratings.imdbUrl && openLink(item!.ratings.imdbUrl)}>
+              <button class="rating" tabindex={device.tv ? -1 : undefined} title="IMDb" onclick={() => item!.ratings.imdbUrl && openLink(item!.ratings.imdbUrl)}>
                 <span class="logo imdb">IMDb</span>{item.ratings.imdb.toFixed(1)}
               </button>
             {/if}
             {#if item.ratings.tmdb}
-              <button class="rating" title="TMDB" onclick={() => openLink(item!.tmdbUrl)}>
+              <button class="rating" tabindex={device.tv ? -1 : undefined} title="TMDB" onclick={() => openLink(item!.tmdbUrl)}>
                 <span class="logo tmdb">TMDB</span>{t("seerr.detail.percent", { value: Math.round(item.ratings.tmdb * 10) })}
               </button>
             {/if}
@@ -194,7 +202,17 @@
     {#if item.cast.length}
       <Row title={t("seerr.detail.cast")}>
         {#each item.cast as p, i (i)}
-          <div class="person">
+          <!-- Sur téléviseur, chaque acteur est un arrêt de la télécommande : la rangée se parcourt. -->
+          <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+          <div
+            class="person"
+            class:link={p.id !== null}
+            role={p.id !== null ? "button" : undefined}
+            tabindex={device.tv || p.id !== null ? 0 : undefined}
+            data-key="person-{p.id ?? p.name}"
+            onclick={() => openPerson(p)}
+            onkeydown={(e) => e.key === "Enter" && openPerson(p)}
+          >
             <div class="avatar">{#if p.photo}<img src={p.photo} alt="" loading="lazy" />{:else}{p.name[0]}{/if}</div>
             <div class="p-name">{p.name}</div>
             {#if p.role}<div class="p-role">{p.role}</div>{/if}
@@ -454,6 +472,20 @@
 
   .person {
     text-align: center;
+  }
+
+  /* Télécommande : cercle doré autour de la photo et nom en couleur, comme sur les fiches de la bibliothèque. */
+  :global(html.tv) .person:focus {
+    outline: none;
+  }
+
+  :global(html.tv) .person:focus .avatar {
+    transform: scale(1.06);
+    box-shadow: 0 0 0 4px var(--accent);
+  }
+
+  :global(html.tv) .person:focus .p-name {
+    color: var(--accent);
   }
 
   .avatar {

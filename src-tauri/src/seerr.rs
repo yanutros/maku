@@ -330,6 +330,8 @@ impl Seerr {
 
 #[derive(Serialize)]
 pub struct Person {
+    /// Identifiant TMDB (casting seulement) : ouvre ses autres films et séries.
+    pub id: Option<u64>,
     pub name: String,
     /// Personnage (casting) ou fonction (équipe).
     pub role: Option<String>,
@@ -480,6 +482,7 @@ impl Seerr {
             JOBS.iter()
                 .flat_map(|(job, label)| {
                     all.iter().filter(move |c| c["job"] == *job).map(move |c| Person {
+                        id: None,
                         name: c["name"].as_str().unwrap_or_default().to_owned(),
                         role: Some(crate::i18n::tr(label)),
                         photo: None,
@@ -493,6 +496,7 @@ impl Seerr {
                 .into_iter()
                 .flatten()
                 .map(|c| Person {
+                    id: None,
                     name: c["name"].as_str().unwrap_or_default().to_owned(),
                     role: Some(crate::i18n::tr("seerr.creator")),
                     photo: None,
@@ -505,6 +509,7 @@ impl Seerr {
             .flatten()
             .take(20)
             .map(|c| Person {
+                id: c["id"].as_u64(),
                 name: c["name"].as_str().unwrap_or_default().to_owned(),
                 role: c["character"].as_str().filter(|s| !s.is_empty()).map(str::to_owned),
                 photo: image(c["profilePath"].as_str(), "w185"),
@@ -587,6 +592,20 @@ impl Seerr {
         let relation = if relation == "similar" { "similar" } else { "recommendations" };
         let raw = self.json(&format!("/{kind}/{tmdb_id}/{relation}?page=1&language={}", crate::i18n::language())).await?;
         Ok(with_kind(&raw["results"], Some(kind)).into_iter().map(Self::to_media).collect())
+    }
+
+    /// Films et séries d'un acteur (TMDB, par Seerr), les plus connus d'abord, sans doublon.
+    pub async fn person_credits(&self, person_id: u64) -> Result<Vec<SeerrMedia>> {
+        let raw = self.json(&format!("/person/{person_id}/combined_credits?language={}", crate::i18n::language())).await?;
+        let mut cast = raw["cast"].as_array().cloned().unwrap_or_default();
+        cast.sort_by(|a, b| b["popularity"].as_f64().unwrap_or(0.0).total_cmp(&a["popularity"].as_f64().unwrap_or(0.0)));
+        let mut seen = std::collections::HashSet::new();
+        Ok(with_kind(&Value::Array(cast), None)
+            .into_iter()
+            .filter(|r| seen.insert((r.media_type.clone(), r.id)))
+            .take(60)
+            .map(Self::to_media)
+            .collect())
     }
 
     pub async fn slider(&self, slider: Slider, page: u32) -> Result<Vec<SeerrMedia>> {
