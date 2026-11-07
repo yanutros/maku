@@ -342,6 +342,11 @@ input.switch:checked::after {
   transform: translateX(24px);
 }
 
+input.switch:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
 html.tv input.switch:focus {
   outline-offset: 4px;
 }

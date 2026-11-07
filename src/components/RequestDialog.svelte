@@ -79,6 +79,7 @@
               <label class:locked={isLocked(s)}>
                 <input
                   type="checkbox"
+                  class="switch"
                   disabled={isLocked(s)}
                   checked={selected.includes(s.seasonNumber)}
                   onchange={() => toggle(s.seasonNumber)}

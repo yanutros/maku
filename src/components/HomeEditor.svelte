@@ -41,7 +41,7 @@
   {#each rows as row, i (row.id)}
     <div class="row-line" class:off={!row.on} data-nav-row>
       <label class="check">
-        <input type="checkbox" checked={row.on} onchange={() => toggle(row)} />
+        <input type="checkbox" class="switch" checked={row.on} onchange={() => toggle(row)} />
         <span>{label(row.id)}</span>
         {#if row.id.startsWith("lib:")}<span class="muted small">{t("settings.interface.homePinned")}</span>{/if}
       </label>
