@@ -1,6 +1,6 @@
 <script lang="ts">
   import { menuable } from "../lib/longpress";
-  import { focusTabs, moveFocus } from "../lib/spatial";
+  import { focusTabs, moveFocus, reveal } from "../lib/spatial";
   import type { TvCard } from "../lib/tvcards";
   import Icon from "./Icon.svelte";
 
@@ -29,16 +29,16 @@
   });
 
   /** Première rangée : la page remonte tout en haut (titre et onglets visibles) ; sinon la case se centre. */
-  function reveal(el: HTMLElement, i: number) {
+  function show(el: HTMLElement, i: number) {
     if (i < columns) root?.closest(".content")?.scrollTo({ top: 0, behavior: "smooth" });
-    else el.scrollIntoView({ block: "center", behavior: "smooth" });
+    else reveal(el, { center: true });
   }
 
   function focusAt(i: number) {
     const el = root?.querySelector<HTMLElement>(`[data-index="${i}"]`);
     if (!el) return;
     el.focus({ preventScroll: true });
-    reveal(el, i);
+    show(el, i);
   }
 
   function onFocusIn(e: FocusEvent) {
@@ -47,7 +47,7 @@
     index = Number(i);
     // Une case de la première rangée sélectionnée alors que la page est déjà descendue (changement
     // d'onglet, retour sur la page) : la page remonte, sinon la rangée reste coupée en haut.
-    if (index < columns && (root?.closest(".content")?.scrollTop ?? 0) > 0) reveal(e.target as HTMLElement, index);
+    if (index < columns && (root?.closest(".content")?.scrollTop ?? 0) > 0) show(e.target as HTMLElement, index);
     if (index >= cards.length - columns * 3) onEnd?.();
   }
 

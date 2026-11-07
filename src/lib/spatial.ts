@@ -67,6 +67,62 @@ function best(from: DOMRect, dir: Dir, candidates: HTMLElement[]): HTMLElement |
 
 const rowLast = new WeakMap<Element, HTMLElement>();
 
+/** Ancêtre qui défile dans ce sens (sinon la page). */
+function scroller(el: HTMLElement, axis: "x" | "y"): HTMLElement | null {
+  for (let p = el.parentElement; p; p = p.parentElement) {
+    const style = getComputedStyle(p);
+    const overflow = axis === "y" ? style.overflowY : style.overflowX;
+    const room = axis === "y" ? p.scrollHeight - p.clientHeight : p.scrollWidth - p.clientWidth;
+    if ((overflow === "auto" || overflow === "scroll") && room > 1) return p;
+  }
+  return document.scrollingElement as HTMLElement | null;
+}
+
+/** Cadre de sélection (contour et son décalage) et marge laissée autour, comme dans Plex et Wholphin. */
+const RING = 8;
+
+/**
+ * Fait défiler pour que l'élément sélectionné soit vu en entier, cadre compris, avec une marge par rapport
+ * aux bords — `scrollIntoView` le collait au bord, et le cadre (voire le bas de l'élément) sortait de
+ * l'écran. La zone visible est celle de l'écran réel (`visualViewport`), qui peut être plus petite que la
+ * page sur un téléviseur. `center` : l'élément vient au milieu (rangées d'une fiche, grilles).
+ */
+export function reveal(el: HTMLElement, opts: { center?: boolean; inline?: "center" | "nearest" } = {}) {
+  const vv = window.visualViewport;
+  const screen = {
+    top: vv?.offsetTop ?? 0,
+    bottom: vv ? vv.offsetTop + vv.height : window.innerHeight,
+    left: vv?.offsetLeft ?? 0,
+    right: vv ? vv.offsetLeft + vv.width : window.innerWidth,
+  };
+  const r = el.getBoundingClientRect();
+  const delta = (start: number, end: number, from: number, to: number, center: boolean, margin: number) => {
+    const lo = from + margin;
+    const hi = to - margin;
+    if (center) return (start + end) / 2 - (from + to) / 2;
+    if (end - start > hi - lo) return start - lo;
+    if (start < lo) return start - lo;
+    if (end > hi) return end - hi;
+    return 0;
+  };
+  const sy = scroller(el, "y");
+  if (sy) {
+    const box = sy === document.scrollingElement ? screen : sy.getBoundingClientRect();
+    const top = Math.max(box.top, screen.top);
+    const bottom = Math.min(box.bottom, screen.bottom);
+    const dy = delta(r.top - RING, r.bottom + RING, top, bottom, !!opts.center, Math.min(64, (bottom - top) * 0.1));
+    if (Math.abs(dy) > 1) sy.scrollBy({ top: dy, behavior: "smooth" });
+  }
+  const sx = scroller(el, "x");
+  if (sx && sx !== document.scrollingElement) {
+    const box = sx.getBoundingClientRect();
+    const left = Math.max(box.left, screen.left);
+    const right = Math.min(box.right, screen.right);
+    const dx = delta(r.left - RING, r.right + RING, left, right, opts.inline === "center", Math.min(48, (right - left) * 0.05));
+    if (Math.abs(dx) > 1) sx.scrollBy({ left: dx, behavior: "smooth" });
+  }
+}
+
 /** Visible horizontalement (une rangée qui défile peut avoir son début hors de l'écran). */
 function onScreenX(el: HTMLElement): boolean {
   const r = el.getBoundingClientRect();
@@ -81,7 +137,7 @@ function show(el: HTMLElement, first: boolean) {
   el.focus({ preventScroll: true });
   // Première rangée : on remonte tout en haut, pour revoir le bandeau du titre.
   if (first) el.closest<HTMLElement>("[data-nav-rows]")?.closest(".content")?.scrollTo({ top: 0, behavior: "smooth" });
-  else el.scrollIntoView({ block: "center", inline: "nearest", behavior: "smooth" });
+  else reveal(el, { center: true });
 }
 
 /** Page en rangées : haut / bas d'une rangée à l'autre. `false` : la flèche n'est pas pour elle. */
@@ -95,7 +151,7 @@ function moveInRows(current: HTMLElement, dir: Dir): boolean {
     const target = best(current.getBoundingClientRect(), dir, inRow.filter((el) => el !== current));
     if (target) {
       target.focus({ preventScroll: true });
-      target.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" });
+      reveal(target, { inline: "center" });
       return true;
     }
     return dir === "ArrowRight";
@@ -130,7 +186,7 @@ export function focusTabs(): boolean {
     document.querySelector<HTMLElement>('main [role="tablist"] [role="tab"]');
   if (!tab || !visible(tab)) return false;
   tab.focus({ preventScroll: true });
-  tab.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  reveal(tab);
   return true;
 }
 
@@ -211,7 +267,7 @@ export function moveFocus(dir: Dir): boolean {
     if (back && back.isConnected && visible(back) && onScreen(back)) target = back;
   }
   target.focus({ preventScroll: true });
-  target.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "smooth" });
+  reveal(target);
   return true;
 }
 
