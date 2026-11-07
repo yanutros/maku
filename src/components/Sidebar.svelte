@@ -668,7 +668,7 @@
     width: 58px;
     max-height: calc(100% - 32px);
     margin: 0 0 0 10px;
-    padding: 8px 0;
+    padding: 12px 0;
     border-radius: 29px;
   }
 
@@ -678,9 +678,10 @@
     display: none;
   }
 
+  /* Espacées pour que le cadre de sélection (contour décalé de 2 px) ne touche jamais le rond voisin. */
   .pill nav {
     align-items: center;
-    gap: 4px;
+    gap: 12px;
   }
 
   .pill .item,
@@ -712,13 +713,13 @@
   }
 
   .pill .profile-card {
-    gap: 4px;
-    margin-top: 6px;
+    gap: 12px;
+    margin-top: 12px;
   }
 
   .pill > .profile,
   .pill > .item.settings {
-    margin-top: 6px;
+    margin-top: 12px;
   }
 
   :global(html.tv) .pill :focus {
