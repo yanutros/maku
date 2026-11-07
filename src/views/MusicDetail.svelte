@@ -6,6 +6,8 @@
   import PosterCard from "../components/PosterCard.svelte";
   import Icon from "../components/Icon.svelte";
   import { t } from "../lib/i18n";
+  import { device } from "../lib/device";
+  import { useAmbient } from "../lib/ambient.svelte";
 
   let { item }: { item: ItemDetail } = $props();
 
@@ -13,6 +15,9 @@
   let tracks = $state<Item[] | null>(null);
 
   const isArtist = $derived(item.kind === "artist");
+  // Téléviseur : le fond flouté de la pochette est posé derrière toute la fenêtre, menu compris (App.svelte) :
+  // la page, qui glisse quand le menu se déplie, ne peut pas le dessiner jusqu'au bord elle-même.
+  $effect(() => (device.tv ? useAmbient(item.poster ?? null) : undefined));
   const label: Record<string, string> = {
     artist: t("music.detail.kind.artist"),
     album: t("music.detail.kind.album"),
@@ -126,9 +131,10 @@
 </div>
 
 <style>
+  /* Jusqu'au bord de la fenêtre, derrière le menu translucide (comme « En cours de lecture »). */
   .backdrop {
     position: fixed;
-    inset: 0 0 0 var(--sidebar-w, 237px);
+    inset: 0;
     z-index: 0;
     background-size: cover;
     background-position: center;
@@ -136,6 +142,10 @@
     opacity: 0.35;
     mask-image: linear-gradient(#000 0%, transparent 70%);
     pointer-events: none;
+  }
+
+  :global(html.tv) .backdrop {
+    display: none;
   }
 
   .detail {
