@@ -93,7 +93,11 @@
       "passthroughAuto": "Automatisch",
       "passthroughOff": "Hier gedecodeerd",
       "passthroughDetected": "Formaten die de audio-uitgang ongewijzigd aanneemt: {{formats}} · {{channels}} kanalen.",
-      "passthroughNone": "De huidige audio-uitgang neemt geen enkel formaat ongewijzigd aan: het geluid wordt door het apparaat gedecodeerd ({{channels}} kanalen)."
+      "passthroughNone": "De huidige audio-uitgang neemt geen enkel formaat ongewijzigd aan: het geluid wordt door het apparaat gedecodeerd ({{channels}} kanalen).",
+      "diag": "Diagnoselogboek",
+      "diagHint": "Als het apparaat vastloopt tijdens een video, of een weergave mislukt, stuur dan dit logboek met een beschrijving van het probleem. Het beschrijft het apparaat, de laatste weergaven, fouten en het vrije geheugen. Serveradressen, tokens en ID's staan er niet in.",
+      "diagShare": "Logboek delen",
+      "diagPhoneHint": "Scan deze QR-code met je telefoon op hetzelfde netwerk: die downloadt het logboek, dat je daarna per bericht of e-mail kunt sturen."
     },
     "interface": {
       "menuReset": "Menu hersteld",

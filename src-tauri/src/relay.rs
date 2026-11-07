@@ -8,6 +8,9 @@
 //!
 //! Le relais des Réglages sert aussi, à l'adresse `…/tmdb`, une page où coller sa clé d'API TMDB
 //! (`relay-tmdb.html`), avec son propre avancement.
+//!
+//! Et, à l'adresse `…/journal`, le journal de diagnostic d'Android que l'interface y a déposé : le
+//! téléphone le télécharge, pour l'envoyer.
 
 use anyhow::{anyhow, Result};
 use std::net::{IpAddr, UdpSocket};
@@ -38,6 +41,8 @@ struct Shared {
     /// Page de la clé TMDB (relais des Réglages seulement).
     tmdb_page: Option<String>,
     tmdb_status: Mutex<String>,
+    /// Journal de diagnostic à télécharger (déposé par l'interface).
+    journal: Mutex<Option<String>>,
 }
 
 const WAITING: &str = r#"{"step":"waiting"}"#;
@@ -48,6 +53,10 @@ impl Relay {
     pub fn set_status(&self, json: String, tmdb: bool) {
         let slot = if tmdb { &self.shared.tmdb_status } else { &self.shared.status };
         *slot.lock().unwrap() = json;
+    }
+
+    pub fn set_journal(&self, text: String) {
+        *self.shared.journal.lock().unwrap() = Some(text);
     }
 }
 
@@ -88,6 +97,7 @@ pub async fn start(app: AppHandle, login: Option<(&str, &str)>) -> Result<Relay>
         status: Mutex::new(WAITING.into()),
         tmdb_page: login.is_none().then(|| lang(TMDB_PAGE.replace("/*I18N*/{}", &crate::i18n::section_json("relayTmdb")))),
         tmdb_status: Mutex::new(WAITING.into()),
+        journal: Mutex::new(None),
     });
 
     let task = {
@@ -148,7 +158,9 @@ async fn serve(mut conn: TcpStream, app: &AppHandle, shared: &Shared) -> Result<
     let tmdb = format!("{base}/tmdb");
     let html = "text/html; charset=utf-8";
     let ok = || ("200 OK", "application/json", r#"{"ok":true}"#.to_string());
+    let journal = shared.journal.lock().unwrap().clone();
     let (code, kind, content) = match (method, path, shared.tmdb_page.as_ref()) {
+        ("GET", p, _) if p == format!("{base}/journal") && journal.is_some() => ("200 OK", "text/plain; charset=utf-8", journal.unwrap_or_default()),
         ("GET", p, _) if p == base => ("200 OK", html, shared.page.clone()),
         ("GET", p, _) if p == format!("{base}/status") => ("200 OK", "application/json", shared.status.lock().unwrap().clone()),
         ("POST", p, _) if p == format!("{base}/{}", shared.route) => {
@@ -165,8 +177,14 @@ async fn serve(mut conn: TcpStream, app: &AppHandle, shared: &Shared) -> Result<
         }
         _ => ("404 Not Found", "text/plain", crate::i18n::tr("relay.notFound")),
     };
+    // Le journal arrive comme un fichier à enregistrer, pour l'envoyer ensuite.
+    let download = if kind.starts_with("text/plain") && code == "200 OK" {
+        "Content-Disposition: attachment; filename=\"maku-journal.txt\"\r\n"
+    } else {
+        ""
+    };
     let response = format!(
-        "HTTP/1.1 {code}\r\nContent-Type: {kind}\r\nContent-Length: {}\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n{content}",
+        "HTTP/1.1 {code}\r\nContent-Type: {kind}\r\n{download}Content-Length: {}\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n{content}",
         content.len()
     );
     conn.write_all(response.as_bytes()).await?;

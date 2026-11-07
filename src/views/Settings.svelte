@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { passthroughAvailable, passthroughFormats, passthroughMode, setPassthroughMode } from "../lib/player.svelte";
+  import { diagAvailable, diagShare, diagText, passthroughAvailable, passthroughFormats, passthroughMode, setPassthroughMode } from "../lib/player.svelte";
   import { invoke } from "@tauri-apps/api/core";
   import { onMount, tick } from "svelte";
   import { listen } from "@tauri-apps/api/event";
@@ -250,6 +250,28 @@
       unlistenTmdb?.();
       api.relayStop().catch(() => {});
       relayUrl = null;
+    };
+  });
+
+  // Journal de diagnostic, sur tablette et téléviseur : le téléphone le télécharge par le relais (QR code).
+  let diagUrl = $state<string | null>(null);
+  let diagError = $state<string | null>(null);
+  $effect(() => {
+    if (page !== "player" || !diagAvailable || device.phone) return;
+    let closed = false;
+    api.relayStart().then(
+      async (url) => {
+        if (closed) return;
+        const header = `Serveur : ${session.serverBrand} · interface ${device.tv ? "TV" : "tablette"}\n`;
+        await invoke("relay_journal", { text: header + diagText() });
+        if (!closed) diagUrl = url + "/journal";
+      },
+      (e) => (diagError = errorText(e)),
+    );
+    return () => {
+      closed = true;
+      api.relayStop().catch(() => {});
+      diagUrl = null;
     };
   });
 
@@ -692,6 +714,24 @@
           <p class="muted">{t("settings.player.intro")}</p>
           <label>{t("settings.player.mpvPath")} <input bind:value={mpvPath} placeholder="C:\Program Files\mpv\mpv.exe" /></label>
           <div><button class="btn" onclick={saveMpv}>{t("settings.player.save")}</button></div>
+        </section>
+      {/if}
+      {#if diagAvailable}
+        <!-- Android : journal à transmettre quand l'appareil se bloque ou qu'une lecture échoue (DiagLog.kt). -->
+        <section class="card">
+          <h2>{t("settings.player.diag")}</h2>
+          <p class="muted">{t("settings.player.diagHint")}</p>
+          {#if !device.tv}
+            <div><button class="btn" onclick={diagShare}>{t("settings.player.diagShare")}</button></div>
+          {/if}
+          {#if !device.phone}
+            <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+            <div class="phone-setup" tabindex={device.tv ? 0 : undefined}>
+              {#if diagUrl}<QrCode text={diagUrl} size={device.tv ? 240 : 160} />{:else}<div class="qr-wait skeleton"></div>{/if}
+              <p class="muted">{t("settings.player.diagPhoneHint")}</p>
+            </div>
+            {#if diagError}<p class="error">{diagError}</p>{/if}
+          {/if}
         </section>
       {/if}
     {:else if page === "interface"}

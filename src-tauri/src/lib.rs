@@ -1568,6 +1568,14 @@ fn relay_status(state: State<'_, AppState>, status: String, tmdb: Option<bool>) 
     }
 }
 
+/// Journal de diagnostic d'Android, servi par le relais à `…/journal`.
+#[tauri::command]
+fn relay_journal(state: State<'_, AppState>, text: String) {
+    if let Some(relay) = state.relay.lock().unwrap().as_ref() {
+        relay.set_journal(text);
+    }
+}
+
 #[tauri::command]
 fn relay_stop(state: State<'_, AppState>) {
     state.relay.lock().unwrap().take();
@@ -1706,6 +1714,7 @@ pub fn run() {
             relay_start,
             relay_status,
             relay_stop,
+            relay_journal,
             set_app_icon,
             set_language,
         ])

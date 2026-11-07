@@ -93,7 +93,11 @@
       "passthroughAuto": "Automatique",
       "passthroughOff": "Décodé ici",
       "passthroughDetected": "Formats acceptés tels quels par la sortie audio : {{formats}} · {{channels}} canaux.",
-      "passthroughNone": "La sortie audio actuelle n'accepte aucun format tel quel : le son est décodé par l'appareil ({{channels}} canaux)."
+      "passthroughNone": "La sortie audio actuelle n'accepte aucun format tel quel : le son est décodé par l'appareil ({{channels}} canaux).",
+      "diag": "Journal de diagnostic",
+      "diagHint": "Si l'appareil se bloque pendant une vidéo, ou qu'une lecture échoue, envoie ce journal avec ta description du problème. Il décrit l'appareil, les dernières lectures, les erreurs et la mémoire libre. Les adresses de serveur, jetons et identifiants n'y figurent pas.",
+      "diagShare": "Partager le journal",
+      "diagPhoneHint": "Scanne ce QR code avec ton téléphone, connecté au même réseau : il télécharge le journal, à envoyer ensuite par message ou par e-mail."
     },
     "interface": {
       "menuReset": "Menu réinitialisé",

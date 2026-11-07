@@ -310,6 +310,13 @@ pour l'instant que Plex.
 > établie. Si seul le son reste illisible, le serveur (Plex, Jellyfin ou Emby) copie la vidéo d'origine et ne
 > convertit que le son ; sinon, il convertit tout à la volée (HLS, 1080p). La musique est lue directement. La reprise,
 > l'épisode suivant et la progression fonctionnent comme sur ordinateur.
+>
+> **Journal de diagnostic** (**Réglages → Lecteur**) : si l'appareil se bloque pendant une vidéo ou qu'une lecture
+> échoue, Maku garde la trace de l'appareil (modèle, puce, mémoire, écran), de chaque lecture (fichier d'origine ou
+> conversion, décodeurs choisis, format de l'image et du son, images perdues), des erreurs et de la mémoire libre
+> toutes les 30 secondes pendant une vidéo. Chaque ligne est écrite aussitôt, si bien que celles qui précèdent un
+> blocage survivent au redémarrage, et une lecture interrompue est signalée au lancement suivant. Sur téléphone, le
+> journal se partage ; sur TV, un QR code le fait télécharger par le téléphone, sur le réseau local.
 
 > [!TIP]
 > **Sur téléviseur**, l'interface est volontairement plus sobre que sur ordinateur (pas de carrousel animé, de
@@ -655,7 +662,7 @@ traduisez les valeurs sans toucher aux clés ni aux `{{variables}}`, puis décla
 | `src/lib/spatial.ts`, `src/lib/nav.svelte.ts` | navigation à la télécommande (flèches) et bouton Retour d'Android |
 | `src/components/TvRows.svelte`, `TvGrid.svelte`, `src/lib/tvcards.ts` | interface TV : rangées avec fiche en haut, grilles légères ; menu d'un titre à l'appui long (`TvMenu.svelte`, `src/lib/longpress.ts`) |
 | `src/lib/player.svelte.ts` | lecture : mpv sur ordinateur, ExoPlayer natif sur Android (décodeur audio FFmpeg, son transmis à l'ampli ; en secours, flux du serveur qui ne convertit que le son, puis tout) |
-| `src-tauri/gen/android/` | projet Android : manifeste (Android TV, bannière, icônes par couleur), signature, détection du téléviseur et du téléphone, barres système, vidéo en paysage (`MainActivity.kt`), lecteur vidéo natif sous la page (`NativeVideo.kt`), musique en arrière-plan, notification et Android Auto (`MediaService.kt`, bibliothèque lue auprès de Plex dans `PlexLibrary.kt`, pochettes servies à la voiture par `ArtProvider.kt`) |
+| `src-tauri/gen/android/` | projet Android : manifeste (Android TV, bannière, icônes par couleur), signature, détection du téléviseur et du téléphone, barres système, vidéo en paysage (`MainActivity.kt`), lecteur vidéo natif sous la page (`NativeVideo.kt`), journal de diagnostic (`DiagLog.kt`), musique en arrière-plan, notification et Android Auto (`MediaService.kt`, bibliothèque lue auprès de Plex dans `PlexLibrary.kt`, pochettes servies à la voiture par `ArtProvider.kt`) |
 | `src/components/PhoneTabs.svelte`, `src/views/Libraries.svelte` | téléphone : barre d'onglets et liste des bibliothèques |
 | `src-tauri/tauri.conf.json`, `tauri.windows.conf.json` | configuration et paquets ; la fenêtre transparente n'est activée que sous Windows |
 | `.github/workflows/paquets.yml`, `.signpath/` | construction des paquets Windows, Linux et macOS, signature des paquets Windows par SignPath (l'APK est construit à part) |
@@ -686,6 +693,8 @@ La politique de confidentialité complète, en français et en anglais, est dans
   adresse, où partiraient ses jetons. Seul le téléchargement des mises à jour suit les redirections de GitHub vers son stockage.
 - L'interface ne transmet à mpv que des commandes de lecture (pause, position, volume, pistes, file d'attente) ;
   celles qui lancent un programme ou écrivent un fichier sont refusées.
+- Sur Android, le journal de diagnostic reste sur l'appareil tant que vous ne l'envoyez pas vous-même. Les adresses
+  de serveur, adresses IP, jetons et identifiants en sont retirés avant l'écriture ; il ne pèse pas plus de 600 Ko.
 
 ## 🔏 Signature du code
 

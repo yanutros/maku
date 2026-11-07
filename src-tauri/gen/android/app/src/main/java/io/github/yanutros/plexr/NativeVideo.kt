@@ -17,6 +17,7 @@ import android.webkit.WebView
 import android.widget.FrameLayout
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
+import androidx.media3.common.Format
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
@@ -28,7 +29,11 @@ import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.exoplayer.DecoderReuseEvaluation
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.analytics.AnalyticsListener
+import androidx.media3.exoplayer.source.LoadEventInfo
+import androidx.media3.exoplayer.source.MediaLoadData
 import androidx.media3.exoplayer.audio.AudioCapabilities
 import androidx.media3.exoplayer.audio.AudioSink
 import androidx.media3.exoplayer.audio.DefaultAudioSink
@@ -111,6 +116,12 @@ class NativeVideo(private val activity: Activity, private val webView: WebView) 
     // annonce, comme Kodi et Moonfin) ou « off » (tout décodé ici, pour un appareil qui annonce à tort des
     // formats qu'il ne sait pas lire : film muet).
     val passthrough = o.optString("passthrough", "auto") != "off"
+    DiagLog.hide(Uri.parse(o.getString("url")).host)
+    DiagLog.log(
+      "▶ Lecture : ${o.getString("url")} · début à ${o.optLong("offsetMs") / 1000} s · piste son ${o.opt("aid")} · sous-titres ${o.optString("sid")}" +
+        " (${subs.length()} externes) · son vers l'ampli : ${if (passthrough) "automatique" else "décodé ici"}",
+    )
+    DiagLog.playbackStarted()
     val renderers = object : DefaultRenderersFactory(activity) {
       override fun buildAudioSink(context: Context, enableFloatOutput: Boolean, enableAudioOutputPlaybackParams: Boolean): AudioSink {
         val builder = DefaultAudioSink.Builder(context)
@@ -142,14 +153,23 @@ class NativeVideo(private val activity: Activity, private val webView: WebView) 
       override fun onVideoSizeChanged(videoSize: VideoSize) = fit(videoSize)
       override fun onIsPlayingChanged(isPlaying: Boolean) = send()
       override fun onPlaybackStateChanged(state: Int) {
+        val name = when (state) {
+          Player.STATE_BUFFERING -> "chargement"
+          Player.STATE_READY -> "prêt"
+          Player.STATE_ENDED -> "fin du fichier"
+          else -> "à l'arrêt"
+        }
+        DiagLog.log("État : $name à ${p.currentPosition / 1000} s (mémoire tampon jusqu'à ${p.bufferedPosition / 1000} s)")
         if (state == Player.STATE_ENDED) emit(JSONObject().put("ended", true)) else send()
       }
       override fun onPlayerError(error: PlaybackException) {
         // Format ou codec que l'appareil ne sait pas lire : la page demande alors la conversion.
         val decoding = error.errorCode in 4000..4999 || error.errorCode == PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED
+        DiagLog.log("✖ Erreur du lecteur ${error.errorCodeName} à ${p.currentPosition / 1000} s : ${error.message} · cause : ${error.cause}")
         emit(JSONObject().put(if (decoding) "unsupported" else "error", error.message ?: error.errorCodeName))
       }
     })
+    p.addAnalyticsListener(diagnostics)
     p.setMediaItem(item, o.optLong("offsetMs"))
     p.prepare()
     p.play()
@@ -193,6 +213,10 @@ class NativeVideo(private val activity: Activity, private val webView: WebView) 
 
   fun close() {
     handler.removeCallbacksAndMessages(null)
+    player?.let {
+      DiagLog.log("■ Lecture arrêtée à ${it.currentPosition / 1000} s sur ${it.duration.coerceAtLeast(0) / 1000} s")
+      DiagLog.playbackStopped()
+    }
     player?.release()
     player = null
     val root = webView.parent as? ViewGroup
@@ -206,6 +230,30 @@ class NativeVideo(private val activity: Activity, private val webView: WebView) 
   }
 
   fun closeAsync() = handler.post { close() }
+
+  /** Journal de diagnostic : décodeurs choisis, format de l'image et du son, images perdues, erreurs. */
+  private val diagnostics = object : AnalyticsListener {
+    override fun onVideoDecoderInitialized(t: AnalyticsListener.EventTime, decoderName: String, initializedTimestampMs: Long, initializationDurationMs: Long) =
+      DiagLog.log("Décodeur vidéo : $decoderName (${initializationDurationMs} ms)")
+    override fun onAudioDecoderInitialized(t: AnalyticsListener.EventTime, decoderName: String, initializedTimestampMs: Long, initializationDurationMs: Long) =
+      DiagLog.log("Décodeur son : $decoderName (${initializationDurationMs} ms)")
+    override fun onVideoInputFormatChanged(t: AnalyticsListener.EventTime, format: Format, decoderReuseEvaluation: DecoderReuseEvaluation?) =
+      DiagLog.log("Image : ${Format.toLogString(format)}")
+    override fun onAudioInputFormatChanged(t: AnalyticsListener.EventTime, format: Format, decoderReuseEvaluation: DecoderReuseEvaluation?) =
+      DiagLog.log("Son : ${Format.toLogString(format)}")
+    override fun onDroppedVideoFrames(t: AnalyticsListener.EventTime, droppedFrames: Int, elapsedMs: Long) =
+      DiagLog.log("Images perdues : $droppedFrames en ${elapsedMs} ms (à ${t.currentPlaybackPositionMs / 1000} s)")
+    override fun onAudioUnderrun(t: AnalyticsListener.EventTime, bufferSize: Int, bufferSizeMs: Long, elapsedSinceLastFeedMs: Long) =
+      DiagLog.log("Son interrompu : le décodage ne suit pas (${elapsedSinceLastFeedMs} ms sans données)")
+    override fun onVideoCodecError(t: AnalyticsListener.EventTime, videoCodecError: Exception) =
+      DiagLog.log("✖ Erreur du décodeur vidéo : $videoCodecError")
+    override fun onAudioCodecError(t: AnalyticsListener.EventTime, audioCodecError: Exception) =
+      DiagLog.log("✖ Erreur du décodeur son : $audioCodecError")
+    override fun onAudioSinkError(t: AnalyticsListener.EventTime, audioSinkError: Exception) =
+      DiagLog.log("✖ Erreur de la sortie audio : $audioSinkError")
+    override fun onLoadError(t: AnalyticsListener.EventTime, loadEventInfo: LoadEventInfo, mediaLoadData: MediaLoadData, error: java.io.IOException, wasCanceled: Boolean) =
+      DiagLog.log("Erreur de chargement${if (wasCanceled) " (annulé)" else ""} : ${loadEventInfo.uri} · $error")
+  }
 
   // ---------- Pistes ----------
 

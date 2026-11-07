@@ -28,6 +28,7 @@ class MainActivity : TauriActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
     enableEdgeToEdge()
     super.onCreate(savedInstanceState)
+    DiagLog.init(this)
     // Android 17 : sans cette autorisation, les serveurs du réseau local (Jellyfin, Plex en local)
     // sont injoignables.
     if (Build.VERSION.SDK_INT >= 37 && checkSelfPermission(LOCAL_NETWORK) != PackageManager.PERMISSION_GRANTED) {
@@ -52,6 +53,7 @@ class MainActivity : TauriActivity() {
    */
   override fun onResume() {
     super.onResume()
+    DiagLog.log("Maku revient au premier plan")
     notifyPage("__makuResume")
   }
 
@@ -76,7 +78,15 @@ class MainActivity : TauriActivity() {
   /** Maku quitté (bouton Accueil) : la vidéo se met en pause, comme dans Plex. */
   override fun onStop() {
     super.onStop()
+    DiagLog.log("Maku passe en arrière-plan")
     video?.command("pause", "")
+  }
+
+  /** Android demande de libérer de la mémoire : signe d'un appareil à court, noté dans le journal. */
+  override fun onTrimMemory(level: Int) {
+    super.onTrimMemory(level)
+    DiagLog.log("Android demande de libérer de la mémoire (niveau $level)")
+    DiagLog.memory("demande d'Android")
   }
 
   // Le WebView annonce un écran tactile même sur téléviseur : l'interface demande donc à
@@ -117,6 +127,24 @@ class MainActivity : TauriActivity() {
       @JavascriptInterface
       fun audioPassthrough(): String = NativeVideo.passthroughFormats(this@MainActivity)
 
+
+      /** Journal de diagnostic (DiagLog.kt) : une ligne de la page, le texte entier, ou son partage. */
+      @JavascriptInterface
+      fun diagLog(message: String) = DiagLog.log(message)
+
+      @JavascriptInterface
+      fun diagText(): String = DiagLog.text()
+
+      @JavascriptInterface
+      fun diagShare() {
+        val uri = FileProvider.getUriForFile(this@MainActivity, "$packageName.fileprovider", DiagLog.exportFile(this@MainActivity))
+        val send = Intent(Intent.ACTION_SEND)
+          .setType("text/plain")
+          .putExtra(Intent.EXTRA_STREAM, uri)
+          .putExtra(Intent.EXTRA_SUBJECT, "Maku : journal de diagnostic")
+          .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        runOnUiThread { startActivity(Intent.createChooser(send, null)) }
+      }
 
       /** Téléviseur : OK sur un champ de saisie ouvre le clavier (il ne s'ouvre pas au simple passage). */
       @JavascriptInterface

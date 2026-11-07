@@ -111,9 +111,28 @@ type VideoBridge = {
   videoCommand?(name: string, value: string): void;
   videoClose?(): void;
   audioPassthrough?(): string;
+  diagLog?(message: string): void;
+  diagText?(): string;
+  diagShare?(): void;
 };
 const bridge = (globalThis as { PlexrDevice?: VideoBridge }).PlexrDevice;
 const nativeVideo = !!bridge?.videoOpen;
+
+/** Journal de diagnostic d'Android (DiagLog.kt) : lignes de la page, à transmettre en cas de blocage. */
+export const diagAvailable = !!bridge?.diagText;
+export function diag(message: string) {
+  try {
+    bridge?.diagLog?.(message);
+  } catch {
+    // Journal indisponible : la lecture continue.
+  }
+}
+export const diagText = () => bridge?.diagText?.() ?? "";
+export const diagShare = () => bridge?.diagShare?.();
+if (diagAvailable) {
+  addEventListener("error", (e) => diag(`Erreur de la page : ${e.message} (${e.filename?.split("/").pop()}:${e.lineno})`));
+  addEventListener("unhandledrejection", (e) => diag(`Erreur de la page : ${String(e.reason).slice(0, 300)}`));
+}
 
 /** Lecteur natif d'Android : le son peut être envoyé tel quel à l'ampli (réglage de l'appareil). */
 export const passthroughAvailable = nativeVideo && !!bridge?.audioPassthrough;
@@ -251,6 +270,7 @@ export async function play(ratingKey: string, opts: PlayOptions = {}) {
       const s = await invoke<WebStreamInfo>("video_stream", { ratingKey, ...streams, maxKbps, mediaIndex });
       Object.assign(player, { session: s.session, title: s.title, subtitle: s.subtitle, duration: s.durationMs / 1000, native: true });
       markTranscoded();
+      diag(`Maku : qualité réduite choisie (${maxKbps} kb/s), le serveur convertit`);
       web.startNativeStream(s.url, startMs ?? (opts.fromStart ? 0 : s.offsetMs), streams);
       return;
     }
@@ -494,6 +514,7 @@ const web = (() => {
     if (e.unsupported !== undefined || e.error !== undefined) {
       // Codec ou format que l'appareil ne lit pas : le serveur convertit. Si seul le son pose problème,
       // d'abord en gardant la vidéo d'origine ; en cas d'échec, la conversion complète, comme avant.
+      diag(`Maku : ${e.unsupported !== undefined ? `format non lisible ici (${e.unsupported})` : `erreur de lecture (${e.error})`}`);
       if (!fallbackTried) fallback(e.unsupported === "audio" && !player.quality);
       else if (copyTried) fallback(false);
       else stop();
@@ -518,6 +539,7 @@ const web = (() => {
     if (copyTried && player.session) invoke("stop_transcode", { session: player.session }).catch(() => {});
     fallbackTried = true;
     copyTried = copyVideo;
+    diag(copyVideo ? "Maku : secours, le serveur garde l'image et convertit le son" : "Maku : secours, le serveur convertit l'image et le son");
     const key = player.ratingKey;
     try {
       const s = await invoke<{ session: string; url: string }>("video_stream", {
@@ -532,7 +554,8 @@ const web = (() => {
       transcoding = true;
       markTranscoded();
       bridge!.videoOpen!(JSON.stringify({ passthrough: passthroughMode(),  url: s.url, offsetMs: Math.round(player.position * 1000), aid: null, sid: "auto", subFiles: [] }));
-    } catch {
+    } catch (e) {
+      diag(`Maku : secours impossible (${String(e).slice(0, 300)})`);
       stop();
     }
   }

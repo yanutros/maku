@@ -93,7 +93,11 @@
       "passthroughAuto": "Automático",
       "passthroughOff": "Decodificado aquí",
       "passthroughDetected": "Formatos que la salida de audio acepta tal cual: {{formats}} · {{channels}} canales.",
-      "passthroughNone": "La salida de audio actual no acepta ningún formato tal cual: el sonido lo decodifica el dispositivo ({{channels}} canales)."
+      "passthroughNone": "La salida de audio actual no acepta ningún formato tal cual: el sonido lo decodifica el dispositivo ({{channels}} canales).",
+      "diag": "Registro de diagnóstico",
+      "diagHint": "Si el dispositivo se bloquea durante un vídeo, o falla una reproducción, envía este registro con una descripción del problema. Describe el dispositivo, las últimas reproducciones, los errores y la memoria libre. No incluye direcciones de servidor, tokens ni identificadores.",
+      "diagShare": "Compartir el registro",
+      "diagPhoneHint": "Escanea este código QR con tu teléfono, en la misma red: descarga el registro, que luego puedes enviar por mensaje o correo."
     },
     "interface": {
       "menuReset": "Menú restablecido",

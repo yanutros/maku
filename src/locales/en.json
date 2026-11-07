@@ -93,7 +93,11 @@
       "passthroughAuto": "Automatic",
       "passthroughOff": "Decoded here",
       "passthroughDetected": "Formats the audio output takes untouched: {{formats}} · {{channels}} channels.",
-      "passthroughNone": "The current audio output takes no format untouched: sound is decoded by the device ({{channels}} channels)."
+      "passthroughNone": "The current audio output takes no format untouched: sound is decoded by the device ({{channels}} channels).",
+      "diag": "Diagnostic log",
+      "diagHint": "If the device freezes during a video, or a playback fails, send this log along with a description of the problem. It describes the device, recent playbacks, errors and free memory. Server addresses, tokens and IDs are left out.",
+      "diagShare": "Share the log",
+      "diagPhoneHint": "Scan this QR code with your phone, on the same network: it downloads the log, which you can then send by message or email."
     },
     "interface": {
       "menuReset": "Menu reset",

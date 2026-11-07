@@ -21,6 +21,10 @@ Maku ne communique qu'avec les services que vous utilisez :
 Vos jetons de connexion et vos réglages restent sur votre appareil, dans le dossier de l'application. Ils ne sont
 envoyés qu'aux services ci-dessus, pour vous y connecter. Désinstaller Maku les supprime.
 
+Sur Android, Maku tient un journal de diagnostic (appareil, lectures, erreurs, mémoire libre), sans adresse de
+serveur, adresse IP, jeton ni identifiant. Il reste sur l'appareil : il n'est transmis que si vous le partagez
+vous-même depuis Réglages → Lecteur.
+
 ## Contact
 
 Questions ou signalements : [ouvrez un ticket sur GitHub](https://github.com/yanutros/maku/issues).
@@ -46,6 +50,9 @@ Maku only talks to the services you use:
 
 Your sign-in tokens and settings stay on your device, in the app's folder. They are only sent to the services
 above, to sign you in. Uninstalling Maku removes them.
+
+On Android, Maku keeps a diagnostic log (device, playbacks, errors, free memory), without server addresses, IP
+addresses, tokens or IDs. It stays on the device: it is only sent if you share it yourself from Settings → Player.
 
 ## Contact
 

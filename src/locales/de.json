@@ -93,7 +93,11 @@
       "passthroughAuto": "Automatisch",
       "passthroughOff": "Hier dekodiert",
       "passthroughDetected": "Formate, die der Audioausgang unverändert annimmt: {{formats}} · {{channels}} Kanäle.",
-      "passthroughNone": "Der aktuelle Audioausgang nimmt kein Format unverändert an: Der Ton wird vom Gerät dekodiert ({{channels}} Kanäle)."
+      "passthroughNone": "Der aktuelle Audioausgang nimmt kein Format unverändert an: Der Ton wird vom Gerät dekodiert ({{channels}} Kanäle).",
+      "diag": "Diagnoseprotokoll",
+      "diagHint": "Wenn das Gerät während eines Videos einfriert oder eine Wiedergabe fehlschlägt, sende dieses Protokoll mit einer Beschreibung des Problems. Es beschreibt das Gerät, die letzten Wiedergaben, Fehler und den freien Speicher. Serveradressen, Tokens und Kennungen sind nicht enthalten.",
+      "diagShare": "Protokoll teilen",
+      "diagPhoneHint": "Scanne diesen QR-Code mit deinem Handy im selben Netzwerk: Es lädt das Protokoll herunter, das du dann per Nachricht oder E-Mail senden kannst."
     },
     "interface": {
       "menuReset": "Menü zurückgesetzt",
