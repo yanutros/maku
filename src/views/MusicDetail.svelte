@@ -276,6 +276,17 @@
     text-transform: uppercase;
   }
 
+  /* Télécommande : des lignes un peu écartées, et le cadre dessiné à l'intérieur de la ligne sélectionnée,
+     pour ne jamais recouvrir la jaquette ou le texte des lignes voisines. */
+  :global(html.tv) .tracks {
+    gap: 6px;
+  }
+
+  :global(html.tv) button.track:focus {
+    outline-offset: -3px;
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+  }
+
   button.track:hover {
     background: #ffffff0f;
   }

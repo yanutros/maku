@@ -815,6 +815,16 @@
     border-radius: 6px;
   }
 
+  /* Télécommande : le cadre du titre s'écarte du texte sans déborder sur la durée en dessous. */
+  :global(html.tv) .ep-title {
+    margin: -4px -8px 6px;
+    padding: 4px 8px;
+  }
+
+  :global(html.tv) .ep-title:focus {
+    outline-offset: 0;
+  }
+
   .ep-title:hover {
     color: var(--accent);
   }
