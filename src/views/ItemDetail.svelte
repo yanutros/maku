@@ -1,3 +1,15 @@
+<script lang="ts" module>
+  import type { Item as CachedItem, ItemDetail as CachedDetail } from "../lib/api";
+
+  /**
+   * Dernières fiches ouvertes : au retour d'une autre page (fiche d'un acteur…), la fiche s'affiche aussitôt
+   * en entier, et la sélection revient directement là où l'on était, sans passer d'abord par le titre le
+   * temps du chargement. Elle est ensuite remise à jour depuis le serveur.
+   */
+  const cache = new Map<string, { item: CachedDetail; children: CachedItem[]; related: CachedItem[] }>();
+  const CACHE_SIZE = 12;
+</script>
+
 <script lang="ts">
   import { onMount } from "svelte";
   import { listen } from "@tauri-apps/api/event";
@@ -14,8 +26,10 @@
 
   let { ratingKey }: { ratingKey: string } = $props();
 
-  let item = $state<ItemDetail | null>(null);
-  let children = $state<Item[]>([]);
+  // svelte-ignore state_referenced_locally
+  const cached = cache.get(ratingKey);
+  let item = $state<ItemDetail | null>(cached?.item ?? null);
+  let children = $state<Item[]>(cached?.children ?? []);
   let error = $state<string | null>(null);
   let audioStream = $state<number | null>(null);
   let subtitleStream = $state<number>(0);
@@ -29,11 +43,14 @@
     subtitleStream = v.subtitleTracks.find((tr) => tr.selected)?.id ?? 0;
   }
 
+  // Fiche gardée en mémoire : ses pistes par défaut tout de suite, sans attendre la mise à jour.
+  if (cached) pickTracks(cached.item.versions?.[0] ?? cached.item);
+
   function chooseVersion(e: Event) {
     version = Number((e.target as HTMLSelectElement).value);
     if (media) pickTracks(media);
   }
-  let related = $state<Item[]>([]);
+  let related = $state<Item[]>(cached?.related ?? []);
   let summaryOpen = $state(false);
   let root = $state<HTMLElement>();
   let fade = $state(0);
@@ -44,13 +61,26 @@
       item = detail;
       if (version >= (detail.versions?.length ?? 1)) version = 0;
       pickTracks(detail.versions?.[version] ?? detail);
-      if (detail.kind === "movie" || detail.kind === "show") api.related(ratingKey).then((r) => (related = r), () => {});
+      const remember = () => {
+        cache.delete(ratingKey);
+        cache.set(ratingKey, { item: detail, children, related });
+        if (cache.size > CACHE_SIZE) cache.delete(cache.keys().next().value!);
+      };
+      if (detail.kind === "movie" || detail.kind === "show")
+        api.related(ratingKey).then(
+          (r) => {
+            related = r;
+            remember();
+          },
+          () => {},
+        );
       children =
         detail.kind === "show" || detail.kind === "season"
           ? await api.children(ratingKey)
           : detail.kind === "collection"
             ? await api.collectionItems(ratingKey)
             : [];
+      remember();
     } catch (e) {
       error = errorText(e);
     }
@@ -352,6 +382,7 @@
           <!-- Comme dans Plex : un acteur ouvre la liste de ses films et séries du serveur. -->
           <button
             class="person"
+            data-key="person-{person.id ?? person.name}"
             disabled={person.id === null}
             onclick={() => person.id !== null && go({ name: "person", id: person.id, personName: person.name, photo: person.photo })}
           >
@@ -832,9 +863,26 @@
     transition: transform 0.2s var(--ease), box-shadow 0.2s;
   }
 
-  .person:not(:disabled):hover .avatar {
+  /* Souris seulement : sur téléviseur, Android laisse l'acteur ouvert « survolé » au retour, et son
+     cercle doré s'ajoutait à la sélection (deux acteurs ciblés). */
+  :global(html:not(.tv)) .person:not(:disabled):hover .avatar {
     transform: scale(1.05);
     box-shadow: 0 0 0 3px var(--accent);
+  }
+
+  /* Télécommande : la sélection entoure la photo (cercle doré), comme dans Plex, plutôt qu'un carré
+     autour de la photo et du nom. */
+  :global(html.tv) .person:focus {
+    outline: none;
+  }
+
+  :global(html.tv) .person:focus .avatar {
+    transform: scale(1.06);
+    box-shadow: 0 0 0 4px var(--accent);
+  }
+
+  :global(html.tv) .person:focus .name {
+    color: var(--accent);
   }
 
   .avatar {

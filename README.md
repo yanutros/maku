@@ -331,6 +331,8 @@ pour l'instant que Plex.
 > le menu du titre : reprendre ou recommencer, liste de visionnage, note, retrait de « Continuer à regarder »,
 > vu / non vu, et pour la musique lecture aléatoire, aller à l'artiste ou à l'album. Après un choix du menu,
 > comme au retour d'une fiche (bouton Retour), la page reste là où vous étiez, sur la même rangée et la même jaquette.
+> Au retour de la fiche d'un acteur, la fiche du film ou de la série réapparaît aussitôt (les dernières sont
+> gardées en mémoire), la sélection directement sur l'acteur, entouré d'un cercle doré comme dans Plex.
 > Vu, non vu et la note s'appliquent sur place, sans recharger la page, et une petite coche discrète marque
 > les titres vus, comme dans Plex.
 > La musique a son lecteur plein écran, comme dans Plex : la pochette en grand, les commandes qui s'effacent au

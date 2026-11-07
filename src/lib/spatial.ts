@@ -87,7 +87,7 @@ const RING = 8;
  * l'écran. La zone visible est celle de l'écran réel (`visualViewport`), qui peut être plus petite que la
  * page sur un téléviseur. `center` : l'élément vient au milieu (rangées d'une fiche, grilles).
  */
-export function reveal(el: HTMLElement, opts: { center?: boolean; inline?: "center" | "nearest" } = {}) {
+export function reveal(el: HTMLElement, opts: { center?: boolean; inline?: "center" | "nearest"; y?: boolean } = {}) {
   const vv = window.visualViewport;
   const screen = {
     top: vv?.offsetTop ?? 0,
@@ -106,7 +106,7 @@ export function reveal(el: HTMLElement, opts: { center?: boolean; inline?: "cent
     return 0;
   };
   const sy = scroller(el, "y");
-  if (sy) {
+  if (sy && opts.y !== false) {
     const box = sy === document.scrollingElement ? screen : sy.getBoundingClientRect();
     const top = Math.max(box.top, screen.top);
     const bottom = Math.min(box.bottom, screen.bottom);

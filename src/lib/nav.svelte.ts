@@ -1,4 +1,5 @@
 import type { Genre, Item, SeerrMedia } from "./api";
+import { reveal } from "./spatial";
 
 export type View =
   | { name: "home" }
@@ -56,7 +57,10 @@ export const nav = $state({
  * Où l'on était sur une page : défilement et élément sélectionné (`data-key` du titre, `data-cell` de sa
  * place dans les rangées TV). On y revient après une action qui recharge la page, et au retour d'une autre.
  */
-export type Spot = { scroll: number; key?: string; cell?: string };
+/** `index` : à défaut de `data-key`, la place de l'élément parmi ceux qu'on peut sélectionner dans la page. */
+export type Spot = { scroll: number; key?: string; cell?: string; index?: number };
+
+const SELECTABLE = "button:not(:disabled), a[href], [tabindex]:not([tabindex=\"-1\"])";
 
 // En parallèle de `nav.history` : l'endroit quitté sur chaque page de l'historique.
 const spots: Spot[] = [];
@@ -64,7 +68,10 @@ let pendingSpot: Spot | null = null;
 
 function spot(): Spot {
   const el = document.activeElement as HTMLElement | null;
+  const content = document.querySelector(".content");
+  const index = el && content?.contains(el) ? [...content.querySelectorAll(SELECTABLE)].indexOf(el) : -1;
   return {
+    index: index >= 0 ? index : undefined,
     scroll: document.querySelector(".content")?.scrollTop ?? 0,
     key: el?.closest<HTMLElement>("[data-key]")?.dataset.key,
     cell: el?.closest<HTMLElement>("[data-cell]")?.dataset.cell,
@@ -98,7 +105,7 @@ export function restoreSpot(content: HTMLElement, s: Spot) {
     // Le même titre à la même place, sinon ailleurs ; sinon (retiré de sa rangée) celui qui l'a remplacé.
     const holder =
       same.find(atCell) ?? same[0] ?? (s.cell ? [...content.querySelectorAll<HTMLElement>("[data-cell]")].find((el) => el.dataset.cell === s.cell) : undefined);
-    if (!holder) return null;
+    if (!holder) return !s.key && !s.cell && s.index !== undefined ? (content.querySelectorAll<HTMLElement>(SELECTABLE)[s.index] ?? null) : null;
     return holder.matches("button, a[href], [tabindex]") ? holder : holder.querySelector<HTMLElement>("button, a[href], [tabindex]");
   };
   const attempt = () => {
@@ -108,8 +115,12 @@ export function restoreSpot(content: HTMLElement, s: Spot) {
     if (tall || late) content.scrollTop = s.scroll;
     // Sur téléviseur, la sélection compte autant que le défilement.
     const tv = document.documentElement.classList.contains("tv");
-    if (tall && (el || !tv || !(s.key || s.cell))) {
-      if (el && tv) el.focus({ preventScroll: true });
+    if (tall && (el || !tv || !(s.key || s.cell || s.index !== undefined))) {
+      if (el && tv) {
+        el.focus({ preventScroll: true });
+        // Rangée qui défile de côté (distribution…) : l'élément revient à l'écran.
+        reveal(el, { y: false });
+      }
       return stop();
     }
     if (late) return stop();
