@@ -20,6 +20,7 @@
   import PosterCard from "../components/PosterCard.svelte";
   import Row from "../components/Row.svelte";
   import Icon from "../components/Icon.svelte";
+  import TrackSelect from "../components/TrackSelect.svelte";
   import TitleLogo from "../components/TitleLogo.svelte";
   import { t, locale } from "../lib/i18n";
   import { device } from "../lib/device";
@@ -46,8 +47,8 @@
   // Fiche gardée en mémoire : ses pistes par défaut tout de suite, sans attendre la mise à jour.
   if (cached) pickTracks(cached.item.versions?.[0] ?? cached.item);
 
-  function chooseVersion(e: Event) {
-    version = Number((e.target as HTMLSelectElement).value);
+  function chooseVersion(v: number) {
+    version = v;
     if (media) pickTracks(media);
   }
   let related = $state<Item[]>(cached?.related ?? []);
@@ -310,9 +311,12 @@
             {#if item.versions?.length > 1}
               <label class="track" data-nav-row>
                 <span class="ico" title={t("item.facts.version")}><Icon name="film" size={18} /></span>
-                <select value={version} onchange={chooseVersion} aria-label={t("item.facts.version")}>
-                  {#each item.versions as v, i (i)}<option value={i}>{v.label}</option>{/each}
-                </select>
+                <TrackSelect
+                  value={version}
+                  options={item.versions.map((v, i) => ({ value: i, label: v.label }))}
+                  label={t("item.facts.version")}
+                  onchange={chooseVersion}
+                />
               </label>
             {:else if media?.video}
               <div class="track"><span class="ico" title={t("item.facts.video")}><Icon name="film" size={18} /></span><span class="video">{media.video}</span></div>
@@ -320,18 +324,21 @@
             {#if media?.audioTracks.length}
               <label class="track" data-nav-row>
                 <span class="ico" title={t("item.facts.audio")}><Icon name="audio" size={18} /></span>
-                <select bind:value={audioStream} aria-label={t("item.facts.audio")}>
-                  {#each media.audioTracks as tr (tr.id)}<option value={tr.id}>{tr.label}</option>{/each}
-                </select>
+                <TrackSelect
+                  bind:value={audioStream}
+                  options={media.audioTracks.map((tr) => ({ value: tr.id, label: tr.label }))}
+                  label={t("item.facts.audio")}
+                />
               </label>
             {/if}
             {#if item.playable}
               <label class="track" data-nav-row>
                 <span class="ico" title={t("item.facts.subtitles")}><Icon name="subtitles" size={18} /></span>
-                <select bind:value={subtitleStream} aria-label={t("item.facts.subtitles")}>
-                  <option value={0}>{t("item.facts.none")}</option>
-                  {#each media?.subtitleTracks ?? [] as tr (tr.id)}<option value={tr.id}>{tr.label}</option>{/each}
-                </select>
+                <TrackSelect
+                  bind:value={subtitleStream}
+                  options={[{ value: 0, label: t("item.facts.none") }, ...(media?.subtitleTracks ?? []).map((tr) => ({ value: tr.id, label: tr.label }))]}
+                  label={t("item.facts.subtitles")}
+                />
               </label>
             {/if}
           </div>
@@ -721,14 +728,6 @@
   .video {
     font-size: 14px;
     font-weight: 600;
-  }
-
-  .track select {
-    flex: 1;
-    min-width: 0;
-    padding: 8px 10px;
-    color: var(--text);
-    font-weight: 500;
   }
 
   .episodes {

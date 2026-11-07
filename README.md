@@ -333,6 +333,8 @@ pour l'instant que Plex.
 > comme au retour d'une fiche (bouton Retour), la page reste là où vous étiez, sur la même rangée et la même jaquette.
 > Au retour de la fiche d'un acteur, la fiche du film ou de la série réapparaît aussitôt (les dernières sont
 > gardées en mémoire), la sélection directement sur l'acteur, entouré d'un cercle doré comme dans Plex.
+> Sur la fiche, la version (4K, 1080p…), le son et les sous-titres se choisissent dans une liste qui s'ouvre
+> juste sous le champ, comme sur Apple TV : haut / bas, OK pour choisir, Retour pour refermer sans rien changer.
 > Vu, non vu et la note s'appliquent sur place, sans recharger la page, et une petite coche discrète marque
 > les titres vus, comme dans Plex.
 > La musique a son lecteur plein écran, comme dans Plex : la pochette en grand, les commandes qui s'effacent au
@@ -662,7 +664,7 @@ traduisez les valeurs sans toucher aux clés ni aux `{{variables}}`, puis décla
 | `src/lib/invite.ts`, `src/components/QrCode.svelte` | codes d'invitation, QR codes (qrcode-generator) et lecture d'images (jsQR) |
 | `src/lib/device.ts` | type d'appareil (ordinateur, tablette tactile, téléviseur) et échelle de l'interface sur TV |
 | `src/lib/spatial.ts`, `src/lib/nav.svelte.ts` | navigation à la télécommande (flèches) et bouton Retour d'Android |
-| `src/components/TvRows.svelte`, `TvGrid.svelte`, `src/lib/tvcards.ts` | interface TV : rangées avec fiche en haut, grilles légères ; menu d'un titre à l'appui long (`TvMenu.svelte`, `src/lib/longpress.ts`) |
+| `src/components/TvRows.svelte`, `TvGrid.svelte`, `src/lib/tvcards.ts` | interface TV : rangées avec fiche en haut, grilles légères ; menu d'un titre à l'appui long (`TvMenu.svelte`, `src/lib/longpress.ts`), choix des pistes sous le champ (`TrackSelect.svelte`) |
 | `src/lib/player.svelte.ts` | lecture : mpv sur ordinateur, ExoPlayer natif sur Android (décodeur audio FFmpeg, son transmis à l'ampli ; en secours, flux du serveur qui ne convertit que le son, puis tout) |
 | `src-tauri/gen/android/` | projet Android : manifeste (Android TV, bannière, icônes par couleur), signature, détection du téléviseur et du téléphone, barres système, vidéo en paysage (`MainActivity.kt`), lecteur vidéo natif sous la page (`NativeVideo.kt`), journal de diagnostic (`DiagLog.kt`), musique en arrière-plan, notification et Android Auto (`MediaService.kt`, bibliothèque lue auprès de Plex dans `PlexLibrary.kt`, pochettes servies à la voiture par `ArtProvider.kt`) |
 | `src/components/PhoneTabs.svelte`, `src/views/Libraries.svelte` | téléphone : barre d'onglets et liste des bibliothèques |
