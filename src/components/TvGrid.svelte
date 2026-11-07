@@ -269,7 +269,7 @@
   }
 
   .cell:focus .img {
-    outline: 3px solid #fff;
+    outline: 3px solid var(--accent);
     outline-offset: 3px;
     transform: scale(1.05);
   }
