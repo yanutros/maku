@@ -81,6 +81,8 @@ export interface Item {
   parentIndex: number | null;
   showTitle: string | null;
   showKey: string | null;
+  /** Saison d'un épisode. */
+  seasonKey: string | null;
   albumTitle: string | null;
   albumKey: string | null;
   durationMs: number | null;

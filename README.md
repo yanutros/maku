@@ -340,6 +340,8 @@ pour l'instant que Plex.
 > juste sous le champ, comme sur Apple TV : haut / bas, OK pour choisir, Retour pour refermer sans rien changer.
 > Vu, non vu et la note s'appliquent sur place, sans recharger la page, et une petite coche discrète marque
 > les titres vus, comme dans Plex.
+> La fiche d'un épisode a un bouton **Saison N** qui ramène à la liste des épisodes de sa saison, et celle d'une saison
+> un bouton **Toutes les saisons** qui remonte à la série (Plex, Jellyfin et Emby).
 > La musique a son lecteur plein écran, comme dans Plex : la pochette en grand, les commandes qui s'effacent au
 > repos, la file d'attente en rangée de pochettes (flèche bas) et un bouton pour tout arrêter. Pendant qu'on parcourt les pages, une petite
 > vignette rappelle le titre en cours, et « En cours de lecture », en tête du menu, rouvre le lecteur.

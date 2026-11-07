@@ -33,6 +33,7 @@ function item(p: Partial<Item> & Pick<Item, "kind" | "title">): Item {
     parentIndex: null,
     showTitle: null,
     showKey: null,
+    seasonKey: null,
     albumTitle: null,
     albumKey: null,
     durationMs: null,

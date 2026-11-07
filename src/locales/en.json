@@ -356,7 +356,9 @@
     "movieCount_other": "{{count}} movies",
     "collectionMovies": "Movies in this collection",
     "trailer": "Trailer",
-    "noTrailer": "No trailer found for this title."
+    "noTrailer": "No trailer found for this title.",
+    "seasonButton": "Season {{number}}",
+    "allSeasons": "All seasons"
   },
   "stats": {
     "title": "My stats",

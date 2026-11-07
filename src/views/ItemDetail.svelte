@@ -235,15 +235,30 @@
               <Icon name="play" size={18} filled />
               {item.viewOffsetMs ? t("item.resume") : t("item.play")}
             </button>
-            {#if item.viewOffsetMs}
-              <button class="btn round big" onclick={() => playThis(true)} title={t("item.playFromStart")}>
-                <Icon name="restart" size={18} />
-              </button>
-            {/if}
           {:else if nextUp}
             <button class="btn primary big" onclick={() => start(nextUp!.ratingKey)}>
               <Icon name="play" size={18} filled />
               {collection ? t("item.playTitle", { title: nextUp.title }) : t("item.episodeNumber", { number: nextUp.index ?? "" })}
+            </button>
+          {/if}
+          <!-- Épisode : retour à la liste des épisodes de sa saison. -->
+          {#if item.kind === "episode" && item.seasonKey}
+            <button class="btn big" onclick={() => go({ name: "item", ratingKey: item!.seasonKey! })}>
+              <Icon name="library" size={18} />
+              {item.parentIndex != null ? t("item.seasonButton", { number: item.parentIndex }) : t("item.episodes")}
+            </button>
+          {/if}
+          <!-- Reprise en cours : recommencer depuis le début, après le bouton de la saison. -->
+          {#if item.playable && item.viewOffsetMs}
+            <button class="btn round big" onclick={() => playThis(true)} title={t("item.playFromStart")}>
+              <Icon name="restart" size={18} />
+            </button>
+          {/if}
+          <!-- Saison : retour à la série, et à toutes ses saisons. -->
+          {#if item.kind === "season" && item.showKey}
+            <button class="btn big" onclick={() => go({ name: "item", ratingKey: item!.showKey! })}>
+              <Icon name="tv" size={18} />
+              {t("item.allSeasons")}
             </button>
           {/if}
           {#if !collection && (item.kind === "movie" || item.kind === "show")}

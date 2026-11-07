@@ -368,6 +368,7 @@ impl JellyfinServer {
             parent_index: v["ParentIndexNumber"].as_u64().map(|n| n as u32),
             show_title,
             show_key,
+            season_key: if kind == "episode" { str_of(&v["SeasonId"]) } else { None },
             album_title: if kind == "track" { str_of(&v["Album"]) } else { None },
             album_key: if kind == "track" { str_of(&v["AlbumId"]) } else { None },
             duration_ms: ms(&v["RunTimeTicks"]),

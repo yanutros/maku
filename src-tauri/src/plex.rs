@@ -700,6 +700,8 @@ pub struct Item {
     /// Série d'un épisode ou d'une saison.
     pub show_title: Option<String>,
     pub show_key: Option<String>,
+    /// Saison d'un épisode : la fiche de l'épisode y ramène (liste des épisodes de la saison).
+    pub season_key: Option<String>,
     /// Album d'un titre.
     pub album_title: Option<String>,
     pub album_key: Option<String>,
@@ -1042,6 +1044,7 @@ impl PlexServer {
             last_played: m.last_viewed_at.map(|t| t * 1000),
             show_title,
             show_key,
+            season_key: m.parent_rating_key.clone().filter(|_| m.kind == "episode"),
             album_title,
             album_key,
             parent_index: m.parent_index,

@@ -356,7 +356,9 @@
     "movieCount_other": "{{count}} films",
     "collectionMovies": "Films in deze collectie",
     "trailer": "Trailer",
-    "noTrailer": "Geen trailer gevonden voor deze titel."
+    "noTrailer": "Geen trailer gevonden voor deze titel.",
+    "seasonButton": "Seizoen {{number}}",
+    "allSeasons": "Alle seizoenen"
   },
   "stats": {
     "title": "Mijn statistieken",

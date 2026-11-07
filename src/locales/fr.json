@@ -356,7 +356,9 @@
     "movieCount_other": "{{count}} films",
     "collectionMovies": "Films de la collection",
     "trailer": "Bande-annonce",
-    "noTrailer": "Pas de bande-annonce trouvée pour ce contenu."
+    "noTrailer": "Pas de bande-annonce trouvée pour ce contenu.",
+    "seasonButton": "Saison {{number}}",
+    "allSeasons": "Toutes les saisons"
   },
   "stats": {
     "title": "Mes statistiques",
