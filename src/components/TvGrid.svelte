@@ -230,10 +230,11 @@
 
   /* Hors de l'écran, une case n'est ni mise en page ni dessinée. Ce mode coupe tout ce qui dépasse
      de la case : la marge intérieure laisse la place au cadre et à l'agrandissement de la sélection. */
+  /* Écart sous la jaquette : sélectionnée, elle grossit et prend un cadre, qui ne doit pas toucher le titre. */
   .cell {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 18px;
     min-width: 0;
     padding: 12px;
     border: none;

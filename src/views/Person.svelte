@@ -33,7 +33,9 @@
 
 <div class="page">
   <header class="person-head">
-    <div class="avatar">{#if photo}<img src={photo} alt="" />{:else}{name.charAt(0)}{/if}</div>
+    <!-- Téléviseur : un arrêt de la télécommande, pour remonter des titres jusqu'à l'acteur. -->
+    <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+    <div class="avatar" tabindex={device.tv ? 0 : undefined}>{#if photo}<img src={photo} alt="" />{:else}{name.charAt(0)}{/if}</div>
     <div>
       <h1>{name}</h1>
       {#if items}
@@ -86,6 +88,11 @@
     font-size: 48px;
     font-weight: 700;
     box-shadow: 0 16px 40px #000a;
+  }
+
+  :global(html.tv) .avatar:focus {
+    outline: none;
+    box-shadow: 0 0 0 4px var(--accent), 0 16px 40px #000a;
   }
 
   .avatar img {
