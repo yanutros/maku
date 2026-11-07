@@ -309,6 +309,16 @@ html.phone ::-webkit-scrollbar {
   display: none;
 }
 
+/* Téléviseur : pas de barres de défilement (la télécommande fait défiler, elles ne servent à rien).
+   Seules les barres disparaissent : les pages et les rangées défilent comme avant. */
+html.tv * {
+  scrollbar-width: none;
+}
+
+html.tv ::-webkit-scrollbar {
+  display: none;
+}
+
 /* Téléphone : pas de « ⋮ » sur les affiches ; un appui long ouvre le même menu (comme Plex). */
 html.phone .more {
   display: none;
