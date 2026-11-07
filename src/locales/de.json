@@ -11,13 +11,14 @@
     },
     "menu": {
       "account": "Konto",
-      "services": "Seerr und Tracearr",
+      "services": "Dienste",
       "player": "Player",
       "interface": "Oberfläche",
       "server": "Server {{name}}",
       "dashboard": "Dashboard",
       "advanced": "Erweiterte Einstellungen anzeigen",
-      "locked": "Die Servereinstellungen sind seinem Administrator vorbehalten."
+      "locked": "Die Servereinstellungen sind seinem Administrator vorbehalten.",
+      "serverSettings": "Servereinstellungen"
     },
     "account": {
       "admin": "Serveradministrator",
@@ -136,7 +137,9 @@
       "saved": "TMDB-Schlüssel gespeichert",
       "removed": "TMDB-Schlüssel entfernt",
       "phoneHint": "Einfacher: Scanne diesen QR-Code mit deinem Telefon (selbes WLAN wie der Fernseher) und füge dort deinen Schlüssel ein."
-    }
+    },
+    "showQr": "QR-Code anzeigen",
+    "hideQr": "QR-Code ausblenden"
   },
   "login": {
     "tagline": "Dein Client für Plex, Jellyfin und Emby, mit integrierten Seerr-Anfragen.",

@@ -315,7 +315,7 @@
                   value={version}
                   options={item.versions.map((v, i) => ({ value: i, label: v.label }))}
                   label={t("item.facts.version")}
-                  onchange={chooseVersion}
+                  onchange={(v) => chooseVersion(Number(v))}
                 />
               </label>
             {:else if media?.video}

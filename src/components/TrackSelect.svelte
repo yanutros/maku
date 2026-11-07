@@ -16,13 +16,14 @@
   import { device } from "../lib/device";
   import { reveal } from "../lib/spatial";
 
-  type Option = { value: number; label: string };
+  type Value = string | number;
+  type Option = { value: Value; label: string };
   let {
     value = $bindable(),
     options,
     label,
     onchange,
-  }: { value: number | null; options: Option[]; label: string; onchange?: (value: number) => void } = $props();
+  }: { value: Value | null; options: Option[]; label: string; onchange?: (value: Value) => void } = $props();
 
   // Téléviseur : la liste s'ouvre sous le champ, à sa largeur, comme sur Apple TV (au lieu de la grande
   // fenêtre d'Android au milieu de l'écran). Ailleurs, la liste déroulante du système.
@@ -92,14 +93,16 @@
   </div>
 {:else}
   <select
-    {value}
+    value={String(value)}
     aria-label={label}
     onchange={(e) => {
-      value = Number((e.target as HTMLSelectElement).value);
-      onchange?.(value);
+      const o = options[(e.target as HTMLSelectElement).selectedIndex];
+      if (!o) return;
+      value = o.value;
+      onchange?.(o.value);
     }}
   >
-    {#each options as o (o.value)}<option value={o.value}>{o.label}</option>{/each}
+    {#each options as o (o.value)}<option value={String(o.value)}>{o.label}</option>{/each}
   </select>
 {/if}
 

@@ -148,42 +148,6 @@
     max-width: 460px;
   }
 
-  /* Interrupteur façon tvOS. */
-  .switch {
-    appearance: none;
-    flex: none;
-    position: relative;
-    width: 46px;
-    height: 28px;
-    padding: 0;
-    border: none;
-    border-radius: 14px;
-    background: #ffffff26;
-    cursor: pointer;
-    transition: background 0.2s;
-  }
-
-  .switch::after {
-    content: "";
-    position: absolute;
-    top: 3px;
-    left: 3px;
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    background: #fff;
-    box-shadow: 0 2px 6px #0006;
-    transition: transform 0.2s var(--ease);
-  }
-
-  .switch:checked {
-    background: var(--accent);
-  }
-
-  .switch:checked::after {
-    transform: translateX(18px);
-  }
-
   .savebar {
     position: sticky;
     bottom: 16px;

@@ -5,12 +5,14 @@
   import { listen } from "@tauri-apps/api/event";
   import QrCode from "../components/QrCode.svelte";
   import PasswordInput from "../components/PasswordInput.svelte";
+  import TrackSelect from "../components/TrackSelect.svelte";
   import KofiLogo from "../components/KofiLogo.svelte";
   import { applyInvite, decodeInvite, encodeInvite, readQrImage, type InviteStatus } from "../lib/invite";
   import { api, errorText, tracearrLogin, type Account, type HomeUser, type Pref, type Section, type ServerKinds, type Session } from "../lib/api";
   import { go, nav, toast } from "../lib/nav.svelte";
   import { ordered, saveSidebar, sidebar } from "../lib/sidebar.svelte";
   import { device } from "../lib/device";
+  import { reveal } from "../lib/spatial";
   import { forgetRemoteLogos } from "../lib/logos";
   import { getVersion } from "@tauri-apps/api/app";
   import { checkForUpdate, showReleaseNotes, update } from "../lib/update.svelte";
@@ -34,8 +36,40 @@
     butler: { label: t("settings.groups.butler"), icon: "clock" },
   };
 
+  // Anciennes adresses des rubriques du serveur (une par rubrique) : elles ouvrent l'onglet correspondant.
   // svelte-ignore state_referenced_locally
-  let page = $state(initialPage ?? "account");
+  const legacy = initialPage && (initialPage === "dashboard" || initialPage in GROUPS) ? initialPage : null;
+  // svelte-ignore state_referenced_locally
+  let page = $state(legacy ? "server" : (initialPage ?? "account"));
+  let serverTab = $state(legacy ?? "dashboard");
+
+  /** QR code déplié sous sa ligne (journal, clé TMDB, configuration rapide, Ko-fi) : un seul à la fois. */
+  let qr = $state<string | null>(null);
+
+  async function toggleQr(id: string) {
+    qr = qr === id ? null : id;
+    if (!qr) return;
+    await tick();
+    // La sélection descend sur le QR code, qui vient à l'écran.
+    const el = document.querySelector<HTMLElement>(".settings .qr-open");
+    el?.focus({ preventScroll: true });
+    if (el) reveal(el);
+  }
+
+  function choosePage(id: string) {
+    clearTimeout(previewTimer);
+    if (id === page) return;
+    page = id;
+    qr = null;
+    document.querySelector(".content")?.scrollTo({ top: 0 });
+  }
+
+  // Téléviseur : la rubrique s'ouvre au passage des flèches sur le rail (comme les onglets des bibliothèques).
+  let previewTimer: ReturnType<typeof setTimeout> | undefined;
+  function previewPage(id: string) {
+    clearTimeout(previewTimer);
+    if (id !== page) previewTimer = setTimeout(() => choosePage(id), 250);
+  }
   const KOFI = "https://ko-fi.com/yanutros";
   let account = $state<Account | null>(null);
   let prefs = $state<Pref[] | null>(null);
@@ -425,31 +459,38 @@
 </script>
 
 {#snippet link(id: string, label: string, icon: IconName)}
-  <button class:active={page === id} onclick={() => (page = id)}><Icon name={icon} size={17} /> {label}</button>
+  <button class:active={page === id} aria-current={page === id ? "page" : undefined} onclick={() => choosePage(id)} onfocus={() => device.tv && previewPage(id)}>
+    <Icon name={icon} size={device.tv ? 20 : 17} />
+    <span>{label}</span>
+  </button>
+{/snippet}
+
+{#snippet qrToggle(id: string)}
+  <button class="btn" onclick={() => toggleQr(id)}>
+    <Icon name="image" size={16} />
+    {qr === id ? t("settings.hideQr") : t("settings.showQr")}
+  </button>
 {/snippet}
 
 <div class="page settings">
-  <nav class="menu">
+  <!-- Rail des rubriques (Netflix, Wholphin) : sur téléviseur, la rubrique s'affiche au passage des flèches ;
+       droite entre dans le panneau, gauche revient au rail, sur la rubrique quittée. -->
+  <nav class="menu" data-nav-zone="settings-rail">
     <div class="menu-group">Maku</div>
     {@render link("account", t("settings.menu.account"), "user")}
-    {@render link("services", t("settings.menu.services"), "compass")}
     {#if !device.tv || passthroughAvailable}{@render link("player", t("settings.menu.player"), "play")}{/if}
     {@render link("interface", t("settings.menu.interface"), "menu")}
+    {@render link("services", t("settings.menu.services"), "compass")}
 
     <div class="menu-group">{t("settings.menu.server", { name: session.serverName ?? "" })}</div>
     {#if nav.admin}
-      {@render link("dashboard", t("settings.menu.dashboard"), "server")}
-      {#each groups as g (g)}{@render link(g, GROUPS[g].label, GROUPS[g].icon)}{/each}
-      <label class="adv-toggle">
-        <input type="checkbox" bind:checked={advanced} />
-        {t("settings.menu.advanced")}
-      </label>
+      {@render link("server", t("settings.menu.serverSettings"), "server")}
     {:else}
       <p class="locked"><Icon name="lock" size={14} /> {t("settings.menu.locked")}</p>
     {/if}
   </nav>
 
-  <div class="panel">
+  <div class="panel" data-nav-zone="settings-panel">
     {#if page === "account"}
       <h1 class="title">{t("settings.menu.account")}</h1>
       <!-- En-tête du profil, aux couleurs du thème : photo, nom, badges, et le serveur en cours. -->
@@ -475,7 +516,6 @@
         </div>
       </section>
 
-      <!-- Les réglages du compte, en lignes : le texte à gauche, la commande à droite. -->
       <section class="card list">
         {#if homeUsers.length > 1 && !restricted}
           <label class="line">
@@ -483,7 +523,7 @@
               <strong>{t("settings.account.autoSignIn")}</strong>
               <span class="muted small">{t("settings.account.autoSignInHint")}</span>
             </div>
-            <input type="checkbox" bind:checked={autoSignIn} onchange={toggleAutoSignIn} />
+            <input type="checkbox" class="switch" bind:checked={autoSignIn} onchange={toggleAutoSignIn} />
           </label>
         {/if}
         <div class="line">
@@ -519,108 +559,222 @@
             </button>
           </div>
         </div>
-      </section>
-
-      <!-- Ko-fi, en bannière : un seul logo, en grand. Sur téléviseur, pas de navigateur : un QR code.
-           Pas dans les versions des magasins, dont les règles interdisent les dons par un lien externe. -->
-      {#if !session.store}
-      <section class="card kofi">
-        <span class="kofi-badge"><KofiLogo size={30} /></span>
-        <div class="kofi-text">
-          <strong>{t("settings.account.support")}</strong>
-          <span class="muted">{t("settings.account.supportHint")}</span>
-        </div>
-        {#if device.tv}
-          <QrCode text={KOFI} size={110} />
-        {:else}
-          <button class="btn kofi-btn" onclick={() => invoke("open_url", { url: KOFI }).catch((e) => toast(errorText(e), true))}>{t("settings.account.supportButton")}</button>
+        <!-- Ko-fi : pas dans les versions des magasins, dont les règles interdisent les dons par un lien externe.
+             Sur téléviseur, pas de navigateur : un QR code, affiché à la demande. -->
+        {#if !session.store}
+          <div class="line">
+            <div class="line-text">
+              <strong class="kofi-title"><KofiLogo size={20} /> {t("settings.account.support")}</strong>
+              <span class="muted small">{t("settings.account.supportHint")}</span>
+            </div>
+            {#if device.tv}
+              {@render qrToggle("kofi")}
+            {:else}
+              <button class="btn kofi-btn" onclick={() => invoke("open_url", { url: KOFI }).catch((e) => toast(errorText(e), true))}>{t("settings.account.supportButton")}</button>
+            {/if}
+          </div>
+          {#if qr === "kofi"}
+            <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+            <div class="qr-open" tabindex="0"><QrCode text={KOFI} size={200} /></div>
+          {/if}
         {/if}
       </section>
+    {:else if page === "player"}
+      <h1 class="title">{t("settings.menu.player")}</h1>
+      <section class="card list">
+        {#if passthroughAvailable}
+          <!-- Android : son envoyé tel quel à l'ampli, ou décodé sur l'appareil. -->
+          <div class="line">
+            <div class="line-text">
+              <strong>{t("settings.player.passthrough")}</strong>
+              <span class="muted small">{t("settings.player.passthroughHint")}</span>
+              <span class="muted small">
+                {audioOut?.formats.length
+                  ? t("settings.player.passthroughDetected", { formats: audioOut.formats.join(", "), channels: audioOut.channels })
+                  : t("settings.player.passthroughNone", { channels: audioOut?.channels ?? 2 })}
+              </span>
+            </div>
+            <div class="seg" role="radiogroup" aria-label={t("settings.player.passthrough")}>
+              {#each [{ id: "auto", label: t("settings.player.passthroughAuto") }, { id: "off", label: t("settings.player.passthroughOff") }] as m (m.id)}
+                <button role="radio" class:on={passthrough === m.id} aria-checked={passthrough === m.id} onclick={() => choosePassthrough(m.id as "auto" | "off")}>
+                  {m.label}
+                </button>
+              {/each}
+            </div>
+          </div>
+        {:else}
+          <div class="line">
+            <div class="line-text">
+              <strong>{t("settings.player.mpvPath")}</strong>
+              <span class="muted small">{t("settings.player.intro")}</span>
+            </div>
+            <div class="row grow-row">
+              <input class="grow" bind:value={mpvPath} placeholder="C:\Program Files\mpv\mpv.exe" />
+              <button class="btn" onclick={saveMpv}>{t("settings.player.save")}</button>
+            </div>
+          </div>
+        {/if}
+        {#if diagAvailable}
+          <!-- Android : journal à transmettre quand l'appareil se bloque ou qu'une lecture échoue (DiagLog.kt). -->
+          <div class="line">
+            <div class="line-text">
+              <strong>{t("settings.player.diag")}</strong>
+              <span class="muted small">{t("settings.player.diagHint")}</span>
+            </div>
+            <div class="row">
+              {#if !device.tv}<button class="btn" onclick={diagShare}>{t("settings.player.diagShare")}</button>{/if}
+              {#if !device.phone}{@render qrToggle("diag")}{/if}
+            </div>
+          </div>
+          {#if qr === "diag"}
+            <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+            <div class="qr-open" tabindex="0">
+              {#if diagUrl}<QrCode text={diagUrl} size={device.tv ? 240 : 160} />{:else}<div class="qr-wait skeleton"></div>{/if}
+              <p class="muted">{t("settings.player.diagPhoneHint")}</p>
+            </div>
+            {#if diagError}<p class="error">{diagError}</p>{/if}
+          {/if}
+        {/if}
+      </section>
+    {:else if page === "interface"}
+      <h1 class="title">{t("settings.menu.interface")}</h1>
+      <section class="card list">
+        <div class="line">
+          <div class="line-text"><strong>{t("settings.interface.color")}</strong></div>
+          <div class="themes" role="radiogroup" aria-label={t("settings.interface.color")}>
+            {#each THEMES as th (th)}
+              <button
+                class="theme"
+                class:on={theme === th}
+                role="radio"
+                aria-checked={theme === th}
+                aria-label={THEME_LABELS[th]}
+                title={THEME_LABELS[th]}
+                style:--swatch={THEME_COLORS[th]}
+                onclick={() => chooseTheme(th)}
+              >
+                <span class="swatch">{#if theme === th}<Icon name="check" size={18} />{/if}</span>
+              </button>
+            {/each}
+          </div>
+        </div>
+        <div class="line">
+          <div class="line-text"><strong>{t("settings.interface.language")}</strong></div>
+          <div class="field-slot">
+            <TrackSelect
+              value={language}
+              options={[{ value: "auto", label: t("settings.interface.languageAuto") }, ...LANGUAGES.map((l) => ({ value: l.id, label: l.label }))]}
+              label={t("settings.interface.language")}
+              onchange={(id) => id !== language && setLanguage(id as Parameters<typeof setLanguage>[0])}
+            />
+          </div>
+        </div>
+        {#if !device.tv}
+          <label class="line">
+            <div class="line-text">
+              <strong>{t("settings.interface.collapsed")}</strong>
+              <span class="muted small">{t("settings.interface.collapsedHint")}</span>
+            </div>
+            <input type="checkbox" class="switch" bind:checked={sidebar.collapsed} onchange={saveSidebar} />
+          </label>
+          <div class="line">
+            <div class="line-text">
+              <strong>{t("settings.interface.resetMenu")}</strong>
+              <span class="muted small">{t("settings.interface.reorderHint")}</span>
+            </div>
+            <button class="btn" onclick={resetSidebar}>{t("settings.interface.resetMenu")}</button>
+          </div>
+        {/if}
+      </section>
+
+      <h2 class="group-title">{t("settings.interface.home")}</h2>
+      <section class="card">
+        <p class="muted">{t("settings.interface.homeHint")}</p>
+        <HomeEditor />
+      </section>
+
+      {#if device.tv}
+        <h2 class="group-title">{t("settings.interface.libraries")}</h2>
+        <section class="card">
+          <div class="libs">
+            {#each libraries as s, i (s.key)}
+              {@const off = sidebar.hidden.includes(s.key)}
+              <div class="lib" class:off>
+                <Icon name={s.kind === "movie" ? "film" : s.kind === "artist" ? "music" : "tv"} />
+                <span class="lib-name">{s.title}</span>
+                <button class="btn round" data-lib={s.key} data-dir="-1" disabled={i === 0} onclick={() => moveLibrary(s.key, -1)} aria-label={t("settings.interface.moveUp", { title: s.title })}>
+                  <Icon name="chevronUp" size={18} />
+                </button>
+                <button class="btn round" data-lib={s.key} data-dir="1" disabled={i === libraries.length - 1} onclick={() => moveLibrary(s.key, 1)} aria-label={t("settings.interface.moveDown", { title: s.title })}>
+                  <Icon name="chevronDown" size={18} />
+                </button>
+                <button class="btn round" onclick={() => toggleLibrary(s.key)} aria-label={off ? t("settings.interface.show", { title: s.title }) : t("settings.interface.hide", { title: s.title })}>
+                  <Icon name={off ? "eyeOff" : "eye"} size={18} />
+                </button>
+              </div>
+            {/each}
+          </div>
+          <div><button class="btn" onclick={resetSidebar}>{t("settings.interface.resetMenu")}</button></div>
+        </section>
       {/if}
     {:else if page === "services"}
       <h1 class="title">{t("settings.menu.services")}</h1>
-      <section class="card">
-        <h2>{t("settings.invite.quickSetup")}</h2>
-        {#if device.phone}
-          <!-- Téléphone : l'invitation est souvent une capture reçue par message, choisie dans les photos. -->
-          <p class="muted">{t("settings.invite.photoHint")}</p>
-          <label class="btn primary pick-photo" class:disabled={applying?.step === "running"}>
-            <Icon name="image" size={18} /> {t("settings.invite.pickPhoto")}
-            <input type="file" accept="image/*" hidden onchange={onInviteImage} />
-          </label>
-          <div class="row">
-            <input class="grow" bind:value={pasted} placeholder="MAKU-INVITE:…" spellcheck="false" />
-            <button class="btn" disabled={!pasted.trim() || applying?.step === "running"} onclick={() => runInvite(pasted, false)}>
-              {t("settings.invite.apply")}
-            </button>
+      <section class="card list">
+        <div class="line">
+          <div class="line-text">
+            <strong>{t("settings.invite.quickSetup")}</strong>
+            <span class="muted small">
+              {device.phone ? t("settings.invite.photoHint") : device.mobile ? t("settings.invite.phoneHint") : t("settings.invite.pasteHint")}
+            </span>
           </div>
-        {:else if device.mobile}
-          <!-- Téléviseur : un arrêt de la télécommande, pour faire défiler la page jusqu'au QR code. -->
-          <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-          <div class="phone-setup" tabindex={device.tv ? 0 : undefined}>
-            {#if relayUrl}<QrCode text={relayUrl} size={device.tv ? 300 : 190} />{:else}<div class="qr-wait skeleton"></div>{/if}
-            <p class="muted">
-              {t("settings.invite.phoneHint")}
-            </p>
-          </div>
-          {#if relayError}<p class="error">{relayError}</p>{/if}
-        {:else}
-          <p class="muted">{t("settings.invite.pasteHint")}</p>
-          <div class="row">
-            <input class="grow" bind:value={pasted} placeholder="MAKU-INVITE:…" spellcheck="false" />
-            <button class="btn primary" disabled={!pasted.trim() || applying?.step === "running"} onclick={() => runInvite(pasted, false)}>
-              {t("settings.invite.apply")}
-            </button>
+          {#if device.phone}
+            <label class="btn primary" class:disabled={applying?.step === "running"}>
+              <Icon name="image" size={18} /> {t("settings.invite.pickPhoto")}
+              <input type="file" accept="image/*" hidden onchange={onInviteImage} />
+            </label>
+          {:else if device.mobile}
+            {@render qrToggle("invite")}
+          {:else}
             <label class="btn">
               <Icon name="image" size={16} /> {t("settings.invite.importImage")}
               <input type="file" accept="image/*" hidden onchange={onInviteImage} />
             </label>
+          {/if}
+        </div>
+        {#if device.mobile && !device.phone}
+          {#if qr === "invite"}
+            <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+            <div class="qr-open" tabindex="0">
+              {#if relayUrl}<QrCode text={relayUrl} size={device.tv ? 260 : 190} />{:else}<div class="qr-wait skeleton"></div>{/if}
+              <p class="muted">{t("settings.invite.phoneHint")}</p>
+            </div>
+            {#if relayError}<p class="error">{relayError}</p>{/if}
+          {/if}
+        {:else}
+          <div class="line-body row">
+            <input class="grow" bind:value={pasted} placeholder="MAKU-INVITE:…" spellcheck="false" />
+            <button class="btn primary" disabled={!pasted.trim() || applying?.step === "running"} onclick={() => runInvite(pasted, false)}>
+              {t("settings.invite.apply")}
+            </button>
           </div>
         {/if}
         {#if applying}
-          <ul class="steps">
+          <ul class="steps line-body">
             {#if applying.seerr}<li class={applying.seerr}>{t("settings.invite.stepSeerr", { status: applying.seerrError ?? STEP[applying.seerr] })}</li>{/if}
             {#if applying.tracearr}
               <li class={applying.tracearr}>
                 {t("settings.invite.stepTracearr", {
-                  status:
-                    applying.tracearrError ??
-                    (applying.authUrl ? t("settings.invite.authorizeOnPhone") : STEP[applying.tracearr]),
+                  status: applying.tracearrError ?? (applying.authUrl ? t("settings.invite.authorizeOnPhone") : STEP[applying.tracearr]),
                 })}
               </li>
             {/if}
           </ul>
         {/if}
-        {#if inviteError}<p class="error">{inviteError}</p>{/if}
+        {#if inviteError}<p class="error line-body">{inviteError}</p>{/if}
       </section>
-      {#if nav.admin}
-        <section class="card">
-          <h2>{t("settings.invite.title")}</h2>
-          <p class="muted">
-            {t("settings.invite.intro")}
-          </p>
-          <div class="invite-fields">
-            <label>{t("settings.services.seerrAddress")} <input bind:value={inviteSeerr} placeholder="https://seerr.mondomaine.fr" /></label>
-            <label>{t("settings.services.tracearrAddress")} <input bind:value={inviteTracearr} placeholder="https://tracearr.mondomaine.fr" /></label>
-          </div>
-          {#if inviteCode}
-          <div class="invite">
-            <div bind:this={inviteQr}><QrCode text={inviteCode} size={170} /></div>
-            <div class="invite-side">
-              <code class="invite-code">{inviteCode}</code>
-              {#if !device.tv}
-                <div class="row">
-                  <button class="btn" onclick={copyInviteCode}><Icon name="copy" size={16} /> {t("settings.invite.copyCode")}</button>
-                  <button class="btn" onclick={copyInviteImage}><Icon name="image" size={16} /> {t("settings.invite.copyImage")}</button>
-                </div>
-              {/if}
-            </div>
-          </div>
-          {/if}
-        </section>
-      {/if}
+
+      <h2 class="group-title">Seerr {#if session.seerrUrl}<span class="ok">● {t("settings.services.connected")}</span>{/if}</h2>
       <section class="card">
-        <h2>Seerr</h2>
         <p class="muted">
           {session.serverKind === "jellyfin" ? t("settings.services.seerrIntroJellyfin") : t("settings.services.seerrIntro")}
         </p>
@@ -640,11 +794,10 @@
         </div>
         {#if seerrError}<p class="error">{seerrError}</p>{/if}
       </section>
+
+      <h2 class="group-title">Tracearr {#if session.tracearrConnected}<span class="ok">● {t("settings.services.connected")}</span>{/if}</h2>
       <section class="card">
-        <h2>Tracearr</h2>
-        <p class="muted">
-          {t("settings.services.tracearrIntro")}
-        </p>
+        <p class="muted">{t("settings.services.tracearrIntro")}</p>
         <label>{t("settings.services.tracearrAddress")} <input bind:value={tracearrUrl} placeholder="https://tracearr.mondomaine.fr" /></label>
         <div class="row">
           <button class="btn primary" disabled={tracearrBusy} onclick={connectTracearr}>
@@ -652,19 +805,30 @@
           </button>
           {#if session.tracearrConnected}
             <button class="btn" onclick={disconnectTracearr}>{t("settings.services.logout")}</button>
-            <span class="ok">● {t("settings.services.connected")}</span>
           {/if}
         </div>
         {#if tracearrError}<p class="error">{tracearrError}</p>{/if}
       </section>
+
+      <h2 class="group-title">{t("settings.tmdb.title")} {#if session.tmdb}<span class="ok">● {t("settings.tmdb.active")}</span>{/if}</h2>
       <section class="card">
-        <h2>{t("settings.tmdb.title")}</h2>
         <p class="muted">
           {t("settings.tmdb.intro")}
           <button class="link" onclick={() => invoke("open_url", { url: "https://www.themoviedb.org/settings/api" }).catch(() => {})}>
             themoviedb.org
           </button>
         </p>
+        <!-- Tablette et téléviseur : la clé se colle sur le téléphone, plutôt qu'au clavier de la télécommande. -->
+        {#if device.mobile && !device.phone && relayUrl}
+          <div class="row">{@render qrToggle("tmdb")}</div>
+          {#if qr === "tmdb"}
+            <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+            <div class="qr-open" tabindex="0">
+              <QrCode text={relayUrl + "/tmdb"} size={device.tv ? 240 : 160} />
+              <p class="muted">{t("settings.tmdb.phoneHint")}</p>
+            </div>
+          {/if}
+        {/if}
         <label>
           {t("settings.tmdb.key")}
           <input bind:value={tmdbKey} placeholder={session.tmdb ? "••••••••••••" : ""} spellcheck="false" autocomplete="off" />
@@ -675,178 +839,63 @@
           </button>
           {#if session.tmdb}
             <button class="btn" disabled={tmdbBusy} onclick={() => saveTmdb(true)}>{t("settings.tmdb.remove")}</button>
-            <span class="ok">● {t("settings.tmdb.active")}</span>
           {/if}
         </div>
         {#if tmdbError}<p class="error">{tmdbError}</p>{/if}
-        <!-- Tablette et téléviseur : la clé se colle sur le téléphone, plutôt qu'au clavier de la télécommande. -->
-        {#if device.mobile && !device.phone && relayUrl}
-          <!-- Téléviseur : un arrêt de la télécommande, pour faire défiler la page jusqu'au QR code. -->
-          <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-          <div class="phone-setup" tabindex={device.tv ? 0 : undefined}>
-            <QrCode text={relayUrl + "/tmdb"} size={device.tv ? 240 : 160} />
-            <p class="muted">{t("settings.tmdb.phoneHint")}</p>
-          </div>
-        {/if}
       </section>
-    {:else if page === "player"}
-      <h1 class="title">{t("settings.menu.player")}</h1>
-      {#if passthroughAvailable}
-        <!-- Android : son envoyé tel quel à l'ampli, ou décodé sur l'appareil. -->
+
+      {#if nav.admin}
+        <h2 class="group-title">{t("settings.invite.title")}</h2>
         <section class="card">
-          <h2>{t("settings.player.passthrough")}</h2>
-          <p class="muted">{t("settings.player.passthroughHint")}</p>
-          <div class="seg" role="radiogroup" aria-label={t("settings.player.passthrough")}>
-            {#each [{ id: "auto", label: t("settings.player.passthroughAuto") }, { id: "off", label: t("settings.player.passthroughOff") }] as m (m.id)}
-              <button role="radio" class:on={passthrough === m.id} aria-checked={passthrough === m.id} onclick={() => choosePassthrough(m.id as "auto" | "off")}>
-                {m.label}
-              </button>
-            {/each}
+          <p class="muted">{t("settings.invite.intro")}</p>
+          <div class="invite-fields">
+            <label>{t("settings.services.seerrAddress")} <input bind:value={inviteSeerr} placeholder="https://seerr.mondomaine.fr" /></label>
+            <label>{t("settings.services.tracearrAddress")} <input bind:value={inviteTracearr} placeholder="https://tracearr.mondomaine.fr" /></label>
           </div>
-          <p class="muted small">
-            {audioOut?.formats.length
-              ? t("settings.player.passthroughDetected", { formats: audioOut.formats.join(", "), channels: audioOut.channels })
-              : t("settings.player.passthroughNone", { channels: audioOut?.channels ?? 2 })}
-          </p>
-        </section>
-      {:else}
-        <section class="card">
-          <p class="muted">{t("settings.player.intro")}</p>
-          <label>{t("settings.player.mpvPath")} <input bind:value={mpvPath} placeholder="C:\Program Files\mpv\mpv.exe" /></label>
-          <div><button class="btn" onclick={saveMpv}>{t("settings.player.save")}</button></div>
-        </section>
-      {/if}
-      {#if diagAvailable}
-        <!-- Android : journal à transmettre quand l'appareil se bloque ou qu'une lecture échoue (DiagLog.kt). -->
-        <section class="card">
-          <h2>{t("settings.player.diag")}</h2>
-          <p class="muted">{t("settings.player.diagHint")}</p>
-          {#if !device.tv}
-            <div><button class="btn" onclick={diagShare}>{t("settings.player.diagShare")}</button></div>
-          {/if}
-          {#if !device.phone}
-            <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-            <div class="phone-setup" tabindex={device.tv ? 0 : undefined}>
-              {#if diagUrl}<QrCode text={diagUrl} size={device.tv ? 240 : 160} />{:else}<div class="qr-wait skeleton"></div>{/if}
-              <p class="muted">{t("settings.player.diagPhoneHint")}</p>
+          {#if inviteCode}
+            <div class="invite">
+              <!-- Téléviseur : un arrêt de la télécommande, pour descendre jusqu'au QR code. -->
+              <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+              <div class="invite-qr" bind:this={inviteQr} tabindex={device.tv ? 0 : undefined}><QrCode text={inviteCode} size={170} /></div>
+              <div class="invite-side">
+                <code class="invite-code">{inviteCode}</code>
+                {#if !device.tv}
+                  <div class="row">
+                    <button class="btn" onclick={copyInviteCode}><Icon name="copy" size={16} /> {t("settings.invite.copyCode")}</button>
+                    <button class="btn" onclick={copyInviteImage}><Icon name="image" size={16} /> {t("settings.invite.copyImage")}</button>
+                  </div>
+                {/if}
+              </div>
             </div>
-            {#if diagError}<p class="error">{diagError}</p>{/if}
           {/if}
         </section>
       {/if}
-    {:else if page === "interface"}
-      <h1 class="title">{t("settings.menu.interface")}</h1>
-      <section class="card">
-        <h2>{t("settings.interface.color")}</h2>
-        <div class="themes" role="radiogroup" aria-label={t("settings.interface.color")}>
-          {#each THEMES as th (th)}
-            <button
-              class="theme"
-              class:on={theme === th}
-              role="radio"
-              aria-checked={theme === th}
-              style:--swatch={THEME_COLORS[th]}
-              onclick={() => chooseTheme(th)}
-            >
-              <span class="swatch">{#if theme === th}<Icon name="check" size={20} />{/if}</span>
-              {THEME_LABELS[th]}
-            </button>
-          {/each}
-        </div>
-      </section>
-      <section class="card">
-        <h2>{t("settings.interface.language")}</h2>
-        <div class="languages" role="radiogroup" aria-label={t("settings.interface.language")}>
-          {#each [{ id: "auto", label: t("settings.interface.languageAuto") }, ...LANGUAGES] as lang (lang.id)}
-            <button
-              class="btn"
-              class:primary={language === lang.id}
-              role="radio"
-              aria-checked={language === lang.id}
-              onclick={() => language !== lang.id && setLanguage(lang.id as Parameters<typeof setLanguage>[0])}
-            >
-              {lang.label}
-            </button>
-          {/each}
-        </div>
-      </section>
-      <section class="card">
-        <h2>{t("settings.interface.home")}</h2>
-        <p class="muted">{t("settings.interface.homeHint")}</p>
-        <HomeEditor />
-      </section>
-      {#if device.tv}
-      <section class="card">
-        <h2>{t("settings.interface.libraries")}</h2>
-        <div class="libs">
-          {#each libraries as s, i (s.key)}
-            {@const off = sidebar.hidden.includes(s.key)}
-            <div class="lib" class:off>
-              <Icon name={s.kind === "movie" ? "film" : s.kind === "artist" ? "music" : "tv"} />
-              <span class="lib-name">{s.title}</span>
-              <button class="btn round" data-lib={s.key} data-dir="-1" disabled={i === 0} onclick={() => moveLibrary(s.key, -1)} aria-label={t("settings.interface.moveUp", { title: s.title })}>
-                <Icon name="chevronUp" size={18} />
-              </button>
-              <button class="btn round" data-lib={s.key} data-dir="1" disabled={i === libraries.length - 1} onclick={() => moveLibrary(s.key, 1)} aria-label={t("settings.interface.moveDown", { title: s.title })}>
-                <Icon name="chevronDown" size={18} />
-              </button>
-              <button class="btn round" onclick={() => toggleLibrary(s.key)} aria-label={off ? t("settings.interface.show", { title: s.title }) : t("settings.interface.hide", { title: s.title })}>
-                <Icon name={off ? "eyeOff" : "eye"} size={18} />
-              </button>
-            </div>
-          {/each}
-        </div>
-        <div><button class="btn" onclick={resetSidebar}>{t("settings.interface.resetMenu")}</button></div>
-      </section>
-      {:else}
-      <section class="card">
-        <label class="switch-line">
-          <span>
-            <strong>{t("settings.interface.collapsed")}</strong>
-            <span class="muted">{t("settings.interface.collapsedHint")}</span>
-          </span>
-          <input type="checkbox" bind:checked={sidebar.collapsed} onchange={saveSidebar} />
-        </label>
-        <p class="muted">
-          {t("settings.interface.reorderHint")}
-        </p>
-        <div><button class="btn" onclick={resetSidebar}>{t("settings.interface.resetMenu")}</button></div>
-      </section>
-      {/if}
-    {:else if page === "dashboard"}
-      <h1 class="title">{t("settings.menu.dashboard")}</h1>
-      <ServerDashboard />
-    {:else if GROUPS[page]}
-      <h1 class="title">{GROUPS[page].label}</h1>
-      {#if prefsError}
+    {:else if page === "server" && nav.admin}
+      <h1 class="title">{t("settings.menu.serverSettings")}</h1>
+      <!-- Réglages du serveur Plex, comme dans Plex Web : un onglet par rubrique, au lieu de neuf entrées dans le rail. -->
+      <div class="server-tabs">
+        {#each [{ id: "dashboard", label: t("settings.menu.dashboard") }, ...groups.map((g) => ({ id: g, label: GROUPS[g].label }))] as tab (tab.id)}
+          <button class="btn" class:primary={serverTab === tab.id} aria-pressed={serverTab === tab.id} onclick={() => (serverTab = tab.id)}>{tab.label}</button>
+        {/each}
+      </div>
+      {#if serverTab === "dashboard"}
+        <ServerDashboard />
+      {:else if prefsError}
         <p class="error">{prefsError}</p>
       {:else if !prefs}
         <div class="skeleton" style:height="300px"></div>
       {:else}
-        <ServerPrefs prefs={prefs.filter((p) => p.group === page)} {advanced} onSaved={loadPrefs} />
+        <label class="switch-line adv-line">
+          <span><strong>{t("settings.menu.advanced")}</strong></span>
+          <input type="checkbox" class="switch" bind:checked={advanced} />
+        </label>
+        <ServerPrefs prefs={prefs.filter((p) => p.group === serverTab)} {advanced} onSaved={loadPrefs} />
       {/if}
     {/if}
   </div>
 </div>
 
 <style>
-  .phone-setup {
-    display: flex;
-    align-items: center;
-    gap: 24px;
-  }
-
-  .phone-setup:focus-visible {
-    border-radius: 14px;
-    outline: 3px solid var(--accent);
-    outline-offset: 8px;
-  }
-
-  .phone-setup p {
-    max-width: 320px;
-    margin: 0;
-  }
-
   .qr-wait {
     flex: none;
     width: 190px;
@@ -901,6 +950,16 @@
     gap: 24px;
   }
 
+  .invite-qr {
+    flex: none;
+    border-radius: 12px;
+  }
+
+  .invite-qr:focus {
+    outline: 3px solid var(--accent);
+    outline-offset: 6px;
+  }
+
   .invite-side {
     display: grid;
     gap: 12px;
@@ -919,16 +978,10 @@
     white-space: nowrap;
   }
 
-  .languages {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-
   .themes {
     display: flex;
     flex-wrap: wrap;
-    gap: 22px;
+    gap: 14px;
   }
 
   .theme {
@@ -950,8 +1003,8 @@
   .swatch {
     display: grid;
     place-items: center;
-    width: 54px;
-    height: 54px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
     background: var(--swatch);
     color: #fff;
@@ -1053,20 +1106,6 @@
     color: var(--accent);
   }
 
-  .adv-toggle {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin: 12px 12px 0;
-    color: var(--text-dim);
-    font-size: 13px;
-    cursor: pointer;
-  }
-
-  .adv-toggle input {
-    accent-color: var(--accent);
-  }
-
   .locked {
     display: flex;
     gap: 8px;
@@ -1091,10 +1130,6 @@
     background: #ffffff05;
   }
 
-  .card h2 {
-    margin: 0;
-    font-size: 18px;
-  }
 
   .card p {
     margin: 0;
@@ -1127,6 +1162,105 @@
     color: var(--ok);
     font-size: 13px;
     font-weight: 600;
+  }
+
+  /* ---------- Lignes et groupes, les mêmes sur toutes les rubriques ---------- */
+
+  .group-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    max-width: 720px;
+    margin: 26px 0 10px;
+    font-size: 17px;
+  }
+
+  /* Contenu sous une ligne (champ, étapes, erreur) : aligné sur les lignes de la carte. */
+  .line-body {
+    padding-bottom: 16px;
+  }
+
+  .grow-row {
+    flex: 1;
+    min-width: 260px;
+  }
+
+  .field-slot {
+    display: flex;
+    width: 280px;
+    max-width: 100%;
+  }
+
+  /* QR code déplié sous sa ligne. */
+  .qr-open {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    margin: 0 0 16px;
+    border-radius: 14px;
+  }
+
+  .qr-open p {
+    max-width: 320px;
+    margin: 0;
+  }
+
+  .qr-open:focus {
+    outline: 3px solid var(--accent);
+    outline-offset: 8px;
+  }
+
+  .kofi-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .server-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    max-width: 900px;
+    margin-bottom: 20px;
+  }
+
+  .adv-line {
+    max-width: 720px;
+    margin-bottom: 16px;
+  }
+
+  /* ---------- Téléviseur : rail plus grand, la rubrique ouverte bien marquée ---------- */
+
+  :global(html.tv) .settings {
+    grid-template-columns: 280px minmax(0, 1fr);
+    gap: 40px;
+  }
+
+  :global(html.tv) .menu {
+    padding: 8px;
+    border-radius: 18px;
+    background: #ffffff08;
+  }
+
+  :global(html.tv) .menu button {
+    gap: 14px;
+    padding: 13px 16px;
+    border-radius: 12px;
+    font-size: 16px;
+  }
+
+  :global(html.tv) .menu button.active {
+    background: color-mix(in srgb, var(--accent) 16%, transparent);
+    color: var(--text);
+  }
+
+  :global(html.tv) .menu button:focus {
+    outline: 3px solid var(--accent);
+    outline-offset: 0;
+  }
+
+  :global(html.tv) .card {
+    max-width: none;
   }
 
   /* ---------- Page Compte ---------- */
@@ -1254,33 +1388,6 @@
     color: var(--accent-text);
   }
 
-  .kofi {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 16px;
-    border-color: #ff5e5b55;
-    background: linear-gradient(135deg, #ff5e5b2b, #ffffff05 60%);
-  }
-
-  .kofi-badge {
-    display: grid;
-    flex: none;
-    place-items: center;
-    width: 56px;
-    height: 56px;
-    border-radius: 16px;
-    background: #ff5e5b2e;
-    color: #fff;
-  }
-
-  .kofi-text {
-    display: grid;
-    flex: 1;
-    gap: 3px;
-    min-width: 200px;
-  }
-
   .kofi-btn {
     border-color: transparent;
     background: #ff5e5b;
@@ -1330,11 +1437,6 @@
     gap: 2px;
   }
 
-  .switch-line input {
-    width: 20px;
-    height: 20px;
-    accent-color: var(--accent);
-  }
 
   /* ---------- Téléphone : rubriques en bande défilante, contenu en pleine largeur ---------- */
 
@@ -1366,11 +1468,6 @@
     display: none;
   }
 
-  :global(html.phone) .adv-toggle {
-    flex: none;
-    margin: 0 4px;
-    white-space: nowrap;
-  }
 
   :global(html.phone) .invite,
   .link {
@@ -1382,20 +1479,12 @@
     text-decoration: underline;
   }
 
-  .pick-photo {
-    justify-content: center;
-    width: 100%;
-    height: 48px;
-    margin-bottom: 12px;
-    font-size: 15px;
-  }
-
-  .pick-photo.disabled {
+  label.btn.disabled {
     opacity: 0.5;
     pointer-events: none;
   }
 
-  :global(html.phone) .phone-setup {
+  :global(html.phone) .qr-open {
     flex-direction: column;
     align-items: flex-start;
   }

@@ -11,13 +11,14 @@
     },
     "menu": {
       "account": "Account",
-      "services": "Seerr and Tracearr",
+      "services": "Services",
       "player": "Player",
       "interface": "Interface",
       "server": "Server {{name}}",
       "dashboard": "Dashboard",
       "advanced": "Show advanced settings",
-      "locked": "Server settings are reserved for its administrator."
+      "locked": "Server settings are reserved for its administrator.",
+      "serverSettings": "Server settings"
     },
     "account": {
       "admin": "Server administrator",
@@ -136,7 +137,9 @@
       "saved": "TMDB key saved",
       "removed": "TMDB key removed",
       "phoneHint": "Easier: scan this QR code with your phone (same Wi-Fi as the TV) and paste your key there."
-    }
+    },
+    "showQr": "Show QR code",
+    "hideQr": "Hide QR code"
   },
   "login": {
     "tagline": "Your Plex, Jellyfin and Emby client, with Seerr requests built in.",

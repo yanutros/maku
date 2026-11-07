@@ -123,7 +123,7 @@
     {#if !session.tracearrUrl}
       <div class="empty">
         <p>{t("stats.noUrl")}</p>
-        <button class="btn primary" onclick={() => go({ name: "settings" })}>{t("stats.openSettings")}</button>
+        <button class="btn primary" onclick={() => go({ name: "settings", page: "services" })}>{t("stats.openSettings")}</button>
       </div>
     {:else if needsLogin}
       <div class="empty">

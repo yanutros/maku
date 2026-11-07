@@ -73,7 +73,7 @@ visionnage. Tout se fait avec son compte Plex (ou Jellyfin) : aucune clé d'API 
       d'origine, la note et l'heure de fin, le résumé dessous, puis deux panneaux — l'équipe d'un côté, la
       vidéo, l'audio et les sous-titres de l'autre — la distribution et « Plus de ce genre ».
       Les titres s'affichent avec leur logo officiel, comme dans Jellyfin : celui du serveur, sinon celui du
-      service en ligne de Plex — un logo dans la langue de l'interface passe avant celui du serveur, souvent en anglais —, et en dernier recours de TMDB avec votre clé d'API gratuite (Réglages → Seerr et Tracearr ; sur téléviseur, un QR code permet de la coller depuis le téléphone) ; les épisodes et les saisons reprennent celui de leur série ; sans logo nulle part, une typographie de cinéma choisie selon le genre. La musique, elle, garde ses titres en texte simple.
+      service en ligne de Plex — un logo dans la langue de l'interface passe avant celui du serveur, souvent en anglais —, et en dernier recours de TMDB avec votre clé d'API gratuite (Réglages → Services ; sur téléviseur, un QR code permet de la coller depuis le téléphone) ; les épisodes et les saisons reprennent celui de leur série ; sans logo nulle part, une typographie de cinéma choisie selon le genre. La musique, elle, garde ses titres en texte simple.
     </td>
   </tr>
   <tr>
@@ -484,7 +484,7 @@ règles des magasins n'autorisent pas.
    revenant d'une fiche, la bibliothèque rouvre l'onglet où l'on était (Bibliothèque, Collections, ou la
    catégorie choisie), au même endroit : titres rechargés, défilement retrouvé et, sur téléviseur, la même
    jaquette sélectionnée. Sur téléviseur, les catégories sont les mêmes grandes tuiles colorées que sur ordinateur.
-4. Dans **Réglages → Seerr et Tracearr**, ajoutez si vous le souhaitez Seerr et Tracearr, à la main ou avec
+4. Dans **Réglages → Services**, ajoutez si vous le souhaitez Seerr et Tracearr, à la main ou avec
    l'invitation de l'administrateur (voir ci-dessous).
 
 **Sur téléviseur**, il n'y a pas de navigateur : Maku affiche un code à quatre caractères. Allez sur
@@ -555,15 +555,20 @@ la fiche et de marquer un titre comme vu ou non vu (« non vu » remet aussi à 
 
 ### 🖥️ Réglages du serveur Plex
 
-**Réglages** regroupe les options de Maku (compte, avec son en-tête de profil aux couleurs du thème ; Seerr et Tracearr ; lecteur ; interface) et, pour
-l'administrateur du serveur, celles de Plex : **Tableau de bord** (lectures en cours de tous les utilisateurs,
-recherche de nouveaux fichiers et corbeille de chaque bibliothèque) puis **Général, Bibliothèque, Réseau,
-Transcodeur, DLNA, Bonus et Tâches planifiées**. Les réglages avancés s'affichent sur demande. Un utilisateur
+**Réglages** se présente en rail et panneau, comme Netflix et Wholphin : à gauche les rubriques de Maku (Compte,
+avec son en-tête de profil aux couleurs du thème ; Lecteur ; Interface ; Services : Seerr, Tracearr et TMDB) et, pour
+l'administrateur du serveur, **Réglages du serveur** ; à droite, une ligne par réglage (son nom, une phrase
+d'explication, sa commande : interrupteur, choix ou bouton). Sur téléviseur, la rubrique s'ouvre au passage des
+flèches, droite entre dans le panneau, gauche revient au rail ; les QR codes (journal, clé TMDB, configuration
+rapide, Ko-fi) s'affichent à la demande. **Réglages du serveur** reprend ceux de Plex en onglets : **Tableau de bord**
+(lectures en cours de tous les utilisateurs, recherche de nouveaux fichiers et corbeille de chaque bibliothèque)
+puis **Général, Bibliothèque, Réseau, Transcodeur, DLNA, Bonus et Tâches planifiées**. Les réglages avancés
+s'affichent sur demande. Un utilisateur
 partagé ne voit pas cette partie : Plex la lui refuserait de toute façon.
 
 ### 📨 Inviter des utilisateurs
 
-Dans **Réglages → Seerr et Tracearr**, l'administrateur du serveur trouve **Inviter des utilisateurs** : il y
+Dans **Réglages → Services**, l'administrateur du serveur trouve **Inviter des utilisateurs** : il y
 indique les adresses de Seerr et de Tracearr à partager (pré-remplies avec les siennes, s'il les a configurées) et
 obtient un QR code, et le code équivalent (`MAKU-INVITE:…` ; les anciens `PLEXR-INVITE:` restent acceptés), qui
 les contient **sans aucun identifiant**. Il le copie (texte ou image) pour l'envoyer par message.
@@ -590,7 +595,7 @@ serveur, Maku range leurs adresses et leurs sessions, et retrouve celles du serv
 
 Maku ouvre la session Seerr avec **le compte Plex de l'utilisateur** : les demandes sont faites à son nom, avec
 ses quotas et ses droits. Il n'y a pas de clé API à saisir ; le compte doit simplement avoir été importé dans Seerr
-par l'administrateur. L'adresse de l'instance se règle dans **Réglages → Seerr**. La protection CSRF de Seerr est
+par l'administrateur. L'adresse de l'instance se règle dans **Réglages → Services**. La protection CSRF de Seerr est
 prise en charge.
 
 Avec un serveur **Jellyfin**, Maku demande une fois l'identifiant et le mot de passe : ceux du compte Jellyfin si

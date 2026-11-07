@@ -62,7 +62,7 @@
   <h1 class="row-title page-title">{t("discover.title")}</h1>
   {#if error}
     <p class="error">{error}</p>
-    <button class="btn" onclick={() => go({ name: "settings" })}>{t("discover.configureSeerr")}</button>
+    <button class="btn" onclick={() => go({ name: "settings", page: "services" })}>{t("discover.configureSeerr")}</button>
   {:else}
     {#each SOURCES as s (s.id)}
       {#if rows[s.id] === null}

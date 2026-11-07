@@ -305,6 +305,47 @@ html.phone [role="tablist"] > button {
   white-space: nowrap;
 }
 
+/* Interrupteur qui glisse (façon tvOS) : gris éteint, couleur du thème allumé. Assez grand pour la télécommande. */
+input.switch {
+  appearance: none;
+  flex: none;
+  position: relative;
+  width: 58px;
+  height: 34px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 17px;
+  background: #ffffff2e;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+input.switch::after {
+  content: "";
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 2px 6px #0006;
+  transition: transform 0.2s var(--ease);
+}
+
+input.switch:checked {
+  background: var(--accent);
+}
+
+input.switch:checked::after {
+  transform: translateX(24px);
+}
+
+html.tv input.switch:focus {
+  outline-offset: 4px;
+}
+
 html.phone ::-webkit-scrollbar {
   display: none;
 }
