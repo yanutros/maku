@@ -490,7 +490,8 @@
     {/if}
   </nav>
 
-  <div class="panel" data-nav-zone="settings-panel">
+  <!-- `data-nav-lines` : haut / bas passent par chaque ligne, dans l'ordre (télécommande). -->
+  <div class="panel" data-nav-zone="settings-panel" data-nav-lines>
     {#if page === "account"}
       <h1 class="title">{t("settings.menu.account")}</h1>
       <!-- En-tête du profil, aux couleurs du thème : photo, nom, badges, et le serveur en cours. -->
@@ -669,7 +670,15 @@
             />
           </div>
         </div>
-        {#if !device.tv}
+        {#if device.tv}
+          <label class="line">
+            <div class="line-text">
+              <strong>{t("settings.interface.simpleBar")}</strong>
+              <span class="muted small">{t("settings.interface.simpleBarHint")}</span>
+            </div>
+            <input type="checkbox" class="switch" bind:checked={sidebar.simple} onchange={saveSidebar} />
+          </label>
+        {:else}
           <label class="line">
             <div class="line-text">
               <strong>{t("settings.interface.collapsed")}</strong>

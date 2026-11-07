@@ -322,7 +322,10 @@ pour l'instant que Plex.
 > **Sur téléviseur**, l'interface est volontairement plus sobre que sur ordinateur (pas de carrousel animé, de
 > cartes qui s'agrandissent ni de flou) pour consommer peu de mémoire. Le menu de gauche se déplie en faisant
 > glisser la page vers la droite, comme dans Wholphin, sans la remettre en page : l'animation reste fluide même
-> sur un téléviseur modeste, comme la descente dans une fiche, dont le fond s'assombrit sans être redessiné.
+> sur un téléviseur modeste, comme la descente dans une fiche, dont le fond s'assombrit sans être redessiné. Avec
+> **Réglages → Interface → Barre de navigation simplifiée**, le menu devient une pilule d'icônes flottante, centrée
+> en hauteur, qui ne se déplie plus (la rubrique en cours en rond de la couleur du thème). Dans les Réglages, haut / bas
+> passent d'une ligne à la suivante, quelle que soit la place de la commande dans la ligne.
 > Dans une bibliothèque, la barre d'onglets (Recommandé, Bibliothèque, Catégories…) reste au même endroit d'un
 > onglet à l'autre, et la sélection reste sur l'onglet choisi. Les nouveautés arrivent d'abord sur
 > l'application de bureau. Un élément est toujours sélectionné (à l'arrivée, après une lecture), et les fiches

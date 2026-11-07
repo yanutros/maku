@@ -36,6 +36,29 @@ function scope(): ParentNode {
   return layers.length ? layers[layers.length - 1] : document;
 }
 
+/**
+ * Zone en lignes (`data-nav-lines`, Réglages) : haut / bas passent à la ligne suivante, quelle que soit la
+ * place de l'élément dans la ligne (sinon, d'une commande à droite, la flèche bas sautait les lignes dont
+ * les boutons sont à gauche, et inversement). Dans la ligne, le plus proche horizontalement.
+ */
+function nextLine(from: DOMRect, dir: Dir, candidates: HTMLElement[]): HTMLElement | null {
+  const cx = from.left + from.width / 2;
+  let winner: HTMLElement | null = null;
+  let score = Infinity;
+  for (const el of candidates) {
+    const r = el.getBoundingClientRect();
+    const gap = dir === "ArrowDown" ? r.top - from.bottom : from.top - r.bottom;
+    if (gap < -8) continue;
+    // Lignes à 16 px près : la plus proche d'abord, puis l'élément le plus aligné.
+    const s = Math.round(Math.max(0, gap) / 16) * 1e5 + Math.abs(r.left + r.width / 2 - cx);
+    if (s < score) {
+      score = s;
+      winner = el;
+    }
+  }
+  return winner;
+}
+
 function best(from: DOMRect, dir: Dir, candidates: HTMLElement[]): HTMLElement | null {
   const cx = from.left + from.width / 2;
   const cy = from.top + from.height / 2;
@@ -250,7 +273,9 @@ export function moveFocus(dir: Dir): boolean {
     current && current !== document.body
       ? current.getBoundingClientRect()
       : new DOMRect(window.innerWidth / 2, 0, 0, 0);
-  let target = all.length ? best(from, dir, all) : null;
+  const lines = current?.closest("[data-nav-lines]");
+  const inLines = lines && (dir === "ArrowUp" || dir === "ArrowDown") ? all.filter((el) => lines.contains(el)) : [];
+  let target = inLines.length ? nextLine(from, dir, inLines) : all.length ? best(from, dir, all) : null;
   // Haut depuis le premier élément d'une page descendue : on remonte d'abord tout en haut, pour revoir
   // ce qui n'a rien à sélectionner (bandeau des statistiques…), avant de quitter le contenu.
   const content = document.querySelector<HTMLElement>(".content");

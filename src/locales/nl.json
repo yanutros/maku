@@ -125,7 +125,9 @@
       "homePinned": "bibliotheek",
       "rowUp": "Omhoog",
       "rowDown": "Omlaag",
-      "resetHome": "Startscherm herstellen"
+      "resetHome": "Startscherm herstellen",
+      "simpleBar": "Vereenvoudigde navigatiebalk",
+      "simpleBarHint": "Alleen de pictogrammen, in een balk die niet meer uitklapt: de pagina houdt haar volle breedte."
     },
     "tmdb": {
       "title": "Titellogo's (TMDB)",

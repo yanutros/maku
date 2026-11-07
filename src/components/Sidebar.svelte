@@ -19,6 +19,8 @@
 
   // Ordinateur et téléviseur : panneau flottant, carte du profil en bas (photo, nom, serveur) qui ouvre les Réglages.
   const desk = !device.phone;
+  /** Téléviseur, barre simplifiée (Réglages → Interface) : une pilule d'icônes qui ne se déplie jamais. */
+  const pill = $derived(device.tv && sidebar.simple);
   let account = $state<Account | null>(null);
   let serverKind = $state<"plex" | "jellyfin">("plex");
   let serverBrand = $state("Plex");
@@ -79,12 +81,13 @@
   }
 </script>
 
-<!-- Sur téléviseur, le menu reste replié et ne se déplie que lorsqu'on y entre. -->
+<!-- Sur téléviseur, le menu reste replié et ne se déplie que lorsqu'on y entre (sauf en barre simplifiée). -->
 <aside
-  class:collapsed={sidebar.collapsed}
+  class:collapsed={sidebar.collapsed || pill}
   class:desk
+  class:pill
   data-nav-zone
-  onfocusin={() => device.tv && (sidebar.collapsed = false)}
+  onfocusin={() => device.tv && !pill && (sidebar.collapsed = false)}
   onfocusout={(e) => device.tv && !e.currentTarget.contains(e.relatedTarget as Node) && (sidebar.collapsed = true)}
 >
   <div class="brand">
@@ -658,4 +661,68 @@
   :global(html.tv) aside.collapsed {
     width: 62px;
   }
+  /* ---------- Téléviseur, barre simplifiée : pilule flottante, centrée en hauteur (façon tvOS) ---------- */
+
+  :global(html.tv) aside.pill {
+    align-self: center;
+    width: 58px;
+    max-height: calc(100% - 32px);
+    margin: 0 0 0 10px;
+    padding: 8px 0;
+    border-radius: 29px;
+  }
+
+  .pill .brand,
+  .pill .group,
+  .pill .spacer {
+    display: none;
+  }
+
+  .pill nav {
+    align-items: center;
+    gap: 4px;
+  }
+
+  .pill .item,
+  .pill .profile,
+  .pill .gear-btn {
+    justify-content: center;
+    width: 42px;
+    min-height: 42px;
+    height: 42px;
+    margin: 0 auto;
+    padding: 0;
+    border-radius: 50%;
+  }
+
+  /* La rubrique en cours : un rond plein de la couleur du thème. */
+  .pill .item.active {
+    background: var(--accent);
+    box-shadow: none;
+    color: var(--accent-text);
+  }
+
+  /* Le rond suffit : pas de barre lumineuse sur le côté. */
+  .pill .item.active::before {
+    display: none;
+  }
+
+  .pill .item.active :global(svg) {
+    color: var(--accent-text);
+  }
+
+  .pill .profile-card {
+    gap: 4px;
+    margin-top: 6px;
+  }
+
+  .pill > .profile,
+  .pill > .item.settings {
+    margin-top: 6px;
+  }
+
+  :global(html.tv) .pill :focus {
+    outline-offset: 2px;
+  }
+
 </style>

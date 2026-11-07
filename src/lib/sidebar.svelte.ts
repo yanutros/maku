@@ -4,6 +4,8 @@ const KEY = "plexr.sidebar";
 
 interface Saved {
   collapsed: boolean;
+  /** Téléviseur : barre simplifiée, une pilule d'icônes qui ne se déplie jamais. */
+  simple: boolean;
   order: string[];
   hidden: string[];
 }
@@ -14,11 +16,12 @@ function load(): Saved {
     return {
       // Par défaut, menu replié sur les petits écrans (tablette, téléviseur).
       collapsed: typeof raw.collapsed === "boolean" ? raw.collapsed : window.innerWidth < 1100,
+      simple: raw.simple === true,
       order: Array.isArray(raw.order) ? raw.order : [],
       hidden: Array.isArray(raw.hidden) ? raw.hidden : [],
     };
   } catch {
-    return { collapsed: window.innerWidth < 1100, order: [], hidden: [] };
+    return { collapsed: window.innerWidth < 1100, simple: false, order: [], hidden: [] };
   }
 }
 
@@ -31,8 +34,8 @@ export function collapseForTv() {
 
 export function saveSidebar() {
   try {
-    const { collapsed, order, hidden } = sidebar;
-    localStorage.setItem(KEY, JSON.stringify({ collapsed, order, hidden }));
+    const { collapsed, simple, order, hidden } = sidebar;
+    localStorage.setItem(KEY, JSON.stringify({ collapsed, simple, order, hidden }));
   } catch {
     // Stockage indisponible : les préférences ne valent que pour cette session.
   }

@@ -125,7 +125,9 @@
       "homePinned": "Mediathek",
       "rowUp": "Nach oben",
       "rowDown": "Nach unten",
-      "resetHome": "Startseite zurücksetzen"
+      "resetHome": "Startseite zurücksetzen",
+      "simpleBar": "Vereinfachte Navigationsleiste",
+      "simpleBarHint": "Nur die Symbole, in einer Leiste, die sich nicht mehr aufklappt: Die Seite behält ihre volle Breite."
     },
     "tmdb": {
       "title": "Titel-Logos (TMDB)",

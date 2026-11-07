@@ -125,7 +125,9 @@
       "homePinned": "bibliothèque",
       "rowUp": "Monter",
       "rowDown": "Descendre",
-      "resetHome": "Rétablir l'accueil"
+      "resetHome": "Rétablir l'accueil",
+      "simpleBar": "Barre de navigation simplifiée",
+      "simpleBarHint": "Seulement les icônes, dans une pilule qui ne se déplie plus : la page garde toute sa largeur."
     },
     "tmdb": {
       "title": "Logos des titres (TMDB)",

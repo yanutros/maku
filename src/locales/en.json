@@ -125,7 +125,9 @@
       "homePinned": "library",
       "rowUp": "Move up",
       "rowDown": "Move down",
-      "resetHome": "Reset home"
+      "resetHome": "Reset home",
+      "simpleBar": "Simplified navigation bar",
+      "simpleBarHint": "Icons only, in a pill that no longer expands: the page keeps its full width."
     },
     "tmdb": {
       "title": "Title logos (TMDB)",

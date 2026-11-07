@@ -125,7 +125,9 @@
       "homePinned": "biblioteca",
       "rowUp": "Subir",
       "rowDown": "Bajar",
-      "resetHome": "Restablecer el inicio"
+      "resetHome": "Restablecer el inicio",
+      "simpleBar": "Barra de navegación simplificada",
+      "simpleBarHint": "Solo los iconos, en una píldora que ya no se despliega: la página conserva todo su ancho."
     },
     "tmdb": {
       "title": "Logotipos de títulos (TMDB)",
