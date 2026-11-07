@@ -222,7 +222,7 @@ select:focus {
 }
 
 .skeleton {
-  background: linear-gradient(90deg, var(--bg-elev) 0%, #24272c 50%, var(--bg-elev) 100%);
+  background: linear-gradient(90deg, var(--bg-elev) 0%, color-mix(in srgb, var(--bg-elev) 90%, #fff) 50%, var(--bg-elev) 100%);
   background-size: 200% 100%;
   animation: shimmer 1.4s infinite;
   border-radius: var(--radius);

@@ -116,10 +116,19 @@
 {/if}
 
 <style>
+  /* Chargement de l'accueil (une seconde au plus) : une lueur discrète qui se fond dans la page, au lieu d'un
+     grand rectangle gris aux bords nets, qui se voyait sur tous les appareils. Fixée à la fenêtre, elle passe
+     derrière le menu jusqu'au bord gauche de l'écran, comme le bandeau qu'elle annonce. */
   .hero-skeleton {
+    position: fixed;
+    inset: 0 0 auto;
+    z-index: 0;
     height: min(62vh, 560px);
-    margin-top: -68px;
     border-radius: 0;
+    opacity: 0.5;
+    pointer-events: none;
+    -webkit-mask-image: linear-gradient(180deg, #000 0%, transparent 85%);
+    mask-image: linear-gradient(180deg, #000 0%, transparent 85%);
   }
 
   .rows {
@@ -133,7 +142,7 @@
   }
 
   :global(html.phone) .hero-skeleton {
+    position: static;
     height: 40vh;
-    margin-top: 0;
   }
 </style>
