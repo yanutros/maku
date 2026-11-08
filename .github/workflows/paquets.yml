@@ -47,26 +47,14 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
 
-      # L'AppImage a besoin d'AppRun et de linuxdeploy, que Tauri télécharge sur GitHub au moment d'empaqueter, sans nouvel essai :
-      # une erreur passagère (504) faisait échouer tout Linux, et Windows avec. Il est posé à l'avance dans le
-      # cache de Tauri, avec plusieurs tentatives. Si GitHub ne le sert toujours pas, la version sort sans AppImage
-      # (DEB et RPM seulement) plutôt que sans Linux ni Windows.
-      - name: Outils AppImage (AppRun, linuxdeploy)
-        id: apprun
-        if: matrix.os == 'ubuntu-22.04'
-        continue-on-error: true
-        run: |
-          mkdir -p ~/.cache/tauri
-          curl -fsSL --retry 10 --retry-all-errors --retry-delay 20 -o ~/.cache/tauri/AppRun-x86_64 \
-            https://github.com/tauri-apps/binary-releases/releases/download/apprun-old/AppRun-x86_64
-          chmod +x ~/.cache/tauri/AppRun-x86_64
-          curl -fsSL --retry 10 --retry-all-errors --retry-delay 20 -o ~/.cache/tauri/linuxdeploy-x86_64.AppImage \
-            https://github.com/tauri-apps/binary-releases/releases/download/linuxdeploy-07333c6/linuxdeploy-x86_64.AppImage
-          chmod +x ~/.cache/tauri/linuxdeploy-x86_64.AppImage
-
       - run: npm ci
 
+      # Tous les paquets. Sur Linux, l'AppImage dépend d'outils que Tauri télécharge sur GitHub au moment
+      # d'empaqueter, sans nouvel essai : une erreur passagère (504) faisait échouer Linux, et Windows avec.
+      # En cas d'échec, une seconde passe ne construit que le DEB et le RPM (la version sort sans AppImage).
       - uses: tauri-apps/tauri-action@v1
+        id: tous
+        continue-on-error: ${{ matrix.os == 'ubuntu-22.04' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -85,7 +73,29 @@ jobs:
             Code signing policy : https://github.com/yanutros/maku#-signature-du-code
           releaseDraft: true
           prerelease: false
-          args: ${{ matrix.args }} ${{ steps.apprun.outcome == 'failure' && '--bundles deb,rpm' || '' }}
+          args: ${{ matrix.args }}
+
+      - uses: tauri-apps/tauri-action@v1
+        if: steps.tous.outcome == 'failure'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: v__VERSION__
+          releaseName: Maku v__VERSION__
+          releaseBody: |
+            Paquets de Maku v__VERSION__.
+
+            - **Windows** : `Maku_…_x64-setup.exe` (ou le `.msi`), non signés pour l'instant.
+            - **Fedora / RHEL** : `Maku-….x86_64.rpm` — `sudo dnf install ./Maku-*.rpm` (installe aussi mpv).
+            - **Debian / Ubuntu** : `Maku_…_amd64.deb` — `sudo apt install ./Maku_*.deb`.
+            - **Autres Linux** : `Maku_…_amd64.AppImage` (mpv à installer avec le gestionnaire de paquets).
+            - **macOS** : `Maku_…_universal.dmg` (mpv : `brew install mpv`). L'application n'est pas signée :
+              au premier lancement, clic droit sur Maku → Ouvrir.
+
+            Code signing policy : https://github.com/yanutros/maku#-signature-du-code
+          releaseDraft: true
+          prerelease: false
+          args: --bundles deb,rpm
 
   # Windows à part : plexr.exe est signé avant d'être empaqueté, puis les installeurs à leur tour
   # (SignPath Foundation, chaque signature approuvée à la main dans SignPath). Tant que la variable
