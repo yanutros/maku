@@ -299,7 +299,9 @@
     <div class="center"><div class="big-play"><Icon name="play" size={76} filled /></div></div>
   {/if}
 
-  <!-- Coins de l'image : fermer à gauche ; volume et plein écran à droite, en boutons ronds translucides. -->
+  <!-- Coins de l'image : fermer à gauche ; volume et plein écran à droite, en boutons ronds translucides.
+       Pas sur téléviseur : la télécommande a ses touches Retour et volume, et l'image y est déjà plein écran. -->
+  {#if !device.tv}
   <div class="top">
     <button class="icon-btn glass" onclick={close} aria-label={t("player.close")} title={t("player.close")}>
       <Icon name="arrowLeft" size={22} />
@@ -323,6 +325,7 @@
       </button>
     </div>
   </div>
+  {/if}
 
   <!-- Repère en cours (intro, générique) : un bouton pour le passer, comme dans Plex et Netflix. -->
   {#if skip}
@@ -485,7 +488,7 @@
             <Icon name="replay10" size={24} />
           </button>
           <button class="icon-btn main" class:paused={player.paused} onclick={() => mpv("cycle", "pause")} aria-label={player.paused ? t("player.play") : t("player.pause")}>
-            <Icon name={player.paused ? "play" : "pause"} size={36} filled />
+            <Icon name={player.paused ? "play" : "pause"} size={26} filled />
           </button>
           <button class="icon-btn" onclick={() => mpv("seek", 10, "relative")} aria-label={t("player.forward10")} title={t("player.forward10")}>
             <Icon name="forward10" size={24} />
@@ -847,11 +850,6 @@
   }
 
   /* Bouton lecture principal : plus grand, sans pastille. */
-  .icon-btn.main {
-    width: 54px;
-    height: 54px;
-  }
-
   /* Le focus donné au bouton à l'ouverture (pour la télécommande) n'a pas à l'entourer à la souris. */
   :global(html:not(.tv)) .icon-btn.main:focus {
     outline: none;
