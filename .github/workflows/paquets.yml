@@ -47,6 +47,17 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
 
+      # L'AppImage a besoin d'AppRun, que Tauri télécharge sur GitHub au moment d'empaqueter, sans nouvel essai :
+      # une erreur passagère (504) faisait échouer tout Linux, et Windows avec. Il est posé à l'avance dans le
+      # cache de Tauri, avec plusieurs tentatives.
+      - name: Outil AppImage (AppRun)
+        if: matrix.os == 'ubuntu-22.04'
+        run: |
+          mkdir -p ~/.cache/tauri
+          curl -fsSL --retry 10 --retry-all-errors --retry-delay 20 -o ~/.cache/tauri/AppRun-x86_64 \
+            https://github.com/tauri-apps/binary-releases/releases/download/apprun-old/AppRun-x86_64
+          chmod +x ~/.cache/tauri/AppRun-x86_64
+
       - run: npm ci
 
       - uses: tauri-apps/tauri-action@v1
