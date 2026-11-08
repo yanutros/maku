@@ -117,13 +117,13 @@
 
 <style>
   /* Chargement de l'accueil (une seconde au plus) : une lueur discrète qui se fond dans la page, au lieu d'un
-     grand rectangle gris aux bords nets, qui se voyait sur tous les appareils. Fixée à la fenêtre, elle passe
-     derrière le menu jusqu'au bord gauche de l'écran, comme le bandeau qu'elle annonce. */
+     grand rectangle gris aux bords nets, qui se voyait sur tous les appareils. Sur téléviseur, fixée
+     à la fenêtre, elle passe derrière le menu jusqu'au bord gauche de l'écran. */
+  /* Ordinateur : à la place exacte du bandeau qui va arriver (sous l'en-tête, à droite du menu), pour que rien
+     ne change de teinte quand il s'affiche ; une lueur fixée derrière le menu y faisait une marque en haut. */
   .hero-skeleton {
-    position: fixed;
-    inset: 0 0 auto;
-    z-index: 0;
     height: min(62vh, 560px);
+    margin-top: -68px;
     border-radius: 0;
     opacity: 0.5;
     pointer-events: none;
@@ -135,6 +135,10 @@
      Le fond est ramené au bord de l'écran, sur toute sa largeur ; menu déplié, la page glisse de 164 px et il
      repart d'autant vers la gauche, au même rythme : il ne bouge pas à l'écran. */
   :global(html.tv) .hero-skeleton {
+    position: fixed;
+    top: 0;
+    z-index: 0;
+    margin-top: 0;
     right: auto;
     left: -72px;
     width: 100vw;
@@ -156,7 +160,7 @@
   }
 
   :global(html.phone) .hero-skeleton {
-    position: static;
     height: 40vh;
+    margin-top: 0;
   }
 </style>
