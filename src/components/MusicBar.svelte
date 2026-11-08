@@ -219,6 +219,8 @@
 
   .bar {
     position: relative;
+    /* Safari (iPad, Mac) : sans isolation, ses calques flous débordaient des coins arrondis (coins carrés visibles). */
+    isolation: isolate;
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(320px, 1.35fr) minmax(0, 1fr);
     align-items: center;

@@ -202,6 +202,8 @@
 
   .art {
     position: relative;
+    /* Safari (iPad, Mac) : sans isolation, ses calques flous débordaient des coins arrondis (coins carrés visibles). */
+    isolation: isolate;
     display: block;
     width: 100%;
     aspect-ratio: 16 / 9.2;

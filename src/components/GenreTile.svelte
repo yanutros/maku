@@ -27,6 +27,8 @@
 <style>
   .tile {
     position: relative;
+    /* Safari (iPad, Mac) : sans isolation, ses calques flous débordaient des coins arrondis (coins carrés visibles). */
+    isolation: isolate;
     aspect-ratio: 16 / 9;
     padding: 0;
     overflow: hidden;

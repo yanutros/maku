@@ -476,6 +476,8 @@
 
   .session {
     position: relative;
+    /* Safari (iPad, Mac) : sans isolation, ses calques flous débordaient des coins arrondis (coins carrés visibles). */
+    isolation: isolate;
     display: flex;
     gap: 18px;
     padding: 16px;
