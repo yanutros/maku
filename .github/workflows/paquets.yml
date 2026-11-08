@@ -152,8 +152,16 @@ jobs:
           if ((Get-AuthenticodeSignature $signe.FullName).Status -ne 'Valid') { throw "plexr.exe n'est pas signé" }
           Copy-Item $signe.FullName src-tauri/target/release/plexr.exe -Force
 
+      # Tauri télécharge NSIS et WiX sur GitHub, sans nouvel essai : une erreur passagère (504) faisait tout échouer.
       - name: Construire les installeurs
-        run: npx tauri bundle --bundles nsis,msi
+        shell: bash
+        run: |
+          for i in 1 2 3 4 5 6 7 8 9 10; do
+            npx tauri bundle --bundles nsis,msi && exit 0
+            echo "Essai $i échoué, nouvel essai dans 30 s"
+            sleep 30
+          done
+          exit 1
 
       - name: Envoyer les installeurs à SignPath
         id: installeurs-non-signes
