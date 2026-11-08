@@ -4,6 +4,8 @@
   import { current, mpv, next, player, previous, stop } from "../lib/player.svelte";
   import Icon from "./Icon.svelte";
   import { t } from "../lib/i18n";
+  import Lyrics from "./Lyrics.svelte";
+  import { loadLyrics, lyricsPrefs } from "../lib/lyrics.svelte";
 
   /**
    * « En cours de lecture » des téléviseurs, comme dans Plex : la pochette en grand, le titre, puis les
@@ -27,7 +29,12 @@
   let idle = $state(false);
   let idleTimer: ReturnType<typeof setTimeout> | undefined;
 
-  const BUTTONS = 5;
+  // Paroles (lrclib.net, si la recherche est activée) : un sixième bouton les ouvre à droite de la pochette.
+  let showLyrics = $state(false);
+  $effect(() => {
+    if (lyricsPrefs.enabled) loadLyrics(track);
+  });
+  const BUTTONS = $derived(lyricsPrefs.enabled ? 6 : 5);
   const progress = $derived(player.duration ? Math.min(100, (player.position / player.duration) * 100) : 0);
 
   function wake() {
@@ -85,7 +92,7 @@
   onDestroy(() => clearTimeout(idleTimer));
 </script>
 
-<div class="tv-np" class:idle class:queue-open={zone === "queue"} bind:this={root} role="dialog" tabindex="-1" aria-label={t("common.c1.nowPlaying")} data-nav-grid onkeydown={onKey}>
+<div class="tv-np" class:idle class:queue-open={zone === "queue"} class:lyrics-open={showLyrics && lyricsPrefs.enabled} bind:this={root} role="dialog" tabindex="-1" aria-label={t("common.c1.nowPlaying")} data-nav-grid onkeydown={onKey}>
   {#key backdrop}
     {#if backdrop}<div class="bg" style:background-image={`url("${backdrop}")`}></div>{/if}
   {/key}
@@ -99,6 +106,7 @@
       <h1>{track?.title ?? ""}</h1>
       <div class="sub">{[track?.artist, track?.album].filter(Boolean).join("  •  ")}</div>
     </div>
+    {#if showLyrics && lyricsPrefs.enabled}<div class="lyr"><Lyrics tv /></div>{/if}
 
     <div class="controls">
       <div class="bar">
@@ -117,6 +125,11 @@
         <button data-ctl="3" class="ctl" onclick={next} aria-label={t("common.c1.next")}><Icon name="forward" size={26} filled /></button>
         <!-- Arrêter : la lecture s'arrête et le lecteur se ferme, la vignette disparaît avec lui. -->
         <button data-ctl="4" class="ctl" onclick={stop} aria-label={t("common.c1.stop")}><Icon name="stop" size={20} filled /></button>
+        {#if lyricsPrefs.enabled}
+          <button data-ctl="5" class="ctl" class:on={showLyrics} onclick={() => (showLyrics = !showLyrics)} aria-label={t("lyrics.title")} aria-pressed={showLyrics}>
+            <Icon name="lyrics" size={22} />
+          </button>
+        {/if}
       </div>
       {#if queue.length > 1}<div class="hint"><Icon name="chevronDown" size={20} /></div>{/if}
     </div>
@@ -190,6 +203,34 @@
     align-items: center;
     padding-top: 56px;
     text-align: center;
+  }
+
+  /* Paroles ouvertes : la pochette et le titre à gauche, les paroles à droite. */
+  .lyrics-open .stage {
+    position: absolute;
+    top: 0;
+    left: 64px;
+    width: 400px;
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .lyrics-open .cover {
+    width: 300px;
+    height: 300px;
+  }
+
+  .lyrics-open h1 {
+    max-width: 400px;
+    font-size: 28px;
+  }
+
+  .lyr {
+    position: absolute;
+    top: 36px;
+    left: 520px;
+    right: 64px;
+    height: 480px;
   }
 
   .cover {

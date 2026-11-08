@@ -4,9 +4,17 @@
   import { device } from "../lib/device";
   import Icon from "./Icon.svelte";
   import { t } from "../lib/i18n";
+  import Lyrics from "./Lyrics.svelte";
+  import { loadLyrics, lyricsPrefs } from "../lib/lyrics.svelte";
 
   const track = $derived(current());
   const upNext = $derived(player.queue.slice(player.index + 1, player.index + 8));
+  // À droite de la pochette : les paroles (lrclib.net, si la recherche est activée) ou la suite de la file.
+  let tab = $state<"lyrics" | "queue">("lyrics");
+  const showLyrics = $derived(lyricsPrefs.enabled && tab === "lyrics");
+  $effect(() => {
+    if (lyricsPrefs.enabled) loadLyrics(track);
+  });
 </script>
 
 <div class="now-playing">
@@ -23,6 +31,12 @@
       </div>
       <h1>{track?.title ?? ""}</h1>
       <div class="sub">{[track?.artist, track?.album].filter(Boolean).join(" — ")}</div>
+      {#if lyricsPrefs.enabled}
+        <div class="tabs" role="tablist">
+          <button role="tab" class:on={tab === "lyrics"} aria-selected={tab === "lyrics"} onclick={() => (tab = "lyrics")}>{t("lyrics.title")}</button>
+          <button role="tab" class:on={tab === "queue"} aria-selected={tab === "queue"} onclick={() => (tab = "queue")}>{t("nowPlaying.upNext")}</button>
+        </div>
+      {/if}
 
       <!-- Téléphone : lecteur complet en plein écran (le mini-lecteur et les onglets sont dessous). -->
       {#if device.phone}
@@ -60,7 +74,9 @@
       {/if}
     </div>
 
-    {#if upNext.length}
+    {#if showLyrics}
+      <aside class="lyr"><Lyrics /></aside>
+    {:else if upNext.length}
       <aside class="next">
         <div class="next-title">{t("nowPlaying.upNext")}</div>
         {#each upNext as qt, i (qt.ratingKey + i)}
@@ -235,6 +251,34 @@
     font-size: 12px;
   }
 
+  .tabs {
+    display: flex;
+    gap: 8px;
+    margin-top: 18px;
+  }
+
+  .tabs button {
+    padding: 6px 16px;
+    border: 1px solid #ffffff40;
+    border-radius: 999px;
+    background: none;
+    color: #ffffffcc;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .tabs button.on {
+    border-color: transparent;
+    background: var(--accent);
+    color: var(--accent-text);
+  }
+
+  .lyr {
+    width: min(460px, 40vw);
+    height: min(64vh, 620px);
+  }
+
   @media (max-width: 1100px) {
     .next {
       display: none;
@@ -284,6 +328,11 @@
   :global(html.phone) .next {
     width: 100%;
     max-height: none;
+  }
+
+  :global(html.phone) .lyr {
+    width: 100%;
+    height: 50vh;
   }
 
   .controls {

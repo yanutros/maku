@@ -2,6 +2,7 @@ mod config;
 mod error;
 mod i18n;
 mod jellyfin;
+mod lyrics;
 mod media;
 mod net;
 #[cfg(target_os = "linux")]
@@ -1615,6 +1616,12 @@ struct OfflineList {
     items: Vec<offline::Download>,
 }
 
+/// Paroles d'un morceau (lrclib.net), synchronisées si possible.
+#[tauri::command]
+async fn track_lyrics(state: State<'_, AppState>, artist: String, title: String, album: Option<String>, duration: f64) -> CmdResult<lyrics::Lyrics> {
+    Ok(lyrics::fetch(&state.http, &artist, &title, album.as_deref(), duration).await?)
+}
+
 /// Le compte en cours a-t-il le droit de télécharger sur ce serveur (réglé par son administrateur) ?
 #[tauri::command]
 async fn offline_allowed(state: State<'_, AppState>) -> CmdResult<bool> {
@@ -1854,6 +1861,7 @@ pub fn run() {
             relay_journal,
             offline_list,
             plex_users,
+            track_lyrics,
             plex_server_libraries,
             plex_user_libraries,
             plex_user_permissions,

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { lyricsPrefs, setLyricsEnabled } from "../lib/lyrics.svelte";
   import { NEXT_DELAYS, autoNext, setNextDelay, diagAvailable, diagShare, diagText, passthroughAvailable, passthroughFormats, passthroughMode, setPassthroughMode } from "../lib/player.svelte";
   import { invoke } from "@tauri-apps/api/core";
   import { onMount, tick } from "svelte";
@@ -630,6 +631,13 @@
             {/each}
           </div>
         </div>
+        <label class="line">
+          <span class="line-text">
+            <strong>{t("settings.player.lyrics")}</strong>
+            <span class="muted small">{t("settings.player.lyricsHint")}</span>
+          </span>
+          <input type="checkbox" class="switch" checked={lyricsPrefs.enabled} onchange={(e) => setLyricsEnabled(e.currentTarget.checked)} />
+        </label>
         {#if diagAvailable}
           <!-- Android : journal à transmettre quand l'appareil se bloque ou qu'une lecture échoue (DiagLog.kt). -->
           <div class="line">

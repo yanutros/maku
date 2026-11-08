@@ -101,7 +101,9 @@
       "diagPhoneHint": "Scanne ce QR code avec ton téléphone, connecté au même réseau : il télécharge le journal, à envoyer ensuite par message ou par e-mail.",
       "autoNext": "Épisode suivant automatique",
       "autoNextHint": "Après « Passer le générique » ou à la fin d'un épisode, l'épisode suivant se lance après ce compte à rebours.",
-      "autoNextOff": "Aucun"
+      "autoNextOff": "Aucun",
+      "lyrics": "Paroles (lrclib.net)",
+      "lyricsHint": "Affiche les paroles des morceaux, synchronisées quand c'est possible. Maku envoie à lrclib.net l'artiste, le titre, l'album et la durée du morceau."
     },
     "interface": {
       "menuReset": "Menu réinitialisé",
@@ -832,5 +834,11 @@
     "empty": "Rien de téléchargé pour l'instant. Sur la fiche d'un film, d'une saison, d'un album ou d'une playlist, « Télécharger » le garde sur l'appareil, pour le regarder ou l'écouter sans réseau.",
     "movies": "Films",
     "episodeCode": "S{{season}} · E{{episode}}"
+  },
+  "lyrics": {
+    "title": "Paroles",
+    "none": "Paroles indisponibles pour ce morceau.",
+    "instrumental": "Morceau instrumental.",
+    "source": "Paroles : lrclib.net"
   }
 }

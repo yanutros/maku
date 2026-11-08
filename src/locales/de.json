@@ -101,7 +101,9 @@
       "diagPhoneHint": "Scanne diesen QR-Code mit deinem Handy im selben Netzwerk: Es lädt das Protokoll herunter, das du dann per Nachricht oder E-Mail senden kannst.",
       "autoNext": "Nächste Folge automatisch",
       "autoNextHint": "Nach „Abspann überspringen“ oder am Ende einer Folge startet die nächste nach diesem Countdown.",
-      "autoNextOff": "Keiner"
+      "autoNextOff": "Keiner",
+      "lyrics": "Songtexte (lrclib.net)",
+      "lyricsHint": "Zeigt Songtexte an, wenn möglich synchronisiert. Maku sendet lrclib.net Interpret, Titel, Album und Länge des Titels."
     },
     "interface": {
       "menuReset": "Menü zurückgesetzt",
@@ -832,5 +834,11 @@
     "empty": "Noch nichts heruntergeladen. Auf der Seite eines Films, einer Staffel, eines Albums oder einer Playlist behält „Herunterladen“ es auf dem Gerät, um es ohne Netz anzusehen oder anzuhören.",
     "movies": "Filme",
     "episodeCode": "S{{season}} · E{{episode}}"
+  },
+  "lyrics": {
+    "title": "Songtext",
+    "none": "Für diesen Titel gibt es keinen Songtext.",
+    "instrumental": "Instrumentaltitel.",
+    "source": "Songtext: lrclib.net"
   }
 }

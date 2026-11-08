@@ -101,7 +101,9 @@
       "diagPhoneHint": "Scan deze QR-code met je telefoon op hetzelfde netwerk: die downloadt het logboek, dat je daarna per bericht of e-mail kunt sturen.",
       "autoNext": "Volgende aflevering automatisch",
       "autoNextHint": "Na ‘Aftiteling overslaan’ of aan het einde van een aflevering start de volgende na deze aftelling.",
-      "autoNextOff": "Geen"
+      "autoNextOff": "Geen",
+      "lyrics": "Songteksten (lrclib.net)",
+      "lyricsHint": "Toont songteksten, waar mogelijk gesynchroniseerd. Maku stuurt lrclib.net de artiest, titel, het album en de duur van het nummer."
     },
     "interface": {
       "menuReset": "Menu hersteld",
@@ -832,5 +834,11 @@
     "empty": "Nog niets gedownload. Op de pagina van een film, seizoen, album of afspeellijst houdt „Downloaden” het op het apparaat, om zonder netwerk te kijken of te luisteren.",
     "movies": "Films",
     "episodeCode": "S{{season}} · A{{episode}}"
+  },
+  "lyrics": {
+    "title": "Songtekst",
+    "none": "Geen songtekst beschikbaar voor dit nummer.",
+    "instrumental": "Instrumentaal nummer.",
+    "source": "Songtekst: lrclib.net"
   }
 }

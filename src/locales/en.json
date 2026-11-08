@@ -101,7 +101,9 @@
       "diagPhoneHint": "Scan this QR code with your phone, on the same network: it downloads the log, which you can then send by message or email.",
       "autoNext": "Autoplay next episode",
       "autoNextHint": "After “Skip credits” or at the end of an episode, the next episode starts after this countdown.",
-      "autoNextOff": "None"
+      "autoNextOff": "None",
+      "lyrics": "Lyrics (lrclib.net)",
+      "lyricsHint": "Shows song lyrics, synced when possible. Maku sends lrclib.net the artist, title, album and length of the track."
     },
     "interface": {
       "menuReset": "Menu reset",
@@ -832,5 +834,11 @@
     "empty": "Nothing downloaded yet. On a movie, season, album or playlist page, \"Download\" keeps it on the device, to watch or listen without a network.",
     "movies": "Movies",
     "episodeCode": "S{{season}} · E{{episode}}"
+  },
+  "lyrics": {
+    "title": "Lyrics",
+    "none": "No lyrics available for this track.",
+    "instrumental": "Instrumental track.",
+    "source": "Lyrics: lrclib.net"
   }
 }

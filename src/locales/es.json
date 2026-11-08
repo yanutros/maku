@@ -101,7 +101,9 @@
       "diagPhoneHint": "Escanea este código QR con tu teléfono, en la misma red: descarga el registro, que luego puedes enviar por mensaje o correo.",
       "autoNext": "Siguiente episodio automático",
       "autoNextHint": "Tras «Saltar los créditos» o al final de un episodio, el siguiente empieza tras esta cuenta atrás.",
-      "autoNextOff": "Ninguna"
+      "autoNextOff": "Ninguna",
+      "lyrics": "Letras (lrclib.net)",
+      "lyricsHint": "Muestra la letra de las canciones, sincronizada cuando es posible. Maku envía a lrclib.net el artista, el título, el álbum y la duración."
     },
     "interface": {
       "menuReset": "Menú restablecido",
@@ -832,5 +834,11 @@
     "empty": "Nada descargado por ahora. En la ficha de una película, temporada, álbum o lista, «Descargar» lo guarda en el dispositivo, para verlo o escucharlo sin red.",
     "movies": "Películas",
     "episodeCode": "T{{season}} · E{{episode}}"
+  },
+  "lyrics": {
+    "title": "Letra",
+    "none": "No hay letra disponible para esta canción.",
+    "instrumental": "Tema instrumental.",
+    "source": "Letra: lrclib.net"
   }
 }

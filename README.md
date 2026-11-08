@@ -88,7 +88,9 @@ visionnage. Tout se fait avec son compte Plex (ou Jellyfin) : aucune clé d'API 
       <h4>🎵 Il joue votre musique</h4>
       Une page d'accueil façon Apple Music : grands panneaux des derniers albums, playlists (la dernière lue en premier),
       « Titres du moment », pochettes qui grandissent avec la fenêtre. File d'attente, lecture aléatoire et
-      vue « En cours de lecture », dont le fond aux couleurs de la pochette passe jusque derrière le menu. Une barre
+      vue « En cours de lecture », dont le fond aux couleurs de la pochette passe jusque derrière le menu, avec les
+      paroles synchronisées à côté de la pochette (lrclib.net, gratuit ; la ligne chantée ressort, un clic y saute,
+      désactivable dans Réglages → Lecteur). Une barre
       de lecture flottante, en verre dépoli teinté par la pochette, reste en bas du contenu pendant que vous naviguez,
       avec des commandes toutes de même taille.
     </td>
@@ -353,7 +355,8 @@ pour l'instant que Plex.
 > La fiche d'un épisode a un bouton **Saison N** qui ramène à la liste des épisodes de sa saison, et celle d'une saison
 > un bouton **Toutes les saisons** qui remonte à la série (Plex, Jellyfin et Emby).
 > La musique a son lecteur plein écran, comme dans Plex : la pochette en grand, les commandes qui s'effacent au
-> repos, la file d'attente en rangée de pochettes (flèche bas) et un bouton pour tout arrêter. Pendant qu'on parcourt les pages, une petite
+> repos, la file d'attente en rangée de pochettes (flèche bas), un bouton **Paroles** qui les affiche en grand à côté
+> de la pochette, et un bouton pour tout arrêter. Pendant qu'on parcourt les pages, une petite
 > vignette rappelle le titre en cours, et « En cours de lecture », en tête du menu, rouvre le lecteur.
 > **Découvrir** reprend les rangées de l'accueil, et la flèche haut remonte toujours une page jusqu'à son
 > bandeau (celui des statistiques, par exemple) avant de rejoindre le menu.
