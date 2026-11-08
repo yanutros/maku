@@ -49,10 +49,10 @@ export const player = $state({
   ratingKey: "",
   prevKey: null as string | null,
   nextKey: null as string | null,
-  /** Épisode suivant, pour la carte « Épisode suivant » au générique (PlayerOverlay.svelte). */
-  upNext: null as { title: string; subtitle: string | null; thumb: string | null } | null,
-  /** Carte « Épisode suivant » affichée et pas annulée : la fin de l'épisode enchaîne sur le suivant. */
-  autoNext: false,
+  /** Épisode suivant, pour l'écran de fin (EndScreen.svelte). */
+  upNext: null as UpNext | null,
+  /** Écran de fin affiché : « Passer le générique » ou fin d'un épisode qui a une suite. */
+  endScreen: false,
   title: "",
   subtitle: null as string | null,
   position: 0,
@@ -86,15 +86,25 @@ export const player = $state({
 /** Durées proposées pour le compte à rebours de l'épisode suivant (secondes ; 0 : désactivé). */
 export const NEXT_DELAYS = [0, 5, 10, 15, 30];
 
-/** Compte à rebours de l'épisode suivant, réglé dans Réglages → Lecteur (10 s par défaut). */
+export interface UpNext {
+  title: string;
+  showTitle: string | null;
+  /** « S1 · É2 ». */
+  number: string | null;
+  summary: string | null;
+  durationMs: number | null;
+  thumb: string | null;
+}
+
+/** Compte à rebours de l'écran de fin, réglé dans Réglages → Lecteur (30 s par défaut ; 0 : pas de compte à rebours). */
 export const autoNext = $state({ delay: loadNextDelay() });
 
 function loadNextDelay(): number {
   try {
     const v = localStorage.getItem("maku.nextDelay");
-    return v !== null && NEXT_DELAYS.includes(Number(v)) ? Number(v) : 10;
+    return v !== null && NEXT_DELAYS.includes(Number(v)) ? Number(v) : 30;
   } catch {
-    return 10;
+    return 30;
   }
 }
 
@@ -109,19 +119,29 @@ export function setNextDelay(s: number) {
 
 /** Titre, numéro et vignette de l'épisode suivant, pour sa carte. */
 function loadUpNext(current: string, next: string) {
-  invoke<{ title: string; index: number | null; parentIndex: number | null; thumb: string | null; poster: string | null }>("plex_metadata", { ratingKey: next }).then(
+  type Meta = { title: string; showTitle: string | null; summary: string | null; durationMs: number | null; index: number | null; parentIndex: number | null; thumb: string | null; poster: string | null };
+  invoke<Meta>("plex_metadata", { ratingKey: next }).then(
     (m) => {
       if (player.ratingKey !== current || player.nextKey !== next) return;
       const number = m.parentIndex != null && m.index != null ? `S${m.parentIndex} · É${m.index}` : null;
-      player.upNext = { title: m.title, subtitle: number, thumb: m.thumb ?? m.poster };
+      player.upNext = { title: m.title, showTitle: m.showTitle, number, summary: m.summary, durationMs: m.durationMs, thumb: m.thumb ?? m.poster };
     },
     () => {},
   );
 }
 
-/** Fin d'une vidéo : l'épisode suivant si sa carte est affichée (et pas annulée), sinon l'arrêt. */
+/** Écran de fin possible : un épisode qui a une suite. */
+export const hasEndScreen = () => player.video && !!player.nextKey && !!player.upNext;
+
+/** « Passer le générique » d'un épisode qui a une suite : la lecture s'interrompt sur l'écran de fin. */
+export function openEndScreen() {
+  if (!player.paused) mpv("cycle", "pause");
+  player.endScreen = true;
+}
+
+/** Fin d'une vidéo : l'écran de fin s'il y a un épisode suivant, sinon l'arrêt. */
 function videoEnded() {
-  if (player.autoNext && player.nextKey) play(player.nextKey).catch(() => stop());
+  if (hasEndScreen()) player.endScreen = true;
   else stop();
 }
 
@@ -264,7 +284,7 @@ function reset(video: boolean) {
     prevKey: null,
     nextKey: null,
     upNext: null,
-    autoNext: false,
+    endScreen: false,
     title: "",
     subtitle: null,
     buffering: true,
@@ -877,8 +897,12 @@ listen<{ name: string; data: unknown }>("player-prop", ({ payload: { name, data 
 // Une lecture remplacée signale sa fin après le démarrage de la suivante : on l'ignore.
 listen<string>("player-stopped", ({ payload }) => {
   if (payload === player.session) {
-    // mpv se ferme à la fin du fichier : l'épisode suivant, si sa carte est affichée.
-    if (player.video && player.autoNext && player.nextKey) return void play(player.nextKey).catch(() => {});
+    // mpv se ferme à la fin du fichier (et pas quand on l'arrête, `active` est alors déjà faux) : l'écran de fin.
+    if (player.active && hasEndScreen() && player.position >= player.duration - 10) {
+      endTranscode();
+      player.endScreen = true;
+      return;
+    }
     endTranscode();
     player.transcoded = false;
     player.active = false;

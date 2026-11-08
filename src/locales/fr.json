@@ -100,8 +100,8 @@
       "diagShare": "Partager le journal",
       "diagPhoneHint": "Scanne ce QR code avec ton téléphone, connecté au même réseau : il télécharge le journal, à envoyer ensuite par message ou par e-mail.",
       "autoNext": "Épisode suivant automatique",
-      "autoNextHint": "Au générique, une carte lance l'épisode suivant après un compte à rebours.",
-      "autoNextOff": "Désactivé"
+      "autoNextHint": "Après « Passer le générique » ou à la fin d'un épisode, l'épisode suivant se lance après ce compte à rebours.",
+      "autoNextOff": "Aucun"
     },
     "interface": {
       "menuReset": "Menu réinitialisé",
@@ -620,9 +620,10 @@
     "fullscreen": "Plein écran",
     "skipIntro": "Passer l'intro",
     "skipCredits": "Passer le générique",
-    "playNextIn_one": "Lire · {{count}} s",
-    "playNextIn_other": "Lire · {{count}} s",
-    "cancelNext": "Annuler"
+    "playNext": "Lire",
+    "closeEnd": "Fermer",
+    "minutes_one": "{{count}} min",
+    "minutes_other": "{{count}} min"
   },
   "request": {
     "sent": "Demande envoyée : {{title}}",

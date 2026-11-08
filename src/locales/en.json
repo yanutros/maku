@@ -100,8 +100,8 @@
       "diagShare": "Share the log",
       "diagPhoneHint": "Scan this QR code with your phone, on the same network: it downloads the log, which you can then send by message or email.",
       "autoNext": "Autoplay next episode",
-      "autoNextHint": "During the credits, a card starts the next episode after a countdown.",
-      "autoNextOff": "Off"
+      "autoNextHint": "After “Skip credits” or at the end of an episode, the next episode starts after this countdown.",
+      "autoNextOff": "None"
     },
     "interface": {
       "menuReset": "Menu reset",
@@ -620,9 +620,10 @@
     "fullscreen": "Full screen",
     "skipIntro": "Skip intro",
     "skipCredits": "Skip credits",
-    "playNextIn_one": "Play · {{count}} s",
-    "playNextIn_other": "Play · {{count}} s",
-    "cancelNext": "Cancel"
+    "playNext": "Play",
+    "closeEnd": "Close",
+    "minutes_one": "{{count}} min",
+    "minutes_other": "{{count}} min"
   },
   "request": {
     "sent": "Request sent: {{title}}",

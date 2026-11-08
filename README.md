@@ -495,10 +495,11 @@ règles des magasins n'autorisent pas.
    « French », ou celle de TMDB en français), sinon n'importe laquelle ; une vidéo YouTube s'ouvre par-dessus
    la page, Retour la ferme. Pendant un épisode, **Passer l'intro** et **Passer le générique** apparaissent sur les
    repères détectés par le serveur : Plex les fournit à tous les comptes (seules ses propres applications
-   réservent le bouton au Plex Pass) ; Jellyfin via ses segments (10.10 et plus, plugin Intro Skipper) ; Emby via ses chapitres d'intro et de générique. Au
-   générique (ou 30 s avant la fin), une carte **Épisode suivant** montre la vignette et le titre de l'épisode
-   suivant et le lance après un compte à rebours (5 à 30 s, ou désactivé, dans **Réglages → Lecteur** ; 10 s par
-   défaut) ; **Annuler** ou Retour la masquent. En
+   réservent le bouton au Plex Pass) ; Jellyfin via ses segments (10.10 et plus, plugin Intro Skipper) ; Emby via ses chapitres d'intro et de générique. Sur un épisode qui a une
+   suite, **Passer le générique** (ou la fin de l'épisode) ouvre l'écran **Épisode suivant**, comme la « Lecture du
+   suivant » de Plex : sa vignette avec un compte à rebours, son titre et son résumé ; **Lire** le lance tout de
+   suite, **Fermer** (ou Retour) arrête là. Le compte à rebours se règle dans **Réglages → Lecteur** (5 à 30 s, ou
+   aucun ; 30 s par défaut). En
    revenant d'une fiche, la bibliothèque rouvre l'onglet où l'on était (Bibliothèque, Collections, ou la
    catégorie choisie), au même endroit : titres rechargés, défilement retrouvé et, sur téléviseur, la même
    jaquette sélectionnée. Sur téléviseur, les catégories sont les mêmes grandes tuiles colorées que sur ordinateur.

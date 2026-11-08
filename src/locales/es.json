@@ -100,8 +100,8 @@
       "diagShare": "Compartir el registro",
       "diagPhoneHint": "Escanea este código QR con tu teléfono, en la misma red: descarga el registro, que luego puedes enviar por mensaje o correo.",
       "autoNext": "Siguiente episodio automático",
-      "autoNextHint": "En los créditos, una tarjeta inicia el siguiente episodio tras una cuenta atrás.",
-      "autoNextOff": "Desactivado"
+      "autoNextHint": "Tras «Saltar los créditos» o al final de un episodio, el siguiente empieza tras esta cuenta atrás.",
+      "autoNextOff": "Ninguna"
     },
     "interface": {
       "menuReset": "Menú restablecido",
@@ -620,9 +620,10 @@
     "fullscreen": "Pantalla completa",
     "skipIntro": "Saltar la intro",
     "skipCredits": "Saltar los créditos",
-    "playNextIn_one": "Reproducir · {{count}} s",
-    "playNextIn_other": "Reproducir · {{count}} s",
-    "cancelNext": "Cancelar"
+    "playNext": "Reproducir",
+    "closeEnd": "Cerrar",
+    "minutes_one": "{{count}} min",
+    "minutes_other": "{{count}} min"
   },
   "request": {
     "sent": "Solicitud enviada: {{title}}",

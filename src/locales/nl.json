@@ -100,8 +100,8 @@
       "diagShare": "Logboek delen",
       "diagPhoneHint": "Scan deze QR-code met je telefoon op hetzelfde netwerk: die downloadt het logboek, dat je daarna per bericht of e-mail kunt sturen.",
       "autoNext": "Volgende aflevering automatisch",
-      "autoNextHint": "Tijdens de aftiteling start een kaart na een aftelling de volgende aflevering.",
-      "autoNextOff": "Uit"
+      "autoNextHint": "Na ‘Aftiteling overslaan’ of aan het einde van een aflevering start de volgende na deze aftelling.",
+      "autoNextOff": "Geen"
     },
     "interface": {
       "menuReset": "Menu hersteld",
@@ -620,9 +620,10 @@
     "fullscreen": "Volledig scherm",
     "skipIntro": "Intro overslaan",
     "skipCredits": "Aftiteling overslaan",
-    "playNextIn_one": "Afspelen · {{count}} s",
-    "playNextIn_other": "Afspelen · {{count}} s",
-    "cancelNext": "Annuleren"
+    "playNext": "Afspelen",
+    "closeEnd": "Sluiten",
+    "minutes_one": "{{count}} min",
+    "minutes_other": "{{count}} min"
   },
   "request": {
     "sent": "Verzoek verstuurd: {{title}}",
