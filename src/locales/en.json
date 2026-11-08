@@ -841,5 +841,14 @@
     "none": "No lyrics available for this track.",
     "instrumental": "Instrumental track.",
     "source": "Lyrics: lrclib.net"
+  },
+  "cast": {
+    "title": "Listen on",
+    "airplay": "AirPlay",
+    "thisDevice": "This device",
+    "on": "On {{name}}",
+    "searching": "Searching the network…",
+    "none": "No Chromecast device found on the network.",
+    "ended": "Casting stopped."
   }
 }

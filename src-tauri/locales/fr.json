@@ -180,5 +180,10 @@
     "plexOnly": "la gestion des utilisateurs est réservée aux serveurs Plex",
     "needLibrary": "choisis au moins une bibliothèque",
     "needWho": "indique une adresse e-mail ou un nom d'utilisateur Plex"
+  },
+  "cast": {
+    "unreachable": "l'appareil ne répond pas",
+    "launchFailed": "l'appareil n'a pas pu lancer la lecture",
+    "loadFailed": "l'appareil ne peut pas lire ce fichier (le serveur lui est peut-être inaccessible)"
   }
 }

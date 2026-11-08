@@ -1,3 +1,4 @@
+mod cast;
 mod config;
 mod error;
 mod i18n;
@@ -55,6 +56,8 @@ struct AppState {
     offline: Arc<offline::Offline>,
     /// Téléchargements longs : pas de délai maximal pour la requête entière, contrairement à `http`.
     download_http: reqwest::Client,
+    /// Diffusion en cours sur un appareil Chromecast (cast.rs).
+    cast: std::sync::Mutex<Option<cast::Session>>,
 }
 
 impl AppState {
@@ -1620,6 +1623,58 @@ struct OfflineList {
     items: Vec<offline::Download>,
 }
 
+// ---------- Chromecast ----------
+
+/// Appareils Chromecast du réseau local.
+#[tauri::command]
+async fn cast_devices() -> CmdResult<Vec<cast::Device>> {
+    Ok(cast::discover(Duration::from_secs(3)).await?)
+}
+
+/// Envoie la file sur un appareil, à partir du titre `index` (`position` secondes dedans).
+#[tauri::command]
+async fn cast_start(app: AppHandle, state: State<'_, AppState>, device: cast::Device, tracks: Vec<cast::Track>, index: usize, position: f64) -> CmdResult<()> {
+    let old = state.cast.lock().unwrap().take();
+    if let Some(old) = old {
+        old.send(cast::Command::Stop);
+    }
+    let session = cast::start(app, device, tracks, index, position).await?;
+    *state.cast.lock().unwrap() = Some(session);
+    Ok(())
+}
+
+/// Commande à l'appareil : `toggle`, `play`, `pause`, `seek` (secondes), `jump` (titre), `next`, `previous`,
+/// `volume` (0 à 100), `mute` (1 ou 0).
+#[tauri::command]
+fn cast_command(state: State<'_, AppState>, action: String, value: Option<f64>) -> CmdResult<()> {
+    let v = value.unwrap_or(0.0);
+    let c = match action.as_str() {
+        "toggle" => cast::Command::Toggle,
+        "play" => cast::Command::Play,
+        "pause" => cast::Command::Pause,
+        "seek" => cast::Command::Seek(v),
+        "jump" => cast::Command::Jump(v as usize),
+        "next" => cast::Command::Next,
+        "previous" => cast::Command::Previous,
+        "volume" => cast::Command::Volume(v / 100.0),
+        "mute" => cast::Command::Mute(v != 0.0),
+        _ => return Ok(()),
+    };
+    if let Some(s) = state.cast.lock().unwrap().as_ref() {
+        s.send(c);
+    }
+    Ok(())
+}
+
+/// Arrête la diffusion (l'appareil quitte le lecteur de Google).
+#[tauri::command]
+fn cast_stop(state: State<'_, AppState>) -> CmdResult<()> {
+    if let Some(s) = state.cast.lock().unwrap().take() {
+        s.send(cast::Command::Stop);
+    }
+    Ok(())
+}
+
 /// Paroles d'un morceau (lrclib.net), synchronisées si possible.
 #[tauri::command]
 async fn track_lyrics(state: State<'_, AppState>, artist: String, title: String, album: Option<String>, duration: f64) -> CmdResult<lyrics::Lyrics> {
@@ -1749,6 +1804,7 @@ pub fn run() {
                     .read_timeout(Duration::from_secs(90))
                     .redirect(net::same_host())
                     .build()?,
+                cast: std::sync::Mutex::new(None),
             });
             let handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
@@ -1866,6 +1922,10 @@ pub fn run() {
             offline_list,
             plex_users,
             track_lyrics,
+            cast_devices,
+            cast_start,
+            cast_command,
+            cast_stop,
             plex_server_libraries,
             plex_user_libraries,
             plex_user_permissions,

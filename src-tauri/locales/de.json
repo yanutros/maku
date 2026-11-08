@@ -180,5 +180,10 @@
     "plexOnly": "die Benutzerverwaltung gibt es nur für Plex-Server",
     "needLibrary": "wähle mindestens eine Mediathek",
     "needWho": "gib eine E-Mail-Adresse oder einen Plex-Benutzernamen an"
+  },
+  "cast": {
+    "unreachable": "das Gerät antwortet nicht",
+    "launchFailed": "das Gerät konnte die Wiedergabe nicht starten",
+    "loadFailed": "das Gerät kann diese Datei nicht abspielen (es erreicht den Server vielleicht nicht)"
   }
 }

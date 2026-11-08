@@ -3,6 +3,8 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Changement de réseau (Wi-Fi ↔ données mobiles) : Maku revérifie l'adresse du serveur. -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Chromecast : recevoir les annonces mDNS des enceintes du réseau (verrou multicast du Wi-Fi). -->
+    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
     <!-- Android 17 : accès aux serveurs du réseau local (Jellyfin, Plex en local). -->
     <uses-permission android:name="android.permission.ACCESS_LOCAL_NETWORK" />
     <!-- Mises à jour : Maku télécharge le nouvel APK et le confie à l'installateur d'Android. -->

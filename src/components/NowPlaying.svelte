@@ -3,6 +3,7 @@
   import { current, mpv, next, player, previous, stop } from "../lib/player.svelte";
   import { device } from "../lib/device";
   import Icon from "./Icon.svelte";
+  import CastButton from "./CastButton.svelte";
   import { t } from "../lib/i18n";
   import Lyrics from "./Lyrics.svelte";
   import { loadLyrics, lyricsPrefs } from "../lib/lyrics.svelte";
@@ -69,6 +70,7 @@
             <button class="ctl" onclick={() => mpv("cycle", "mute")} aria-label={t("common.c1.mute")}>
               <Icon name={player.muted ? "mute" : "volume"} size={20} />
             </button>
+            <CastButton size={20} big />
           </div>
         </div>
       {/if}

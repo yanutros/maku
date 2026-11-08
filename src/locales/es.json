@@ -841,5 +841,14 @@
     "none": "No hay letra disponible para esta canción.",
     "instrumental": "Tema instrumental.",
     "source": "Letra: lrclib.net"
+  },
+  "cast": {
+    "title": "Escuchar en",
+    "airplay": "AirPlay",
+    "thisDevice": "Este dispositivo",
+    "on": "En {{name}}",
+    "searching": "Buscando en la red…",
+    "none": "No se encontró ningún dispositivo Chromecast en la red.",
+    "ended": "La transmisión se ha detenido."
   }
 }

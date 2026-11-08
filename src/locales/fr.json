@@ -841,5 +841,14 @@
     "none": "Paroles indisponibles pour ce morceau.",
     "instrumental": "Morceau instrumental.",
     "source": "Paroles : lrclib.net"
+  },
+  "cast": {
+    "title": "Écouter sur",
+    "airplay": "AirPlay",
+    "thisDevice": "Cet appareil",
+    "on": "Sur {{name}}",
+    "searching": "Recherche sur le réseau…",
+    "none": "Aucun appareil Chromecast trouvé sur le réseau.",
+    "ended": "La diffusion s'est arrêtée."
   }
 }

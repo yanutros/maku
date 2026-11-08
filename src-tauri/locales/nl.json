@@ -180,5 +180,10 @@
     "plexOnly": "gebruikersbeheer is alleen beschikbaar voor Plex-servers",
     "needLibrary": "kies ten minste één bibliotheek",
     "needWho": "geef een e-mailadres of een Plex-gebruikersnaam op"
+  },
+  "cast": {
+    "unreachable": "het apparaat reageert niet",
+    "launchFailed": "het apparaat kon het afspelen niet starten",
+    "loadFailed": "het apparaat kan dit bestand niet afspelen (het bereikt de server misschien niet)"
   }
 }

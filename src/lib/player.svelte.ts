@@ -5,6 +5,7 @@ import { untrack } from "svelte";
 import type { QueueTrack, Track } from "./api";
 import { t } from "./i18n";
 import { device } from "./device";
+import { toast } from "./nav.svelte";
 
 export interface MpvTrack {
   id: number;
@@ -334,6 +335,11 @@ export function playOfflineMusic(tracks: QueueTrack[], index: number) {
 }
 
 export async function play(ratingKey: string, opts: PlayOptions = {}) {
+  // Une vidéo se regarde ici : la musique diffusée sur un appareil s'arrête.
+  if (cast.device) {
+    invoke("cast_stop").catch(() => {});
+    cast.device = null;
+  }
   reset(true);
   player.ratingKey = ratingKey;
   // Épisodes voisins et repères (intro, générique), chargés à part : la lecture démarre sans les attendre.
@@ -480,7 +486,7 @@ export async function playMusic(
   player.expanded = wasExpanded || device.tv;
   try {
     const q = await invoke<{ session: string; tracks: QueueTrack[]; index: number }>(
-      player.web ? "music_queue" : "play_music",
+      player.web || cast.device ? "music_queue" : "play_music",
       {
         ratingKey,
         keys: opts.keys ?? null,
@@ -493,7 +499,8 @@ export async function playMusic(
     player.queue = q.tracks;
     player.index = q.index;
     player.duration = (q.tracks[q.index]?.durationMs ?? 0) / 1000;
-    if (player.web) web.playTrack(q.index);
+    if (cast.device) await sendToCast(cast.device, q.index, 0);
+    else if (player.web) web.playTrack(q.index);
   } catch (e) {
     player.active = false;
     throw e;
@@ -502,17 +509,175 @@ export async function playMusic(
 
 /** Commande au lecteur, au format mpv (par ex. `["cycle", "pause"]`), quel que soit le moteur. */
 export function mpv(...args: unknown[]) {
+  if (cast.device && !player.video) return Promise.resolve(castCommand(args));
   if (player.web) return Promise.resolve(web.command(args));
   return invoke<void>("player_command", { args }).catch(() => {});
 }
 
 export function stop() {
+  if (cast.device) {
+    invoke("cast_stop").catch(() => {});
+    cast.device = null;
+  }
   endTranscode();
   if (player.web) web.teardown();
   else invoke("player_stop");
   player.active = false;
   player.expanded = false;
 }
+
+// ---------- Chromecast (cast.rs) et AirPlay ----------
+
+export interface CastDevice {
+  id: string;
+  name: string;
+  host: string;
+  port: number;
+}
+
+/** Appareils trouvés sur le réseau, et celui qui joue la musique en ce moment (null : cet appareil). */
+export const cast = $state({ devices: [] as CastDevice[], searching: false, device: null as CastDevice | null, connecting: false });
+
+/** Chromecast : ordinateur, téléphone et tablette Android (pas le téléviseur, ni iOS qui a AirPlay). */
+export const castAvailable = () => !device.tv && device.os !== "ios";
+
+/** AirPlay : iPad et iPhone, par le sélecteur du système (le Mac suit la sortie son de macOS). */
+export const airPlayAvailable = () => device.os === "ios" && player.web;
+
+export function showAirPlay() {
+  web.airPlay();
+}
+
+export async function findCastDevices() {
+  if (cast.searching) return;
+  cast.searching = true;
+  try {
+    cast.devices = await invoke<CastDevice[]>("cast_devices");
+  } finally {
+    cast.searching = false;
+  }
+}
+
+async function sendToCast(target: CastDevice, index: number, position: number) {
+  cast.connecting = true;
+  try {
+    await invoke("cast_start", {
+      device: target,
+      tracks: player.queue.map((q) => ({ url: q.url, title: q.title, artist: q.artist, album: q.album, cover: q.cover })),
+      index,
+      position,
+    });
+    cast.device = target;
+    Object.assign(player, { index, position, buffering: true });
+  } finally {
+    cast.connecting = false;
+  }
+}
+
+/**
+ * Envoie la musique en cours sur un appareil Chromecast, au même titre et au même endroit ; avec `null`,
+ * la reprend sur cet appareil. La lecture locale s'arrête sans fermer le lecteur.
+ */
+export async function castTo(target: CastDevice | null) {
+  const { index, position } = player;
+  if (target) {
+    if (!player.active || player.video || cast.device?.id === target.id) return;
+    const wasCasting = !!cast.device;
+    if (!wasCasting) stopLocal();
+    await sendToCast(target, index, position);
+    return;
+  }
+  if (!cast.device) return;
+  invoke("cast_stop").catch(() => {});
+  cast.device = null;
+  if (!player.active || !player.queue.length) return;
+  if (player.web) {
+    web.playTrack(index);
+    web.command(["seek", position, "absolute"]);
+    return;
+  }
+  // Ordinateur : mpv repart avec la même file, sur le titre en cours.
+  const q = await invoke<{ session: string; tracks: QueueTrack[]; index: number }>("play_music", {
+    ratingKey: "",
+    keys: player.queue.map((x) => x.ratingKey),
+    start: player.queue[index]?.ratingKey ?? null,
+    shuffle: false,
+    radio: false,
+  });
+  Object.assign(player, { session: q.session, queue: q.tracks, index: q.index });
+  setTimeout(() => invoke("player_command", { args: ["seek", position, "absolute"] }).catch(() => {}), 900);
+}
+
+/** Arrête la lecture locale sans fermer le lecteur (la diffusion prend le relais). */
+function stopLocal() {
+  endTranscode();
+  if (player.web) web.teardown();
+  else {
+    // mpv signale sa fermeture : une session vide la fait ignorer.
+    player.session = "";
+    invoke("player_stop").catch(() => {});
+  }
+}
+
+/** Les commandes au format mpv, traduites pour l'appareil. */
+function castCommand(args: unknown[]) {
+  const send = (action: string, value?: number) => invoke("cast_command", { action, value: value ?? null }).catch(() => {});
+  const [cmd, a, b] = args as [string, unknown, unknown];
+  switch (cmd) {
+    case "cycle":
+      if (a === "pause") {
+        player.paused = !player.paused;
+        send("toggle");
+      } else if (a === "mute") send("mute", (player.muted = !player.muted) ? 1 : 0);
+      break;
+    case "seek": {
+      const to = Math.max(0, b === "absolute" ? Number(a) : player.position + Number(a));
+      player.position = to;
+      send("seek", to);
+      break;
+    }
+    case "add":
+      if (a === "volume") send("volume", (player.volume = Math.min(100, Math.max(0, player.volume + Number(b)))));
+      break;
+    case "set_property":
+      if (a === "volume") send("volume", (player.volume = Math.min(100, Number(b))));
+      else if (a === "mute") send("mute", (player.muted = !!b) ? 1 : 0);
+      else if (a === "playlist-pos") send("jump", Number(b));
+      else if (a === "loop-playlist") player.repeat = b !== "no";
+      break;
+    case "playlist-next":
+      send("next");
+      break;
+    case "playlist-prev":
+      send("previous");
+      break;
+  }
+}
+
+listen<{ state: string; position: number; duration: number; index: number | null; volume: number | null; muted: boolean | null }>("cast-status", ({ payload: s }) => {
+  if (!cast.device || player.video) return;
+  if (s.state) {
+    player.paused = s.state === "PAUSED";
+    player.buffering = s.state === "BUFFERING";
+  }
+  if (s.index !== null && s.index >= 0 && s.index < player.queue.length && s.index !== player.index) player.index = s.index;
+  if (s.state && s.state !== "IDLE") player.position = s.position;
+  if (s.duration > 0) player.duration = s.duration;
+  if (s.volume !== null) player.volume = Math.round(s.volume * 100);
+  if (s.muted !== null) player.muted = s.muted;
+}).catch(() => {});
+
+/** Fin de la diffusion : file terminée, appareil repris par une autre application, ou connexion perdue. */
+listen<string>("cast-ended", ({ payload: reason }) => {
+  if (!cast.device) return;
+  cast.device = null;
+  if (player.video) return;
+  player.active = false;
+  player.expanded = false;
+  if (reason === "disconnected" || reason === "closed") toast(t("cast.ended"), true);
+}).catch(() => {});
+
+listen<string>("cast-error", ({ payload }) => toast(payload, true)).catch(() => {});
 
 /** Titre précédent, ou retour au début du titre s'il joue depuis plus de 3 s. */
 export function previous() {
@@ -880,6 +1045,10 @@ const web = (() => {
 
     detachVideo() {
       videoEl = null;
+    },
+
+    airPlay() {
+      (audioEl as (HTMLAudioElement & { webkitShowPlaybackTargetPicker?: () => void }) | null)?.webkitShowPlaybackTargetPicker?.();
     },
   };
 

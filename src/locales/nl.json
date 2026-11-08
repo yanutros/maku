@@ -841,5 +841,14 @@
     "none": "Geen songtekst beschikbaar voor dit nummer.",
     "instrumental": "Instrumentaal nummer.",
     "source": "Songtekst: lrclib.net"
+  },
+  "cast": {
+    "title": "Luisteren op",
+    "airplay": "AirPlay",
+    "thisDevice": "Dit apparaat",
+    "on": "Op {{name}}",
+    "searching": "Netwerk doorzoeken…",
+    "none": "Geen Chromecast-apparaat gevonden op het netwerk.",
+    "ended": "Het casten is gestopt."
   }
 }

@@ -180,5 +180,10 @@
     "plexOnly": "la gestión de usuarios solo está disponible para servidores Plex",
     "needLibrary": "elige al menos una biblioteca",
     "needWho": "indica una dirección de correo o un nombre de usuario de Plex"
+  },
+  "cast": {
+    "unreachable": "el dispositivo no responde",
+    "launchFailed": "el dispositivo no pudo iniciar la reproducción",
+    "loadFailed": "el dispositivo no puede reproducir este archivo (quizá no llega al servidor)"
   }
 }

@@ -1,8 +1,9 @@
 <script lang="ts">
   import { formatClock } from "../lib/api";
   import { go } from "../lib/nav.svelte";
-  import { current, mpv, next, player, previous, stop } from "../lib/player.svelte";
+  import { cast, current, mpv, next, player, previous, stop } from "../lib/player.svelte";
   import Icon from "./Icon.svelte";
+  import CastButton from "./CastButton.svelte";
   import { t } from "../lib/i18n";
   import { device } from "../lib/device";
 
@@ -103,8 +104,11 @@
       <div class="meta" onclick={() => device.phone && (player.expanded = true)}>
         <div class="title">{track?.title ?? t("common.c1.loading")}</div>
         <div class="sub">
+          <!-- Diffusion en cours : l'appareil qui joue, à la place de l'artiste et de l'album. -->
+          {#if cast.device}<span class="on-cast"><Icon name="cast" size={13} /> {t("cast.on", { name: cast.device.name })}</span>{:else}
           {#if track?.artist}<button class="link" onclick={openArtist}>{track.artist}</button>{/if}
           {#if track?.album}<span class="dot">·</span><button class="link" onclick={openAlbum}>{track.album}</button>{/if}
+          {/if}
         </div>
       </div>
     </div>
@@ -164,6 +168,7 @@
     </div>
 
     <div class="extras">
+      <CastButton />
       <button class="ctl small" class:on={showQueue} onclick={() => (showQueue = !showQueue)} aria-label={t("common.c1.queue")} title={t("common.c1.queue")}>
         <Icon name="queue" size={19} />
       </button>
@@ -361,6 +366,13 @@
     align-items: center;
     justify-content: center;
     gap: 14px;
+  }
+
+  .on-cast {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--accent);
   }
 
   .ctl {

@@ -180,5 +180,10 @@
     "plexOnly": "user management is available for Plex servers only",
     "needLibrary": "choose at least one library",
     "needWho": "enter an email address or a Plex username"
+  },
+  "cast": {
+    "unreachable": "the device isn't responding",
+    "launchFailed": "the device couldn't start playback",
+    "loadFailed": "the device can't play this file (it may not be able to reach the server)"
   }
 }

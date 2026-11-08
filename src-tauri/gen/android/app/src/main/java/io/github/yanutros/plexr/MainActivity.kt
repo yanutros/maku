@@ -9,6 +9,7 @@ import android.content.res.Configuration
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.Uri
+import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
@@ -29,6 +30,10 @@ class MainActivity : TauriActivity() {
     enableEdgeToEdge()
     super.onCreate(savedInstanceState)
     DiagLog.init(this)
+    // Chromecast : sans ce verrou, le Wi-Fi filtre les annonces mDNS des enceintes (cast.rs les cherche).
+    runCatching {
+      (applicationContext.getSystemService(WIFI_SERVICE) as WifiManager).createMulticastLock("maku-cast").apply { setReferenceCounted(false); acquire() }
+    }
     // Android 17 : sans cette autorisation, les serveurs du réseau local (Jellyfin, Plex en local)
     // sont injoignables.
     if (Build.VERSION.SDK_INT >= 37 && checkSelfPermission(LOCAL_NETWORK) != PackageManager.PERMISSION_GRANTED) {

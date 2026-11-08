@@ -841,5 +841,14 @@
     "none": "Für diesen Titel gibt es keinen Songtext.",
     "instrumental": "Instrumentaltitel.",
     "source": "Songtext: lrclib.net"
+  },
+  "cast": {
+    "title": "Hören auf",
+    "airplay": "AirPlay",
+    "thisDevice": "Dieses Gerät",
+    "on": "Auf {{name}}",
+    "searching": "Netzwerk wird durchsucht …",
+    "none": "Kein Chromecast-Gerät im Netzwerk gefunden.",
+    "ended": "Die Übertragung wurde beendet."
   }
 }
