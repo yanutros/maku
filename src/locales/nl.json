@@ -98,7 +98,10 @@
       "diag": "Diagnoselogboek",
       "diagHint": "Als het apparaat vastloopt tijdens een video, of een weergave mislukt, stuur dan dit logboek met een beschrijving van het probleem. Het beschrijft het apparaat, de laatste weergaven, fouten en het vrije geheugen. Serveradressen, tokens en ID's staan er niet in.",
       "diagShare": "Logboek delen",
-      "diagPhoneHint": "Scan deze QR-code met je telefoon op hetzelfde netwerk: die downloadt het logboek, dat je daarna per bericht of e-mail kunt sturen."
+      "diagPhoneHint": "Scan deze QR-code met je telefoon op hetzelfde netwerk: die downloadt het logboek, dat je daarna per bericht of e-mail kunt sturen.",
+      "autoNext": "Volgende aflevering automatisch",
+      "autoNextHint": "Tijdens de aftiteling start een kaart na een aftelling de volgende aflevering.",
+      "autoNextOff": "Uit"
     },
     "interface": {
       "menuReset": "Menu hersteld",
@@ -616,7 +619,10 @@
     "none": "Geen",
     "fullscreen": "Volledig scherm",
     "skipIntro": "Intro overslaan",
-    "skipCredits": "Aftiteling overslaan"
+    "skipCredits": "Aftiteling overslaan",
+    "playNextIn_one": "Afspelen · {{count}} s",
+    "playNextIn_other": "Afspelen · {{count}} s",
+    "cancelNext": "Annuleren"
   },
   "request": {
     "sent": "Verzoek verstuurd: {{title}}",

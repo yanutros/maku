@@ -98,7 +98,10 @@
       "diag": "Diagnoseprotokoll",
       "diagHint": "Wenn das Gerät während eines Videos einfriert oder eine Wiedergabe fehlschlägt, sende dieses Protokoll mit einer Beschreibung des Problems. Es beschreibt das Gerät, die letzten Wiedergaben, Fehler und den freien Speicher. Serveradressen, Tokens und Kennungen sind nicht enthalten.",
       "diagShare": "Protokoll teilen",
-      "diagPhoneHint": "Scanne diesen QR-Code mit deinem Handy im selben Netzwerk: Es lädt das Protokoll herunter, das du dann per Nachricht oder E-Mail senden kannst."
+      "diagPhoneHint": "Scanne diesen QR-Code mit deinem Handy im selben Netzwerk: Es lädt das Protokoll herunter, das du dann per Nachricht oder E-Mail senden kannst.",
+      "autoNext": "Nächste Folge automatisch",
+      "autoNextHint": "Im Abspann startet eine Karte nach einem Countdown die nächste Folge.",
+      "autoNextOff": "Aus"
     },
     "interface": {
       "menuReset": "Menü zurückgesetzt",
@@ -616,7 +619,10 @@
     "none": "Keine",
     "fullscreen": "Vollbild",
     "skipIntro": "Intro überspringen",
-    "skipCredits": "Abspann überspringen"
+    "skipCredits": "Abspann überspringen",
+    "playNextIn_one": "Abspielen · {{count}} s",
+    "playNextIn_other": "Abspielen · {{count}} s",
+    "cancelNext": "Abbrechen"
   },
   "request": {
     "sent": "Anfrage gesendet: {{title}}",

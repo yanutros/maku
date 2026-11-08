@@ -49,6 +49,10 @@ export const player = $state({
   ratingKey: "",
   prevKey: null as string | null,
   nextKey: null as string | null,
+  /** Épisode suivant, pour la carte « Épisode suivant » au générique (PlayerOverlay.svelte). */
+  upNext: null as { title: string; subtitle: string | null; thumb: string | null } | null,
+  /** Carte « Épisode suivant » affichée et pas annulée : la fin de l'épisode enchaîne sur le suivant. */
+  autoNext: false,
   title: "",
   subtitle: null as string | null,
   position: 0,
@@ -78,6 +82,48 @@ export const player = $state({
   /** Lecture d'un téléchargement (lib/offline.svelte.ts) : son identifiant ; la progression reste sur l'appareil. */
   offline: "",
 });
+
+/** Durées proposées pour le compte à rebours de l'épisode suivant (secondes ; 0 : désactivé). */
+export const NEXT_DELAYS = [0, 5, 10, 15, 30];
+
+/** Compte à rebours de l'épisode suivant, réglé dans Réglages → Lecteur (10 s par défaut). */
+export const autoNext = $state({ delay: loadNextDelay() });
+
+function loadNextDelay(): number {
+  try {
+    const v = localStorage.getItem("maku.nextDelay");
+    return v !== null && NEXT_DELAYS.includes(Number(v)) ? Number(v) : 10;
+  } catch {
+    return 10;
+  }
+}
+
+export function setNextDelay(s: number) {
+  autoNext.delay = s;
+  try {
+    localStorage.setItem("maku.nextDelay", String(s));
+  } catch {
+    // Stockage indisponible : réglage gardé jusqu'à la fermeture.
+  }
+}
+
+/** Titre, numéro et vignette de l'épisode suivant, pour sa carte. */
+function loadUpNext(current: string, next: string) {
+  invoke<{ title: string; index: number | null; parentIndex: number | null; thumb: string | null; poster: string | null }>("plex_metadata", { ratingKey: next }).then(
+    (m) => {
+      if (player.ratingKey !== current || player.nextKey !== next) return;
+      const number = m.parentIndex != null && m.index != null ? `S${m.parentIndex} · É${m.index}` : null;
+      player.upNext = { title: m.title, subtitle: number, thumb: m.thumb ?? m.poster };
+    },
+    () => {},
+  );
+}
+
+/** Fin d'une vidéo : l'épisode suivant si sa carte est affichée (et pas annulée), sinon l'arrêt. */
+function videoEnded() {
+  if (player.autoNext && player.nextKey) play(player.nextKey).catch(() => stop());
+  else stop();
+}
 
 /** Qualités proposées, comme dans les applications Plex (kb/s ; 0 : originale). */
 export const QUALITIES = [0, 20000, 12000, 8000, 4000, 2000, 1500];
@@ -217,6 +263,8 @@ function reset(video: boolean) {
     ratingKey: "",
     prevKey: null,
     nextKey: null,
+    upNext: null,
+    autoNext: false,
     title: "",
     subtitle: null,
     buffering: true,
@@ -271,7 +319,9 @@ export async function play(ratingKey: string, opts: PlayOptions = {}) {
   // Épisodes voisins et repères (intro, générique), chargés à part : la lecture démarre sans les attendre.
   invoke<{ prev: string | null; next: string | null }>("plex_adjacent", { ratingKey }).then(
     (a) => {
-      if (player.ratingKey === ratingKey) Object.assign(player, { prevKey: a.prev, nextKey: a.next });
+      if (player.ratingKey !== ratingKey) return;
+      Object.assign(player, { prevKey: a.prev, nextKey: a.next });
+      if (a.next) loadUpNext(ratingKey, a.next);
     },
     () => {},
   );
@@ -367,11 +417,11 @@ function markTranscoded() {
 /** Relance la vidéo en cours au même endroit, avec d'autres pistes ou une autre qualité. */
 function restart(streams = player.streams) {
   if (!player.video || !player.ratingKey) return;
-  const { ratingKey, prevKey, nextKey, markers, mediaIndex, previews } = player;
+  const { ratingKey, prevKey, nextKey, upNext, markers, mediaIndex, previews } = player;
   const startMs = Math.round(player.position * 1000);
   const done = play(ratingKey, { ...streams, startMs, mediaIndex });
   // Les épisodes voisins, les repères et les aperçus ne changent pas : pas de clignotement.
-  Object.assign(player, { prevKey, nextKey, markers, previews });
+  Object.assign(player, { prevKey, nextKey, upNext, markers, previews });
   return done;
 }
 
@@ -525,7 +575,7 @@ const web = (() => {
 
   function ended() {
     if (player.video) {
-      stop();
+      videoEnded();
       return;
     }
     if (player.index < player.queue.length - 1) playTrack(player.index + 1);
@@ -551,7 +601,7 @@ const web = (() => {
 
   (globalThis as { __plexrVideo?: (e: NativeEvent) => void }).__plexrVideo = (e) => {
     if (!player.native) return;
-    if (e.ended) return stop();
+    if (e.ended) return videoEnded();
     if (e.unsupported !== undefined || e.error !== undefined) {
       // Codec ou format que l'appareil ne lit pas : le serveur convertit. Si seul le son pose problème,
       // d'abord en gardant la vidéo d'origine ; en cas d'échec, la conversion complète, comme avant.
@@ -827,6 +877,8 @@ listen<{ name: string; data: unknown }>("player-prop", ({ payload: { name, data 
 // Une lecture remplacée signale sa fin après le démarrage de la suivante : on l'ignore.
 listen<string>("player-stopped", ({ payload }) => {
   if (payload === player.session) {
+    // mpv se ferme à la fin du fichier : l'épisode suivant, si sa carte est affichée.
+    if (player.video && player.autoNext && player.nextKey) return void play(player.nextKey).catch(() => {});
     endTranscode();
     player.transcoded = false;
     player.active = false;

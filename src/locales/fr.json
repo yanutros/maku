@@ -98,7 +98,10 @@
       "diag": "Journal de diagnostic",
       "diagHint": "Si l'appareil se bloque pendant une vidéo, ou qu'une lecture échoue, envoie ce journal avec ta description du problème. Il décrit l'appareil, les dernières lectures, les erreurs et la mémoire libre. Les adresses de serveur, jetons et identifiants n'y figurent pas.",
       "diagShare": "Partager le journal",
-      "diagPhoneHint": "Scanne ce QR code avec ton téléphone, connecté au même réseau : il télécharge le journal, à envoyer ensuite par message ou par e-mail."
+      "diagPhoneHint": "Scanne ce QR code avec ton téléphone, connecté au même réseau : il télécharge le journal, à envoyer ensuite par message ou par e-mail.",
+      "autoNext": "Épisode suivant automatique",
+      "autoNextHint": "Au générique, une carte lance l'épisode suivant après un compte à rebours.",
+      "autoNextOff": "Désactivé"
     },
     "interface": {
       "menuReset": "Menu réinitialisé",
@@ -616,7 +619,10 @@
     "none": "Aucun",
     "fullscreen": "Plein écran",
     "skipIntro": "Passer l'intro",
-    "skipCredits": "Passer le générique"
+    "skipCredits": "Passer le générique",
+    "playNextIn_one": "Lire · {{count}} s",
+    "playNextIn_other": "Lire · {{count}} s",
+    "cancelNext": "Annuler"
   },
   "request": {
     "sent": "Demande envoyée : {{title}}",

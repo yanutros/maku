@@ -1,11 +1,20 @@
+<script lang="ts" module>
+  import { onBack } from "../lib/nav.svelte";
+
+  /** Carte « Épisode suivant » affichée : le bouton Retour l'annule (la vidéo continue). */
+  let cancelNextCard: (() => boolean) | null = null;
+  onBack(() => cancelNextCard?.() ?? false);
+</script>
+
 <script lang="ts">
-  import { onDestroy, onMount } from "svelte";
+  import { onDestroy, onMount, untrack } from "svelte";
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import { errorText } from "../lib/api";
   import { toast } from "../lib/nav.svelte";
   import {
     QUALITIES,
     attachVideo,
+    autoNext,
     detachVideo,
     mpv,
     play,
@@ -201,12 +210,65 @@
     setQuality(kbps)?.catch((e) => toast(errorText(e), true));
   }
 
+  // Épisode suivant : sa carte apparaît au début du générique (repère du serveur, s'il est dans la seconde
+  // moitié), sinon 30 s avant la fin, avec un compte à rebours réglé dans Réglages → Lecteur. La pause
+  // l'arrête ; « Annuler » ou Retour masquent la carte et la vidéo s'arrête à la fin, comme avant.
+  // Hauteur des commandes du bas : la carte et « Passer » se posent juste au-dessus quand elles sont affichées.
+  let controlsHeight = $state(0);
+  let nextCancelled = $state(false);
+  let nextShownAt = $state<number | null>(null);
+  let nextLaunched = false;
+  $effect(() => {
+    void player.ratingKey;
+    nextCancelled = false;
+    nextShownAt = null;
+    nextLaunched = false;
+  });
+  const creditsAt = $derived.by(() => {
+    const credits = player.markers.filter((m) => m.kind === "credits" && m.startMs / 1000 > player.duration / 2)[0];
+    return credits ? credits.startMs / 1000 : player.duration - 30;
+  });
+  const showNext = $derived(
+    player.video && !!player.nextKey && !!player.upNext && autoNext.delay > 0 && !nextCancelled && player.duration > 120 && player.position >= creditsAt,
+  );
+  const nextLeft = $derived(nextShownAt === null ? autoNext.delay : Math.max(0, autoNext.delay - (player.position - nextShownAt)));
+  let nextEl = $state<HTMLButtonElement>();
+  $effect(() => {
+    player.autoNext = showNext;
+    if (!showNext) {
+      nextShownAt = null;
+      return;
+    }
+    untrack(() => {
+      if (nextShownAt === null) nextShownAt = player.position;
+    });
+  });
+  $effect(() => {
+    if (showNext && nextShownAt !== null && nextLeft <= 0 && !nextLaunched) {
+      nextLaunched = true;
+      goTo(player.nextKey);
+    }
+  });
+  $effect(() => {
+    if (showNext && nextEl && document.documentElement.classList.contains("tv")) nextEl.focus();
+  });
+  function cancelNext() {
+    nextCancelled = true;
+    player.autoNext = false;
+  }
+  cancelNextCard = () => {
+    if (!showNext) return false;
+    cancelNext();
+    return true;
+  };
+  onDestroy(() => (cancelNextCard = null));
+
   // Repère (intro, générique) sous la tête de lecture : le bouton « Passer », qui prend le focus sur
-  // téléviseur pour qu'un simple OK suffise.
+  // téléviseur pour qu'un simple OK suffise. Pendant la carte « Épisode suivant », elle le remplace.
   const skip = $derived(
     player.markers.find((m) => {
       const ms = player.position * 1000;
-      return (m.kind === "intro" || m.kind === "credits") && ms >= m.startMs && ms < m.endMs - 1500;
+      return (m.kind === "intro" || (m.kind === "credits" && !showNext)) && ms >= m.startMs && ms < m.endMs - 1500;
     }),
   );
   let skipEl = $state<HTMLButtonElement>();
@@ -252,6 +314,7 @@
         break;
       case "Escape":
         if (menu) menu = null;
+        else if (showNext) cancelNext();
         else if (fullscreen) toggleFullscreen();
         else close();
         break;
@@ -279,7 +342,7 @@
 <svelte:window onkeydown={onKey} />
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="overlay" class:hidden={!visible} class:remote={!player.embedded} class:web={player.web && !player.native} class:loading={!player.web && player.embedded && !player.videoReady} onpointermove={poke}>
+<div class="overlay" class:hidden={!visible} style:--controls="{controlsHeight}px" class:remote={!player.embedded} class:web={player.web && !player.native} class:loading={!player.web && player.embedded && !player.videoReady} onpointermove={poke}>
   <!-- Android : la vidéo est dessinée sous la page par le lecteur natif ; sinon par cet élément. -->
   {#if player.web && !player.native}
     <!-- svelte-ignore a11y_media_has_caption -->
@@ -335,8 +398,26 @@
     </button>
   {/if}
 
+  <!-- Épisode suivant, au générique : vignette, titre, « Lire » qui se remplit pendant le compte à rebours. -->
+  {#if showNext && player.upNext}
+    <div class="next-card" role="dialog" aria-label={t("player.nextEpisode")}>
+      <div class="next-thumb">{#if player.upNext.thumb}<img src={player.upNext.thumb} alt="" />{/if}</div>
+      <div class="next-info">
+        <span class="next-eyebrow">{t("player.nextEpisode")}{#if player.upNext.subtitle} · {player.upNext.subtitle}{/if}</span>
+        <strong class="next-title">{player.upNext.title}</strong>
+        <div class="next-actions">
+          <button class="btn next-play" bind:this={nextEl} onclick={() => goTo(player.nextKey)}>
+            <span class="next-fill" style:width="{(1 - nextLeft / autoNext.delay) * 100}%"></span>
+            <span class="next-label"><Icon name="play" size={16} filled /> {t("player.playNextIn", { count: Math.ceil(nextLeft) })}</span>
+          </button>
+          <button class="btn next-cancel" onclick={cancelNext}>{t("player.cancelNext")}</button>
+        </div>
+      </div>
+    </div>
+  {/if}
+
   <!-- Capsule flottante, façon Apple TV : titre et pistes, progression, puis commandes de lecture. -->
-  <div class="bottom">
+  <div class="bottom" bind:clientHeight={controlsHeight}>
     <div class="capsule">
       <div class="head">
         <div class="titles">
@@ -578,8 +659,9 @@
 
   .skip {
     position: absolute;
-    right: 40px;
-    bottom: 190px;
+    right: var(--edge);
+    bottom: var(--above);
+    transition: bottom 0.25s ease;
     height: 46px;
     padding: 0 20px;
     border-color: #ffffff55;
@@ -587,6 +669,108 @@
     font-size: 15px;
     font-weight: 600;
     backdrop-filter: blur(8px);
+  }
+
+  /* Carte et « Passer » : alignées sur le bord droit de la capsule (1100 px au plus, centrée), juste au-dessus
+     des commandes quand elles sont affichées, en bas de l image sinon. */
+  .overlay {
+    --edge: max(28px, calc((100% - 1100px) / 2));
+    --above: calc(var(--controls) + 12px);
+  }
+
+  .overlay.hidden {
+    --above: 28px;
+  }
+
+  .next-card {
+    position: absolute;
+    right: var(--edge);
+    bottom: var(--above);
+    transition: bottom 0.25s ease;
+    display: flex;
+    gap: 14px;
+    width: min(440px, calc(100% - 28px));
+    padding: 12px;
+    border: 1px solid #ffffff22;
+    border-radius: 18px;
+    background: #0b0c10e6;
+    color: #fff;
+    backdrop-filter: blur(12px);
+  }
+
+  .next-thumb {
+    flex: none;
+    width: 160px;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    border-radius: 10px;
+    background: #ffffff14;
+  }
+
+  .next-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .next-info {
+    display: grid;
+    align-content: center;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .next-eyebrow {
+    color: #ffffffaa;
+    font-size: 12px;
+  }
+
+  .next-title {
+    overflow: hidden;
+    font-size: 16px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .next-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 2px;
+  }
+
+  .next-play {
+    position: relative;
+    overflow: hidden;
+    border-color: transparent;
+    background: var(--accent);
+    color: var(--accent-text);
+    font-weight: 700;
+  }
+
+  .next-fill {
+    position: absolute;
+    inset: 0 auto 0 0;
+    background: #ffffff40;
+    transition: width 0.5s linear;
+  }
+
+  .next-label {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .next-cancel {
+    border-color: #ffffff33;
+    background: #ffffff14;
+    color: #fff;
+  }
+
+  :global(html.tv) .next-cancel:focus {
+    background: #fff;
+    color: #111;
   }
 
   .skip:hover,
@@ -973,6 +1157,14 @@
       padding: 0 10px 10px;
     }
 
+    .overlay {
+      --edge: 10px;
+    }
+
+    .next-thumb {
+      width: 110px;
+    }
+
     .capsule {
       padding: 12px 14px 8px;
       border-radius: 18px;
@@ -988,9 +1180,5 @@
       max-width: 150px;
     }
 
-    .skip {
-      right: 14px;
-      bottom: 210px;
-    }
   }
 </style>

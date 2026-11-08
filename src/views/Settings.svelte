@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { diagAvailable, diagShare, diagText, passthroughAvailable, passthroughFormats, passthroughMode, setPassthroughMode } from "../lib/player.svelte";
+  import { NEXT_DELAYS, autoNext, setNextDelay, diagAvailable, diagShare, diagText, passthroughAvailable, passthroughFormats, passthroughMode, setPassthroughMode } from "../lib/player.svelte";
   import { invoke } from "@tauri-apps/api/core";
   import { onMount, tick } from "svelte";
   import { listen } from "@tauri-apps/api/event";
@@ -479,7 +479,7 @@
   <nav class="menu" data-nav-zone="settings-rail">
     <div class="menu-group">Maku</div>
     {@render link("account", t("settings.menu.account"), "user")}
-    {#if !device.tv || passthroughAvailable}{@render link("player", t("settings.menu.player"), "play")}{/if}
+    {@render link("player", t("settings.menu.player"), "play")}
     {@render link("interface", t("settings.menu.interface"), "menu")}
     {@render link("services", t("settings.menu.services"), "compass")}
 
@@ -604,7 +604,7 @@
               {/each}
             </div>
           </div>
-        {:else}
+        {:else if !device.tv}
           <div class="line">
             <div class="line-text">
               <strong>{t("settings.player.mpvPath")}</strong>
@@ -616,6 +616,20 @@
             </div>
           </div>
         {/if}
+        <!-- Épisode suivant au générique, après un compte à rebours (PlayerOverlay.svelte). -->
+        <div class="line">
+          <div class="line-text">
+            <strong>{t("settings.player.autoNext")}</strong>
+            <span class="muted small">{t("settings.player.autoNextHint")}</span>
+          </div>
+          <div class="seg" role="radiogroup" aria-label={t("settings.player.autoNext")}>
+            {#each NEXT_DELAYS as d (d)}
+              <button role="radio" class:on={autoNext.delay === d} aria-checked={autoNext.delay === d} onclick={() => setNextDelay(d)}>
+                {d ? `${d} s` : t("settings.player.autoNextOff")}
+              </button>
+            {/each}
+          </div>
+        </div>
         {#if diagAvailable}
           <!-- Android : journal à transmettre quand l'appareil se bloque ou qu'une lecture échoue (DiagLog.kt). -->
           <div class="line">

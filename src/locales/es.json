@@ -98,7 +98,10 @@
       "diag": "Registro de diagnóstico",
       "diagHint": "Si el dispositivo se bloquea durante un vídeo, o falla una reproducción, envía este registro con una descripción del problema. Describe el dispositivo, las últimas reproducciones, los errores y la memoria libre. No incluye direcciones de servidor, tokens ni identificadores.",
       "diagShare": "Compartir el registro",
-      "diagPhoneHint": "Escanea este código QR con tu teléfono, en la misma red: descarga el registro, que luego puedes enviar por mensaje o correo."
+      "diagPhoneHint": "Escanea este código QR con tu teléfono, en la misma red: descarga el registro, que luego puedes enviar por mensaje o correo.",
+      "autoNext": "Siguiente episodio automático",
+      "autoNextHint": "En los créditos, una tarjeta inicia el siguiente episodio tras una cuenta atrás.",
+      "autoNextOff": "Desactivado"
     },
     "interface": {
       "menuReset": "Menú restablecido",
@@ -616,7 +619,10 @@
     "none": "Ninguno",
     "fullscreen": "Pantalla completa",
     "skipIntro": "Saltar la intro",
-    "skipCredits": "Saltar los créditos"
+    "skipCredits": "Saltar los créditos",
+    "playNextIn_one": "Reproducir · {{count}} s",
+    "playNextIn_other": "Reproducir · {{count}} s",
+    "cancelNext": "Cancelar"
   },
   "request": {
     "sent": "Solicitud enviada: {{title}}",
