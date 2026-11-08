@@ -476,8 +476,6 @@
 
   .session {
     position: relative;
-    /* Safari (iPad, Mac) : sans isolation, ses calques flous débordaient des coins arrondis (coins carrés visibles). */
-    isolation: isolate;
     display: flex;
     gap: 18px;
     padding: 16px;
@@ -490,6 +488,9 @@
   .session-bg {
     position: absolute;
     inset: -40px;
+    /* Safari (iPad, Mac) ne coupe pas un calque flouté selon les coins arrondis de son cadre : il le découpe
+       lui-même, au contour exact du cadre (son débord, plus le bord de 1 px s'il y en a un). */
+    clip-path: inset(40px round 19px);
     background-size: cover;
     background-position: center;
     filter: blur(40px) saturate(1.5);

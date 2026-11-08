@@ -27,8 +27,6 @@
 <style>
   .tile {
     position: relative;
-    /* Safari (iPad, Mac) : sans isolation, ses calques flous débordaient des coins arrondis (coins carrés visibles). */
-    isolation: isolate;
     aspect-ratio: 16 / 9;
     padding: 0;
     overflow: hidden;
@@ -56,11 +54,13 @@
   /* Fond : la scène d'un des titres, très floutée, comme un halo de couleur. */
   .bg {
     position: absolute;
-    inset: -20px;
+    inset: -40px;
     background-size: cover;
     background-position: center;
     filter: blur(22px) saturate(1.6) brightness(0.7);
-    transform: scale(1.1);
+    /* Safari (iPad, Mac) ne coupe pas un calque flouté selon les coins arrondis de son cadre : il le découpe
+       lui-même, au contour exact du cadre (son débord, plus le bord de 1 px s'il y en a un). */
+    clip-path: inset(40px round 18px);
   }
 
   .tint {

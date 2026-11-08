@@ -219,8 +219,6 @@
 
   .bar {
     position: relative;
-    /* Safari (iPad, Mac) : sans isolation, ses calques flous débordaient des coins arrondis (coins carrés visibles). */
-    isolation: isolate;
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(320px, 1.35fr) minmax(0, 1fr);
     align-items: center;
@@ -240,6 +238,9 @@
   .ambient {
     position: absolute;
     inset: -60px;
+    /* Safari (iPad, Mac) ne coupe pas un calque flouté selon les coins arrondis de son cadre : il le découpe
+       lui-même, au contour exact du cadre (son débord, plus le bord de 1 px s'il y en a un). */
+    clip-path: inset(60px round 21px);
     background-size: cover;
     background-position: center;
     filter: blur(50px) saturate(1.8);
