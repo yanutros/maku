@@ -166,5 +166,12 @@
     "done": "Sleutel opgeslagen! Je kunt je telefoon wegleggen.",
     "failed": "De sleutel kon niet worden opgeslagen.",
     "tvGone": "De tv reageert niet meer: open de Seerr- en Tracearr-instellingen opnieuw."
+  },
+  "offline": {
+    "noSpace": "niet genoeg ruimte op het apparaat",
+    "interrupted": "download onderbroken",
+    "noStream": "de server heeft geen geconverteerde versie geleverd",
+    "notFound": "bestand niet gevonden op de server",
+    "notAllowed": "de serverbeheerder staat geen downloads toe voor dit account"
   }
 }

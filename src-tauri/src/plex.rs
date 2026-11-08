@@ -957,6 +957,14 @@ impl PlexServer {
         )
     }
 
+    /// Droit de télécharger pour la lecture hors ligne : « Autoriser les téléchargements », que l'administrateur
+    /// règle pour chaque ami partagé ; le serveur l'indique à la racine (`allowSync`), pour le compte en cours.
+    pub async fn can_download(&self) -> Result<bool> {
+        let v: serde_json::Value = self.get("/").send().await?.error_for_status()?.json().await?;
+        let a = &v["MediaContainer"]["allowSync"];
+        Ok(a.as_bool().unwrap_or(false) || a.as_str() == Some("1") || a.as_u64() == Some(1))
+    }
+
     async fn container(&self, path: &str) -> Result<MediaContainer> {
         let env: Envelope = self.get(path).send().await?.error_for_status()?.json().await?;
         Ok(env.media_container)

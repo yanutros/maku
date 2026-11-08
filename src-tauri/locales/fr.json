@@ -166,5 +166,12 @@
     "done": "Clé enregistrée ! Tu peux reposer ton téléphone.",
     "failed": "La clé n'a pas pu être enregistrée.",
     "tvGone": "La télé ne répond plus : rouvre les réglages Seerr et Tracearr."
+  },
+  "offline": {
+    "noSpace": "plus assez d'espace sur l'appareil",
+    "interrupted": "téléchargement interrompu",
+    "noStream": "le serveur n'a pas fourni de version convertie",
+    "notFound": "fichier introuvable sur le serveur",
+    "notAllowed": "l'administrateur du serveur n'autorise pas les téléchargements pour ce compte"
   }
 }

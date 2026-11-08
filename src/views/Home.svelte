@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { offline, offlineAvailable } from "../lib/offline.svelte";
   import { onMount } from "svelte";
   import { listen } from "@tauri-apps/api/event";
   import { api, errorText, type Home, type Item, type SeerrMedia, type Section } from "../lib/api";
@@ -76,7 +77,13 @@
 </script>
 
 {#if error}
-  <div class="page"><p class="error">{error}</p></div>
+  <div class="page">
+    <p class="error">{error}</p>
+    <!-- Sans réseau (train, avion) : les téléchargements restent lisibles. -->
+    {#if offlineAvailable() && offline.items.length}
+      <button class="btn primary" onclick={() => go({ name: "downloads" })}><Icon name="download" size={16} /> {t("offline.open")}</button>
+    {/if}
+  </div>
 {:else if !home}
   <div class="hero-skeleton skeleton"></div>
 {:else if device.tv}

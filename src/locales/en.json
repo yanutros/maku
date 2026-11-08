@@ -763,5 +763,30 @@
     "cancel": "Close",
     "added": "“{{title}}” added to “{{collection}}”",
     "created": "Collection “{{collection}}” created"
+  },
+  "offline": {
+    "title": "Downloads",
+    "open": "My downloads",
+    "download": "Download",
+    "downloadSeason": "Download season",
+    "downloaded": "Downloaded",
+    "downloading": "Downloading… {{percent}}%",
+    "resume": "Resume",
+    "pause": "Pause",
+    "remove": "Remove download",
+    "failed": "Download failed",
+    "started": "Download started",
+    "qualityHint": "Quality of the file on the device",
+    "original": "Original",
+    "originalHint": "The server's file, with all its tracks (largest)",
+    "convertedHint": "Converted by the server, lighter ({{size}})",
+    "queued": "Waiting",
+    "paused": "Paused",
+    "starting": "Starting…",
+    "progress": "{{done}} of {{size}}",
+    "used": "{{size}} used on the device. Playable without a network.",
+    "empty": "Nothing downloaded yet. On a movie, season, album or playlist page, \"Download\" keeps it on the device, to watch or listen without a network.",
+    "movies": "Movies",
+    "episodeCode": "S{{season}} · E{{episode}}"
   }
 }

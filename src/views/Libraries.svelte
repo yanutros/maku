@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { showDownloads } from "../lib/offline.svelte";
   import type { Section } from "../lib/api";
   import { go } from "../lib/nav.svelte";
   import { ordered, sidebar } from "../lib/sidebar.svelte";
@@ -21,6 +22,14 @@
     <p class="muted">{t("phone.noLibraries")}</p>
   {/if}
   <div class="list">
+    <!-- Téléphone Android : les téléchargements, lisibles hors ligne. -->
+    {#if showDownloads()}
+      <button class="library" onclick={() => go({ name: "downloads" })}>
+        <span class="icon"><Icon name="download" size={22} /></span>
+        <span class="name">{t("offline.title")}</span>
+        <Icon name="chevronRight" size={18} />
+      </button>
+    {/if}
     {#each list as s (s.key)}
       <button class="library" onclick={() => go({ name: "section", key: s.key, title: s.title, kind: s.kind })}>
         <span class="icon"><Icon name={icon(s.kind)} size={22} /></span>

@@ -166,5 +166,12 @@
     "done": "¡Clave guardada! Ya puedes dejar el teléfono.",
     "failed": "No se pudo guardar la clave.",
     "tvGone": "La tele no responde: vuelve a abrir los ajustes de Seerr y Tracearr."
+  },
+  "offline": {
+    "noSpace": "no queda espacio en el dispositivo",
+    "interrupted": "descarga interrumpida",
+    "noStream": "el servidor no proporcionó una versión convertida",
+    "notFound": "archivo no encontrado en el servidor",
+    "notAllowed": "el administrador del servidor no permite descargas para esta cuenta"
   }
 }

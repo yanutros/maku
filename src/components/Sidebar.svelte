@@ -8,6 +8,7 @@
   import { device } from "../lib/device";
   import { current, player } from "../lib/player.svelte";
   import { t } from "../lib/i18n";
+  import { showDownloads } from "../lib/offline.svelte";
 
   let { sections, serverName }: { sections: Section[]; serverName: string | null } = $props();
 
@@ -117,6 +118,13 @@
             aria-current={isActive("home") ? "page" : undefined} onclick={() => open({ name: "home" })} title={t("sidebar.home")}>
       <Icon name="home" /> <span class="label">{t("sidebar.home")}</span>
     </button>
+    <!-- Tablette Android : les téléchargements, lisibles hors ligne. -->
+    {#if showDownloads()}
+      <button class="item" class:active={isActive("downloads")}
+              aria-current={isActive("downloads") ? "page" : undefined} onclick={() => open({ name: "downloads" })} title={t("offline.title")}>
+        <Icon name="download" /> <span class="label">{t("offline.title")}</span>
+      </button>
+    {/if}
 
     {#if sections.length}
       <div class="group">

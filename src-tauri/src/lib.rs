@@ -10,6 +10,7 @@ mod player;
 mod plex;
 mod plex_admin;
 mod relay;
+mod offline;
 mod seerr;
 mod tracearr;
 mod update;
@@ -48,6 +49,10 @@ struct AppState {
     logo_slots: tokio::sync::Semaphore,
     /// « Changer de serveur » : retour à l'écran de choix Plex / Jellyfin, connexions gardées.
     choosing: std::sync::atomic::AtomicBool,
+    /// Téléchargements pour la lecture hors ligne (offline.rs).
+    offline: Arc<offline::Offline>,
+    /// Téléchargements longs : pas de délai maximal pour la requête entière, contrairement à `http`.
+    download_http: reqwest::Client,
 }
 
 impl AppState {
@@ -1551,6 +1556,77 @@ async fn update_install(app: AppHandle, state: State<'_, AppState>, info: update
     Ok(None)
 }
 
+// ---------- Lecture hors ligne ----------
+
+/// Téléchargements de l'appareil, avec le dossier où sont leurs fichiers.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct OfflineList {
+    dir: String,
+    items: Vec<offline::Download>,
+}
+
+/// Le compte en cours a-t-il le droit de télécharger sur ce serveur (réglé par son administrateur) ?
+#[tauri::command]
+async fn offline_allowed(state: State<'_, AppState>) -> CmdResult<bool> {
+    Ok(state.server()?.can_download().await?)
+}
+
+#[tauri::command]
+fn offline_list(state: State<'_, AppState>) -> OfflineList {
+    OfflineList { dir: state.offline.dir().to_string_lossy().into_owned(), items: state.offline.list() }
+}
+
+/// Relance la file des téléchargements du serveur en cours.
+fn offline_kick(app: &AppHandle, state: &AppState) {
+    let (Ok(server), Some(key)) = (state.server(), state.cfg().server.map(|s| s.key())) else { return };
+    state.offline.kick(app.clone(), state.download_http.clone(), server, key);
+}
+
+#[tauri::command]
+async fn offline_add(app: AppHandle, state: State<'_, AppState>, requests: Vec<offline::Request>) -> CmdResult<Vec<offline::Download>> {
+    // Pas de téléchargement sans le droit donné par l'administrateur du serveur.
+    if !state.server()?.can_download().await? {
+        return Err(anyhow!(crate::i18n::tr("offline.notAllowed")).into());
+    }
+    let key = state.cfg().server.map(|s| s.key()).ok_or_else(|| anyhow!(crate::i18n::tr("app.noServer")))?;
+    let added = requests.into_iter().map(|r| state.offline.add(&key, r)).collect();
+    offline_kick(&app, &state);
+    Ok(added)
+}
+
+#[tauri::command]
+fn offline_pause(state: State<'_, AppState>, id: String) {
+    state.offline.pause(&id);
+}
+
+#[tauri::command]
+fn offline_resume(app: AppHandle, state: State<'_, AppState>, id: String) {
+    state.offline.resume(&id);
+    offline_kick(&app, &state);
+}
+
+#[tauri::command]
+fn offline_remove(state: State<'_, AppState>, id: String) {
+    state.offline.remove(&id);
+}
+
+/// Progression d'une lecture hors ligne, renvoyée au serveur plus tard (`offline_sync`).
+#[tauri::command]
+fn offline_progress(state: State<'_, AppState>, id: String, position_ms: u64, watched: bool) {
+    state.offline.set_progress(&id, position_ms, watched);
+}
+
+/// Serveur joignable : la progression jouée hors ligne lui est renvoyée, et les téléchargements en attente
+/// reprennent. Renvoie le nombre de progressions envoyées.
+#[tauri::command]
+async fn offline_sync(app: AppHandle, state: State<'_, AppState>) -> CmdResult<usize> {
+    let (Ok(server), Some(key)) = (state.server(), state.cfg().server.map(|s| s.key())) else { return Ok(0) };
+    let sent = state.offline.sync(&server, &key).await;
+    offline_kick(&app, &state);
+    Ok(sent)
+}
+
 // ---------- Invitation par téléphone ----------
 
 /// Ouvre le relais sur le réseau local ; renvoie l'adresse à mettre dans le QR code. Avec `login`
@@ -1607,6 +1683,12 @@ pub fn run() {
                 remote_logos: Mutex::new(Default::default()),
                 logo_slots: tokio::sync::Semaphore::new(4),
                 choosing: Default::default(),
+                offline: Arc::new(offline::Offline::new(app.path().app_local_data_dir()?.join("offline"))),
+                download_http: reqwest::Client::builder()
+                    .connect_timeout(Duration::from_secs(20))
+                    .read_timeout(Duration::from_secs(90))
+                    .redirect(net::same_host())
+                    .build()?,
             });
             let handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
@@ -1721,6 +1803,14 @@ pub fn run() {
             relay_status,
             relay_stop,
             relay_journal,
+            offline_list,
+            offline_allowed,
+            offline_add,
+            offline_pause,
+            offline_resume,
+            offline_remove,
+            offline_progress,
+            offline_sync,
             set_app_icon,
             set_language,
         ])

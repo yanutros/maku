@@ -6,6 +6,8 @@
   import PosterCard from "../components/PosterCard.svelte";
   import Icon from "../components/Icon.svelte";
   import { t } from "../lib/i18n";
+  import { canDownload } from "../lib/offline.svelte";
+  import DownloadButton from "../components/DownloadButton.svelte";
   import { device } from "../lib/device";
   import { useAmbient } from "../lib/ambient.svelte";
 
@@ -72,6 +74,10 @@
           <button class="btn big" onclick={() => start({ shuffle: true })}>
             <Icon name="shuffle" size={18} /> {t("music.detail.shuffle")}
           </button>
+        {/if}
+        <!-- Android : l'album ou la playlist, à écouter hors ligne. -->
+        {#if canDownload() && (item.kind === "album" || item.kind === "playlist")}
+          <DownloadButton {item} music />
         {/if}
         {#if nav.admin && item.kind !== "playlist"}
           <button class="btn big" onclick={() => (nav.editing = item)} title={t("music.detail.editInfo")}>

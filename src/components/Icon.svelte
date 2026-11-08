@@ -21,6 +21,7 @@
     fullscreen: "M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3",
     exitFullscreen: "M8 3v3a2 2 0 0 1-2 2H3M21 8h-3a2 2 0 0 1-2-2V3M3 16h3a2 2 0 0 1 2 2v3M16 21v-3a2 2 0 0 1 2-2h3",
     check: "M20 6 9 17l-5-5",
+    download: "M12 3v12m-5-5 5 5 5-5M5 21h14",
     checkCircle: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM8 12l3 3 5-6",
     restart: "M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5",
     plus: "M12 5v14M5 12h14",

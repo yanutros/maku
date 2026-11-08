@@ -763,5 +763,30 @@
     "cancel": "Sluiten",
     "added": "‘{{title}}’ toegevoegd aan ‘{{collection}}’",
     "created": "Collectie ‘{{collection}}’ gemaakt"
+  },
+  "offline": {
+    "title": "Downloads",
+    "open": "Mijn downloads",
+    "download": "Downloaden",
+    "downloadSeason": "Seizoen downloaden",
+    "downloaded": "Gedownload",
+    "downloading": "Downloaden… {{percent}}%",
+    "resume": "Hervatten",
+    "pause": "Pauzeren",
+    "remove": "Download verwijderen",
+    "failed": "Download mislukt",
+    "started": "Download gestart",
+    "qualityHint": "Kwaliteit van het bestand op het apparaat",
+    "original": "Origineel",
+    "originalHint": "Het bestand van de server, met al zijn sporen (het grootst)",
+    "convertedHint": "Door de server geconverteerd, lichter ({{size}})",
+    "queued": "In de wachtrij",
+    "paused": "Gepauzeerd",
+    "starting": "Starten…",
+    "progress": "{{done}} van {{size}}",
+    "used": "{{size}} gebruikt op het apparaat. Afspeelbaar zonder netwerk.",
+    "empty": "Nog niets gedownload. Op de pagina van een film, seizoen, album of afspeellijst houdt „Downloaden” het op het apparaat, om zonder netwerk te kijken of te luisteren.",
+    "movies": "Films",
+    "episodeCode": "S{{season}} · A{{episode}}"
   }
 }

@@ -311,6 +311,15 @@ pour l'instant que Plex.
 > convertit que le son ; sinon, il convertit tout à la volée (HLS, 1080p). La musique est lue directement. La reprise,
 > l'épisode suivant et la progression fonctionnent comme sur ordinateur.
 >
+> **Lecture hors ligne** (téléphone et tablette Android) : sur la fiche d'un film, d'un épisode ou d'une saison,
+> **Télécharger** garde le titre sur l'appareil, dans le fichier d'origine (toutes ses pistes) ou converti par le
+> serveur en 1080p ou 720p, plus léger ; un album ou une playlist se télécharge aussi, titre par titre. La page
+> **Téléchargements** (Bibliothèques sur téléphone, menu sur tablette) les regroupe, avec leur avancement, et les lit
+> sans réseau ; sans connexion, l'accueil y mène. Une coupure reprend là où elle s'était arrêtée. La progression
+> jouée hors ligne est renvoyée au serveur dès qu'il répond. Le téléchargement n'apparaît que pour les comptes
+> qui en ont le droit : « Autoriser les téléchargements » de Plex, réglé par l'administrateur pour chaque ami, ou
+> « Autoriser le téléchargement de médias » de Jellyfin et d'Emby.
+>
 > **Journal de diagnostic** (**Réglages → Lecteur**) : si l'appareil se bloque pendant une vidéo ou qu'une lecture
 > échoue, Maku garde la trace de l'appareil (modèle, puce, mémoire, écran), de chaque lecture (fichier d'origine ou
 > conversion, décodeurs choisis, format de l'image et du son, images perdues), des erreurs et de la mémoire libre
@@ -691,6 +700,7 @@ traduisez les valeurs sans toucher aux clés ni aux `{{variables}}`, puis décla
 | `src/lib/device.ts` | type d'appareil (ordinateur, tablette tactile, téléviseur) et échelle de l'interface sur TV |
 | `src/lib/spatial.ts`, `src/lib/nav.svelte.ts` | navigation à la télécommande (flèches) et bouton Retour d'Android |
 | `src/components/TvRows.svelte`, `TvGrid.svelte`, `src/lib/tvcards.ts` | interface TV : rangées avec fiche en haut, grilles légères ; menu d'un titre à l'appui long (`TvMenu.svelte`, `src/lib/longpress.ts`), choix des pistes sous le champ (`TrackSelect.svelte`) |
+| `src-tauri/src/offline.rs`, `src/lib/offline.svelte.ts`, `src/views/Downloads.svelte` | lecture hors ligne : file de téléchargements (fichier d'origine repris par `Range`, ou version convertie récupérée morceau par morceau en HLS et mise bout à bout), page Téléchargements, progression renvoyée au serveur |
 | `src/lib/player.svelte.ts` | lecture : mpv sur ordinateur, ExoPlayer natif sur Android (décodeur audio FFmpeg, son transmis à l'ampli ; en secours, flux du serveur qui ne convertit que le son, puis tout) |
 | `src-tauri/gen/android/` | projet Android : manifeste (Android TV, bannière, icônes par couleur), signature, détection du téléviseur et du téléphone, barres système, vidéo en paysage (`MainActivity.kt`), lecteur vidéo natif sous la page (`NativeVideo.kt`), journal de diagnostic (`DiagLog.kt`), musique en arrière-plan, notification et Android Auto (`MediaService.kt`, bibliothèque lue auprès de Plex dans `PlexLibrary.kt`, pochettes servies à la voiture par `ArtProvider.kt`) |
 | `src/components/PhoneTabs.svelte`, `src/views/Libraries.svelte` | téléphone : barre d'onglets et liste des bibliothèques |
@@ -723,6 +733,8 @@ La politique de confidentialité complète, en français et en anglais, est dans
   adresse, où partiraient ses jetons. Seul le téléchargement des mises à jour suit les redirections de GitHub vers son stockage.
 - L'interface ne transmet à mpv que des commandes de lecture (pause, position, volume, pistes, file d'attente) ;
   celles qui lancent un programme ou écrivent un fichier sont refusées.
+- Les téléchargements hors ligne restent dans les données privées de Maku sur l'appareil ; les supprimer, ou
+  désinstaller Maku, efface leurs fichiers.
 - Sur Android, le journal de diagnostic reste sur l'appareil tant que vous ne l'envoyez pas vous-même. Les adresses
   de serveur, adresses IP, jetons et identifiants en sont retirés avant l'écriture ; il ne pèse pas plus de 600 Ko.
 

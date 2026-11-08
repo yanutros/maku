@@ -166,5 +166,12 @@
     "done": "Schlüssel gespeichert! Du kannst dein Telefon weglegen.",
     "failed": "Der Schlüssel konnte nicht gespeichert werden.",
     "tvGone": "Der Fernseher antwortet nicht mehr: Öffne die Seerr- und Tracearr-Einstellungen erneut."
+  },
+  "offline": {
+    "noSpace": "nicht genug Speicherplatz auf dem Gerät",
+    "interrupted": "Download unterbrochen",
+    "noStream": "der Server hat keine konvertierte Version geliefert",
+    "notFound": "Datei auf dem Server nicht gefunden",
+    "notAllowed": "der Serveradministrator erlaubt für dieses Konto keine Downloads"
   }
 }

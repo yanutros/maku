@@ -763,5 +763,30 @@
     "cancel": "Fermer",
     "added": "« {{title}} » ajouté à « {{collection}} »",
     "created": "Collection « {{collection}} » créée"
+  },
+  "offline": {
+    "title": "Téléchargements",
+    "open": "Mes téléchargements",
+    "download": "Télécharger",
+    "downloadSeason": "Télécharger la saison",
+    "downloaded": "Téléchargé",
+    "downloading": "Téléchargement… {{percent}} %",
+    "resume": "Reprendre",
+    "pause": "Mettre en pause",
+    "remove": "Supprimer le téléchargement",
+    "failed": "Échec du téléchargement",
+    "started": "Téléchargement lancé",
+    "qualityHint": "Qualité du fichier sur l'appareil",
+    "original": "Original",
+    "originalHint": "Le fichier du serveur, avec toutes ses pistes (le plus lourd)",
+    "convertedHint": "Converti par le serveur, plus léger ({{size}})",
+    "queued": "En attente",
+    "paused": "En pause",
+    "starting": "Démarrage…",
+    "progress": "{{done}} sur {{size}}",
+    "used": "{{size}} utilisés sur l'appareil. Lisibles sans réseau.",
+    "empty": "Rien de téléchargé pour l'instant. Sur la fiche d'un film, d'une saison, d'un album ou d'une playlist, « Télécharger » le garde sur l'appareil, pour le regarder ou l'écouter sans réseau.",
+    "movies": "Films",
+    "episodeCode": "S{{season}} · E{{episode}}"
   }
 }

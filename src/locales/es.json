@@ -763,5 +763,30 @@
     "cancel": "Cerrar",
     "added": "«{{title}}» añadido a «{{collection}}»",
     "created": "Colección «{{collection}}» creada"
+  },
+  "offline": {
+    "title": "Descargas",
+    "open": "Mis descargas",
+    "download": "Descargar",
+    "downloadSeason": "Descargar la temporada",
+    "downloaded": "Descargado",
+    "downloading": "Descargando… {{percent}} %",
+    "resume": "Reanudar",
+    "pause": "Pausar",
+    "remove": "Eliminar la descarga",
+    "failed": "La descarga falló",
+    "started": "Descarga iniciada",
+    "qualityHint": "Calidad del archivo en el dispositivo",
+    "original": "Original",
+    "originalHint": "El archivo del servidor, con todas sus pistas (el más pesado)",
+    "convertedHint": "Convertido por el servidor, más ligero ({{size}})",
+    "queued": "En espera",
+    "paused": "En pausa",
+    "starting": "Iniciando…",
+    "progress": "{{done}} de {{size}}",
+    "used": "{{size}} usados en el dispositivo. Reproducibles sin red.",
+    "empty": "Nada descargado por ahora. En la ficha de una película, temporada, álbum o lista, «Descargar» lo guarda en el dispositivo, para verlo o escucharlo sin red.",
+    "movies": "Películas",
+    "episodeCode": "T{{season}} · E{{episode}}"
   }
 }

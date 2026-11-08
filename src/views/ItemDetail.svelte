@@ -21,6 +21,8 @@
   import Row from "../components/Row.svelte";
   import Icon from "../components/Icon.svelte";
   import TrackSelect from "../components/TrackSelect.svelte";
+  import DownloadButton from "../components/DownloadButton.svelte";
+  import { canDownload } from "../lib/offline.svelte";
   import TitleLogo from "../components/TitleLogo.svelte";
   import { t, locale } from "../lib/i18n";
   import { device } from "../lib/device";
@@ -260,6 +262,12 @@
               <Icon name="tv" size={18} />
               {t("item.allSeasons")}
             </button>
+          {/if}
+          <!-- Android : film ou épisode, ou toute la saison, à regarder hors ligne. -->
+          {#if canDownload() && item.playable && (item.kind === "movie" || item.kind === "episode")}
+            <DownloadButton {item} />
+          {:else if canDownload() && item.kind === "season" && children.length}
+            <DownloadButton {item} episodes={children} />
           {/if}
           {#if !collection && (item.kind === "movie" || item.kind === "show")}
             <button class="btn big" disabled={trailerBusy} onclick={openTrailer} title={t("item.trailer")}>

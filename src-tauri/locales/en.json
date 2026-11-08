@@ -166,5 +166,12 @@
     "done": "Key saved! You can put your phone down.",
     "failed": "The key couldn't be saved.",
     "tvGone": "The TV isn't answering: reopen the Seerr and Tracearr settings."
+  },
+  "offline": {
+    "noSpace": "not enough space on the device",
+    "interrupted": "download interrupted",
+    "noStream": "the server did not provide a converted version",
+    "notFound": "file not found on the server",
+    "notAllowed": "the server admin doesn't allow downloads for this account"
   }
 }

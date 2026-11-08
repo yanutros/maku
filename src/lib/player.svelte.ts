@@ -75,6 +75,8 @@ export const player = $state({
   expanded: false,
   /** Incrémenté à chaque saut dans le morceau (pour la notification Android). */
   seeks: 0,
+  /** Lecture d'un téléchargement (lib/offline.svelte.ts) : son identifiant ; la progression reste sur l'appareil. */
+  offline: "",
 });
 
 /** Qualités proposées, comme dans les applications Plex (kb/s ; 0 : originale). */
@@ -230,7 +232,37 @@ function reset(video: boolean) {
     index: 0,
     repeat: false,
     expanded: false,
+    offline: "",
   });
+}
+
+/** Session de la musique jouée depuis les téléchargements. */
+export const OFFLINE_MUSIC = "offline-music";
+
+/** Vidéo téléchargée (Android) : le fichier de l'appareil, lu par le lecteur natif, sans le serveur. */
+export function playOffline(d: { id: string; ratingKey: string; title: string; subtitle: string | null; showTitle: string | null; durationMs: number; positionMs: number; watched: boolean }, path: string) {
+  reset(true);
+  Object.assign(player, {
+    ratingKey: d.ratingKey,
+    title: d.showTitle ?? d.title,
+    subtitle: d.showTitle ? d.title : d.subtitle,
+    duration: d.durationMs / 1000,
+    native: true,
+    offline: d.id,
+  });
+  // Vu jusqu'au bout : on repart du début.
+  const offsetMs = d.watched || d.positionMs > d.durationMs * 0.95 ? 0 : d.positionMs;
+  web.startNative({ session: "", url: "file://" + path, title: player.title, subtitle: player.subtitle, offsetMs, durationMs: d.durationMs, aid: null, sid: "auto", subFiles: [] }, { audioStream: null, subtitleStream: null });
+}
+
+/** Musique téléchargée : une file de titres lus depuis l'appareil (protocole « asset » de Tauri). */
+export function playOfflineMusic(tracks: QueueTrack[], index: number) {
+  reset(false);
+  player.session = OFFLINE_MUSIC;
+  player.queue = tracks;
+  player.index = index;
+  player.duration = (tracks[index]?.durationMs ?? 0) / 1000;
+  web.playTrack(index);
 }
 
 export async function play(ratingKey: string, opts: PlayOptions = {}) {
@@ -452,6 +484,15 @@ const web = (() => {
 
   function report(state: "playing" | "paused" | "stopped", ratingKey = key()) {
     if (!ratingKey) return;
+    // Téléchargement : la progression est gardée sur l'appareil et renvoyée au serveur plus tard (offline.rs).
+    // La musique hors ligne ne la note pas.
+    if (player.session === OFFLINE_MUSIC) return;
+    if (player.offline) {
+      const ms = Math.round(player.position * 1000);
+      const watched = player.duration > 0 && player.position / player.duration > 0.9;
+      invoke("offline_progress", { id: player.offline, positionMs: ms, watched }).catch(() => {});
+      return;
+    }
     invoke("report_timeline", {
       ratingKey,
       playback: state,
@@ -515,6 +556,8 @@ const web = (() => {
       // Codec ou format que l'appareil ne lit pas : le serveur convertit. Si seul le son pose problème,
       // d'abord en gardant la vidéo d'origine ; en cas d'échec, la conversion complète, comme avant.
       diag(`Maku : ${e.unsupported !== undefined ? `format non lisible ici (${e.unsupported})` : `erreur de lecture (${e.error})`}`);
+      // Fichier téléchargé : pas de serveur à qui demander une conversion.
+      if (player.offline) return stop();
       if (!fallbackTried) fallback(e.unsupported === "audio" && !player.quality);
       else if (copyTried) fallback(false);
       else stop();

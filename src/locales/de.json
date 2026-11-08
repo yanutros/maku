@@ -763,5 +763,30 @@
     "cancel": "Schließen",
     "added": "„{{title}}“ zu „{{collection}}“ hinzugefügt",
     "created": "Sammlung „{{collection}}“ erstellt"
+  },
+  "offline": {
+    "title": "Downloads",
+    "open": "Meine Downloads",
+    "download": "Herunterladen",
+    "downloadSeason": "Staffel herunterladen",
+    "downloaded": "Heruntergeladen",
+    "downloading": "Wird geladen… {{percent}} %",
+    "resume": "Fortsetzen",
+    "pause": "Pausieren",
+    "remove": "Download löschen",
+    "failed": "Download fehlgeschlagen",
+    "started": "Download gestartet",
+    "qualityHint": "Qualität der Datei auf dem Gerät",
+    "original": "Original",
+    "originalHint": "Die Datei des Servers mit allen Spuren (am größten)",
+    "convertedHint": "Vom Server konvertiert, kleiner ({{size}})",
+    "queued": "Wartet",
+    "paused": "Pausiert",
+    "starting": "Startet…",
+    "progress": "{{done}} von {{size}}",
+    "used": "{{size}} auf dem Gerät belegt. Ohne Netz abspielbar.",
+    "empty": "Noch nichts heruntergeladen. Auf der Seite eines Films, einer Staffel, eines Albums oder einer Playlist behält „Herunterladen“ es auf dem Gerät, um es ohne Netz anzusehen oder anzuhören.",
+    "movies": "Filme",
+    "episodeCode": "S{{season}} · E{{episode}}"
   }
 }

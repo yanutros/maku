@@ -274,6 +274,13 @@ impl JellyfinServer {
             .headers(auth(&self.client_id, Some(&self.token)))
     }
 
+    /// Droit de télécharger pour la lecture hors ligne : « Autoriser le téléchargement de médias », réglé par
+    /// l'administrateur pour chaque utilisateur (Jellyfin et Emby : `Policy.EnableContentDownloading`).
+    pub async fn can_download(&self) -> Result<bool> {
+        let v = self.json(&format!("/Users/{}", self.uid())).await?;
+        Ok(v["Policy"]["EnableContentDownloading"].as_bool().unwrap_or(false))
+    }
+
     async fn json(&self, path: &str) -> Result<Value> {
         Ok(self.get(path).send().await?.error_for_status()?.json().await?)
     }

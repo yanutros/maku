@@ -75,6 +75,7 @@ common! {
         fn create_collection(&self, rating_key: &str, title: &str) -> ();
         fn previews(&self, rating_key: &str, media: Option<usize>) -> Option<Previews>;
         fn trailer(&self, rating_key: &str) -> TrailerSource;
+        fn can_download(&self) -> bool;
     }
     plex_only {}
 }

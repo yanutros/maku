@@ -18,6 +18,8 @@
   import SeerrDetail from "./views/SeerrDetail.svelte";
   import Settings from "./views/Settings.svelte";
   import Stats from "./views/Stats.svelte";
+  import Downloads from "./views/Downloads.svelte";
+  import { checkOfflineAllowed, loadOffline, offlineAvailable, syncOffline } from "./lib/offline.svelte";
   import { ambient } from "./lib/ambient.svelte";
   import RequestDialog from "./components/RequestDialog.svelte";
   import PlayerOverlay from "./components/PlayerOverlay.svelte";
@@ -64,6 +66,11 @@
     }
     if (session.serverName) {
       sections = await api.sections().catch(() => []);
+      // Serveur joignable : la progression jouée hors ligne lui est renvoyée, les téléchargements reprennent.
+      if (sections.length) {
+        checkOfflineAllowed();
+        syncOffline();
+      }
       // Édition des métadonnées et réglages du serveur : réservés à son administrateur.
       nav.admin = await api.isAdmin().catch(() => false);
     }
@@ -81,6 +88,7 @@
     try {
       if (await api.reconnect()) {
         sections = await api.sections().catch(() => sections);
+        syncOffline();
         reload();
       }
     } catch {
@@ -91,6 +99,8 @@
   }
 
   onMount(() => {
+    // Téléchargements de l'appareil : lisibles même sans réseau, avant toute réponse du serveur.
+    if (offlineAvailable()) loadOffline().catch(() => {});
     api.reconnect().catch(() => false).finally(refresh);
     const onVisibility = () => {
       if (document.visibilityState === "hidden") hiddenAt = Date.now();
@@ -261,6 +271,8 @@
             <SeerrDetail mediaType={nav.view.mediaType} tmdbId={nav.view.tmdbId} />
           {:else if nav.view.name === "stats"}
             <Stats {session} onChange={refresh} />
+          {:else if nav.view.name === "downloads"}
+            <Downloads />
           {:else if nav.view.name === "settings"}
             {#key nav.view.page}<Settings {session} onChange={refresh} initialPage={nav.view.page} />{/key}
           {/if}

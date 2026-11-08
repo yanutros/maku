@@ -22,6 +22,8 @@ export type View =
   | { name: "discover" }
   | { name: "seerr"; mediaType: "movie" | "tv"; tmdbId: number }
   | { name: "stats" }
+  /** Téléchargements de l'appareil, lisibles hors ligne (Android). */
+  | { name: "downloads" }
   /** `seerr` : acteur connu par Seerr (TMDB) : ses films et séries, à demander, plutôt que ceux du serveur. */
   | { name: "person"; id: string; personName: string; photo: string | null; seerr?: boolean }
   | { name: "settings"; page?: string };
