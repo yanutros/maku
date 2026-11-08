@@ -956,11 +956,22 @@ impl JellyfinServer {
         self.items(&path).await
     }
 
+    /// Radio d'un artiste : le « mix instantané » de Jellyfin et d'Emby (ses titres et ceux d'artistes proches).
+    pub async fn radio(&self, id: &str) -> Result<Vec<QueueTrack>> {
+        let items = self.items(&format!("/Items/{id}/InstantMix?UserId={}&Limit=80&{FIELDS}", self.uid())).await?;
+        if items.is_empty() {
+            return Err(anyhow!(crate::i18n::tr("plex.noRadio")));
+        }
+        Ok(self.queue_tracks(items))
+    }
+
     /// File de lecture musicale : les titres, chacun avec l'adresse de son fichier.
     pub async fn queue(&self, id: &str) -> Result<Vec<QueueTrack>> {
-        Ok(self
-            .tracks(id)
-            .await?
+        Ok(self.queue_tracks(self.tracks(id).await?))
+    }
+
+    fn queue_tracks(&self, items: Vec<Item>) -> Vec<QueueTrack> {
+        items
             .into_iter()
             .map(|t| QueueTrack {
                 url: format!("{}/Audio/{}/stream?static=true&api_key={}", self.base, t.rating_key, self.token),
@@ -973,7 +984,7 @@ impl JellyfinServer {
                 cover: t.poster,
                 duration_ms: t.duration_ms.unwrap_or(0),
             })
-            .collect())
+            .collect()
     }
 }
 

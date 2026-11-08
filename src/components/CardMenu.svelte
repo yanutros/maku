@@ -40,8 +40,8 @@
     }
   }
 
-  function start(shuffle = false) {
-    run(() => (music ? playMusic(item.ratingKey, { shuffle }) : play(item.ratingKey)));
+  function start(shuffle = false, radio = false) {
+    run(() => (music ? playMusic(item.ratingKey, { shuffle, radio }) : play(item.ratingKey)));
   }
 
   // « Non vu » remet aussi à zéro une lecture en cours (le titre quitte « Continuer à regarder »).
@@ -76,6 +76,9 @@
   {/if}
   {#if music && item.kind !== "track"}
     <button role="menuitem" onclick={() => start(true)}><Icon name="shuffle" size={16} /> {t("common.c1.shuffle")}</button>
+  {/if}
+  {#if music && item.kind === "artist"}
+    <button role="menuitem" onclick={() => start(false, true)}><Icon name="radio" size={16} /> {t("music.detail.radio")}</button>
   {/if}
   {#if !music}
     {#if !item.watched}

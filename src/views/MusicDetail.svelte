@@ -33,7 +33,7 @@
   );
   const playingKey = $derived(current()?.ratingKey);
 
-  function start(opts: { start?: string; shuffle?: boolean } = {}) {
+  function start(opts: { start?: string; shuffle?: boolean; radio?: boolean } = {}) {
     playMusic(item.ratingKey, opts).catch((e) => toast(errorText(e), true));
   }
 
@@ -73,6 +73,12 @@
         {#if item.kind !== "track"}
           <button class="btn big" onclick={() => start({ shuffle: true })}>
             <Icon name="shuffle" size={18} /> {t("music.detail.shuffle")}
+          </button>
+        {/if}
+        <!-- Radio : ses titres mêlés à ceux d'artistes proches, choisis par le serveur. -->
+        {#if isArtist}
+          <button class="btn big" onclick={() => start({ radio: true })}>
+            <Icon name="radio" size={18} /> {t("music.detail.radio")}
           </button>
         {/if}
         <!-- Android : l'album ou la playlist, à écouter hors ligne. -->

@@ -55,6 +55,7 @@ common! {
         fn adjacent(&self, rating_key: &str) -> Adjacent;
         fn tracks(&self, rating_key: &str) -> Vec<Item>;
         fn queue(&self, rating_key: &str) -> Vec<QueueTrack>;
+        fn radio(&self, rating_key: &str) -> Vec<QueueTrack>;
         fn metadata(&self, rating_key: &str) -> ItemDetail;
         fn collections(&self, key: &str) -> Vec<Item>;
         fn collection_items(&self, rating_key: &str) -> Vec<Item>;

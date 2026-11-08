@@ -1112,8 +1112,10 @@ async fn build_queue(
     keys: Option<Vec<String>>,
     start: Option<String>,
     shuffle: Option<bool>,
+    radio: bool,
 ) -> anyhow::Result<(Vec<QueueTrack>, usize)> {
     let mut tracks: Vec<QueueTrack> = match keys {
+        _ if radio => server.radio(rating_key).await?,
         Some(keys) => futures::future::join_all(keys.iter().map(|k| server.queue(k)))
             .await
             .into_iter()
@@ -1149,9 +1151,10 @@ async fn music_queue(
     keys: Option<Vec<String>>,
     start: Option<String>,
     shuffle: Option<bool>,
+    radio: Option<bool>,
 ) -> CmdResult<MusicQueue> {
     let server = state.server()?;
-    let (tracks, index) = build_queue(&server, &rating_key, keys, start, shuffle).await?;
+    let (tracks, index) = build_queue(&server, &rating_key, keys, start, shuffle, radio.unwrap_or(false)).await?;
     Ok(MusicQueue { session: uuid::Uuid::new_v4().to_string(), tracks, index })
 }
 
@@ -1246,9 +1249,10 @@ async fn play_music(
     keys: Option<Vec<String>>,
     start: Option<String>,
     shuffle: Option<bool>,
+    radio: Option<bool>,
 ) -> CmdResult<MusicQueue> {
     let server = state.server()?;
-    let (tracks, index) = build_queue(&server, &rating_key, keys, start, shuffle).await?;
+    let (tracks, index) = build_queue(&server, &rating_key, keys, start, shuffle, radio.unwrap_or(false)).await?;
     let mpv = player::find_mpv(state.cfg().mpv_path.as_deref())?;
     stop_player(&state);
 

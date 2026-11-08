@@ -30,7 +30,8 @@
     "noPlayableFile": "No hay ningún archivo reproducible para «{{title}}»",
     "episodeLine": "S{{season}} · E{{episode}} — {{title}}",
     "itemCount_one": "{{count}} elemento",
-    "itemCount_other": "{{count}} elementos"
+    "itemCount_other": "{{count}} elementos",
+    "noRadio": "no hay radio para este artista en este servidor"
   },
   "admin": {
     "adminOnly": "Acción reservada al administrador del servidor de Plex",

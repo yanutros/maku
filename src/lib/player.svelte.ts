@@ -471,7 +471,7 @@ export function setServerStream(kind: "audio" | "subtitle", id: number) {
  */
 export async function playMusic(
   ratingKey: string,
-  opts: { start?: string; shuffle?: boolean; keys?: string[] } = {},
+  opts: { start?: string; shuffle?: boolean; keys?: string[]; radio?: boolean } = {},
 ) {
   const wasExpanded = player.expanded && !player.video;
   notePlay(ratingKey);
@@ -486,6 +486,7 @@ export async function playMusic(
         keys: opts.keys ?? null,
         start: opts.start ?? null,
         shuffle: opts.shuffle ?? false,
+        radio: opts.radio ?? false,
       },
     );
     player.session = q.session;

@@ -1320,10 +1320,37 @@ impl PlexServer {
 
     /// File de lecture prête pour mpv : chaque titre avec l'adresse de son fichier.
     pub async fn queue(&self, rating_key: &str) -> Result<Vec<QueueTrack>> {
-        Ok(self
-            .raw_tracks(rating_key)
-            .await?
-            .into_iter()
+        Ok(self.queue_tracks(self.raw_tracks(rating_key).await?))
+    }
+
+    /// Radio d'un artiste, comme dans Plex : ses titres mêlés à ceux d'artistes proches, choisis par le serveur.
+    /// Plex la livre par une file de lecture de dix titres à la fois : plusieurs files, sans les doublons, font
+    /// une radio de quelques dizaines de titres.
+    pub async fn radio(&self, rating_key: &str) -> Result<Vec<QueueTrack>> {
+        let v: serde_json::Value = self.get(&format!("/library/metadata/{rating_key}?includeStations=1")).send().await?.error_for_status()?.json().await?;
+        let station = v["MediaContainer"]["Metadata"][0]["Stations"]["Metadata"][0]["key"]
+            .as_str()
+            .map(str::to_owned)
+            .ok_or_else(|| anyhow!(crate::i18n::tr("plex.noRadio")))?;
+        let id: serde_json::Value = self.get("/identity").send().await?.error_for_status()?.json().await?;
+        let machine = id["MediaContainer"]["machineIdentifier"].as_str().unwrap_or_default().to_owned();
+        let uri = format!("server://{machine}/com.plexapp.plugins.library{station}");
+        let path = format!("/playQueues?type=audio&shuffle=0&repeat=0&includeChapters=0&uri={}", urlencoding::encode(&uri));
+        let batches = futures::future::join_all((0..6).map(|_| async {
+            let env: Envelope = self.request(reqwest::Method::POST, &path).send().await?.error_for_status()?.json().await?;
+            anyhow::Ok(env.media_container.metadata)
+        }))
+        .await;
+        let mut seen = std::collections::HashSet::new();
+        let raw: Vec<RawMetadata> = batches.into_iter().filter_map(Result::ok).flatten().filter(|t| seen.insert(t.rating_key.clone())).collect();
+        if raw.is_empty() {
+            return Err(anyhow!(crate::i18n::tr("plex.noRadio")));
+        }
+        Ok(self.queue_tracks(raw))
+    }
+
+    fn queue_tracks(&self, raw: Vec<RawMetadata>) -> Vec<QueueTrack> {
+        raw.into_iter()
             .filter_map(|t| {
                 let part = t.media.first().and_then(|x| x.part.first())?;
                 let url = self.file_url(&part.key);
@@ -1340,7 +1367,7 @@ impl PlexServer {
                     title: t.title,
                 })
             })
-            .collect())
+            .collect()
     }
 
     pub async fn metadata(&self, rating_key: &str) -> Result<ItemDetail> {

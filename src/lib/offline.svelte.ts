@@ -137,7 +137,7 @@ export const downloadEpisodes = (episodes: Item[], quality: Quality) => add(epis
 
 /** Un album ou une playlist : chacun de ses titres, dans le fichier d'origine. */
 export async function downloadMusic(item: Item) {
-  const q = await invoke<{ tracks: QueueTrack[] }>("music_queue", { ratingKey: item.ratingKey, keys: null, start: null, shuffle: false });
+  const q = await invoke<{ tracks: QueueTrack[] }>("music_queue", { ratingKey: item.ratingKey, keys: null, start: null, shuffle: false, radio: false });
   await add(
     q.tracks.map((t, i) => ({
       ratingKey: t.ratingKey,

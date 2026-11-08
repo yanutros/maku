@@ -359,7 +359,8 @@
       "columns": {
         "title": "Titre",
         "album": "Album"
-      }
+      },
+      "radio": "Radio"
     }
   },
   "item": {
