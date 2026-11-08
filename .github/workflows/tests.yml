@@ -1,0 +1,42 @@
+# Tests de l'interface (Playwright, voir playwright.config.ts) : Maku en mode démo, sur ordinateur, téléviseur,
+# téléphone et moteur de Safari. À chaque envoi sur main, et avant la construction des paquets d'une version
+# (paquets.yml) : une version ne part pas avec un test cassé. En cas d'échec, le rapport (captures, traces) est
+# joint à l'exécution.
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  interface:
+    name: Interface (Playwright)
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - run: npm ci
+
+      - name: Navigateurs (Chromium et WebKit)
+        run: npx playwright install --with-deps chromium webkit
+
+      - name: Tests
+        run: npx playwright test
+
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: rapport-tests
+          path: playwright-report
+          retention-days: 14

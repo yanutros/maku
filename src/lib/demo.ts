@@ -138,7 +138,23 @@ function episodes(show: Item, season: number): Item[] {
   );
 }
 
-const showEpisodes = new Map(shows.map((s) => [s.ratingKey, episodes(s, 2)]));
+// Saisons et épisodes stables (mêmes identifiants à chaque appel) : une série s'ouvre sur ses saisons, une saison
+// sur ses épisodes, et chaque épisode connaît sa saison (bouton « Saison N », tests de l'interface).
+const showSeasons = new Map(
+  shows.map((s) => [
+    s.ratingKey,
+    [1, 2].map((n) =>
+      item({ kind: "season", title: `Saison ${n}`, index: n, showTitle: s.title, showKey: s.ratingKey, poster: s.poster, backdrop: s.backdrop, summary: s.summary, unwatchedCount: n === 2 ? 7 : null, watched: n === 1 }),
+    ),
+  ]),
+);
+const seasonEpisodes = new Map(
+  [...showSeasons.values()].flat().map((season) => [
+    season.ratingKey,
+    episodes(shows.find((s) => s.ratingKey === season.showKey)!, season.index!).map((e) => ({ ...e, seasonKey: season.ratingKey })),
+  ]),
+);
+const showEpisodes = new Map(shows.map((s) => [s.ratingKey, seasonEpisodes.get(showSeasons.get(s.ratingKey)![1].ratingKey)!]));
 const onDeck: Item[] = shows.slice(0, 5).map((s, i) => {
   const ep = showEpisodes.get(s.ratingKey)![3 + (i % 4)];
   return { ...ep, viewOffsetMs: (10 + i * 7) * MIN };
@@ -236,7 +252,7 @@ function genres(key: string): Genre[] {
 }
 
 function findItem(key: string): Item | undefined {
-  return [...movies, ...shows, ...artists, ...albums, ...playlists, ...[...showEpisodes.values()].flat()].find(
+  return [...movies, ...shows, ...artists, ...albums, ...playlists, ...[...showSeasons.values()].flat(), ...[...seasonEpisodes.values()].flat()].find(
     (i) => i.ratingKey === key,
   );
 }
@@ -269,12 +285,10 @@ function detail(key: string): ItemDetail {
 }
 
 function children(key: string): Item[] {
-  const show = shows.find((s) => s.ratingKey === key);
-  if (show) {
-    return [1, 2].map((n) =>
-      item({ kind: "season", title: `Saison ${n}`, index: n, showTitle: show.title, showKey: show.ratingKey, poster: show.poster, unwatchedCount: n === 2 ? 7 : null, watched: n === 1 }),
-    );
-  }
+  const seasons = showSeasons.get(key);
+  if (seasons) return seasons;
+  const eps = seasonEpisodes.get(key);
+  if (eps) return eps;
   const artist = artists.find((a) => a.ratingKey === key);
   if (artist) return albums.filter((a) => a.showKey === key);
   return [];
@@ -501,6 +515,18 @@ export async function installDemo(view: string): Promise<() => Promise<void>> {
     const { player, playMusic, play } = await import("./player.svelte");
     const music = () => playMusic(albums[0].ratingKey);
     switch (view) {
+      // Accueil sans musique en cours (tests de l'interface).
+      case "vide":
+        return;
+      case "serie":
+        go({ name: "item", ratingKey: shows[0].ratingKey });
+        return;
+      case "reglages":
+        go({ name: "settings" });
+        return;
+      case "reglages-interface":
+        go({ name: "settings", page: "interface" });
+        return;
       case "films":
         go({ name: "section", key: "1", title: "Films", kind: "movie" });
         break;

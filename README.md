@@ -628,8 +628,20 @@ L'interface se recharge à chaque modification et le backend Rust est recompilé
 
 **Mode démo.** `npx vite` puis `http://localhost:1420/?demo=accueil` lance l'interface dans un navigateur, sans
 serveur Plex, avec une bibliothèque fictive et des visuels générés. Vues disponibles : `accueil`, `films`,
-`categories`, `series`, `fiche`, `lecteur`, `decouvrir`, `seerr`, `musique`, `ecoute`, `stats`. C'est ce mode qui
+`categories`, `series`, `serie`, `fiche`, `lecteur`, `decouvrir`, `seerr`, `musique`, `ecoute`, `stats`, `reglages`,
+`reglages-interface` et `vide` (l'accueil sans musique en cours). C'est ce mode qui
 produit les captures de cette page (avec Edge en mode sans interface, `--screenshot`). `?device=phone` ou `?device=tv` imposent l'interface du téléphone ou du téléviseur dans le navigateur.
+
+**Tests de l'interface.** `npm test` ouvre Maku en mode démo avec [Playwright](https://playwright.dev) et le pilote
+comme un utilisateur, sur quatre appareils simulés : ordinateur, téléviseur (flèches, OK, Retour), téléphone et
+moteur de Safari (iPad, Mac). Les parcours (`tests/`) couvrent l'accueil, les fiches (série, saison, épisode),
+les acteurs, le lecteur, les Réglages et la barre simplifiée. Ils vérifient des règles tirées des bugs déjà
+corrigés (fond jusqu'au bord gauche, sélection entière à l'écran et de la couleur du thème, un seul acteur
+sélectionné, lignes des Réglages sans saut, plus de cases à cocher, pas de barres de défilement sur TV…) et
+comparent des captures à des images de référence (`tests/images/`). Après un changement voulu de l'affichage,
+`npm run test:update` met ces images à jour. Les navigateurs s'installent une fois avec
+`npx playwright install chromium webkit`. Sur GitHub, les tests passent à chaque envoi sur `main` et avant la
+construction des paquets d'une version (les images de référence, prises sous Windows, n'y sont pas comparées).
 
 **iPad (essai).** Une app iPad se compile seulement sur un Mac : la construction « iPad (essai) » de l'onglet
 Actions la produit sur un Mac de GitHub, sans signature (`Maku-ipad.ipa`, joint à l'exécution). Un outil comme

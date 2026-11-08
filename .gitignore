@@ -5,3 +5,6 @@ src-tauri/target/
 src-tauri/gen/schemas/
 # Lecteur mpv embarqué dans l'installeur Windows, téléchargé par scripts/fetch-mpv.mjs.
 src-tauri/mpv-win/
+# Tests de l'interface (Playwright) : résultats et rapports, régénérés à chaque passage.
+test-results/
+playwright-report/

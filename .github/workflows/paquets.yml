@@ -12,8 +12,13 @@ permissions:
   actions: read
 
 jobs:
+  # Les tests de l'interface d'abord : une version ne se construit pas avec un test cassé.
+  tests:
+    uses: ./.github/workflows/tests.yml
+
   paquets:
     name: ${{ matrix.nom }}
+    needs: tests
     strategy:
       fail-fast: false
       matrix:
