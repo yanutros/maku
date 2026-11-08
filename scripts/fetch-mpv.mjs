@@ -30,7 +30,16 @@ if (existsSync(stamp) && readFileSync(stamp, "utf8").trim() === MPV.release && F
 
 const url = `https://github.com/shinchiro/mpv-winbuild-cmake/releases/download/${MPV.release}/${MPV.file}`;
 console.log(`mpv ${MPV.release} : téléchargement…`);
-const response = await fetch(url);
+// GitHub renvoie parfois une erreur passagère (504) sur ses téléchargements : jusqu'à 10 essais, espacés de 20 s.
+async function download(link) {
+  for (let attempt = 1; ; attempt++) {
+    const r = await fetch(link).catch((e) => ({ ok: false, status: String(e) }));
+    if (r.ok || attempt >= 10) return r;
+    console.warn(`mpv : essai ${attempt} échoué (${r.status}), nouvel essai dans 20 s`);
+    await new Promise((done) => setTimeout(done, 20000));
+  }
+}
+const response = await download(url);
 if (!response.ok) throw new Error(`mpv : téléchargement impossible (${response.status})`);
 const archive = Buffer.from(await response.arrayBuffer());
 const digest = createHash("sha256").update(archive).digest("hex");
