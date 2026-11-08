@@ -11,6 +11,7 @@ mod plex;
 mod plex_admin;
 mod relay;
 mod offline;
+mod plex_users;
 mod seerr;
 mod tracearr;
 mod update;
@@ -1556,6 +1557,54 @@ async fn update_install(app: AppHandle, state: State<'_, AppState>, info: update
     Ok(None)
 }
 
+// ---------- Utilisateurs du serveur Plex (administrateur) ----------
+
+/// Compte Plex et serveur en cours, pour les appels de plex_users.rs.
+fn plex_owner(state: &AppState) -> anyhow::Result<(String, String, String)> {
+    let c = state.cfg();
+    let server = c.server.filter(|s| !s.is_jellyfin()).ok_or_else(|| anyhow!(crate::i18n::tr("users.plexOnly")))?;
+    let token = c.plex_token.ok_or_else(|| anyhow!(crate::i18n::tr("users.ownerOnly")))?;
+    Ok((c.client_id, token, server.machine_id))
+}
+
+macro_rules! plex_users {
+    ($state:expr, $u:ident => $body:expr) => {{
+        let (client_id, token, machine) = plex_owner(&$state)?;
+        let $u = plex_users::PlexUsers { http: &$state.http, client_id: &client_id, token: &token, machine: &machine };
+        Ok($body.await?)
+    }};
+}
+
+#[tauri::command]
+async fn plex_users(state: State<'_, AppState>) -> CmdResult<Vec<plex_users::SharedUser>> {
+    plex_users!(state, u => u.list())
+}
+
+#[tauri::command]
+async fn plex_server_libraries(state: State<'_, AppState>) -> CmdResult<Vec<plex_users::Library>> {
+    plex_users!(state, u => u.server_libraries())
+}
+
+#[tauri::command]
+async fn plex_user_libraries(state: State<'_, AppState>, share_id: u64, library_ids: Vec<u64>) -> CmdResult<()> {
+    plex_users!(state, u => u.set_libraries(share_id, &library_ids))
+}
+
+#[tauri::command]
+async fn plex_user_permissions(state: State<'_, AppState>, user_id: u64, permissions: plex_users::Permissions) -> CmdResult<()> {
+    plex_users!(state, u => u.set_permissions(user_id, &permissions))
+}
+
+#[tauri::command]
+async fn plex_user_remove(state: State<'_, AppState>, share_id: u64) -> CmdResult<()> {
+    plex_users!(state, u => u.remove(share_id))
+}
+
+#[tauri::command]
+async fn plex_user_invite(state: State<'_, AppState>, who: String, library_ids: Vec<u64>, allow_sync: bool) -> CmdResult<()> {
+    plex_users!(state, u => u.invite(&who, &library_ids, allow_sync))
+}
+
 // ---------- Lecture hors ligne ----------
 
 /// Téléchargements de l'appareil, avec le dossier où sont leurs fichiers.
@@ -1804,6 +1853,12 @@ pub fn run() {
             relay_stop,
             relay_journal,
             offline_list,
+            plex_users,
+            plex_server_libraries,
+            plex_user_libraries,
+            plex_user_permissions,
+            plex_user_remove,
+            plex_user_invite,
             offline_allowed,
             offline_add,
             offline_pause,

@@ -128,7 +128,8 @@ visionnage. Tout se fait avec son compte Plex (ou Jellyfin) : aucune clé d'API 
     </td>
     <td valign="top">
       <h4>🛠️ Il administre le serveur</h4>
-      Lectures en cours, entretien des bibliothèques et réglages du serveur (général, réseau, transcodeur…),
+      Lectures en cours, entretien des bibliothèques, utilisateurs (bibliothèques partagées, téléchargements,
+      invitation, retrait) et réglages du serveur (général, réseau, transcodeur…),
       pour l'administrateur uniquement : le propriétaire du serveur selon plex.tv (pas les membres du Plex Home
       ni les amis), et chaque action le vérifie.
     </td>
@@ -575,10 +576,17 @@ l'administrateur du serveur, **Réglages du serveur** ; à droite, une ligne par
 d'explication, sa commande : interrupteur, choix ou bouton). Sur téléviseur, la rubrique s'ouvre au passage des
 flèches, droite entre dans le panneau, gauche revient au rail ; les QR codes (journal, clé TMDB, configuration
 rapide, Ko-fi) s'affichent à la demande. **Réglages du serveur** reprend ceux de Plex en onglets : **Tableau de bord**
-(lectures en cours de tous les utilisateurs, recherche de nouveaux fichiers et corbeille de chaque bibliothèque)
-puis **Général, Bibliothèque, Réseau, Transcodeur, DLNA, Bonus et Tâches planifiées**. Les réglages avancés
+(lectures en cours de tous les utilisateurs, recherche de nouveaux fichiers et corbeille de chaque bibliothèque),
+**Utilisateurs**, puis **Général, Bibliothèque, Réseau, Transcodeur, DLNA, Bonus et Tâches planifiées**. Les réglages avancés
 s'affichent sur demande. Un utilisateur
 partagé ne voit pas cette partie : Plex la lui refuserait de toute façon.
+
+**Utilisateurs** reprend « Gérer l'accès à la bibliothèque » de Plex : la liste des comptes avec qui le serveur est
+partagé à gauche, la fiche du compte choisi à droite, en trois onglets. **Bibliothèques** : un interrupteur par
+bibliothèque partagée. **Autorisations** : téléchargements (lecture hors ligne), sous-titres, chaînes, envoi des
+photos. **Restrictions** : les filtres de contenu de Plex, lisibles et retirables. On y invite aussi un ami (adresse
+e-mail ou nom d'utilisateur Plex, bibliothèques, droit de télécharger) et on retire un accès, après confirmation.
+Chaque changement est envoyé aussitôt à plex.tv, avec le compte du propriétaire du serveur.
 
 ### 📨 Inviter des utilisateurs
 
@@ -701,6 +709,7 @@ traduisez les valeurs sans toucher aux clés ni aux `{{variables}}`, puis décla
 | `src/lib/spatial.ts`, `src/lib/nav.svelte.ts` | navigation à la télécommande (flèches) et bouton Retour d'Android |
 | `src/components/TvRows.svelte`, `TvGrid.svelte`, `src/lib/tvcards.ts` | interface TV : rangées avec fiche en haut, grilles légères ; menu d'un titre à l'appui long (`TvMenu.svelte`, `src/lib/longpress.ts`), choix des pistes sous le champ (`TrackSelect.svelte`) |
 | `src-tauri/src/offline.rs`, `src/lib/offline.svelte.ts`, `src/views/Downloads.svelte` | lecture hors ligne : file de téléchargements (fichier d'origine repris par `Range`, ou version convertie récupérée morceau par morceau en HLS et mise bout à bout), page Téléchargements, progression renvoyée au serveur |
+| `src-tauri/src/plex_users.rs`, `src/components/ServerUsers.svelte` | utilisateurs du serveur Plex (administrateur) : comptes partagés, bibliothèques, autorisations et restrictions, invitation et retrait, via plex.tv |
 | `src/lib/player.svelte.ts` | lecture : mpv sur ordinateur, ExoPlayer natif sur Android (décodeur audio FFmpeg, son transmis à l'ampli ; en secours, flux du serveur qui ne convertit que le son, puis tout) |
 | `src-tauri/gen/android/` | projet Android : manifeste (Android TV, bannière, icônes par couleur), signature, détection du téléviseur et du téléphone, barres système, vidéo en paysage (`MainActivity.kt`), lecteur vidéo natif sous la page (`NativeVideo.kt`), journal de diagnostic (`DiagLog.kt`), musique en arrière-plan, notification et Android Auto (`MediaService.kt`, bibliothèque lue auprès de Plex dans `PlexLibrary.kt`, pochettes servies à la voiture par `ArtProvider.kt`) |
 | `src/components/PhoneTabs.svelte`, `src/views/Libraries.svelte` | téléphone : barre d'onglets et liste des bibliothèques |

@@ -173,5 +173,11 @@
     "noStream": "el servidor no proporcionó una versión convertida",
     "notFound": "archivo no encontrado en el servidor",
     "notAllowed": "el administrador del servidor no permite descargas para esta cuenta"
+  },
+  "users": {
+    "ownerOnly": "solo el propietario del servidor puede gestionar sus usuarios",
+    "plexOnly": "la gestión de usuarios solo está disponible para servidores Plex",
+    "needLibrary": "elige al menos una biblioteca",
+    "needWho": "indica una dirección de correo o un nombre de usuario de Plex"
   }
 }

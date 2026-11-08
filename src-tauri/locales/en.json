@@ -173,5 +173,11 @@
     "noStream": "the server did not provide a converted version",
     "notFound": "file not found on the server",
     "notAllowed": "the server admin doesn't allow downloads for this account"
+  },
+  "users": {
+    "ownerOnly": "only the server owner can manage its users",
+    "plexOnly": "user management is available for Plex servers only",
+    "needLibrary": "choose at least one library",
+    "needWho": "enter an email address or a Plex username"
   }
 }

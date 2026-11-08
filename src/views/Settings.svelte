@@ -20,6 +20,7 @@
   import Icon, { type IconName } from "../components/Icon.svelte";
   import HomeEditor from "../components/HomeEditor.svelte";
   import ServerPrefs from "../components/ServerPrefs.svelte";
+  import ServerUsers from "../components/ServerUsers.svelte";
   import ServerDashboard from "../components/ServerDashboard.svelte";
   import { LANGUAGES, savedLanguage, setLanguage, t } from "../lib/i18n";
 
@@ -883,12 +884,14 @@
       <h1 class="title">{t("settings.menu.serverSettings")}</h1>
       <!-- Réglages du serveur Plex, comme dans Plex Web : un onglet par rubrique, au lieu de neuf entrées dans le rail. -->
       <div class="server-tabs">
-        {#each [{ id: "dashboard", label: t("settings.menu.dashboard") }, ...groups.map((g) => ({ id: g, label: GROUPS[g].label }))] as tab (tab.id)}
+        {#each [{ id: "dashboard", label: t("settings.menu.dashboard") }, ...(session.serverKind === "plex" ? [{ id: "users", label: t("settings.users.title") }] : []), ...groups.map((g) => ({ id: g, label: GROUPS[g].label }))] as tab (tab.id)}
           <button class="btn" class:primary={serverTab === tab.id} aria-pressed={serverTab === tab.id} onclick={() => (serverTab = tab.id)}>{tab.label}</button>
         {/each}
       </div>
       {#if serverTab === "dashboard"}
         <ServerDashboard />
+      {:else if serverTab === "users"}
+        <ServerUsers />
       {:else if prefsError}
         <p class="error">{prefsError}</p>
       {:else if !prefs}

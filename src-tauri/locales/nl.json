@@ -173,5 +173,11 @@
     "noStream": "de server heeft geen geconverteerde versie geleverd",
     "notFound": "bestand niet gevonden op de server",
     "notAllowed": "de serverbeheerder staat geen downloads toe voor dit account"
+  },
+  "users": {
+    "ownerOnly": "alleen de eigenaar van de server kan zijn gebruikers beheren",
+    "plexOnly": "gebruikersbeheer is alleen beschikbaar voor Plex-servers",
+    "needLibrary": "kies ten minste één bibliotheek",
+    "needWho": "geef een e-mailadres of een Plex-gebruikersnaam op"
   }
 }
