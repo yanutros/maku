@@ -544,6 +544,37 @@ const web = (() => {
   let reportTimer: ReturnType<typeof setInterval> | undefined;
   let reportedKey = "";
   let unbind: (() => void) | null = null;
+  // Musique sans blanc : le titre suivant est chargé dans un second élément pendant la fin du titre en cours,
+  // puis lancé juste avant la dernière milliseconde (le passage d'un élément à l'autre ne laisse pas de trou).
+  let nextEl: HTMLAudioElement | null = null;
+  let nextIndex = -1;
+  let handoff: ReturnType<typeof setTimeout> | undefined;
+
+  const followingIndex = () => (player.index < player.queue.length - 1 ? player.index + 1 : player.repeat && player.queue.length > 1 ? 0 : -1);
+
+  /** Pendant les 20 dernières secondes d'un titre : le suivant se charge, et l'enchaînement se prépare. */
+  function prepareNext(el: HTMLMediaElement) {
+    if (player.video || el !== audioEl || !Number.isFinite(el.duration)) return;
+    const left = el.duration - el.currentTime;
+    if (left > 20) return;
+    const ni = followingIndex();
+    if (ni < 0) return;
+    if (nextIndex !== ni || !nextEl) {
+      nextEl ??= new Audio();
+      nextEl.preload = "auto";
+      nextEl.src = player.queue[ni].url;
+      nextEl.load();
+      nextIndex = ni;
+    }
+    // Dernier quart de seconde, titre suivant prêt : on le lance à l'instant où celui-ci finit.
+    if (left < 0.35 && !handoff && !el.paused && nextEl.readyState >= 3) {
+      const from = player.index;
+      handoff = setTimeout(() => {
+        handoff = undefined;
+        if (player.index === from && !player.video) playTrack(ni);
+      }, Math.max(0, (left - 0.03) * 1000));
+    }
+  }
   // Lecteur natif : pistes demandées (pour le secours) et conversion du serveur en cours.
   let nativeStreams: { audioStream: number | null; subtitleStream: number | null } = { audioStream: null, subtitleStream: null };
   let fallbackTried = false;
@@ -576,7 +607,7 @@ const web = (() => {
   function bind(el: HTMLMediaElement) {
     unbind?.();
     const on: [string, () => void][] = [
-      ["timeupdate", () => ((player.position = el.currentTime), (player.buffering = false))],
+      ["timeupdate", () => ((player.position = el.currentTime), (player.buffering = false), prepareNext(el))],
       ["durationchange", () => Number.isFinite(el.duration) && el.duration > 0 && (player.duration = el.duration)],
       ["play", () => (player.paused = false)],
       ["pause", () => ((player.paused = true), report("paused"))],
@@ -762,6 +793,23 @@ const web = (() => {
       if (!t) return;
       Object.assign(player, { index, position: 0, duration: t.durationMs / 1000, buffering: true });
       reportedKey = t.ratingKey;
+      clearTimeout(handoff);
+      handoff = undefined;
+      if (nextEl && nextIndex === index && nextEl.src === t.url) {
+        // Titre déjà chargé : les deux éléments échangent leur rôle, le son part aussitôt.
+        const done = audioEl;
+        audioEl = nextEl;
+        if (done) {
+          audioEl.volume = done.volume;
+          audioEl.muted = done.muted;
+        }
+        bind(audioEl);
+        audioEl.play().catch(() => {});
+        done?.pause();
+        nextEl = done;
+        nextIndex = -1;
+        return;
+      }
       audioEl ??= new Audio();
       if (media !== audioEl) bind(audioEl);
       audioEl.src = t.url;
@@ -811,7 +859,10 @@ const web = (() => {
       hls?.destroy();
       hls = null;
       pending = null;
-      for (const el of [videoEl, audioEl]) {
+      clearTimeout(handoff);
+      handoff = undefined;
+      nextIndex = -1;
+      for (const el of [videoEl, audioEl, nextEl]) {
         if (!el) continue;
         el.pause();
         el.removeAttribute("src");

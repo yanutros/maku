@@ -309,7 +309,9 @@ pub fn launch(
                 .arg("--input-default-bindings=no")
                 .arg("--force-window=no")
                 .arg("--audio-display=no")
-                .arg("--gapless-audio=weak");
+                // Sans blanc entre deux titres : le suivant est ouvert à l'avance et enchaîné sans coupure.
+                .arg("--gapless-audio=weak")
+                .arg("--prefetch-playlist=yes");
             start = *first;
             playlist_file = Some(path);
         }

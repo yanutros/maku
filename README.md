@@ -91,7 +91,8 @@ visionnage. Tout se fait avec son compte Plex (ou Jellyfin) : aucune clé d'API 
       vue « En cours de lecture », dont le fond aux couleurs de la pochette passe jusque derrière le menu, avec les
       paroles synchronisées à côté de la pochette (lrclib.net, gratuit ; la ligne chantée ressort, un clic y saute,
       désactivable dans Réglages → Lecteur). **Radio** sur la fiche d'un artiste : ses titres mêlés à ceux
-      d'artistes proches, choisis par le serveur (station de Plex, mix instantané de Jellyfin et Emby). Une barre
+      d'artistes proches, choisis par le serveur (station de Plex, mix instantané de Jellyfin et Emby). Les titres
+      s'enchaînent sans blanc : le suivant est chargé pendant la fin du précédent. Une barre
       de lecture flottante, en verre dépoli teinté par la pochette, reste en bas du contenu pendant que vous naviguez,
       avec des commandes toutes de même taille.
     </td>
