@@ -745,6 +745,32 @@ async fn create_collection(state: State<'_, AppState>, rating_key: String, title
     Ok(server.create_collection(&rating_key, title).await?)
 }
 
+/// Playlists de musique du compte, pour « Ajouter à une playlist » (chacun range dans les siennes).
+#[tauri::command]
+async fn playlist_choices(state: State<'_, AppState>) -> CmdResult<Vec<Item>> {
+    Ok(state.server()?.playlist_choices().await?)
+}
+
+#[tauri::command]
+async fn add_to_playlist(state: State<'_, AppState>, rating_key: String, playlist: String) -> CmdResult<()> {
+    Ok(state.server()?.add_to_playlist(&rating_key, &playlist).await?)
+}
+
+#[tauri::command]
+async fn create_playlist(state: State<'_, AppState>, rating_key: String, title: String) -> CmdResult<()> {
+    let title = title.trim();
+    if title.is_empty() {
+        return Err(anyhow!(crate::i18n::tr("playlist.noTitle")).into());
+    }
+    Ok(state.server()?.create_playlist(&rating_key, title).await?)
+}
+
+/// « Voir les informations » d'un titre : format et fichier.
+#[tauri::command]
+async fn media_info(state: State<'_, AppState>, rating_key: String) -> CmdResult<plex::MediaInfo> {
+    Ok(state.server()?.media_info(&rating_key).await?)
+}
+
 /// Miniatures d'aperçu de la vidéo, pour la barre de progression (aucune si le serveur n'en a pas).
 #[tauri::command]
 async fn video_previews(
@@ -1279,6 +1305,48 @@ async fn play_music(
     let control = player::launch(app, server, mpv, session.clone(), entries, Source::Music { urls, start: index })?;
     *state.player.lock().unwrap() = Some(control);
     Ok(MusicQueue { session, tracks, index })
+}
+
+/// Titres d'un artiste, d'un album, d'une playlist ou titre seul, à ajouter à la file (mobile, diffusion).
+#[tauri::command]
+async fn music_tracks(state: State<'_, AppState>, rating_key: String) -> CmdResult<Vec<QueueTrack>> {
+    Ok(state.server()?.queue(&rating_key).await?)
+}
+
+/// « Lire ensuite » / « Ajouter à la file d'attente » pendant la lecture par mpv : les titres de
+/// `rating_key` entrent dans la file à la position `at`, sans interrompre le titre en cours.
+#[tauri::command]
+async fn player_queue_insert(state: State<'_, AppState>, rating_key: String, at: usize) -> CmdResult<Vec<QueueTrack>> {
+    let tracks = state.server()?.queue(&rating_key).await?;
+    let entries = tracks.iter().map(|t| Entry { rating_key: t.rating_key.clone(), duration_ms: t.duration_ms }).collect();
+    let urls = tracks.iter().map(|t| t.url.clone()).collect();
+    let player = state.player.lock().unwrap();
+    player.as_ref().ok_or_else(|| anyhow!(crate::i18n::tr("app.noPlayback")))?.insert(entries, urls, at)?;
+    Ok(tracks)
+}
+
+/// Déplace un titre de la file de mpv (glisser-déposer dans la file d'attente).
+#[tauri::command]
+fn player_queue_move(state: State<'_, AppState>, from: usize, to: usize) -> CmdResult<()> {
+    let player = state.player.lock().unwrap();
+    Ok(player.as_ref().ok_or_else(|| anyhow!(crate::i18n::tr("app.noPlayback")))?.move_entry(from, to)?)
+}
+
+/// Même chose pendant une diffusion Chromecast.
+#[tauri::command]
+fn cast_queue_insert(state: State<'_, AppState>, tracks: Vec<cast::Track>, at: usize) -> CmdResult<()> {
+    if let Some(s) = state.cast.lock().unwrap().as_ref() {
+        s.send(cast::Command::Insert(tracks, at));
+    }
+    Ok(())
+}
+
+#[tauri::command]
+fn cast_queue_move(state: State<'_, AppState>, from: usize, to: usize) -> CmdResult<()> {
+    if let Some(s) = state.cast.lock().unwrap().as_ref() {
+        s.send(cast::Command::Reorder(from, to));
+    }
+    Ok(())
 }
 
 /// Commande mpv envoyée par la barre de lecture, par ex. `["cycle", "pause"]`.
@@ -1996,6 +2064,15 @@ pub fn run() {
             cast_start,
             cast_command,
             cast_stop,
+            cast_queue_insert,
+            cast_queue_move,
+            music_tracks,
+            player_queue_insert,
+            player_queue_move,
+            playlist_choices,
+            add_to_playlist,
+            create_playlist,
+            media_info,
             plex_server_libraries,
             plex_user_libraries,
             plex_user_permissions,

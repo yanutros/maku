@@ -521,7 +521,10 @@
     "refreshMetadata": "Metadata vernieuwen",
     "refreshStarted": "Metadata worden vernieuwd",
     "analyze": "Analyseren",
-    "analyzeStarted": "Analyse gestart"
+    "analyzeStarted": "Analyse gestart",
+    "download": "Downloaden",
+    "downloadStarted": "Download gestart",
+    "goToArtist": "Naar artiest"
   },
   "editDialog": {
     "tabs": {
@@ -852,5 +855,53 @@
     "searching": "Netwerk doorzoeken…",
     "none": "Geen Chromecast-apparaat gevonden op het netwerk.",
     "ended": "Het casten is gestopt."
+  },
+  "queue": {
+    "playNext": "Hierna afspelen",
+    "add": "Aan wachtrij toevoegen",
+    "playNextDone_one": "Speelt direct na het huidige nummer",
+    "playNextDone_other": "{{count}} nummers spelen direct na het huidige",
+    "addedDone_one": "Aan de wachtrij toegevoegd",
+    "addedDone_other": "{{count}} nummers aan de wachtrij toegevoegd",
+    "reorderHint": "Houd een nummer vast en sleep het om de volgorde te wijzigen"
+  },
+  "playlist": {
+    "addTo": "Aan afspeellijst toevoegen…",
+    "title": "Aan afspeellijst toevoegen",
+    "cancel": "Sluiten",
+    "search": "Afspeellijst zoeken",
+    "noMatch": "Geen afspeellijst gevonden.",
+    "none": "Nog geen afspeellijst: maak hieronder de eerste.",
+    "newName": "Naam van de nieuwe afspeellijst",
+    "create": "Maken",
+    "added": "‘{{title}}’ toegevoegd aan ‘{{playlist}}’",
+    "created": "Afspeellijst ‘{{playlist}}’ gemaakt"
+  },
+  "stars": {
+    "rate": "Beoordelen",
+    "rated": "{{stars}} van 5 gegeven",
+    "give": "{{stars}} van 5",
+    "clear": "Beoordeling verwijderen"
+  },
+  "trackInfo": {
+    "open": "Informatie bekijken",
+    "title": "Informatie",
+    "close": "Sluiten",
+    "artist": "Artiest",
+    "album": "Album",
+    "duration": "Duur",
+    "container": "Formaat",
+    "codec": "Codec",
+    "bitrate": "Bitrate",
+    "audio": "Geluid",
+    "mono": "Mono",
+    "stereo": "Stereo",
+    "channels": "{{count}} kanalen",
+    "samplingRate": "Samplefrequentie",
+    "bitDepth": "Bitdiepte",
+    "size": "Grootte",
+    "plays": "Keer afgespeeld",
+    "added": "Toegevoegd op",
+    "file": "Bestand"
   }
 }

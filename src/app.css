@@ -389,3 +389,23 @@ html.tv .tv-page {
 html.tv *:not(.update-backdrop) {
   backdrop-filter: none !important;
 }
+
+/* ---------- File d'attente : réordonner en maintenant puis en glissant (lib/reorder.ts) ---------- */
+
+.reorderable [data-index] {
+  -webkit-touch-callout: none;
+  user-select: none;
+}
+
+.reorder-active [data-index] {
+  transition: transform 0.16s var(--ease);
+}
+
+.reorder-active .reorder-lifted {
+  position: relative;
+  z-index: 2;
+  transition: none;
+  background: #2a2d33 !important;
+  box-shadow: 0 12px 28px #000b;
+  cursor: grabbing;
+}

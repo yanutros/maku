@@ -159,6 +159,23 @@ export interface Hub {
   items: Item[];
 }
 
+/** Fichier d'un titre et son format (« Voir les informations »). */
+export interface MediaInfo {
+  container: string | null;
+  codec: string | null;
+  bitrateKbps: number | null;
+  channels: number | null;
+  /** En Hz. */
+  samplingRate: number | null;
+  bitDepth: number | null;
+  sizeBytes: number | null;
+  durationMs: number | null;
+  /** Chemin sur le serveur (montré à l'administrateur seulement). */
+  file: string | null;
+  addedAt: number | null;
+  playCount: number | null;
+}
+
 export interface QueueTrack {
   ratingKey: string;
   title: string;
@@ -392,6 +409,10 @@ export const api = {
   collectionChoices: (ratingKey: string) => invoke<Item[]>("collection_choices", { ratingKey }),
   addToCollection: (ratingKey: string, collection: string) => invoke<void>("add_to_collection", { ratingKey, collection }),
   createCollection: (ratingKey: string, title: string) => invoke<void>("create_collection", { ratingKey, title }),
+  playlistChoices: () => invoke<Item[]>("playlist_choices"),
+  addToPlaylist: (ratingKey: string, playlist: string) => invoke<void>("add_to_playlist", { ratingKey, playlist }),
+  createPlaylist: (ratingKey: string, title: string) => invoke<void>("create_playlist", { ratingKey, title }),
+  mediaInfo: (ratingKey: string) => invoke<MediaInfo>("media_info", { ratingKey }),
   tracks: (ratingKey: string) => invoke<Item[]>("plex_tracks", { ratingKey }),
   home: () => invoke<Home>("plex_home"),
   metadata: (ratingKey: string) => invoke<ItemDetail>("plex_metadata", { ratingKey }),

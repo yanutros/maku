@@ -185,5 +185,8 @@
     "unreachable": "l'appareil ne répond pas",
     "launchFailed": "l'appareil n'a pas pu lancer la lecture",
     "loadFailed": "l'appareil ne peut pas lire ce fichier (le serveur lui est peut-être inaccessible)"
+  },
+  "playlist": {
+    "noTitle": "Donne un nom à la playlist."
   }
 }

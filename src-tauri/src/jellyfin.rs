@@ -522,6 +522,55 @@ impl JellyfinServer {
         Ok(())
     }
 
+    // ---------- Playlists : « Ajouter à une playlist » ----------
+
+    /// Playlists de musique de l'utilisateur.
+    pub async fn playlist_choices(&self) -> Result<Vec<Item>> {
+        self.playlists("").await
+    }
+
+    /// Ajoute un titre, un album ou un artiste à une playlist (le serveur en reprend tous les titres).
+    pub async fn add_to_playlist(&self, id: &str, playlist: &str) -> Result<()> {
+        let ok = |s: &str| !s.is_empty() && s.chars().all(|c| c.is_ascii_alphanumeric() || c == '-');
+        if !ok(playlist) || !ok(id) {
+            bail!("élément inconnu");
+        }
+        self.send(reqwest::Method::POST, &format!("/Playlists/{playlist}/Items?ids={id}&userId={}", self.uid()))
+            .send()
+            .await?
+            .error_for_status()?;
+        Ok(())
+    }
+
+    pub async fn create_playlist(&self, id: &str, title: &str) -> Result<()> {
+        // Paramètres dans l'adresse : Emby ne lit qu'eux, Jellyfin les accepte toujours.
+        let path = format!("/Playlists?name={}&ids={id}&userId={}&mediaType=Audio", urlencoding::encode(title), self.uid());
+        self.send(reqwest::Method::POST, &path).send().await?.error_for_status()?;
+        Ok(())
+    }
+
+    /// « Voir les informations » d'un titre : son fichier et son format.
+    pub async fn media_info(&self, id: &str) -> Result<crate::plex::MediaInfo> {
+        let v = self.json(&format!("/Users/{}/Items/{id}?Fields=MediaSources,Path,DateCreated", self.uid())).await?;
+        let source = &v["MediaSources"][0];
+        let audio = source["MediaStreams"].as_array().and_then(|s| s.iter().find(|s| s["Type"] == "Audio")).cloned().unwrap_or_default();
+        let text = |v: &Value| v.as_str().filter(|s| !s.is_empty()).map(str::to_owned);
+        let ticks = |v: &Value| v.as_u64().map(|t| t / 10_000);
+        Ok(crate::plex::MediaInfo {
+            container: text(&source["Container"]),
+            codec: text(&audio["Codec"]),
+            bitrate_kbps: source["Bitrate"].as_u64().or_else(|| audio["BitRate"].as_u64()).map(|b| b / 1000),
+            channels: audio["Channels"].as_u64(),
+            sampling_rate: audio["SampleRate"].as_u64(),
+            bit_depth: audio["BitDepth"].as_u64(),
+            size_bytes: source["Size"].as_u64(),
+            duration_ms: ticks(&v["RunTimeTicks"]).or_else(|| ticks(&source["RunTimeTicks"])),
+            file: text(&source["Path"]).or_else(|| text(&v["Path"])),
+            added_at: v["DateCreated"].as_str().and_then(iso_ms),
+            play_count: v["UserData"]["PlayCount"].as_u64(),
+        })
+    }
+
     pub async fn collections(&self, _key: &str) -> Result<Vec<Item>> {
         self.items(&format!("/Users/{}/Items?IncludeItemTypes=BoxSet&Recursive=true&SortBy=SortName&{FIELDS}", self.uid())).await
     }

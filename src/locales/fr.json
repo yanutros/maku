@@ -521,7 +521,10 @@
     "refreshMetadata": "Actualiser les métadonnées",
     "refreshStarted": "Actualisation des métadonnées lancée",
     "analyze": "Analyser",
-    "analyzeStarted": "Analyse lancée"
+    "analyzeStarted": "Analyse lancée",
+    "download": "Télécharger",
+    "downloadStarted": "Téléchargement lancé",
+    "goToArtist": "Aller à l’artiste"
   },
   "editDialog": {
     "tabs": {
@@ -852,5 +855,53 @@
     "searching": "Recherche sur le réseau…",
     "none": "Aucun appareil Chromecast trouvé sur le réseau.",
     "ended": "La diffusion s'est arrêtée."
+  },
+  "queue": {
+    "playNext": "Lire ensuite",
+    "add": "Ajouter à la file d’attente",
+    "playNextDone_one": "Lu juste après le titre en cours",
+    "playNextDone_other": "{{count}} titres lus juste après le titre en cours",
+    "addedDone_one": "Ajouté à la file d’attente",
+    "addedDone_other": "{{count}} titres ajoutés à la file d’attente",
+    "reorderHint": "Maintiens un titre puis glisse-le pour changer l’ordre"
+  },
+  "playlist": {
+    "addTo": "Ajouter à une playlist…",
+    "title": "Ajouter à une playlist",
+    "cancel": "Fermer",
+    "search": "Rechercher une playlist",
+    "noMatch": "Aucune playlist ne correspond.",
+    "none": "Pas encore de playlist : crée la première ci-dessous.",
+    "newName": "Nom d’une nouvelle playlist",
+    "create": "Créer",
+    "added": "« {{title}} » ajouté à « {{playlist}} »",
+    "created": "Playlist « {{playlist}} » créée"
+  },
+  "stars": {
+    "rate": "Noter",
+    "rated": "Noté {{stars}} sur 5",
+    "give": "{{stars}} sur 5",
+    "clear": "Retirer la note"
+  },
+  "trackInfo": {
+    "open": "Voir les informations",
+    "title": "Informations",
+    "close": "Fermer",
+    "artist": "Artiste",
+    "album": "Album",
+    "duration": "Durée",
+    "container": "Format",
+    "codec": "Codec",
+    "bitrate": "Débit",
+    "audio": "Son",
+    "mono": "Mono",
+    "stereo": "Stéréo",
+    "channels": "{{count}} canaux",
+    "samplingRate": "Échantillonnage",
+    "bitDepth": "Résolution",
+    "size": "Taille",
+    "plays": "Écoutes",
+    "added": "Ajouté le",
+    "file": "Fichier"
   }
 }

@@ -5,7 +5,7 @@
 use anyhow::{anyhow, Result};
 
 use crate::jellyfin::JellyfinServer;
-use crate::plex::{Adjacent, Genre, Hub, Item, ItemDetail, Marker, Page, PlayInfo, PlexServer, Previews, QueueTrack, Section, TrailerSource, WebStream};
+use crate::plex::{Adjacent, Genre, Hub, Item, ItemDetail, Marker, MediaInfo, Page, PlayInfo, PlexServer, Previews, QueueTrack, Section, TrailerSource, WebStream};
 
 #[derive(Clone)]
 pub enum MediaServer {
@@ -74,6 +74,10 @@ common! {
         fn collection_choices(&self, rating_key: &str) -> Vec<Item>;
         fn add_to_collection(&self, rating_key: &str, collection: &str) -> ();
         fn create_collection(&self, rating_key: &str, title: &str) -> ();
+        fn playlist_choices(&self) -> Vec<Item>;
+        fn add_to_playlist(&self, rating_key: &str, playlist: &str) -> ();
+        fn create_playlist(&self, rating_key: &str, title: &str) -> ();
+        fn media_info(&self, rating_key: &str) -> MediaInfo;
         fn previews(&self, rating_key: &str, media: Option<usize>) -> Option<Previews>;
         fn trailer(&self, rating_key: &str) -> TrailerSource;
         fn can_download(&self) -> bool;

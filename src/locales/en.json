@@ -521,7 +521,10 @@
     "refreshMetadata": "Refresh metadata",
     "refreshStarted": "Metadata refresh started",
     "analyze": "Analyze",
-    "analyzeStarted": "Analysis started"
+    "analyzeStarted": "Analysis started",
+    "download": "Download",
+    "downloadStarted": "Download started",
+    "goToArtist": "Go to artist"
   },
   "editDialog": {
     "tabs": {
@@ -852,5 +855,53 @@
     "searching": "Searching the network…",
     "none": "No Chromecast device found on the network.",
     "ended": "Casting stopped."
+  },
+  "queue": {
+    "playNext": "Play next",
+    "add": "Add to queue",
+    "playNextDone_one": "Playing right after the current track",
+    "playNextDone_other": "{{count}} tracks playing right after the current one",
+    "addedDone_one": "Added to the queue",
+    "addedDone_other": "{{count}} tracks added to the queue",
+    "reorderHint": "Hold a track, then drag it to reorder"
+  },
+  "playlist": {
+    "addTo": "Add to playlist…",
+    "title": "Add to playlist",
+    "cancel": "Close",
+    "search": "Search playlists",
+    "noMatch": "No playlist matches.",
+    "none": "No playlist yet: create the first one below.",
+    "newName": "New playlist name",
+    "create": "Create",
+    "added": "“{{title}}” added to “{{playlist}}”",
+    "created": "Playlist “{{playlist}}” created"
+  },
+  "stars": {
+    "rate": "Rate",
+    "rated": "Rated {{stars}} out of 5",
+    "give": "{{stars}} out of 5",
+    "clear": "Remove rating"
+  },
+  "trackInfo": {
+    "open": "View info",
+    "title": "Info",
+    "close": "Close",
+    "artist": "Artist",
+    "album": "Album",
+    "duration": "Duration",
+    "container": "Format",
+    "codec": "Codec",
+    "bitrate": "Bitrate",
+    "audio": "Audio",
+    "mono": "Mono",
+    "stereo": "Stereo",
+    "channels": "{{count}} channels",
+    "samplingRate": "Sample rate",
+    "bitDepth": "Bit depth",
+    "size": "Size",
+    "plays": "Plays",
+    "added": "Added on",
+    "file": "File"
   }
 }

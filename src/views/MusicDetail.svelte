@@ -10,6 +10,8 @@
   import DownloadButton from "../components/DownloadButton.svelte";
   import { device } from "../lib/device";
   import { useAmbient } from "../lib/ambient.svelte";
+  import { menuable } from "../lib/longpress";
+  import Stars from "../components/Stars.svelte";
 
   let { item }: { item: ItemDetail } = $props();
 
@@ -32,6 +34,18 @@
     item.kind === "playlist" || (tracks ?? []).some((tr) => tr.subtitle && tr.subtitle !== item.showTitle),
   );
   const playingKey = $derived(current()?.ratingKey);
+
+  // Plex note de 1 à 5 étoiles ; Jellyfin et Emby n'ont que « J'aime » (menu du téléviseur).
+  const stars = $derived(nav.serverKind === "plex");
+
+  /** Menu « ⋮ » d'un titre ou de la fiche : sous le bouton, ou à l'endroit du clic droit. */
+  function openMenu(e: MouseEvent, it: Item) {
+    e.preventDefault();
+    e.stopPropagation();
+    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const fromButton = e.type === "click";
+    nav.menu = { item: it, x: fromButton ? r.left : e.clientX, y: fromButton ? r.bottom + 4 : e.clientY };
+  }
 
   function start(opts: { start?: string; shuffle?: boolean; radio?: boolean } = {}) {
     playMusic(item.ratingKey, opts).catch((e) => toast(errorText(e), true));
@@ -66,6 +80,7 @@
         {#if totalMs}<span>{formatDuration(totalMs)}</span>{/if}
         {#each item.genres.slice(0, 3) as g}<span class="genre">{g}</span>{/each}
       </div>
+      {#if stars && item.kind !== "playlist"}<div class="rating"><Stars {item} size={18} /></div>{/if}
       <div class="actions">
         <button class="btn primary big" onclick={() => start()}>
           <Icon name="play" size={18} filled /> {t("music.detail.play")}
@@ -90,6 +105,10 @@
             <Icon name="edit" size={18} /> {t("music.detail.edit")}
           </button>
         {/if}
+        <!-- File d'attente, playlist, et pour l'administrateur : actualiser, analyser. -->
+        <button class="btn big round-more" onclick={(e) => openMenu(e, item)} aria-label={t("trackGrid.moreActions")} title={t("trackGrid.moreActions")}>
+          <Icon name="more" size={20} />
+        </button>
       </div>
       {#if item.summary}<p class="summary">{item.summary}</p>{/if}
     </div>
@@ -106,18 +125,24 @@
     <div class="skeleton" style:height="240px"></div>
   {:else}
     <div class="tracks">
-      <div class="track header" class:artists={showArtists}>
-        <span class="num">#</span>
-        <span>{t("music.detail.columns.title")}</span>
-        {#if showArtists}<span>{t("music.detail.columns.album")}</span>{/if}
-        <span class="dur"><Icon name="clock" size={16} /></span>
+      <div class="row header">
+        <div class="track" class:artists={showArtists}>
+          <span class="num">#</span>
+          <span>{t("music.detail.columns.title")}</span>
+          {#if showArtists}<span>{t("music.detail.columns.album")}</span>{/if}
+          <span class="dur"><Icon name="clock" size={16} /></span>
+        </div>
+        {#if stars}<span class="rate"></span>{/if}
+        <span class="dots"></span>
       </div>
       {#each tracks as tr, i (tr.ratingKey)}
+        <div class="row" class:playing={playingKey === tr.ratingKey} oncontextmenu={(e) => openMenu(e, tr)} role="group">
         <button
           class="track"
           class:artists={showArtists}
           class:playing={playingKey === tr.ratingKey}
           onclick={() => start({ start: tr.ratingKey })}
+          use:menuable={tr}
         >
           <span class="num">
             {#if playingKey === tr.ratingKey && !player.paused}
@@ -137,6 +162,11 @@
           {#if showArtists}<span class="album">{tr.albumTitle ?? ""}</span>{/if}
           <span class="dur">{tr.durationMs ? formatClock(tr.durationMs / 1000) : ""}</span>
         </button>
+        {#if stars}<span class="rate" class:rated={!!tr.userRating}><Stars item={tr} /></span>{/if}
+        <button class="dots" onclick={(e) => openMenu(e, tr)} aria-label={t("trackGrid.moreActions")} title={t("trackGrid.moreActions")}>
+          <Icon name="more" size={18} />
+        </button>
+        </div>
       {/each}
     </div>
   {/if}
@@ -268,6 +298,89 @@
     display: grid;
   }
 
+  .rating {
+    margin-top: 10px;
+  }
+
+  .round-more {
+    padding: 0 12px;
+  }
+
+  /* Une ligne : le titre (bouton), sa note et son menu. */
+  .row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    border-radius: var(--radius);
+  }
+
+  .row:not(.header):hover {
+    background: #ffffff0f;
+  }
+
+  .row.header {
+    margin-bottom: 4px;
+    border-bottom: 1px solid var(--border);
+    border-radius: 0;
+  }
+
+  .rate {
+    width: 104px;
+    display: flex;
+    justify-content: center;
+  }
+
+  /* Pas encore noté : les étoiles n'apparaissent qu'au survol de la ligne, comme dans Plex. */
+  .rate:not(.rated) :global(.stars) {
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+
+  .row:hover .rate :global(.stars),
+  .rate :global(.stars:focus-within) {
+    opacity: 1;
+  }
+
+  .dots {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    margin-right: 4px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: none;
+    color: var(--text-dim);
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+
+  button.dots:hover {
+    background: #ffffff14;
+    color: var(--text);
+  }
+
+  .row:hover .dots,
+  .dots:focus-visible {
+    opacity: 1;
+  }
+
+  /* Téléviseur : l'appui long sur OK ouvre le menu du titre ; téléphone : les points restent visibles,
+     la note se donne depuis le menu. */
+  :global(html.tv) .rate,
+  :global(html.tv) .dots {
+    display: none;
+  }
+
+  :global(html.phone) .rate {
+    display: none;
+  }
+
+  :global(html.phone) .dots {
+    opacity: 1;
+  }
+
   .track {
     display: grid;
     grid-template-columns: 44px minmax(0, 1fr) 64px;
@@ -286,11 +399,8 @@
     grid-template-columns: 44px minmax(0, 3fr) minmax(0, 2fr) 64px;
   }
 
-  .track.header {
+  .header .track {
     min-height: 36px;
-    margin-bottom: 4px;
-    border-bottom: 1px solid var(--border);
-    border-radius: 0;
     color: var(--text-faint);
     font-size: 12px;
     font-weight: 600;
@@ -309,10 +419,6 @@
     background: color-mix(in srgb, var(--accent) 12%, transparent);
   }
 
-  button.track:hover {
-    background: #ffffff0f;
-  }
-
   .track.playing .t {
     color: var(--accent);
   }
@@ -328,11 +434,11 @@
     display: none;
   }
 
-  button.track:hover .num .n {
+  .row:hover .num .n {
     display: none;
   }
 
-  button.track:hover .num .p {
+  .row:hover .num .p {
     display: block;
     color: var(--text);
   }

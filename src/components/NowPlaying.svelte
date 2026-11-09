@@ -1,6 +1,7 @@
 <script lang="ts">
   import { formatClock } from "../lib/api";
-  import { current, mpv, next, player, previous, stop } from "../lib/player.svelte";
+  import { current, moveInQueue, mpv, next, player, previous, stop } from "../lib/player.svelte";
+  import { reorder } from "../lib/reorder";
   import { device } from "../lib/device";
   import Icon from "./Icon.svelte";
   import CastButton from "./CastButton.svelte";
@@ -9,7 +10,8 @@
   import { loadLyrics, lyricsPrefs } from "../lib/lyrics.svelte";
 
   const track = $derived(current());
-  const upNext = $derived(player.queue.slice(player.index + 1, player.index + 8));
+  // Téléphone : toute la suite de la file (la page défile) ; ailleurs, les prochains titres.
+  const upNext = $derived(player.queue.slice(player.index + 1, player.index + (device.phone ? 200 : 30)));
   // À droite de la pochette : les paroles (lrclib.net, si la recherche est activée) ou la suite de la file.
   let tab = $state<"lyrics" | "queue">("lyrics");
   const showLyrics = $derived(lyricsPrefs.enabled && tab === "lyrics");
@@ -79,10 +81,10 @@
     {#if showLyrics}
       <aside class="lyr"><Lyrics /></aside>
     {:else if upNext.length}
-      <aside class="next">
+      <aside class="next" use:reorder={{ onmove: moveInQueue }}>
         <div class="next-title">{t("nowPlaying.upNext")}</div>
         {#each upNext as qt, i (qt.ratingKey + i)}
-          <button class="q" onclick={() => mpv("set_property", "playlist-pos", player.index + 1 + i)}>
+          <button class="q" data-index={player.index + 1 + i} onclick={() => mpv("set_property", "playlist-pos", player.index + 1 + i)}>
             {#if qt.cover}<img src={qt.cover} alt="" loading="lazy" />{/if}
             <span class="q-text">
               <span class="q-title">{qt.title}</span>

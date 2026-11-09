@@ -33,7 +33,7 @@ pub struct Device {
 }
 
 /// Un titre de la file, tel que l'appareil le lira.
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Track {
     pub url: String,
@@ -184,6 +184,10 @@ pub enum Command {
     Volume(f64),
     Mute(bool),
     Stop,
+    /// Titres à insérer à la position `at` de la file (au-delà : à la fin).
+    Insert(Vec<Track>, usize),
+    /// Titre déplacé de la position `from` à `to`.
+    Reorder(usize, usize),
 }
 
 /// Session en cours avec un appareil : la tâche qui lui parle reçoit les commandes par ce canal.
@@ -280,6 +284,27 @@ async fn read_message(read: &mut tokio::io::ReadHalf<Tls>) -> Result<Incoming> {
     decode(&buf).ok_or_else(|| anyhow!("message Cast illisible"))
 }
 
+/// Un titre de la file, au format du lecteur de Google.
+fn queue_item(t: &Track) -> Value {
+    json!({
+        "autoplay": true,
+        "preloadTime": 10,
+        "media": {
+            "contentId": t.url,
+            "contentUrl": t.url,
+            "contentType": content_type(&t.url),
+            "streamType": "BUFFERED",
+            "metadata": {
+                "metadataType": 3,
+                "title": t.title,
+                "artist": t.artist,
+                "albumName": t.album,
+                "images": t.cover.iter().map(|c| json!({ "url": c })).collect::<Vec<_>>(),
+            },
+        },
+    })
+}
+
 /// Se connecte à l'appareil, lance le lecteur de Google et lui confie la file à partir de `start`
 /// (`position` secondes dans ce titre). L'état de la lecture arrive ensuite par l'événement `cast-status`,
 /// la fin de la session par `cast-ended`.
@@ -326,28 +351,7 @@ pub async fn start(app: AppHandle, device: Device, tracks: Vec<Track>, start: us
     .map_err(|_| anyhow!(crate::i18n::tr("cast.launchFailed")))??;
 
     link.send(&transport, NS_CONNECTION, json!({ "type": "CONNECT" })).await?;
-    let items: Vec<Value> = tracks
-        .iter()
-        .map(|t| {
-            json!({
-                "autoplay": true,
-                "preloadTime": 10,
-                "media": {
-                    "contentId": t.url,
-                    "contentUrl": t.url,
-                    "contentType": content_type(&t.url),
-                    "streamType": "BUFFERED",
-                    "metadata": {
-                        "metadataType": 3,
-                        "title": t.title,
-                        "artist": t.artist,
-                        "albumName": t.album,
-                        "images": t.cover.iter().map(|c| json!({ "url": c })).collect::<Vec<_>>(),
-                    },
-                },
-            })
-        })
-        .collect();
+    let items: Vec<Value> = tracks.iter().map(queue_item).collect();
     link.send(
         &transport,
         NS_MEDIA,
@@ -360,6 +364,8 @@ pub async fn start(app: AppHandle, device: Device, tracks: Vec<Track>, start: us
     tauri::async_runtime::spawn(async move {
         let mut media_session: Option<u64> = None;
         let mut item_ids: Vec<u64> = Vec::new();
+        // Liste complète reçue de l'appareil (`QUEUE_ITEM_IDS`), plutôt que les seuls titres de l'état.
+        let mut ids_known = false;
         let mut status = Status::default();
         let mut heartbeat = tokio::time::interval(Duration::from_secs(5));
         let mut poll = tokio::time::interval(Duration::from_secs(1));
@@ -392,6 +398,21 @@ pub async fn start(app: AppHandle, device: Device, tracks: Vec<Track>, start: us
                         let _ = app.emit("cast-status", &status);
                         continue;
                     }
+                    // Identifiants des titres, dans l'ordre de la file : ils servent à savoir lequel est en cours.
+                    if m.namespace == NS_MEDIA && v["type"] == "QUEUE_ITEM_IDS" {
+                        if let Some(ids) = v["itemIds"].as_array() {
+                            item_ids = ids.iter().filter_map(Value::as_u64).collect();
+                            ids_known = true;
+                        }
+                        continue;
+                    }
+                    // File modifiée (titres ajoutés) : ses identifiants sont redemandés.
+                    if m.namespace == NS_MEDIA && v["type"] == "QUEUE_CHANGE" {
+                        if let Some(ms) = media_session {
+                            let _ = link.send(&transport, NS_MEDIA, json!({ "type": "QUEUE_GET_ITEM_IDS", "mediaSessionId": ms })).await;
+                        }
+                        continue;
+                    }
                     if m.namespace != NS_MEDIA || v["type"] != "MEDIA_STATUS" {
                         if m.namespace == NS_MEDIA && (v["type"] == "LOAD_FAILED" || v["type"] == "INVALID_REQUEST") {
                             let _ = app.emit("cast-error", crate::i18n::tr("cast.loadFailed"));
@@ -406,8 +427,13 @@ pub async fn start(app: AppHandle, device: Device, tracks: Vec<Track>, start: us
                         }
                         continue;
                     };
+                    let first_status = media_session.is_none();
                     media_session = s["mediaSessionId"].as_u64().or(media_session);
-                    if let Some(items) = s["items"].as_array() {
+                    if let (true, Some(ms)) = (first_status, media_session) {
+                        let _ = link.send(&transport, NS_MEDIA, json!({ "type": "QUEUE_GET_ITEM_IDS", "mediaSessionId": ms })).await;
+                    }
+                    // En attendant la liste complète, les titres que l'état mentionne.
+                    if let (false, Some(items)) = (ids_known, s["items"].as_array()) {
                         let ids: Vec<u64> = items.iter().filter_map(|i| i["itemId"].as_u64()).collect();
                         if !ids.is_empty() { item_ids = ids; }
                     }
@@ -450,6 +476,24 @@ pub async fn start(app: AppHandle, device: Device, tracks: Vec<Track>, start: us
                         },
                         Command::Volume(l) => link.send(PLATFORM, NS_RECEIVER, json!({ "type": "SET_VOLUME", "volume": { "level": l.clamp(0.0, 1.0) } })).await,
                         Command::Mute(m) => link.send(PLATFORM, NS_RECEIVER, json!({ "type": "SET_VOLUME", "volume": { "muted": m } })).await,
+                        Command::Insert(tracks, at) => {
+                            let items: Vec<Value> = tracks.iter().map(queue_item).collect();
+                            let mut msg = json!({ "type": "QUEUE_INSERT", "mediaSessionId": ms, "items": items });
+                            // Sans `insertBefore`, les titres vont à la fin.
+                            if let Some(&before) = item_ids.get(at) {
+                                msg["insertBefore"] = json!(before);
+                            }
+                            match link.send(&transport, NS_MEDIA, msg).await {
+                                Ok(_) => link.send(&transport, NS_MEDIA, json!({ "type": "QUEUE_GET_ITEM_IDS", "mediaSessionId": ms })).await,
+                                e => e,
+                            }
+                        }
+                        Command::Reorder(from, to) if from < item_ids.len() && to < item_ids.len() && from != to => {
+                            let id = item_ids.remove(from);
+                            item_ids.insert(to, id);
+                            link.send(&transport, NS_MEDIA, json!({ "type": "QUEUE_REORDER", "mediaSessionId": ms, "itemIds": item_ids })).await
+                        }
+                        Command::Reorder(..) => Ok(0),
                     };
                     if r.is_err() { reason = Some("disconnected"); break; }
                 }

@@ -48,6 +48,12 @@ export const nav = $state({
   toast: null as { text: string; error: boolean } | null,
   /** Film ou série à ranger dans une collection (fenêtre « Ajouter à la collection » ouverte). */
   collectionFor: null as Item | null,
+  /** Musique à ranger dans une playlist (fenêtre « Ajouter à une playlist » ouverte). */
+  playlistFor: null as Item | null,
+  /** Titre dont la fenêtre « Informations » est ouverte. */
+  infoFor: null as Item | null,
+  /** Serveur connecté : Plex note de 1 à 5 étoiles, Jellyfin et Emby seulement « J'aime ». */
+  serverKind: "plex" as "plex" | "jellyfin",
   /** Écran « Qui regarde ? » ouvert depuis la carte du profil (Plex Home). */
   profiles: false,
   /** Le Plex Home du compte a plusieurs profils : la carte du profil ouvre leur choix. */

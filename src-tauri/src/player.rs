@@ -41,9 +41,19 @@ const OBSERVED: &[&str] = &[
 trait IpcStream: AsyncRead + AsyncWrite + Unpin + Send {}
 impl<T: AsyncRead + AsyncWrite + Unpin + Send> IpcStream for T {}
 
+/// Ordre transmis au suivi de la lecture : une commande mpv, ou une modification de la file musicale
+/// (mpv et la liste des titres suivis changent ensemble, pour que la progression aille au bon titre).
+enum Control {
+    Mpv(Value),
+    /// Titres à insérer à la position `at` de la file.
+    Insert { entries: Vec<Entry>, urls: Vec<String>, at: usize },
+    /// Titre déplacé de `from` à `to` (sa position finale).
+    Move { from: usize, to: usize },
+}
+
 /// Lecture en cours. La lâcher (ou la remplacer) ferme mpv.
 pub struct PlayerControl {
-    commands: mpsc::UnboundedSender<Value>,
+    commands: mpsc::UnboundedSender<Control>,
     _stop: oneshot::Sender<()>,
     /// Processus mpv, pour l'arrêter tout de suite à la fermeture de Maku (voir `kill_now`).
     pid: Option<u32>,
@@ -52,10 +62,21 @@ pub struct PlayerControl {
 impl PlayerControl {
     /// Envoie une commande mpv, par ex. `["seek", 10, "relative"]`.
     pub fn send(&self, args: Vec<Value>) -> Result<()> {
-        self.commands
-            .send(json!({ "command": args }))
-            .ok()
-            .with_context(|| crate::i18n::tr("player.noPlayback"))
+        self.control(Control::Mpv(json!({ "command": args })))
+    }
+
+    /// Insère des titres dans la file musicale, à la position `at` (au-delà : à la fin).
+    pub fn insert(&self, entries: Vec<Entry>, urls: Vec<String>, at: usize) -> Result<()> {
+        self.control(Control::Insert { entries, urls, at })
+    }
+
+    /// Déplace un titre de la file musicale de `from` à `to`.
+    pub fn move_entry(&self, from: usize, to: usize) -> Result<()> {
+        self.control(Control::Move { from, to })
+    }
+
+    fn control(&self, c: Control) -> Result<()> {
+        self.commands.send(c).ok().with_context(|| crate::i18n::tr("player.noPlayback"))
     }
 
     /// Fermeture de Maku : arrête mpv sur-le-champ (le suivi asynchrone n'en aurait plus le temps).
@@ -333,7 +354,7 @@ pub fn launch(
     let (commands, command_rx) = mpsc::unbounded_channel();
     let (stop, stop_rx) = oneshot::channel();
     tauri::async_runtime::spawn(async move {
-        let session = Session { app: &app, server: &server, entries: &entries, parent, id: &session_id };
+        let mut session = Session { app: &app, server: &server, entries, parent, id: &session_id };
         if let Err(e) = session.follow(child, stop_rx, command_rx, &pipe, start, offset_ms).await {
             eprintln!("Suivi de lecture interrompu : {e:#}");
         }
@@ -348,7 +369,8 @@ pub fn launch(
 struct Session<'a> {
     app: &'a AppHandle,
     server: &'a MediaServer,
-    entries: &'a [Entry],
+    /// Titres de la file, dans l'ordre de mpv (la file peut changer pendant la lecture).
+    entries: Vec<Entry>,
     parent: Option<isize>,
     /// Identifiant de la lecture, envoyé avec la progression (voir `PlexServer::timeline`).
     id: &'a str,
@@ -356,10 +378,10 @@ struct Session<'a> {
 
 impl Session<'_> {
     async fn follow(
-        &self,
+        &mut self,
         mut child: Child,
         mut stop: oneshot::Receiver<()>,
-        mut commands: mpsc::UnboundedReceiver<Value>,
+        mut commands: mpsc::UnboundedReceiver<Control>,
         pipe: &str,
         start: usize,
         offset_ms: u64,
@@ -436,7 +458,31 @@ impl Session<'_> {
                             let _ = self.app.emit("player-prop", PropEvent { name, data });
                         }
                         Some(command) = commands.recv() => {
-                            writer.write_all(format!("{command}\n").as_bytes()).await?;
+                            let lines = match command {
+                                Control::Mpv(c) => vec![c],
+                                Control::Insert { entries, urls, at } => {
+                                    let at = at.min(self.entries.len());
+                                    let lines = insert_commands(self.entries.len(), at, &urls);
+                                    if at <= current && !self.entries.is_empty() {
+                                        current += entries.len();
+                                    }
+                                    self.entries.splice(at..at, entries);
+                                    lines
+                                }
+                                Control::Move { from, to } => {
+                                    let len = self.entries.len();
+                                    if from >= len || to >= len || from == to {
+                                        continue;
+                                    }
+                                    let e = self.entries.remove(from);
+                                    self.entries.insert(to, e);
+                                    current = moved_index(current, from, to);
+                                    vec![move_command(from, to)]
+                                }
+                            };
+                            for line in lines {
+                                writer.write_all(format!("{line}\n").as_bytes()).await?;
+                            }
                         }
                         _ = tick.tick() => {
                             self.report(current, if paused { "paused" } else { "playing" }, position, duration).await;
@@ -482,5 +528,86 @@ impl Session<'_> {
         if let Err(e) = self.server.timeline(&entry.rating_key, state, to_ms(position), to_ms(duration), self.id).await {
             eprintln!("Timeline Plex non envoyée : {e:#}");
         }
+    }
+}
+
+/// Commande mpv qui déplace un titre de `from` à sa position finale `to` : mpv le place devant
+/// l'élément visé, qui vers le bas est celui d'après.
+fn move_command(from: usize, to: usize) -> Value {
+    json!({ "command": ["playlist-move", from, if from < to { to + 1 } else { to }] })
+}
+
+/// Titres ajoutés à la file de mpv (longue de `len`) à la position `at` : chacun est ajouté à la fin,
+/// puis remonté à sa place. Seul Rust envoie `loadfile`, jamais la page (voir `allowed_player_command`).
+fn insert_commands(len: usize, at: usize, urls: &[String]) -> Vec<Value> {
+    let mut out = Vec::new();
+    for (i, url) in urls.iter().enumerate() {
+        out.push(json!({ "command": ["loadfile", url, "append"] }));
+        let (last, target) = (len + i, at + i);
+        if target < last {
+            out.push(json!({ "command": ["playlist-move", last, target] }));
+        }
+    }
+    out
+}
+
+/// Position du titre en cours après le déplacement d'un titre de `from` à `to`.
+fn moved_index(current: usize, from: usize, to: usize) -> usize {
+    if current == from {
+        to
+    } else if from < current && to >= current {
+        current - 1
+    } else if from > current && to <= current {
+        current + 1
+    } else {
+        current
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Simule la file de mpv pour vérifier les commandes envoyées.
+    fn apply(list: &mut Vec<String>, commands: &[Value]) {
+        for c in commands {
+            let c = &c["command"];
+            match c[0].as_str().unwrap() {
+                "loadfile" => list.push(c[1].as_str().unwrap().to_owned()),
+                "playlist-move" => {
+                    let (a, b) = (c[1].as_u64().unwrap() as usize, c[2].as_u64().unwrap() as usize);
+                    let e = list.remove(a);
+                    list.insert(if a < b { b - 1 } else { b }, e);
+                }
+                _ => unreachable!(),
+            }
+        }
+    }
+
+    #[test]
+    fn deplacer_dans_la_file() {
+        for (from, to) in [(0, 3), (3, 0), (1, 2), (2, 1), (0, 4), (4, 0)] {
+            let mut list: Vec<String> = (0..5).map(|i| i.to_string()).collect();
+            let mut expected = list.clone();
+            let e = expected.remove(from);
+            expected.insert(to, e);
+            apply(&mut list, &[move_command(from, to)]);
+            assert_eq!(list, expected, "{from} → {to}");
+        }
+        assert_eq!(moved_index(2, 2, 0), 0);
+        assert_eq!(moved_index(2, 0, 4), 1);
+        assert_eq!(moved_index(2, 4, 0), 3);
+        assert_eq!(moved_index(2, 3, 4), 2);
+    }
+
+    #[test]
+    fn inserer_dans_la_file() {
+        let mut list: Vec<String> = ["a", "b", "c"].map(String::from).to_vec();
+        let urls = ["x", "y"].map(String::from);
+        apply(&mut list, &insert_commands(3, 1, &urls));
+        assert_eq!(list, ["a", "x", "y", "b", "c"]);
+        let mut list: Vec<String> = ["a", "b"].map(String::from).to_vec();
+        apply(&mut list, &insert_commands(2, 2, &urls));
+        assert_eq!(list, ["a", "b", "x", "y"]);
     }
 }

@@ -1,7 +1,8 @@
 <script lang="ts">
   import { formatClock } from "../lib/api";
   import { go } from "../lib/nav.svelte";
-  import { cast, current, mpv, next, player, previous, stop } from "../lib/player.svelte";
+  import { cast, current, moveInQueue, mpv, next, player, previous, stop } from "../lib/player.svelte";
+  import { reorder } from "../lib/reorder";
   import Icon from "./Icon.svelte";
   import CastButton from "./CastButton.svelte";
   import { t } from "../lib/i18n";
@@ -196,10 +197,12 @@
     <div class="queue">
       <div class="queue-head">
         {t("common.c1.queue")} <span class="muted">{player.index + 1} / {player.queue.length}</span>
+        {#if player.queue.length > 1}<span class="hint">{t("queue.reorderHint")}</span>{/if}
       </div>
-      <div class="queue-list">
+      <!-- Maintenir un titre puis le glisser : il change de place dans la file. -->
+      <div class="queue-list" use:reorder={{ onmove: moveInQueue }}>
         {#each player.queue as qt, i (qt.ratingKey + i)}
-          <button class="q" class:current={i === player.index} class:past={i < player.index} onclick={() => mpv("set_property", "playlist-pos", i)}>
+          <button class="q" data-index={i} class:current={i === player.index} class:past={i < player.index} onclick={() => mpv("set_property", "playlist-pos", i)}>
             {#if qt.cover}<img src={qt.cover} alt="" loading="lazy" />{:else}<span class="ph"></span>{/if}
             <span class="q-text">
               <span class="q-title">{qt.title}</span>
@@ -596,6 +599,14 @@
   .queue-head {
     padding: 14px 16px 10px;
     font-weight: 600;
+  }
+
+  .queue-head .hint {
+    display: block;
+    margin-top: 2px;
+    color: var(--text-faint);
+    font-size: 11px;
+    font-weight: 400;
   }
 
   .queue-list {

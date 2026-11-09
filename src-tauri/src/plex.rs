@@ -762,6 +762,26 @@ pub struct Version {
     pub subtitle_tracks: Vec<Track>,
 }
 
+/// Fichier d'un titre et son format, pour « Voir les informations ».
+#[derive(Serialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct MediaInfo {
+    pub container: Option<String>,
+    pub codec: Option<String>,
+    pub bitrate_kbps: Option<u64>,
+    pub channels: Option<u64>,
+    /// En Hz.
+    pub sampling_rate: Option<u64>,
+    pub bit_depth: Option<u64>,
+    pub size_bytes: Option<u64>,
+    pub duration_ms: Option<u64>,
+    /// Chemin du fichier sur le serveur (affiché à l'administrateur seulement).
+    pub file: Option<String>,
+    /// Ajout à la bibliothèque (millisecondes depuis 1970).
+    pub added_at: Option<u64>,
+    pub play_count: Option<u64>,
+}
+
 /// « 16,3 Mb/s » (virgule sauf en anglais), d'après un débit en kb/s.
 pub fn bitrate_label(kbps: u64) -> String {
     let mbps = format!("{:.1}", kbps as f64 / 1000.0);
@@ -1263,6 +1283,63 @@ impl PlexServer {
         .await?
         .error_for_status()?;
         Ok(())
+    }
+
+    // ---------- Playlists : « Ajouter à une playlist » ----------
+
+    /// Playlists de musique du compte où ranger des titres : chaque utilisateur a les siennes, ami partagé
+    /// compris. Les playlists intelligentes, que Plex remplit selon leurs règles, sont écartées.
+    pub async fn playlist_choices(&self) -> Result<Vec<Item>> {
+        let list = self.container("/playlists?playlistType=audio").await?.metadata;
+        Ok(self.to_items(list.into_iter().filter(|m| !m.smart).collect()))
+    }
+
+    /// Ajoute un titre, un album ou un artiste (tous ses titres) à une playlist.
+    pub async fn add_to_playlist(&self, rating_key: &str, playlist: &str) -> Result<()> {
+        if playlist.is_empty() || !playlist.chars().all(|c| c.is_ascii_digit()) {
+            bail!(crate::i18n::tr_with("plex.notFound", &[("id", playlist)]));
+        }
+        let uri = self.library_uri(rating_key).await?;
+        self.request(reqwest::Method::PUT, &format!("/playlists/{playlist}/items?uri={uri}"))
+            .send()
+            .await?
+            .error_for_status()?;
+        Ok(())
+    }
+
+    pub async fn create_playlist(&self, rating_key: &str, title: &str) -> Result<()> {
+        let uri = self.library_uri(rating_key).await?;
+        self.request(
+            reqwest::Method::POST,
+            &format!("/playlists?type=audio&smart=0&title={}&uri={uri}", urlencoding::encode(title)),
+        )
+        .send()
+        .await?
+        .error_for_status()?;
+        Ok(())
+    }
+
+    /// « Voir les informations » d'un titre : son fichier et son format.
+    pub async fn media_info(&self, rating_key: &str) -> Result<MediaInfo> {
+        let v: serde_json::Value = self.get(&format!("/library/metadata/{rating_key}")).send().await?.error_for_status()?.json().await?;
+        let m = &v["MediaContainer"]["Metadata"][0];
+        let media = &m["Media"][0];
+        let part = &media["Part"][0];
+        let audio = part["Stream"].as_array().and_then(|s| s.iter().find(|s| s["streamType"] == 2)).cloned().unwrap_or_default();
+        let text = |v: &serde_json::Value| v.as_str().filter(|s| !s.is_empty()).map(str::to_owned);
+        Ok(MediaInfo {
+            container: text(&media["container"]).or_else(|| text(&part["container"])),
+            codec: text(&media["audioCodec"]).or_else(|| text(&audio["codec"])),
+            bitrate_kbps: media["bitrate"].as_u64().or_else(|| audio["bitrate"].as_u64()),
+            channels: media["audioChannels"].as_u64().or_else(|| audio["channels"].as_u64()),
+            sampling_rate: audio["samplingRate"].as_u64(),
+            bit_depth: audio["bitDepth"].as_u64(),
+            size_bytes: part["size"].as_u64(),
+            duration_ms: m["duration"].as_u64().or_else(|| media["duration"].as_u64()),
+            file: text(&part["file"]),
+            added_at: m["addedAt"].as_u64().map(|s| s * 1000),
+            play_count: m["viewCount"].as_u64(),
+        })
     }
 
     async fn raw_metadata(&self, rating_key: &str) -> Result<RawMetadata> {

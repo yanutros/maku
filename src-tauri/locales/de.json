@@ -185,5 +185,8 @@
     "unreachable": "das Gerät antwortet nicht",
     "launchFailed": "das Gerät konnte die Wiedergabe nicht starten",
     "loadFailed": "das Gerät kann diese Datei nicht abspielen (es erreicht den Server vielleicht nicht)"
+  },
+  "playlist": {
+    "noTitle": "Gib der Playlist einen Namen."
   }
 }

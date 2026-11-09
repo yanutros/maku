@@ -507,6 +507,46 @@ export async function playMusic(
   }
 }
 
+/** Une musique est en cours (ou en pause) : la file peut s'allonger sans l'interrompre. */
+export const musicPlaying = () => player.active && !player.video && player.queue.length > 0;
+
+/**
+ * « Lire ensuite » (`next`) ou « Ajouter à la file d'attente » : les titres d'un titre, d'un album, d'un
+ * artiste ou d'une playlist entrent dans la file sans couper le titre en cours. Sans musique en cours,
+ * la lecture démarre avec eux.
+ */
+export async function addToQueue(ratingKey: string, next: boolean) {
+  if (!musicPlaying()) {
+    await playMusic(ratingKey);
+    return;
+  }
+  const at = next ? player.index + 1 : player.queue.length;
+  let tracks: QueueTrack[];
+  if (!player.web && !cast.device) {
+    tracks = await invoke<QueueTrack[]>("player_queue_insert", { ratingKey, at });
+  } else {
+    tracks = await invoke<QueueTrack[]>("music_tracks", { ratingKey });
+    if (cast.device) {
+      const items = tracks.map((q) => ({ url: q.url, title: q.title, artist: q.artist, album: q.album, cover: q.cover }));
+      await invoke("cast_queue_insert", { tracks: items, at });
+    }
+  }
+  player.queue.splice(Math.min(at, player.queue.length), 0, ...tracks);
+  toast(next ? t("queue.playNextDone", { count: tracks.length }) : t("queue.addedDone", { count: tracks.length }));
+}
+
+/** Glisser-déposer dans la file d'attente : le titre `from` passe à la position `to`. */
+export function moveInQueue(from: number, to: number) {
+  const len = player.queue.length;
+  if (from === to || from < 0 || to < 0 || from >= len || to >= len) return;
+  const [moved] = player.queue.splice(from, 1);
+  player.queue.splice(to, 0, moved);
+  const i = player.index;
+  player.index = i === from ? to : from < i && to >= i ? i - 1 : from > i && to <= i ? i + 1 : i;
+  if (cast.device) invoke("cast_queue_move", { from, to }).catch(() => {});
+  else if (!player.web) invoke("player_queue_move", { from, to }).catch(() => {});
+}
+
 /** Commande au lecteur, au format mpv (par ex. `["cycle", "pause"]`), quel que soit le moteur. */
 export function mpv(...args: unknown[]) {
   if (cast.device && !player.video) return Promise.resolve(castCommand(args));
@@ -724,7 +764,8 @@ const web = (() => {
     if (left > 20) return;
     const ni = followingIndex();
     if (ni < 0) return;
-    if (nextIndex !== ni || !nextEl) {
+    // La file a pu changer (titre ajouté ou déplacé) : le suivant préparé doit être le bon.
+    if (nextIndex !== ni || !nextEl || nextEl.src !== player.queue[ni].url) {
       nextEl ??= new Audio();
       nextEl.preload = "auto";
       nextEl.src = player.queue[ni].url;

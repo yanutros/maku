@@ -2,7 +2,7 @@
   import { onMount, type ComponentProps } from "svelte";
   import { api, errorText, formatDuration, isMusic } from "../lib/api";
   import { go, nav, reload, toast } from "../lib/nav.svelte";
-  import { play, playMusic } from "../lib/player.svelte";
+  import { addToQueue, play, playMusic } from "../lib/player.svelte";
   import Icon from "./Icon.svelte";
   import { t } from "../lib/i18n";
 
@@ -63,6 +63,8 @@
       if (item.kind === "album" && item.showKey) a.push({ icon: "user", label: t("tvMenu.goTo", { name: artist ?? "" }), run: () => run(() => go({ name: "item", ratingKey: item.showKey! })) });
       a.push({ icon: "play", filled: true, label: t("tvMenu.play"), run: () => run(() => playMusic(item.ratingKey)) });
       if (item.kind !== "track") a.push({ icon: "shuffle", label: t("tvMenu.shuffle"), run: () => run(() => playMusic(item.ratingKey, { shuffle: true })) });
+      a.push({ icon: "playNext", label: t("queue.playNext"), run: () => run(() => addToQueue(item.ratingKey, true)) });
+      a.push({ icon: "queue", label: t("queue.add"), run: () => run(() => addToQueue(item.ratingKey, false)) });
       if (item.kind === "artist") a.push({ icon: "radio", label: t("music.detail.radio"), run: () => run(() => playMusic(item.ratingKey, { radio: true })) });
       if (item.kind === "track" && item.albumKey) a.push({ icon: "music", label: t("tvMenu.goToAlbum"), run: () => run(() => go({ name: "item", ratingKey: item.albumKey! })) });
       if (item.kind === "track" && item.showKey) a.push({ icon: "user", label: t("tvMenu.goTo", { name: artist ?? "" }), run: () => run(() => go({ name: "item", ratingKey: item.showKey! })) });

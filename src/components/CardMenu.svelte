@@ -1,11 +1,14 @@
 <script lang="ts">
   import { api, errorText, isMusic, type Item } from "../lib/api";
   import { go, nav, reload, toast } from "../lib/nav.svelte";
-  import { play, playMusic } from "../lib/player.svelte";
+  import { addToQueue, play, playMusic } from "../lib/player.svelte";
+  import { canDownload, downloadMusic } from "../lib/offline.svelte";
   import Icon from "./Icon.svelte";
+  import Stars from "./Stars.svelte";
   import { t } from "../lib/i18n";
 
-  // Menu « ⋮ » d'une jaquette : actions de lecture, puis gestion (administrateur seulement).
+  // Menu « ⋮ » d'une jaquette ou d'un titre : actions de lecture, file d'attente et playlists (musique),
+  // puis gestion (administrateur seulement : modifier, actualiser, analyser).
   // Le menu se ferme avant que l'action ne s'exécute : on garde donc le contenu visé à part.
   const menu = $derived(nav.menu!);
   let item = $state(nav.menu!.item);
@@ -63,6 +66,18 @@
     nav.editing = item;
     close();
   }
+
+  function queue(next: boolean) {
+    run(() => addToQueue(item.ratingKey, next));
+  }
+
+  function open(ratingKey: string) {
+    close();
+    go({ name: "item", ratingKey });
+  }
+
+  // Le compte a le droit de télécharger (Android) : un titre, un album ou une playlist, pour l'hors-ligne.
+  const downloadable = $derived(music && item.kind !== "artist" && canDownload());
 </script>
 
 <svelte:window onkeydown={(e) => e.key === "Escape" && close()} onresize={close} />
@@ -71,6 +86,10 @@
 <div class="backdrop" onclick={close} oncontextmenu={(e) => (e.preventDefault(), close())}></div>
 <div class="menu" bind:this={el} style:left="{pos.left}px" style:top="{pos.top}px" role="menu">
   <div class="head">{item.showTitle && item.kind === "episode" ? item.showTitle : item.title}</div>
+  <!-- Plex : la note de l'utilisateur (Jellyfin et Emby n'ont que « J'aime »). -->
+  {#if music && item.kind !== "playlist" && nav.serverKind === "plex"}
+    <div class="rating"><Stars {item} size={17} /></div>
+  {/if}
   {#if item.playable || music}
     <button role="menuitem" onclick={() => start()}><Icon name="play" size={16} filled /> {t("common.c1.play")}</button>
   {/if}
@@ -88,9 +107,31 @@
       <button role="menuitem" onclick={() => setWatched(false)}><Icon name="restart" size={16} /> {t("cardMenu.markUnwatched")}</button>
     {/if}
   {/if}
-  <button role="menuitem" onclick={openDetails}>
-    <Icon name="chevronRight" size={16} /> {t("cardMenu.openDetails")}
-  </button>
+  {#if music}
+    <button role="menuitem" onclick={() => queue(true)}><Icon name="playNext" size={16} /> {t("queue.playNext")}</button>
+    <button role="menuitem" onclick={() => queue(false)}><Icon name="queue" size={16} /> {t("queue.add")}</button>
+    {#if item.kind !== "playlist"}
+      <button role="menuitem" onclick={() => ((nav.playlistFor = item), close())}><Icon name="playlistAdd" size={16} /> {t("playlist.addTo")}</button>
+    {/if}
+    {#if downloadable}
+      <button role="menuitem" onclick={() => run(() => downloadMusic(item), t("cardMenu.downloadStarted"))}><Icon name="download" size={16} /> {t("cardMenu.download")}</button>
+    {/if}
+    {#if item.kind === "track"}
+      <button role="menuitem" onclick={() => ((nav.infoFor = item), close())}><Icon name="info" size={16} /> {t("trackInfo.open")}</button>
+    {/if}
+  {/if}
+  {#if item.kind === "track"}
+    {#if item.albumKey}
+      <button role="menuitem" onclick={() => open(item.albumKey!)}><Icon name="music" size={16} /> {t("tvMenu.goToAlbum")}</button>
+    {/if}
+    {#if item.showKey}
+      <button role="menuitem" onclick={() => open(item.showKey!)}><Icon name="user" size={16} /> {t("cardMenu.goToArtist")}</button>
+    {/if}
+  {:else}
+    <button role="menuitem" onclick={openDetails}>
+      <Icon name="chevronRight" size={16} /> {t("cardMenu.openDetails")}
+    </button>
+  {/if}
   {#if nav.admin && editable}
     <div class="sep"></div>
     <button role="menuitem" onclick={edit}><Icon name="edit" size={16} /> {t("cardMenu.edit")}</button>
@@ -164,6 +205,15 @@
 
   button :global(svg) {
     color: var(--text-dim);
+  }
+
+  .rating {
+    padding: 0 6px 6px;
+  }
+
+  .rating :global(button) {
+    width: auto;
+    padding: 3px;
   }
 
   .sep {

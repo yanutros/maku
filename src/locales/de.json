@@ -521,7 +521,10 @@
     "refreshMetadata": "Metadaten aktualisieren",
     "refreshStarted": "Metadaten-Aktualisierung gestartet",
     "analyze": "Analysieren",
-    "analyzeStarted": "Analyse gestartet"
+    "analyzeStarted": "Analyse gestartet",
+    "download": "Herunterladen",
+    "downloadStarted": "Download gestartet",
+    "goToArtist": "Zum Künstler"
   },
   "editDialog": {
     "tabs": {
@@ -852,5 +855,53 @@
     "searching": "Netzwerk wird durchsucht …",
     "none": "Kein Chromecast-Gerät im Netzwerk gefunden.",
     "ended": "Die Übertragung wurde beendet."
+  },
+  "queue": {
+    "playNext": "Als Nächstes abspielen",
+    "add": "Zur Warteschlange hinzufügen",
+    "playNextDone_one": "Wird direkt nach dem aktuellen Titel gespielt",
+    "playNextDone_other": "{{count}} Titel werden direkt nach dem aktuellen gespielt",
+    "addedDone_one": "Zur Warteschlange hinzugefügt",
+    "addedDone_other": "{{count}} Titel zur Warteschlange hinzugefügt",
+    "reorderHint": "Titel gedrückt halten und ziehen, um die Reihenfolge zu ändern"
+  },
+  "playlist": {
+    "addTo": "Zu einer Playlist hinzufügen…",
+    "title": "Zu einer Playlist hinzufügen",
+    "cancel": "Schließen",
+    "search": "Playlist suchen",
+    "noMatch": "Keine Playlist passt.",
+    "none": "Noch keine Playlist: Erstelle unten die erste.",
+    "newName": "Name der neuen Playlist",
+    "create": "Erstellen",
+    "added": "„{{title}}“ zu „{{playlist}}“ hinzugefügt",
+    "created": "Playlist „{{playlist}}“ erstellt"
+  },
+  "stars": {
+    "rate": "Bewerten",
+    "rated": "Mit {{stars}} von 5 bewertet",
+    "give": "{{stars}} von 5",
+    "clear": "Bewertung entfernen"
+  },
+  "trackInfo": {
+    "open": "Informationen anzeigen",
+    "title": "Informationen",
+    "close": "Schließen",
+    "artist": "Künstler",
+    "album": "Album",
+    "duration": "Dauer",
+    "container": "Format",
+    "codec": "Codec",
+    "bitrate": "Bitrate",
+    "audio": "Ton",
+    "mono": "Mono",
+    "stereo": "Stereo",
+    "channels": "{{count}} Kanäle",
+    "samplingRate": "Abtastrate",
+    "bitDepth": "Bittiefe",
+    "size": "Größe",
+    "plays": "Wiedergaben",
+    "added": "Hinzugefügt am",
+    "file": "Datei"
   }
 }

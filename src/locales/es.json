@@ -521,7 +521,10 @@
     "refreshMetadata": "Actualizar metadatos",
     "refreshStarted": "Actualización de metadatos iniciada",
     "analyze": "Analizar",
-    "analyzeStarted": "Análisis iniciado"
+    "analyzeStarted": "Análisis iniciado",
+    "download": "Descargar",
+    "downloadStarted": "Descarga iniciada",
+    "goToArtist": "Ir al artista"
   },
   "editDialog": {
     "tabs": {
@@ -852,5 +855,53 @@
     "searching": "Buscando en la red…",
     "none": "No se encontró ningún dispositivo Chromecast en la red.",
     "ended": "La transmisión se ha detenido."
+  },
+  "queue": {
+    "playNext": "Reproducir a continuación",
+    "add": "Añadir a la cola",
+    "playNextDone_one": "Sonará justo después de la canción actual",
+    "playNextDone_other": "{{count}} canciones sonarán justo después de la actual",
+    "addedDone_one": "Añadida a la cola",
+    "addedDone_other": "{{count}} canciones añadidas a la cola",
+    "reorderHint": "Mantén pulsada una canción y arrástrala para cambiar el orden"
+  },
+  "playlist": {
+    "addTo": "Añadir a una lista…",
+    "title": "Añadir a una lista",
+    "cancel": "Cerrar",
+    "search": "Buscar una lista",
+    "noMatch": "Ninguna lista coincide.",
+    "none": "Aún no hay listas: crea la primera aquí abajo.",
+    "newName": "Nombre de la nueva lista",
+    "create": "Crear",
+    "added": "«{{title}}» añadido a «{{playlist}}»",
+    "created": "Lista «{{playlist}}» creada"
+  },
+  "stars": {
+    "rate": "Valorar",
+    "rated": "Valorado con {{stars}} de 5",
+    "give": "{{stars}} de 5",
+    "clear": "Quitar la valoración"
+  },
+  "trackInfo": {
+    "open": "Ver la información",
+    "title": "Información",
+    "close": "Cerrar",
+    "artist": "Artista",
+    "album": "Álbum",
+    "duration": "Duración",
+    "container": "Formato",
+    "codec": "Códec",
+    "bitrate": "Tasa de bits",
+    "audio": "Sonido",
+    "mono": "Mono",
+    "stereo": "Estéreo",
+    "channels": "{{count}} canales",
+    "samplingRate": "Frecuencia de muestreo",
+    "bitDepth": "Profundidad de bits",
+    "size": "Tamaño",
+    "plays": "Reproducciones",
+    "added": "Añadido el",
+    "file": "Archivo"
   }
 }

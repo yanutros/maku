@@ -87,8 +87,8 @@ visionnage. Tout se fait avec son compte Plex (ou Jellyfin) : aucune clé d'API 
     <td valign="top">
       <h4>🎵 Il joue votre musique</h4>
       Une page d'accueil façon Apple Music : grands panneaux des derniers albums, playlists (la dernière lue en premier),
-      « Titres du moment », pochettes qui grandissent avec la fenêtre. File d'attente, lecture aléatoire et
-      vue « En cours de lecture », dont le fond aux couleurs de la pochette passe jusque derrière le menu, avec les
+      « Titres du moment », pochettes qui grandissent avec la fenêtre. File d'attente qui se réordonne en maintenant
+      un titre puis en le glissant, lecture aléatoire et vue « En cours de lecture », dont le fond aux couleurs de la pochette passe jusque derrière le menu, avec les
       paroles synchronisées à côté de la pochette (lrclib.net, gratuit ; la ligne chantée ressort, un clic y saute,
       désactivable dans Réglages → Lecteur). **Radio** sur la fiche d'un artiste : ses titres mêlés à ceux
       d'artistes proches, choisis par le serveur (station de Plex, mix instantané de Jellyfin et Emby). Les titres
@@ -97,7 +97,11 @@ visionnage. Tout se fait avec son compte Plex (ou Jellyfin) : aucune clé d'API 
       Android) : l'appareil lit lui-même la file, Maku la pilote et peut être fermé ; sur iPad et iPhone, il ouvre
       **AirPlay**, et sur Mac le son suit la sortie choisie dans macOS. Une barre
       de lecture flottante, en verre dépoli teinté par la pochette, reste en bas du contenu pendant que vous naviguez,
-      avec des commandes toutes de même taille.
+      avec des commandes toutes de même taille. Comme dans Plex, chaque titre se note de 1 à 5 étoiles (au survol
+      de la ligne, ou dans son menu) et a son menu **⋮** (ou clic droit) : lire ensuite, ajouter à la file d'attente
+      ou à une playlist (les vôtres, ou une nouvelle), télécharger (Android, avec le droit du serveur) et voir les
+      informations du fichier (format, débit, échantillonnage…). Les albums et les artistes ont le même menu. Pour
+      l'administrateur seulement, comme dans Plex : modifier, actualiser les métadonnées et analyser.
     </td>
   </tr>
   <tr>
@@ -349,7 +353,7 @@ pour l'instant que Plex.
 > se parcourent rangée par rangée comme dans Plex et Wholphin : haut / bas d'une rangée à l'autre (boutons,
 > audio, sous-titres, distribution, « Plus de ce genre »), gauche / droite dans la rangée. Comme dans Plex, un **appui long sur OK** (ou la touche Menu) sur une jaquette ouvre
 > le menu du titre : reprendre ou recommencer, liste de visionnage, note, retrait de « Continuer à regarder »,
-> vu / non vu, et pour la musique lecture aléatoire, aller à l'artiste ou à l'album. Après un choix du menu,
+> vu / non vu, et pour la musique lecture aléatoire, lire ensuite, ajouter à la file d'attente, aller à l'artiste ou à l'album. Après un choix du menu,
 > comme au retour d'une fiche (bouton Retour), la page reste là où vous étiez, sur la même rangée et la même jaquette.
 > Au retour de la fiche d'un acteur, la fiche du film ou de la série réapparaît aussitôt (les dernières sont
 > gardées en mémoire), la sélection directement sur l'acteur, entouré d'un cercle doré comme dans Plex.
@@ -774,7 +778,8 @@ La politique de confidentialité complète, en français et en anglais, est dans
 - Un serveur ne peut rediriger Maku que vers lui-même (de `http` vers `https`, par exemple) : jamais vers une autre
   adresse, où partiraient ses jetons. Seul le téléchargement des mises à jour suit les redirections de GitHub vers son stockage.
 - L'interface ne transmet à mpv que des commandes de lecture (pause, position, volume, pistes, file d'attente) ;
-  celles qui lancent un programme ou écrivent un fichier sont refusées.
+  celles qui lancent un programme ou écrivent un fichier sont refusées. Les titres ajoutés à la file d'attente sont
+  demandés au serveur par Maku lui-même : la page n'envoie à mpv aucune adresse de fichier.
 - Les téléchargements hors ligne restent dans les données privées de Maku sur l'appareil ; les supprimer, ou
   désinstaller Maku, efface leurs fichiers.
 - Sur Android, le journal de diagnostic reste sur l'appareil tant que vous ne l'envoyez pas vous-même. Les adresses

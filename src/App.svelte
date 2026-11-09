@@ -37,6 +37,8 @@
   import UpdateDialog from "./components/UpdateDialog.svelte";
   import TrailerOverlay from "./components/TrailerOverlay.svelte";
   import AddToCollection from "./components/AddToCollection.svelte";
+  import AddToPlaylist from "./components/AddToPlaylist.svelte";
+  import TrackInfo from "./components/TrackInfo.svelte";
   import QrCode from "./components/QrCode.svelte";
   import { sidebar } from "./lib/sidebar.svelte";
   import { device } from "./lib/device";
@@ -54,6 +56,7 @@
 
   async function refresh() {
     session = await api.session();
+    nav.serverKind = session.serverKind;
     if (session.loggedIn && session.plexRemembered && session.serverKind === "plex") {
       const home = await api.homeUsers().catch(() => null);
       nav.homeProfiles = home?.users.length ?? 0;
@@ -130,6 +133,8 @@
   onBack(() => {
     if (nav.profiles) nav.profiles = false;
     else if (nav.collectionFor) nav.collectionFor = null;
+    else if (nav.playlistFor) nav.playlistFor = null;
+    else if (nav.infoFor) nav.infoFor = null;
     else if (nav.trailer) nav.trailer = null;
     else if (nav.tvMenu) nav.tvMenu = null;
     else if (nav.menu) nav.menu = null;
@@ -318,6 +323,14 @@
 
 {#if nav.collectionFor}
   <AddToCollection />
+{/if}
+
+{#if nav.playlistFor}
+  <AddToPlaylist />
+{/if}
+
+{#if nav.infoFor}
+  <TrackInfo />
 {/if}
 
 {#if nav.requesting}

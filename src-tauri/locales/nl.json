@@ -185,5 +185,8 @@
     "unreachable": "het apparaat reageert niet",
     "launchFailed": "het apparaat kon het afspelen niet starten",
     "loadFailed": "het apparaat kan dit bestand niet afspelen (het bereikt de server misschien niet)"
+  },
+  "playlist": {
+    "noTitle": "Geef de afspeellijst een naam."
   }
 }
