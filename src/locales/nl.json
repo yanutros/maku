@@ -56,7 +56,8 @@
       "logout": "Uitloggen",
       "connected": "Verbonden",
       "seerrIntroJellyfin": "Verzoeken gaan op jouw naam via je Jellyfin-account (of je Seerr-e-mail als Seerr aan Plex gekoppeld is). Het wachtwoord wordt één keer gebruikt: alleen de sessie wordt bewaard.",
-      "connectWithJellyfin": "Aanmelden met Jellyfin"
+      "connectWithJellyfin": "Aanmelden met Jellyfin",
+      "relayFound": "Maku Server gevonden op {{url}}: Seerr en Tracearr lopen erdoorheen, zonder op internet bereikbaar te zijn."
     },
     "invite": {
       "invalid": "Deze uitnodigingscode is niet geldig.",
@@ -82,7 +83,8 @@
       "copyCode": "Code kopiëren",
       "copyImage": "Afbeelding kopiëren",
       "photoHint": "Kies in je foto's de schermafbeelding van de QR-code van de serverbeheerder, of plak de uitnodigingscode.",
-      "pickPhoto": "QR-code uit mijn foto's kiezen"
+      "pickPhoto": "QR-code uit mijn foto's kiezen",
+      "relayHint": "Om Seerr en Tracearr niet op internet open te zetten, installeer je Maku Server naast de server: de adressen (…:32600/seerr en …:32600/tracearr) vervangen dan die van Seerr en Tracearr."
     },
     "player": {
       "saved": "mpv-pad opgeslagen",

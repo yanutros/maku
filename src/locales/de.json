@@ -56,7 +56,8 @@
       "logout": "Abmelden",
       "connected": "Verbunden",
       "seerrIntroJellyfin": "Anfragen laufen in deinem Namen über dein Jellyfin-Konto (oder deine Seerr-E-Mail, wenn Seerr mit Plex verbunden ist). Das Passwort wird nur einmal verwendet: Nur die Sitzung wird gespeichert.",
-      "connectWithJellyfin": "Mit Jellyfin anmelden"
+      "connectWithJellyfin": "Mit Jellyfin anmelden",
+      "relayFound": "Maku Server gefunden unter {{url}}: Seerr und Tracearr laufen über ihn, ohne im Internet erreichbar zu sein."
     },
     "invite": {
       "invalid": "Dieser Einladungscode ist ungültig.",
@@ -82,7 +83,8 @@
       "copyCode": "Code kopieren",
       "copyImage": "Bild kopieren",
       "photoHint": "Wähle in deinen Fotos den Screenshot des QR-Codes vom Server-Admin oder füge seinen Einladungscode ein.",
-      "pickPhoto": "QR-Code aus meinen Fotos wählen"
+      "pickPhoto": "QR-Code aus meinen Fotos wählen",
+      "relayHint": "Damit Seerr und Tracearr nicht im Internet erreichbar sein müssen, installieren Sie Maku Server neben dem Server: Seine Adressen (…:32600/seerr und …:32600/tracearr) ersetzen dann die von Seerr und Tracearr."
     },
     "player": {
       "saved": "mpv-Pfad gespeichert",

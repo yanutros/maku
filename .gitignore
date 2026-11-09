@@ -1,6 +1,7 @@
 node_modules/
 dist/
 src-tauri/target/
+server/target/
 # Le projet Android (gen/android) est personnalisé et versionné ; les schémas sont régénérés.
 src-tauri/gen/schemas/
 # Lecteur mpv embarqué dans l'installeur Windows, téléchargé par scripts/fetch-mpv.mjs.

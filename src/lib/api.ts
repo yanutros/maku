@@ -448,6 +448,8 @@ export const api = {
     invoke<void>("seerr_request", { mediaType, tmdbId, seasons }),
 
   tracearrConfigure: (url: string) => invoke<void>("tracearr_configure", { url }),
+  /** Relais Maku Server sur la machine du serveur : il remplit les adresses de Seerr et Tracearr qui manquent. */
+  relayDiscover: () => invoke<{ url: string; seerr: boolean; tracearr: boolean; applied: boolean } | null>("relay_discover"),
   tmdbConfigure: (key: string) => invoke<void>("tmdb_configure", { key }),
   tracearrStartLogin: (open = true) => invoke<{ handle: string; authUrl: string }>("tracearr_start_login", { open }),
   tracearrPollLogin: (handle: string) => invoke<"waiting" | "done" | "expired">("tracearr_poll_login", { handle }),

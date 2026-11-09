@@ -442,7 +442,8 @@ placez un fichier `src-tauri/gen/android/keystore.properties` (ignoré par git) 
 Le workflow [`.github/workflows/paquets.yml`](.github/workflows/paquets.yml) construit les paquets des trois
 systèmes sur GitHub Actions et les joint à une version en brouillon. Il se lance en poussant une étiquette
 (`git tag v0.2.0 && git push origin v0.2.0`, après avoir mis à jour la version dans `package.json`,
-`src-tauri/Cargo.toml` et `src-tauri/tauri.conf.json`) ou à la main depuis l'onglet **Actions**.
+`src-tauri/Cargo.toml` et `src-tauri/tauri.conf.json`, ainsi que `server/Cargo.toml`) ou à la main depuis l'onglet
+**Actions**. La même étiquette publie l'image Docker de Maku Server ([`.github/workflows/serveur.yml`](.github/workflows/serveur.yml)).
 
 Sous Windows, `plexr.exe` est signé avant d'être empaqueté, puis l'installeur NSIS et le MSI le sont à leur tour,
 par [SignPath](https://signpath.io) : le workflow attend que chacune des deux demandes de signature soit approuvée
@@ -646,6 +647,21 @@ Dans **Réglages → Tracearr**, indiquez l'adresse de l'instance puis cliquez s
 Tracearr gère lui-même sa connexion Plex : le navigateur s'ouvre une fois pour l'autoriser, Maku détecte la
 validation et garde la session 30 jours. Seules les données de l'utilisateur connecté sont affichées.
 
+### 🔒 Maku Server : Seerr et Tracearr sans les exposer
+
+[Maku Server](server/README.md) est un petit relais (image Docker `ghcr.io/yanutros/maku-server`, amd64 et arm64)
+que l'administrateur installe à côté de son serveur Plex, Jellyfin ou Emby. Seerr et Tracearr restent sur le réseau
+local : seul le relais est joignable, sur un port (32600), et il ne laisse passer que les utilisateurs du serveur.
+Maku joint à chaque appel le jeton de l'utilisateur, que le relais vérifie auprès du serveur. Il ne transmet que
+l'API de Seerr et de Tracearr, pas leur site web. Seerr et Tracearr voient le compte de l'utilisateur, avec ses droits.
+
+- Sur le réseau local, Maku trouve le relais tout seul (port 32600 de la machine du serveur). Il vérifie que c'est
+  celui de son serveur, puis remplit les adresses de Seerr et de Tracearr qui manquent ; avec Plex, Seerr se connecte
+  aussitôt.
+- Ailleurs, les adresses du relais (`…/seerr` et `…/tracearr`) remplacent celles de Seerr et de Tracearr, dans les
+  Réglages ou dans l'invitation. Depuis Internet, le relais se place derrière un proxy inverse HTTPS.
+- Maku ne joint le jeton qu'à une adresse dont il a vérifié qu'elle est le relais de son serveur.
+
 ## 🛠️ Développer
 
 ```bash
@@ -703,6 +719,8 @@ traduisez les valeurs sans toucher aux clés ni aux `{{variables}}`, puis décla
 | `src-tauri/src/player.rs` | mpv incrusté dans la fenêtre (`--wid`, sous la page web transparente) ou en audio seul, piloté par son IPC JSON |
 | `src-tauri/src/seerr.rs` | Seerr : connexion Plex ou Jellyfin, découverte, fiches détaillées, demandes |
 | `src-tauri/src/tracearr.rs` | Tracearr : connexion Plex et tableau de bord personnel |
+| `src-tauri/src/maku_server.rs` | relais Maku Server : recherche sur la machine du serveur, vérification (`/maku/info`) et jeton joint aux appels |
+| `server/` | Maku Server, le relais lui-même (Rust, axum) : vérification du jeton auprès de Plex, Jellyfin ou Emby, transmission de l'API de Seerr et de Tracearr ; image Docker |
 | `src-tauri/src/plex_admin.rs` | administration : édition des métadonnées, images, réglages et lectures du serveur |
 | `src-tauri/src/net.rs` | règles de redirection des clients HTTP : même machine pour les serveurs, domaines GitHub pour les mises à jour |
 | `src-tauri/src/update.rs` | dernière version sur GitHub, paquet adapté à l'appareil, téléchargement et installation |
@@ -743,6 +761,8 @@ La politique de confidentialité complète, en français et en anglais, est dans
 - Maku parle directement à votre serveur Plex, à plex.tv (connexion), à l'API publique de GitHub (pour savoir
   si une nouvelle version existe) et, si vous les configurez, à vos instances Seerr et Tracearr. Il n'envoie
   rien ailleurs et ne collecte aucune statistique d'usage.
+- Il cherche Maku Server sur la machine de votre serveur (port 32600). Il ne lui confie votre jeton qu'après avoir
+  vérifié qu'il est le relais de ce serveur-là.
 - Pendant la configuration par téléphone, et seulement tant que l'écran est ouvert, Maku écoute sur le réseau
   local à une adresse aléatoire, qui n'accepte qu'un code d'invitation.
 - La configuration est stockée sur votre appareil : `%APPDATA%\io.github.yanutros.plexr\config.json` sous Windows,

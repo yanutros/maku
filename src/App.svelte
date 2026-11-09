@@ -73,6 +73,12 @@
       }
       // Édition des métadonnées et réglages du serveur : réservés à son administrateur.
       nav.admin = await api.isAdmin().catch(() => false);
+      // Seerr ou Tracearr sans adresse : le relais Maku Server du serveur, s'il y en a un, les fournit.
+      if (!session.seerrUrl || !session.tracearrUrl) {
+        api.relayDiscover().then(async (r) => {
+          if (r?.applied) session = await api.session();
+        }, () => {});
+      }
     }
   }
 

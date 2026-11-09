@@ -40,3 +40,15 @@ jobs:
           name: rapport-tests
           path: playwright-report
           retention-days: 14
+
+  serveur:
+    name: Maku Server (cargo test)
+    runs-on: ubuntu-22.04
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Tests du relais
+        run: cargo test --locked

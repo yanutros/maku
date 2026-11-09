@@ -113,7 +113,7 @@ pub struct SeerrSeason {
 }
 
 impl Seerr {
-    fn new(base: &str, plex_token: Option<String>, saved_cookies: Option<&str>) -> Result<Self> {
+    fn new(base: &str, plex_token: Option<String>, saved_cookies: Option<&str>, relay: Option<String>) -> Result<Self> {
         let base = base.trim_end_matches('/').to_string();
         let cookies = Arc::new(Jar::default());
         if let Ok(url) = Url::parse(&base) {
@@ -123,6 +123,7 @@ impl Seerr {
         }
         let http = Client::builder()
             .cookie_provider(cookies.clone())
+            .default_headers(crate::maku_server::relay_headers(relay))
             .timeout(Duration::from_secs(20))
             .redirect(crate::net::same_host())
             .build()?;
@@ -130,22 +131,22 @@ impl Seerr {
     }
 
     /// Session enregistrée (compte Jellyfin) si elle existe, sinon connexion avec le jeton Plex.
-    pub async fn connect(base: &str, plex_token: Option<String>, saved_cookies: Option<&str>) -> Result<Self> {
+    pub async fn connect(base: &str, plex_token: Option<String>, saved_cookies: Option<&str>, relay: Option<String>) -> Result<Self> {
         if saved_cookies.is_some() {
-            return Self::new(base, plex_token, saved_cookies);
+            return Self::new(base, plex_token, saved_cookies, relay);
         }
         if plex_token.is_none() {
             bail!(crate::i18n::tr("seerr.plexRequired"));
         }
-        let seerr = Self::new(base, plex_token, None)?;
+        let seerr = Self::new(base, plex_token, None, relay)?;
         seerr.login().await?;
         Ok(seerr)
     }
 
     /// Connexion sans Plex (compte Jellyfin, ou compte local de Seerr) : le mot de passe sert une fois, la session est gardée
     /// (`saved_cookies`).
-    pub async fn connect_jellyfin(base: &str, username: &str, password: &str) -> Result<Self> {
-        let seerr = Self::new(base, None, None)?;
+    pub async fn connect_jellyfin(base: &str, username: &str, password: &str, relay: Option<String>) -> Result<Self> {
+        let seerr = Self::new(base, None, None, relay)?;
         let public = seerr.prepare().await?;
         // Seerr ne gère qu'un type de serveur : 2 Jellyfin, 3 Emby. Un Seerr prévu pour Plex
         // accepte encore ses comptes locaux (adresse e-mail et mot de passe).

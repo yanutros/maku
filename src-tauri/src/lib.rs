@@ -4,6 +4,7 @@ mod error;
 mod i18n;
 mod jellyfin;
 mod lyrics;
+mod maku_server;
 mod media;
 mod net;
 #[cfg(target_os = "linux")]
@@ -58,6 +59,8 @@ struct AppState {
     download_http: reqwest::Client,
     /// Diffusion en cours sur un appareil Chromecast (cast.rs).
     cast: std::sync::Mutex<Option<cast::Session>>,
+    /// Relais Maku Server déjà interrogés (maku_server.rs).
+    relays: maku_server::Known,
 }
 
 impl AppState {
@@ -123,6 +126,12 @@ impl AppState {
         self.plex()
     }
 
+    /// Jeton à joindre aux appels vers `url`, quand elle passe par le relais Maku Server du serveur.
+    async fn relay_token(&self, url: &str) -> Option<String> {
+        let server = self.cfg().server;
+        self.relays.token_for(&self.http, url, server.as_ref()).await
+    }
+
     /// Session Seerr ouverte à la demande, puis réutilisée.
     async fn seerr(&self) -> anyhow::Result<Arc<Seerr>> {
         let mut slot = self.seerr.lock().await;
@@ -136,7 +145,8 @@ impl AppState {
         let url = c.seerr_url.ok_or_else(|| anyhow!(crate::i18n::tr("app.seerrNotConfigured")))?;
         // La session Seerr d'un compte Jellyfin ne sert qu'avec le serveur Jellyfin.
         let cookies = c.seerr_cookies.as_deref().filter(|_| c.server.as_ref().is_some_and(|s| s.is_jellyfin()));
-        let s = Arc::new(Seerr::connect(&url, c.plex_token.clone(), cookies).await?);
+        let relay = self.relay_token(&url).await;
+        let s = Arc::new(Seerr::connect(&url, c.plex_token.clone(), cookies, relay).await?);
         *slot = Some(s.clone());
         Ok(s)
     }
@@ -152,7 +162,8 @@ impl AppState {
         }
         let c = self.cfg();
         let url = c.tracearr_url.ok_or_else(|| anyhow!(crate::i18n::tr("app.tracearrNotConfigured")))?;
-        let t = Arc::new(Tracearr::new(&url, c.tracearr_cookies.as_deref())?);
+        let relay = self.relay_token(&url).await;
+        let t = Arc::new(Tracearr::new(&url, c.tracearr_cookies.as_deref(), relay)?);
         *slot = Some(t.clone());
         Ok(t)
     }
@@ -1319,7 +1330,8 @@ async fn seerr_configure(state: State<'_, AppState>, url: String) -> CmdResult<(
         })?;
         return Ok(());
     }
-    let seerr = Seerr::connect(&url, state.cfg().plex_token, None).await?;
+    let relay = state.relay_token(&url).await;
+    let seerr = Seerr::connect(&url, state.cfg().plex_token, None, relay).await?;
     state.update_cfg(|c| {
         c.seerr_url = Some(url);
         c.seerr_cookies = None;
@@ -1333,7 +1345,8 @@ async fn seerr_configure(state: State<'_, AppState>, url: String) -> CmdResult<(
 async fn seerr_configure_jellyfin(state: State<'_, AppState>, url: String, username: String, password: String) -> CmdResult<()> {
     let url = url.trim().trim_end_matches('/').to_string();
     let mut slot = state.seerr.lock().await;
-    let seerr = Seerr::connect_jellyfin(&url, username.trim(), &password).await?;
+    let relay = state.relay_token(&url).await;
+    let seerr = Seerr::connect_jellyfin(&url, username.trim(), &password, relay).await?;
     let cookies = seerr.saved_cookies();
     state.update_cfg(|c| {
         c.seerr_url = Some(url);
@@ -1364,7 +1377,7 @@ async fn tmdb_configure(state: State<'_, AppState>, key: String) -> CmdResult<()
 async fn tracearr_configure(state: State<'_, AppState>, url: String) -> CmdResult<()> {
     let url = url.trim().trim_end_matches('/').to_string();
     if !url.is_empty() {
-        Tracearr::new(&url, None)?;
+        Tracearr::new(&url, None, None)?;
     }
     *state.tracearr.lock().await = None;
     state.update_cfg(|c| {
@@ -1372,6 +1385,48 @@ async fn tracearr_configure(state: State<'_, AppState>, url: String) -> CmdResul
         c.tracearr_cookies = None;
     })?;
     Ok(())
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct RelayFound {
+    url: String,
+    seerr: bool,
+    tracearr: bool,
+    /// Des adresses manquantes ont été remplies par celles du relais.
+    applied: bool,
+}
+
+/// Cherche le relais Maku Server sur la machine du serveur. Trouvé, il remplit les adresses de Seerr et
+/// de Tracearr qui manquent : Seerr seulement s'il accepte le compte Plex (avec Jellyfin et Emby, il
+/// demande un mot de passe : l'adresse est proposée dans les Réglages), Tracearr en attendant sa connexion.
+#[tauri::command]
+async fn relay_discover(state: State<'_, AppState>) -> CmdResult<Option<RelayFound>> {
+    let c = state.cfg();
+    let Some(server) = c.server.clone() else { return Ok(None) };
+    let Some((base, info)) = maku_server::discover(&state.http, &server).await else { return Ok(None) };
+    let mut applied = false;
+    if info.seerr && c.seerr_url.is_none() && !server.is_jellyfin() {
+        let url = format!("{base}/seerr");
+        if let Ok(seerr) = Seerr::connect(&url, c.plex_token.clone(), None, Some(server.token.clone())).await {
+            let mut slot = state.seerr.lock().await;
+            state.update_cfg(|c| {
+                c.seerr_url = Some(url);
+                c.seerr_cookies = None;
+            })?;
+            *slot = Some(Arc::new(seerr));
+            applied = true;
+        }
+    }
+    if info.tracearr && c.tracearr_url.is_none() {
+        *state.tracearr.lock().await = None;
+        state.update_cfg(|c| {
+            c.tracearr_url = Some(format!("{base}/tracearr"));
+            c.tracearr_cookies = None;
+        })?;
+        applied = true;
+    }
+    Ok(Some(RelayFound { url: base, seerr: info.seerr, tracearr: info.tracearr, applied }))
 }
 
 #[derive(serde::Serialize)]
@@ -1805,6 +1860,7 @@ pub fn run() {
                     .redirect(net::same_host())
                     .build()?,
                 cast: std::sync::Mutex::new(None),
+                relays: maku_server::Known::default(),
             });
             let handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
@@ -1907,6 +1963,7 @@ pub fn run() {
             seerr_recent_requests,
             seerr_watchlist,
             tracearr_configure,
+            relay_discover,
             tmdb_configure,
             tracearr_start_login,
             tracearr_poll_login,

@@ -114,7 +114,7 @@ async fn find_art(plex: Option<&PlexServer>, title: Option<&str>) -> Option<Art>
 }
 
 impl Tracearr {
-    pub fn new(base: &str, saved_cookies: Option<&str>) -> Result<Self> {
+    pub fn new(base: &str, saved_cookies: Option<&str>, relay: Option<String>) -> Result<Self> {
         let base = Url::parse(base.trim_end_matches('/')).map_err(|_| anyhow!(crate::i18n::tr_with("tracearr.invalidUrl", &[("url", base)])))?;
         let cookies = Arc::new(Jar::default());
         for pair in saved_cookies.unwrap_or_default().split("; ").filter(|p| p.contains('=')) {
@@ -122,6 +122,7 @@ impl Tracearr {
         }
         let http = Client::builder()
             .cookie_provider(cookies.clone())
+            .default_headers(crate::maku_server::relay_headers(relay))
             .timeout(Duration::from_secs(20))
             .redirect(crate::net::same_host())
             .build()?;

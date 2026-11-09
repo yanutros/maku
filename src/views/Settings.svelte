@@ -98,6 +98,8 @@
   let seerrBusy = $state(false);
   let seerrError = $state<string | null>(null);
   let tracearrBusy = $state(false);
+  /** Relais Maku Server trouvé sur la machine du serveur. */
+  let relayFound = $state<string | null>(null);
   let tracearrError = $state<string | null>(null);
 
   // --- TMDB : logos des titres que Plex n'a pas ---
@@ -457,6 +459,16 @@
     }
     if (device.tv) api.sections().then((s) => (sections = s), () => {});
     if (nav.admin) loadPrefs();
+    // Relais Maku Server : ses adresses remplissent les champs vides (et Seerr se connecte avec Plex).
+    api.relayDiscover().then((r) => {
+      if (!r) return;
+      relayFound = r.url;
+      if (r.seerr && !seerrUrl) seerrUrl = r.url + "/seerr";
+      if (r.tracearr && !tracearrUrl) tracearrUrl = r.url + "/tracearr";
+      if (!inviteSeerr && r.seerr) inviteSeerr = r.url + "/seerr";
+      if (!inviteTracearr && r.tracearr) inviteTracearr = r.url + "/tracearr";
+      if (r.applied) onChange();
+    }, () => {});
   });
 </script>
 
@@ -805,6 +817,10 @@
         {#if inviteError}<p class="error line-body">{inviteError}</p>{/if}
       </section>
 
+      {#if relayFound}
+        <p class="relay-note"><Icon name="lock" size={16} /> {t("settings.services.relayFound", { url: relayFound })}</p>
+      {/if}
+
       <h2 class="group-title">Seerr {#if session.seerrUrl}<span class="ok">● {t("settings.services.connected")}</span>{/if}</h2>
       <section class="card">
         <p class="muted">
@@ -880,6 +896,7 @@
         <h2 class="group-title">{t("settings.invite.title")}</h2>
         <section class="card">
           <p class="muted">{t("settings.invite.intro")}</p>
+          <p class="muted small">{t("settings.invite.relayHint")}</p>
           <div class="invite-fields">
             <label>{t("settings.services.seerrAddress")} <input bind:value={inviteSeerr} placeholder="https://seerr.mondomaine.fr" /></label>
             <label>{t("settings.services.tracearrAddress")} <input bind:value={inviteTracearr} placeholder="https://tracearr.mondomaine.fr" /></label>
@@ -1189,6 +1206,15 @@
     flex-wrap: wrap;
     align-items: center;
     gap: 8px;
+  }
+
+  .relay-note {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    color: var(--ok);
+    font-size: 14px;
   }
 
   .ok {
