@@ -1404,7 +1404,20 @@ struct RelayFound {
 async fn relay_discover(state: State<'_, AppState>) -> CmdResult<Option<RelayFound>> {
     let c = state.cfg();
     let Some(server) = c.server.clone() else { return Ok(None) };
-    let Some((base, info)) = maku_server::discover(&state.http, &server).await else { return Ok(None) };
+    // Plex : ses adresses connues (réseau local d'abord, sans les relais de Plex), en plus de celle enregistrée.
+    let mut others = Vec::new();
+    if !server.is_jellyfin() {
+        if let Some(token) = c.plex_token.as_deref() {
+            if let Ok(list) = plex::servers(&state.http, &c.client_id, token).await {
+                if let Some(r) = list.into_iter().find(|r| r.client_identifier == server.machine_id) {
+                    let mut conns: Vec<_> = r.connections.into_iter().filter(|c| !c.relay && !c.address.is_empty()).collect();
+                    conns.sort_by_key(|c| !c.local);
+                    others = conns.into_iter().map(|c| c.address).collect();
+                }
+            }
+        }
+    }
+    let Some((base, info)) = maku_server::discover(&state.http, &server, others).await else { return Ok(None) };
     let mut applied = false;
     if info.seerr && c.seerr_url.is_none() && !server.is_jellyfin() {
         let url = format!("{base}/seerr");

@@ -651,11 +651,11 @@ validation et garde la session 30 jours. Seules les données de l'utilisateur co
 
 [Maku Server](server/README.md) est un petit relais (image Docker `ghcr.io/yanutros/maku-server`, amd64 et arm64)
 que l'administrateur installe à côté de son serveur Plex, Jellyfin ou Emby. Seerr et Tracearr restent sur le réseau
-local : seul le relais est joignable, sur un port (32600), et il ne laisse passer que les utilisateurs du serveur.
+local : seul le relais est joignable, sur un port (32700), et il ne laisse passer que les utilisateurs du serveur.
 Maku joint à chaque appel le jeton de l'utilisateur, que le relais vérifie auprès du serveur. Il ne transmet que
 l'API de Seerr et de Tracearr, pas leur site web. Seerr et Tracearr voient le compte de l'utilisateur, avec ses droits.
 
-- Sur le réseau local, Maku trouve le relais tout seul (port 32600 de la machine du serveur). Il vérifie que c'est
+- Sur le réseau local, Maku trouve le relais tout seul (port 32700 de la machine du serveur). Il vérifie que c'est
   celui de son serveur, puis remplit les adresses de Seerr et de Tracearr qui manquent ; avec Plex, Seerr se connecte
   aussitôt.
 - Ailleurs, les adresses du relais (`…/seerr` et `…/tracearr`) remplacent celles de Seerr et de Tracearr, dans les
@@ -761,7 +761,7 @@ La politique de confidentialité complète, en français et en anglais, est dans
 - Maku parle directement à votre serveur Plex, à plex.tv (connexion), à l'API publique de GitHub (pour savoir
   si une nouvelle version existe) et, si vous les configurez, à vos instances Seerr et Tracearr. Il n'envoie
   rien ailleurs et ne collecte aucune statistique d'usage.
-- Il cherche Maku Server sur la machine de votre serveur (port 32600). Il ne lui confie votre jeton qu'après avoir
+- Il cherche Maku Server sur la machine de votre serveur (port 32700). Il ne lui confie votre jeton qu'après avoir
   vérifié qu'il est le relais de ce serveur-là.
 - Pendant la configuration par téléphone, et seulement tant que l'écran est ouvert, Maku écoute sur le réseau
   local à une adresse aléatoire, qui n'accepte qu'un code d'invitation.

@@ -50,7 +50,7 @@ pub struct Config {
 
 impl Config {
     /// Lue dans l'environnement : `PLEX_URL`, `JELLYFIN_URL` ou `EMBY_URL` (un seul), `SEERR_URL`,
-    /// `TRACEARR_URL`, et `MAKU_LISTEN` (par défaut `0.0.0.0:32600`).
+    /// `TRACEARR_URL`, et `MAKU_LISTEN` (par défaut `0.0.0.0:32700`).
     pub fn from_env(get: impl Fn(&str) -> Option<String>) -> Result<Self> {
         let url = |key: &str| -> Result<Option<String>> {
             let Some(v) = get(key).map(|v| v.trim().trim_end_matches('/').to_owned()).filter(|v| !v.is_empty()) else {
@@ -76,7 +76,7 @@ impl Config {
         if seerr.is_none() && tracearr.is_none() {
             bail!("rien à relayer : indiquez SEERR_URL, TRACEARR_URL, ou les deux");
         }
-        let listen = get("MAKU_LISTEN").unwrap_or_else(|| "0.0.0.0:32600".into());
+        let listen = get("MAKU_LISTEN").unwrap_or_else(|| "0.0.0.0:32700".into());
         let listen = listen.parse().with_context(|| format!("MAKU_LISTEN : adresse invalide ({listen})"))?;
         Ok(Config { kind, media, seerr, tracearr, listen })
     }
@@ -146,6 +146,9 @@ async fn main() {
         Ok(l) => l,
         Err(e) => {
             eprintln!("Maku Server : impossible d'écouter sur {listen} : {e}");
+            if e.kind() == std::io::ErrorKind::AddrInUse {
+                eprintln!("Maku Server : ce port est déjà pris par un autre programme ; choisissez-en un autre avec MAKU_LISTEN (par exemple 0.0.0.0:32701).");
+            }
             std::process::exit(1);
         }
     };

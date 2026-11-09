@@ -13,7 +13,7 @@ use std::sync::Mutex;
 use std::time::Duration;
 
 /// Port du relais par défaut (`MAKU_LISTEN`).
-pub const PORT: u16 = 32600;
+pub const PORT: u16 = 32700;
 pub const TOKEN_HEADER: &str = "X-Maku-Token";
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
@@ -35,7 +35,7 @@ pub fn relay_headers(relay: Option<String>) -> reqwest::header::HeaderMap {
     h
 }
 
-/// Adresse du relais d'une adresse Seerr ou Tracearr (« https://hôte:32600/seerr » → « https://hôte:32600 »).
+/// Adresse du relais d'une adresse Seerr ou Tracearr (« https://hôte:32700/seerr » → « https://hôte:32700 »).
 pub fn relay_base(url: &str) -> Option<&str> {
     let url = url.trim_end_matches('/');
     url.strip_suffix("/seerr").or_else(|| url.strip_suffix("/tracearr")).filter(|b| b.contains("://"))
@@ -77,14 +77,25 @@ impl Known {
 
 }
 
-/// Cherche le relais sur la machine du serveur, à son port par défaut.
-pub async fn discover(http: &Client, server: &SavedServer) -> Option<(String, Info)> {
-    let host = Url::parse(&server.uri).ok()?.host_str()?.to_owned();
-    let host = if host.contains(':') { format!("[{host}]") } else { host };
-    for scheme in ["http", "https"] {
-        let base = format!("{scheme}://{host}:{PORT}");
-        if let Some(i) = info(http, &base).await.filter(|i| serves(i, server)) {
-            return Some((base, i));
+/// Cherche le relais sur la machine du serveur, à son port par défaut : à l'adresse enregistrée, et aux
+/// autres adresses connues du serveur (`others` : celles du réseau local d'abord). Avec Plex, l'adresse
+/// enregistrée est souvent l'adresse distante, que le port du relais ne traverse pas.
+pub async fn discover(http: &Client, server: &SavedServer, others: Vec<String>) -> Option<(String, Info)> {
+    let saved = Url::parse(&server.uri).ok().and_then(|u| u.host_str().map(str::to_owned));
+    let mut hosts: Vec<String> = Vec::new();
+    for h in others.into_iter().chain(saved) {
+        let h = h.trim_start_matches('[').trim_end_matches(']').to_owned();
+        if !h.is_empty() && !hosts.contains(&h) {
+            hosts.push(h);
+        }
+    }
+    for host in hosts {
+        let host = if host.contains(':') { format!("[{host}]") } else { host };
+        for scheme in ["http", "https"] {
+            let base = format!("{scheme}://{host}:{PORT}");
+            if let Some(i) = info(http, &base).await.filter(|i| serves(i, server)) {
+                return Some((base, i));
+            }
         }
     }
     None
@@ -96,8 +107,8 @@ mod tests {
 
     #[test]
     fn adresses_du_relais() {
-        assert_eq!(relay_base("https://h:32600/seerr"), Some("https://h:32600"));
-        assert_eq!(relay_base("http://h:32600/relais/tracearr/"), Some("http://h:32600/relais"));
+        assert_eq!(relay_base("https://h:32700/seerr"), Some("https://h:32700"));
+        assert_eq!(relay_base("http://h:32700/relais/tracearr/"), Some("http://h:32700/relais"));
         assert_eq!(relay_base("https://seerr.exemple.fr"), None);
         assert_eq!(relay_base("/seerr"), None);
     }

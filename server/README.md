@@ -5,7 +5,7 @@ permet aux utilisateurs de Maku de faire leurs demandes avec **Seerr** (Overseer
 suivre leurs statistiques **Tracearr**, sans que Seerr et Tracearr soient exposés sur Internet.
 
 - Seerr et Tracearr restent sur le réseau local. Seul Maku Server est joignable, sur un seul port
-  (32600 par défaut).
+  (32700 par défaut).
 - Il ne laisse passer que les utilisateurs du serveur. Chaque appel porte le jeton de l'utilisateur
   auprès de Plex, Jellyfin ou Emby, que Maku Server vérifie auprès du serveur (la réponse est gardée
   10 minutes).
@@ -24,7 +24,7 @@ services:
     container_name: maku-server
     restart: unless-stopped
     ports:
-      - "32600:32600"
+      - "32700:32700"
     environment:
       # Un seul des trois : l'adresse du serveur, vue depuis le conteneur.
       PLEX_URL: http://192.168.1.10:32400
@@ -38,7 +38,7 @@ services:
 Ou en une ligne :
 
 ```sh
-docker run -d --name maku-server --restart unless-stopped -p 32600:32600 \
+docker run -d --name maku-server --restart unless-stopped -p 32700:32700 \
   -e PLEX_URL=http://192.168.1.10:32400 \
   -e SEERR_URL=http://192.168.1.10:5055 \
   -e TRACEARR_URL=http://192.168.1.10:3000 \
@@ -53,13 +53,17 @@ contient que le programme, sans dossier de données : Maku Server ne garde rien 
 | `PLEX_URL`, `JELLYFIN_URL` ou `EMBY_URL` | (obligatoire, un seul) | adresse du serveur, vue depuis le conteneur |
 | `SEERR_URL` | | adresse de Seerr, vue depuis le conteneur |
 | `TRACEARR_URL` | | adresse de Tracearr, vue depuis le conteneur |
-| `MAKU_LISTEN` | `0.0.0.0:32600` | adresse et port d'écoute |
+| `MAKU_LISTEN` | `0.0.0.0:32700` | adresse et port d'écoute |
+
+Le port 32600 est évité : Plex l'utilise pour son service tuner (DVR). Si 32700 est déjà pris sur la machine,
+choisissez-en un autre avec `MAKU_LISTEN` ; Maku ne le trouvera alors plus tout seul, et ses adresses se
+renseignent dans les Réglages ou l'invitation.
 
 Il faut au moins `SEERR_URL` ou `TRACEARR_URL`.
 
 ## Côté Maku
 
-- **Sur le réseau local**, Maku cherche Maku Server tout seul, sur le port 32600 de la machine du serveur.
+- **Sur le réseau local**, Maku cherche Maku Server tout seul, sur le port 32700 de la machine du serveur.
   Il vérifie que c'est bien celui de son serveur, puis remplit les adresses de Seerr et Tracearr qui
   manquent.
 - **Ailleurs**, ce sont les adresses du relais qui remplacent celles de Seerr et de Tracearr, dans
@@ -74,11 +78,11 @@ serveur (`/maku/info`).
 
 Maku Server parle en HTTP. Le jeton de l'utilisateur y passe à chaque appel : depuis Internet, placez-le
 derrière un proxy inverse HTTPS (Caddy, Nginx Proxy Manager, Traefik, SWAG…) ou un VPN, et n'ouvrez pas
-le port 32600 tel quel. Exemple avec Caddy :
+le port 32700 tel quel. Exemple avec Caddy :
 
 ```
 maku.mondomaine.fr {
-    reverse_proxy maku-server:32600
+    reverse_proxy maku-server:32700
 }
 ```
 
@@ -89,7 +93,7 @@ HTTPS (il faut un nom de domaine géré par Cloudflare, l'offre gratuite suffit)
 
 1. Dans le tableau de bord Cloudflare : **Zero Trust → Networks → Tunnels → Create a tunnel** (type Cloudflared),
    puis copiez le jeton du tunnel.
-2. Onglet **Public Hostname** : `maku.mondomaine.fr` → service `http://maku-server:32600`.
+2. Onglet **Public Hostname** : `maku.mondomaine.fr` → service `http://maku-server:32700`.
 3. Lancez `cloudflared` à côté du relais :
 
 ```yaml

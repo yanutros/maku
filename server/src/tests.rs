@@ -129,7 +129,7 @@ fn configuration() {
     assert!(Config::from_env(env(&[("PLEX_URL", "http://p"), ("JELLYFIN_URL", "http://j"), ("SEERR_URL", "http://s")])).is_err());
     assert!(Config::from_env(env(&[("EMBY_URL", "ftp://e"), ("SEERR_URL", "http://s")])).is_err());
     let c = Config::from_env(env(&[("JELLYFIN_URL", "http://j:8096/"), ("TRACEARR_URL", "http://t:3000")])).unwrap();
-    assert_eq!((c.kind, c.media.as_str(), c.listen.port()), (Kind::Jellyfin, "http://j:8096", 32600));
+    assert_eq!((c.kind, c.media.as_str(), c.listen.port()), (Kind::Jellyfin, "http://j:8096", 32700));
 }
 
 #[test]

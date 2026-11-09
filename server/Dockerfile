@@ -10,5 +10,5 @@ RUN cargo build --release --locked
 FROM scratch
 COPY --from=build /src/target/release/maku-server /maku-server
 USER 65532:65532
-EXPOSE 32600
+EXPOSE 32700
 ENTRYPOINT ["/maku-server"]
