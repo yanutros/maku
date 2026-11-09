@@ -188,14 +188,14 @@
     },
     "ratings": {
       "title": "Beoordelingen van films en series",
-      "hint": "De beoordelingssites die op de detailpagina’s staan.",
       "imdb": "IMDb",
       "rtCritic": "Rotten Tomatoes: pers (tomaat)",
       "rtAudience": "Rotten Tomatoes: publiek (popcorn)",
       "tmdb": "TMDB",
       "community": "Publieksscore",
-      "allocine": "Allociné",
-      "allocineHint": "Pers en publiek. Opgezocht op Wikidata en Allociné met de IMDb-ID van de titel."
+      "allocinePress": "Allociné: pers",
+      "allocineUsers": "Allociné: publiek",
+      "allocineHint": "Opgezocht op Wikidata en Allociné met de IMDb-ID van de titel."
     }
   },
   "login": {

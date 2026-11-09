@@ -188,14 +188,14 @@
     },
     "ratings": {
       "title": "Bewertungen von Filmen und Serien",
-      "hint": "Die Bewertungsportale, die auf den Detailseiten erscheinen.",
       "imdb": "IMDb",
       "rtCritic": "Rotten Tomatoes: Presse (Tomate)",
       "rtAudience": "Rotten Tomatoes: Publikum (Popcorn)",
       "tmdb": "TMDB",
       "community": "Publikumsbewertung",
-      "allocine": "Allociné",
-      "allocineHint": "Presse und Publikum. Über Wikidata und Allociné mit der IMDb-ID des Titels gesucht."
+      "allocinePress": "Allociné: Presse",
+      "allocineUsers": "Allociné: Publikum",
+      "allocineHint": "Über Wikidata und Allociné mit der IMDb-ID des Titels gesucht."
     }
   },
   "login": {

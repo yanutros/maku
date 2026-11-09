@@ -188,14 +188,14 @@
     },
     "ratings": {
       "title": "Notes des films et séries",
-      "hint": "Les notes des sites d’évaluation affichées sur les fiches.",
       "imdb": "IMDb",
       "rtCritic": "Rotten Tomatoes : presse (tomate)",
       "rtAudience": "Rotten Tomatoes : public (pop-corn)",
       "tmdb": "TMDB",
       "community": "Note du public",
-      "allocine": "Allociné",
-      "allocineHint": "Presse et spectateurs. Cherchées sur Wikidata et Allociné avec l’identifiant IMDb du titre."
+      "allocinePress": "Allociné : presse",
+      "allocineUsers": "Allociné : spectateurs",
+      "allocineHint": "Cherchée sur Wikidata et Allociné avec l’identifiant IMDb du titre."
     }
   },
   "login": {

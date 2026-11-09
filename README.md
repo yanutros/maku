@@ -73,8 +73,8 @@ visionnage. Tout se fait avec son compte Plex (ou Jellyfin) : aucune clé d'API 
       d'origine et l'heure de fin, les notes des sites comme dans Plex — IMDb, Rotten Tomatoes (tomate de la
       presse, pop-corn du public), TMDB, et Allociné (presse et spectateurs, trouvé grâce à Wikidata) — avec
       vos étoiles de 1 à 5 (Plex), le résumé dessous, puis deux panneaux — l'équipe d'un côté, la
-      vidéo, l'audio et les sous-titres de l'autre — la distribution et « Plus de ce genre ». Chaque site se
-      masque dans Réglages → Interface. Le bouton **⋯** de la fiche (et le menu de chaque jaquette) ne garde
+      vidéo, l'audio et les sous-titres de l'autre — la distribution et « Plus de ce genre ». Chaque note se
+      masque dans Réglages → Interface, où chaque site a sa pastille. Le bouton **⋯** de la fiche (et le menu de chaque jaquette) ne garde
       que ce que Maku sait faire : noter, voir les informations du fichier, retirer de « Continuer à regarder »,
       vu / non vu ; et pour l'administrateur seulement, comme dans Plex : modifier, ajouter à une collection,
       actualiser les métadonnées et analyser.

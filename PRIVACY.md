@@ -15,7 +15,7 @@ Maku ne communique qu'avec les services que vous utilisez :
   serveur, et ne lui confie votre jeton qu'après avoir vérifié qu'il est le relais de ce serveur) ;
 - **lrclib.net**, pour les paroles des morceaux (titre, artiste, album et durée), sauf si vous désactivez les paroles ;
 - **Wikidata** et **Allociné**, pour les notes Allociné d'un film ou d'une série (l'identifiant IMDb du titre, puis
-  son identifiant Allociné), sauf si vous masquez Allociné dans Réglages → Interface ;
+  son identifiant Allociné), sauf si vous masquez les deux notes Allociné dans Réglages → Interface ;
 - **TMDB** (themoviedb.org) et **fanart.tv** pour des logos et bandes-annonces, avec votre propre clé TMDB si vous en
   indiquez une ;
 - **GitHub**, pour rechercher les nouvelles versions (pas dans la version du Microsoft Store, mise à jour par le Store) ;
@@ -51,7 +51,7 @@ Maku only talks to the services you use:
   after checking it is that server's relay);
 - **lrclib.net**, for song lyrics (title, artist, album and duration), unless you turn lyrics off;
 - **Wikidata** and **Allociné**, for a movie's or show's Allociné ratings (the title's IMDb ID, then its Allociné
-  ID), unless you hide Allociné in Settings → Interface;
+  ID), unless you hide both Allociné ratings in Settings → Interface;
 - **TMDB** (themoviedb.org) and **fanart.tv** for logos and trailers, with your own TMDB key if you provide one;
 - **GitHub**, to check for new versions (not in the Microsoft Store version, which the Store updates);
 - **YouTube**, when you open a trailer.

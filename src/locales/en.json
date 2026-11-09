@@ -188,14 +188,14 @@
     },
     "ratings": {
       "title": "Movie and show ratings",
-      "hint": "Rating sites shown on movie and show pages.",
       "imdb": "IMDb",
       "rtCritic": "Rotten Tomatoes: critics (tomato)",
       "rtAudience": "Rotten Tomatoes: audience (popcorn)",
       "tmdb": "TMDB",
       "community": "Community rating",
-      "allocine": "Allociné",
-      "allocineHint": "Critics and audience. Looked up on Wikidata and Allociné with the title’s IMDb ID."
+      "allocinePress": "Allociné: critics",
+      "allocineUsers": "Allociné: audience",
+      "allocineHint": "Looked up on Wikidata and Allociné with the title’s IMDb ID."
     }
   },
   "login": {

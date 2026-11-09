@@ -9,6 +9,7 @@
   import PasswordInput from "../components/PasswordInput.svelte";
   import TrackSelect from "../components/TrackSelect.svelte";
   import KofiLogo from "../components/KofiLogo.svelte";
+  import RatingLogo from "../components/RatingLogo.svelte";
   import { applyInvite, decodeInvite, encodeInvite, readQrImage, type InviteStatus } from "../lib/invite";
   import { api, errorText, tracearrLogin, type Account, type HomeUser, type Pref, type Section, type ServerKinds, type Session } from "../lib/api";
   import { go, nav, toast } from "../lib/nav.svelte";
@@ -735,12 +736,12 @@
       <!-- Notes des sites sur les fiches des films et des séries : celles que le serveur connaît, et Allociné. -->
       <h2 class="group-title">{t("settings.ratings.title")}</h2>
       <section class="card list">
-        <p class="muted small">{t("settings.ratings.hint")}</p>
-        {#each (nav.serverKind === "plex" ? ["imdb", "rtCritic", "rtAudience", "tmdb", "allocine"] : ["community", "rtCritic", "allocine"]) as RatingSite[] as site (site)}
+        {#each (nav.serverKind === "plex" ? ["imdb", "rtCritic", "rtAudience", "tmdb", "allocinePress", "allocineUsers"] : ["community", "rtCritic", "allocinePress", "allocineUsers"]) as RatingSite[] as site (site)}
           <label class="line">
+            <span class="rating-logo"><RatingLogo source={site} /></span>
             <span class="line-text">
               <strong>{t(`settings.ratings.${site}`)}</strong>
-              {#if site === "allocine"}<span class="muted small">{t("settings.ratings.allocineHint")}</span>{/if}
+              {#if site === "allocinePress" || site === "allocineUsers"}<span class="muted small">{t("settings.ratings.allocineHint")}</span>{/if}
             </span>
             <input type="checkbox" class="switch" checked={ratingPrefs[site]} onchange={(e) => setRatingSite(site, e.currentTarget.checked)} />
           </label>
@@ -1421,6 +1422,15 @@
 
   .line:first-child {
     border-top: none;
+  }
+
+  /* Pastille du site devant son nom (Notes des films et séries), sur une même largeur pour aligner les noms. */
+  .rating-logo {
+    display: flex;
+    flex: none;
+    justify-content: center;
+    width: 40px;
+    margin-right: -8px;
   }
 
   .line-text {
