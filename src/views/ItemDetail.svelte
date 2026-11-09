@@ -6,12 +6,27 @@
    * en entier, et la sélection revient directement là où l'on était, sans passer d'abord par le titre le
    * temps du chargement. Elle est ensuite remise à jour depuis le serveur.
    */
-  const cache = new Map<string, { item: CachedDetail; children: CachedItem[]; related: CachedItem[] }>();
+  const cache = new Map<
+    string,
+    { item: CachedDetail; children: CachedItem[]; related: CachedItem[]; sel: string | null; seasons: CachedItem[]; showNext: CachedItem | null }
+  >();
   const CACHE_SIZE = 12;
+
+  /** Saison de chaque épisode déjà vu dans une saison : son retour s'affiche aussitôt depuis `cache`. */
+  const episodeSeason = new Map<string, string>();
+  /** Fiches des épisodes sélectionnés dans la vue d'une saison : y revenir ne recharge rien. */
+  const episodeDetails = new Map<string, CachedDetail>();
+  const EPISODE_CACHE = 40;
+
+  function rememberEpisode(d: CachedDetail) {
+    episodeDetails.delete(d.ratingKey);
+    episodeDetails.set(d.ratingKey, d);
+    if (episodeDetails.size > EPISODE_CACHE) episodeDetails.delete(episodeDetails.keys().next().value!);
+  }
 </script>
 
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onMount, tick } from "svelte";
   import { listen } from "@tauri-apps/api/event";
   import { api, episodeTitle, errorText, formatDuration, isMusic, type Item, type ItemDetail } from "../lib/api";
   import MusicDetail from "./MusicDetail.svelte";
@@ -31,16 +46,61 @@
 
   let { ratingKey }: { ratingKey: string } = $props();
 
+  /*
+   * Comme Plex : un épisode n'a pas de fiche à lui. L'ouvrir (Continuer à regarder, recherche, ajouts
+   * récents…) affiche la saison, avec cet épisode sélectionné en haut et tous ceux de la saison en rangée.
+   * Choisir un autre épisode change le haut de la page sans la quitter ; l'adresse de la page suit
+   * l'épisode choisi, pour y revenir au retour d'une autre page et après une lecture.
+   */
   // svelte-ignore state_referenced_locally
-  const cached = cache.get(ratingKey);
+  const seasonOfKey = episodeSeason.get(ratingKey);
+  // svelte-ignore state_referenced_locally
+  const cached = cache.get(ratingKey) ?? (seasonOfKey ? cache.get(seasonOfKey) : undefined);
   let item = $state<ItemDetail | null>(cached?.item ?? null);
   let children = $state<Item[]>(cached?.children ?? []);
+  // svelte-ignore state_referenced_locally
+  let selKey = $state<string | null>(cached && seasonOfKey ? ratingKey : (cached?.sel ?? null));
+  // svelte-ignore state_referenced_locally
+  let epDetail = $state<ItemDetail | null>(selKey ? (episodeDetails.get(selKey) ?? null) : null);
+  /** Saisons de la série, en onglets au-dessus de la vue d'une saison. */
+  let seasons = $state<Item[]>(cached?.seasons ?? []);
+  /** Fiche d'une série : l'épisode à reprendre (ou le prochain à voir). */
+  let showNext = $state<Item | null>(cached?.showNext ?? null);
   let error = $state<string | null>(null);
+  let rowEl = $state<HTMLElement>();
+
+  const selItem = $derived(item?.kind === "season" ? (children.find((c) => c.ratingKey === selKey) ?? null) : null);
+  const seasonView = $derived(!!selItem);
+  /** Téléviseur : le logo seul sur l'image, les informations de l'épisode sous la rangée. */
+  const tvSeason = $derived(seasonView && device.tv);
+
+  /** En attendant sa fiche, l'épisode choisi s'affiche avec ce que la saison en sait déjà. */
+  const sketch = (i: Item): ItemDetail => ({
+    ...i,
+    tagline: null,
+    originalTitle: null,
+    backdropHd: null,
+    studio: null,
+    releaseDate: null,
+    directors: [],
+    writers: [],
+    cast: [],
+    video: null,
+    audioTracks: [],
+    subtitleTracks: [],
+    versions: [],
+    siteRatings: [],
+    imdbId: null,
+  });
+
+  /** Ce que montrent le haut de la page, les boutons et les panneaux : l'épisode choisi, sinon le titre de la page. */
+  // Vide seulement tant que la page charge (`item` aussi) : le gabarit ne s'en sert qu'une fois `item` arrivé.
+  const view = $derived((selItem ? (epDetail?.ratingKey === selItem.ratingKey ? epDetail : sketch(selItem)) : item) as ItemDetail);
   let audioStream = $state<number | null>(null);
   let subtitleStream = $state<number>(0);
   // Version choisie (4K, 1080p…) : ses propres pistes audio et sous-titres.
   let version = $state(0);
-  const media = $derived(item ? (item.versions?.[version] ?? item) : null);
+  const media = $derived(view ? (view.versions?.[version] ?? view) : null);
 
   /** Pistes par défaut d'une version : celles retenues par le serveur. */
   function pickTracks(v: { audioTracks: { id: number; selected: boolean }[]; subtitleTracks: { id: number; selected: boolean }[] }) {
@@ -49,7 +109,8 @@
   }
 
   // Fiche gardée en mémoire : ses pistes par défaut tout de suite, sans attendre la mise à jour.
-  if (cached) pickTracks(cached.item.versions?.[0] ?? cached.item);
+  // svelte-ignore state_referenced_locally
+  if (view) pickTracks(view.versions?.[0] ?? view);
 
   function chooseVersion(v: number) {
     version = v;
@@ -60,19 +121,129 @@
   let root = $state<HTMLElement>();
   let fade = $state(0);
 
+  /** Le titre affiché par l'adresse de la page : l'épisode choisi dans une saison, sinon celui ouvert. */
+  const routeKey = () => (nav.view.name === "item" ? nav.view.ratingKey : ratingKey);
+
+  function remember() {
+    if (!item) return;
+    const key = item.ratingKey;
+    cache.delete(key);
+    cache.set(key, { item, children, related, sel: selKey, seasons, showNext });
+    if (cache.size > CACHE_SIZE) cache.delete(cache.keys().next().value!);
+    if (item.kind === "season") for (const c of children) episodeSeason.set(c.ratingKey, key);
+  }
+
+  /** Épisode sélectionné en ouvrant une saison : celui en cours, sinon le premier à voir, sinon le premier. */
+  const firstToWatch = (eps: Item[]) => eps.find((e) => e.viewOffsetMs) ?? eps.find((e) => !e.watched) ?? eps[0] ?? null;
+
+  let selTimer: ReturnType<typeof setTimeout> | undefined;
+
+  /** Choisit l'épisode montré en haut de la saison ; sa fiche arrive ensuite (aussitôt si elle est connue). */
+  function select(key: string | null) {
+    if (key === selKey) return;
+    selKey = key;
+    version = 0;
+    summaryOpen = false;
+    clearTimeout(selTimer);
+    if (nav.view.name === "item") nav.view.ratingKey = key ?? item?.ratingKey ?? ratingKey;
+    if (!key) return void (epDetail = null);
+    const known = episodeDetails.get(key) ?? null;
+    epDetail = known;
+    if (known) return pickTracks(known.versions?.[0] ?? known);
+    // Télécommande : on attend que la sélection se pose avant de charger la fiche de l'épisode.
+    selTimer = setTimeout(() => fetchEpisode(key), device.tv ? 180 : 0);
+  }
+
+  async function fetchEpisode(key: string) {
+    try {
+      const d = await api.metadata(key);
+      rememberEpisode(d);
+      if (selKey !== key) return;
+      epDetail = d;
+      pickTracks(d.versions?.[version] ?? d);
+    } catch {
+      // Fiche introuvable : l'épisode reste affiché avec ce que la saison en sait.
+    }
+  }
+
+  /** Ramène l'épisode choisi au milieu de sa rangée (ouverture de la saison, changement de saison). */
+  function centerSelected() {
+    tick().then(() => {
+      const card = rowEl?.querySelector<HTMLElement>(`[data-ep="${selKey}"]`);
+      if (rowEl && card) rowEl.scrollLeft = card.offsetLeft - (rowEl.clientWidth - card.clientWidth) / 2;
+    });
+  }
+
+  /** Saisons de la série en onglets, et l'épisode choisi dans celle ouverte. */
+  function showSeason(detail: ItemDetail, kids: Item[], want: string | null) {
+    item = detail;
+    children = kids;
+    const keep = want && kids.some((k) => k.ratingKey === want) ? want : (firstToWatch(kids)?.ratingKey ?? null);
+    selKey = null;
+    select(keep);
+    centerSelected();
+    if (detail.showKey && seasons[0]?.showKey !== detail.showKey)
+      api.children(detail.showKey).then(
+        (s) => {
+          seasons = s;
+          remember();
+        },
+        () => {},
+      );
+  }
+
+  /** Onglet d'une autre saison : elle remplace celle-ci sur la même page, sans rien ajouter à l'historique. */
+  async function openSeason(key: string) {
+    if (key === item?.ratingKey) return;
+    try {
+      const [detail, kids] = await Promise.all([api.metadata(key), api.children(key)]);
+      showSeason(detail, kids, null);
+      remember();
+    } catch (e) {
+      toast(errorText(e), true);
+    }
+  }
+
+  /** Fiche d'une série : l'épisode à reprendre, dans la première saison qui reste à voir (les spéciaux en dernier). */
+  async function findShowNext(list: Item[]) {
+    const regular = list.filter((s) => s.index !== 0);
+    const season = (regular.length ? regular : list).find((s) => (s.unwatchedCount ?? 1) > 0);
+    if (!season) return void (showNext = null);
+    try {
+      const eps = await api.children(season.ratingKey);
+      showNext = eps.find((e) => e.viewOffsetMs) ?? eps.find((e) => !e.watched) ?? null;
+      remember();
+    } catch {
+      showNext = null;
+    }
+  }
+
   async function load() {
     try {
-      const detail = await api.metadata(ratingKey);
+      let detail = await api.metadata(routeKey());
+      // Un épisode s'ouvre dans sa saison ; sans saison joignable, il garde sa propre fiche.
+      if (detail.kind === "episode" && detail.seasonKey) {
+        const episode = detail;
+        rememberEpisode(episode);
+        try {
+          const [season, kids] = await Promise.all([api.metadata(episode.seasonKey!), api.children(episode.seasonKey!)]);
+          showSeason(season, kids, episode.ratingKey);
+          remember();
+          return;
+        } catch {
+          detail = episode;
+        }
+      }
+      if (detail.kind === "season") {
+        showSeason(detail, await api.children(detail.ratingKey), selKey);
+        remember();
+        return;
+      }
       item = detail;
       if (version >= (detail.versions?.length ?? 1)) version = 0;
       pickTracks(detail.versions?.[version] ?? detail);
-      const remember = () => {
-        cache.delete(ratingKey);
-        cache.set(ratingKey, { item: detail, children, related });
-        if (cache.size > CACHE_SIZE) cache.delete(cache.keys().next().value!);
-      };
       if (detail.kind === "movie" || detail.kind === "show")
-        api.related(ratingKey).then(
+        api.related(detail.ratingKey).then(
           (r) => {
             related = r;
             remember();
@@ -80,11 +251,12 @@
           () => {},
         );
       children =
-        detail.kind === "show" || detail.kind === "season"
-          ? await api.children(ratingKey)
+        detail.kind === "show"
+          ? await api.children(detail.ratingKey)
           : detail.kind === "collection"
-            ? await api.collectionItems(ratingKey)
+            ? await api.collectionItems(detail.ratingKey)
             : [];
+      if (detail.kind === "show") findShowNext(children);
       remember();
     } catch (e) {
       error = errorText(e);
@@ -114,38 +286,51 @@
   }
 
   function playThis(fromStart = false) {
-    start(item!.ratingKey, { audioStream, subtitleStream, fromStart, mediaIndex: version });
+    start(view!.ratingKey, { audioStream, subtitleStream, fromStart, mediaIndex: version });
+  }
+
+  /** Lecture d'un épisode de la rangée : celui choisi garde ses pistes et sa version. */
+  function playEpisode(key: string) {
+    if (key === view?.ratingKey) playThis();
+    else start(key);
+  }
+
+  /**
+   * Vignette d'un épisode. À la télécommande, la sélection choisit déjà l'épisode : OK le lance. À la souris
+   * et au doigt, un appui le choisit ; le bouton ▶ de la vignette (ou un double-clic) le lance.
+   */
+  function pressEpisode(key: string) {
+    if (device.tv && key === selKey) playEpisode(key);
+    else select(key);
   }
 
   /** Menu « ⋯ » de la fiche : informations, retrait de « Continuer à regarder », et la gestion (administrateur). */
   function openMenu(e: MouseEvent) {
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    nav.menu = { item: item!, x: r.left, y: r.bottom + 6, here: true };
+    nav.menu = { item: view!, x: r.left, y: r.bottom + 6, here: true };
   }
 
   async function toggleWatched() {
-    if (!item) return;
+    if (!view) return;
     try {
-      await api.setWatched(item.ratingKey, !item.watched);
+      await api.setWatched(view.ratingKey, !view.watched);
+      episodeDetails.delete(view.ratingKey);
       await load();
     } catch (e) {
       toast(errorText(e), true);
     }
   }
 
-  // Pour une saison : premier épisode non vu.
-  // Pour une saison : premier épisode non vu ; pour une collection : premier film non vu (ordre de sortie).
-  const nextUp = $derived(
-    item?.kind === "season" || item?.kind === "collection" ? (children.find((c) => !c.watched) ?? children[0]) : undefined,
-  );
+  // Pour une collection : premier film non vu (ordre de sortie).
+  const nextUp = $derived(item?.kind === "collection" ? (children.find((c) => !c.watched) ?? children[0]) : undefined);
   const collection = $derived(item?.kind === "collection");
   const progress = $derived(
-    item?.viewOffsetMs && item.durationMs ? Math.min(100, (item.viewOffsetMs / item.durationMs) * 100) : 0,
+    view?.viewOffsetMs && view.durationMs ? Math.min(100, (view.viewOffsetMs / view.durationMs) * 100) : 0,
   );
-  const remaining = $derived(item?.viewOffsetMs && item.durationMs ? item.durationMs - item.viewOffsetMs : null);
+  const remaining = $derived(view?.viewOffsetMs && view.durationMs ? view.durationMs - view.viewOffsetMs : null);
   const releaseDate = $derived(
-    item?.releaseDate
-      ? new Date(item.releaseDate).toLocaleDateString(locale, { day: "numeric", month: "long", year: "numeric" })
+    view?.releaseDate
+      ? new Date(view.releaseDate).toLocaleDateString(locale, { day: "numeric", month: "long", year: "numeric" })
       : null,
   );
   // Fond du film, ou de la saison pour une série et ses épisodes (Plex reprend celui de la série
@@ -160,12 +345,14 @@
   );
   // Heure de fin si la lecture démarre maintenant (reprise comprise), comme dans Jellyfin.
   const endsAt = $derived.by(() => {
-    if (!item?.playable || !item.durationMs) return null;
-    const end = new Date(Date.now() + (item.durationMs - (item.viewOffsetMs ?? 0)));
+    if (!view?.playable || !view.durationMs) return null;
+    const end = new Date(Date.now() + (view.durationMs - (view.viewOffsetMs ?? 0)));
     return end.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
   });
-  const hasCredits = $derived(!!item && (item.directors.length + item.writers.length + item.genres.length > 0 || !!item.studio));
-  const hasMedia = $derived(!!item && (!!item.video || item.audioTracks.length > 0 || item.playable));
+  const hasCredits = $derived(!!view && (view.directors.length + view.writers.length + view.genres.length > 0 || !!view.studio));
+  const hasMedia = $derived(!!view && (!!view.video || view.audioTracks.length > 0 || view.playable));
+  /** Distribution de l'épisode choisi (ses invités), sinon celle de la saison ou de la série. */
+  const cast = $derived(view?.cast.length ? view.cast : (item?.cast ?? []));
 
   // Le fond s'assombrit à mesure que la page défile sur lui.
   $effect(() => {
@@ -191,6 +378,118 @@
 {:else if isMusic(item.kind)}
   <MusicDetail {item} />
 {:else}
+  <!-- Ligne de l'épisode choisi (ou de la saison), sous le logo de la série. -->
+  {#snippet episodeLine()}
+    <div class="line">
+      {#if view.kind === "season"}
+        {view.title}
+      {:else if episodeTitle(view.title)}
+        {t("hero.episodeLine", { season: view.parentIndex ?? "", episode: view.index ?? "", title: episodeTitle(view.title) ?? "" })}
+      {:else}
+        {t("item.seasonEpisode", { season: view.parentIndex ?? "", episode: view.index ?? "" })}
+      {/if}
+    </div>
+  {/snippet}
+
+  <!-- Date, durée, classement, fin ; puis les notes. -->
+  {#snippet facts()}
+    <div class="meta">
+      {#if releaseDate}<span>{releaseDate}</span>{:else if view.year}<span>{view.year}</span>{/if}
+      {#if view.durationMs && view.kind !== "show" && view.kind !== "season"}
+        <span>{formatDuration(view.durationMs)}</span>
+      {/if}
+      {#if view.kind === "show" || view.kind === "season"}
+        <span>{t(view.kind === "show" ? "item.seasonCount" : "item.episodeCount", { count: children.length })}</span>
+      {:else if collection}
+        <span>{t("item.movieCount", { count: children.length })}</span>
+      {/if}
+      {#if view.contentRating}<span class="badge outline">{view.contentRating}</span>{/if}
+      {#if view.rating && !view.siteRatings?.length}<span class="rating"><Icon name="star" size={14} filled /> {view.rating.toFixed(1)}</span>{/if}
+      {#if endsAt}<span>{t("item.endsAt", { time: endsAt })}</span>{/if}
+      {#if view.watched}<span class="badge ok">{t("item.watched")}</span>{/if}
+    </div>
+
+    <!-- Notes des sites (réglables dans Réglages → Interface) et, avec Plex, la note de l'utilisateur. -->
+    {#if !collection}
+      <div class="scores">
+        {#if view.siteRatings}{#key view.ratingKey}<SiteRatings item={view} />{/key}{/if}
+        {#if nav.serverKind === "plex" && !device.tv}{#key view.ratingKey}<Stars item={view} size={17} />{/key}{/if}
+      </div>
+    {/if}
+  {/snippet}
+
+  {#snippet episodeSummary()}
+    <!-- Saison : le résumé de l'épisode choisi, au-dessus de la rangée (sous elle sur TV). Toujours deux lignes de place, même sans résumé : la rangée ne bouge pas d'un épisode à l'autre. -->
+    <button class="summary hero-summary" class:open={summaryOpen} tabindex={device.tv || !view.summary ? -1 : 0} onclick={() => (summaryOpen = !summaryOpen)}>
+      {view.summary ?? ""}
+    </button>
+  {/snippet}
+
+  <!-- Boutons du titre affiché (l'épisode choisi dans une saison) : dans le bandeau, ou sous la rangée des épisodes. -->
+  {#snippet actions()}
+    {@const v = view}
+    <div class="actions" data-nav-row>
+      {#if v.playable}
+        <button class="btn primary big" onclick={() => playThis()} data-nav-default={seasonView ? undefined : ""}>
+          <Icon name="play" size={18} filled />
+          {v.viewOffsetMs ? t("item.resume") : t("item.play")}
+        </button>
+      {:else if showNext}
+        <!-- Série : l'épisode à reprendre s'ouvre dans sa saison (rien ne se lance). -->
+        <button class="btn primary big" onclick={() => go({ name: "item", ratingKey: showNext!.ratingKey })} data-nav-default>
+          <Icon name="play" size={18} filled />
+          {t(showNext.viewOffsetMs ? "item.resumeEpisode" : "item.playEpisode", { season: showNext.parentIndex ?? "", episode: showNext.index ?? "" })}
+        </button>
+      {:else if nextUp}
+        <button class="btn primary big" onclick={() => start(nextUp!.ratingKey)} data-nav-default>
+          <Icon name="play" size={18} filled />
+          {t("item.playTitle", { title: nextUp.title })}
+        </button>
+      {/if}
+      <!-- Reprise en cours : recommencer depuis le début. -->
+      {#if v.playable && v.viewOffsetMs}
+        <button class="btn round big" onclick={() => playThis(true)} title={t("item.playFromStart")}>
+          <Icon name="restart" size={18} />
+        </button>
+      {/if}
+      <!-- Android : film ou épisode, et toute la saison, à regarder hors ligne. -->
+      {#if canDownload() && v.playable && (v.kind === "movie" || v.kind === "episode")}
+        {#key v.ratingKey}<DownloadButton item={v} />{/key}
+      {/if}
+      {#if canDownload() && item?.kind === "season" && children.length}
+        <DownloadButton {item} episodes={children} />
+      {/if}
+      {#if !collection && (v.kind === "movie" || v.kind === "show")}
+        <button class="btn big" disabled={trailerBusy} onclick={openTrailer} title={t("item.trailer")}>
+          <Icon name="film" size={18} />
+          {t("item.trailer")}
+        </button>
+      {/if}
+      {#if !collection}
+        <button class="btn round big" class:on={v.watched} onclick={toggleWatched} title={v.watched ? t("item.markUnwatched") : t("item.markWatched")}>
+          <Icon name="checkCircle" size={20} />
+        </button>
+        {#if nav.admin}
+          <button class="btn round big" onclick={() => (nav.editing = v)} title={t("item.editInfo")}>
+            <Icon name="edit" size={18} />
+          </button>
+        {/if}
+        {#if !device.tv}
+          <button class="btn round big" onclick={openMenu} title={t("trackGrid.moreActions")} aria-label={t("trackGrid.moreActions")}>
+            <Icon name="more" size={20} />
+          </button>
+        {/if}
+      {/if}
+    </div>
+    {#if trailerMissing}<p class="muted small no-trailer">{t("item.noTrailer")}</p>{/if}
+    {#if progress > 0}
+      <div class="watch-progress">
+        <div class="bar"><div style:width="{progress}%"></div></div>
+        {#if remaining}<span>{t("item.remaining", { time: formatDuration(remaining) })}</span>{/if}
+      </div>
+    {/if}
+  {/snippet}
+
   <!-- Le fond reste en place pendant que la page défile par-dessus, et s'assombrit peu à peu. Le défilement
        ne change que l'agrandissement de l'image et l'opacité du voile, chacun sur son calque : rien n'est
        redessiné à chaque image (une variable de style forçait à repeindre tout le fond, saccadé sur TV). -->
@@ -200,137 +499,97 @@
   </div>
 
   <div class="page detail" bind:this={root} data-nav-rows>
-    <section class="hero">
+    <section class="hero" class:season={seasonView}>
       <div class="hero-main">
+        {#if item.kind === "season" && item.showKey}
+          <!-- Comme Plex : la série, puis chacune de ses saisons, en onglets. -->
+          <div class="season-tabs" role="tablist" aria-label={item.showTitle ?? ""} data-nav-row>
+            <button role="tab" aria-selected="false" onclick={() => go({ name: "item", ratingKey: item!.showKey! })}>{t("item.showTab")}</button>
+            {#each seasons.length ? seasons : [item] as s (s.ratingKey)}
+              <button
+                role="tab"
+                aria-selected={s.ratingKey === item.ratingKey}
+                data-nav-current={s.ratingKey === item.ratingKey ? "" : undefined}
+                onclick={() => openSeason(s.ratingKey)}>{s.title}</button
+              >
+            {/each}
+          </div>
+        {/if}
         {#if item.showKey && (item.kind === "episode" || item.kind === "season")}
-          <!-- Épisode ou saison : le logo de la série, qui y ramène, puis l'épisode ou la saison. -->
+          <!-- Épisode ou saison : le logo de la série, qui y ramène, puis l'épisode choisi. -->
           <h1>
             <button class="show-logo" tabindex={device.tv ? -1 : 0} onclick={() => go({ name: "item", ratingKey: item!.showKey! })} title={item.showTitle ?? ""}>
               <TitleLogo logo={null} guid={item.logoGuid} genres={item.genres} title={item.showTitle ?? item.title} />
             </button>
           </h1>
-          <div class="line">
-            {#if item.kind === "season"}
-              {item.title}
-            {:else if episodeTitle(item.title)}
-              {t("hero.episodeLine", { season: item.parentIndex ?? "", episode: item.index ?? "", title: episodeTitle(item.title) ?? "" })}
-            {:else}
-              {t("item.seasonEpisode", { season: item.parentIndex ?? "", episode: item.index ?? "" })}
-            {/if}
-          </div>
+          {#if !tvSeason}{@render episodeLine()}{/if}
         {:else}
           <h1><TitleLogo logo={item.logo} guid={item.logoGuid} genres={item.genres} title={item.title} /></h1>
           {#if item.originalTitle}<div class="line original">{item.originalTitle}</div>{/if}
         {/if}
 
-        <div class="meta">
-          {#if releaseDate}<span>{releaseDate}</span>{:else if item.year}<span>{item.year}</span>{/if}
-          {#if item.durationMs && item.kind !== "show" && item.kind !== "season"}
-            <span>{formatDuration(item.durationMs)}</span>
-          {/if}
-          {#if item.kind === "show" || item.kind === "season"}
-            <span>{t(item.kind === "show" ? "item.seasonCount" : "item.episodeCount", { count: children.length })}</span>
-          {:else if collection}
-            <span>{t("item.movieCount", { count: children.length })}</span>
-          {/if}
-          {#if item.contentRating}<span class="badge outline">{item.contentRating}</span>{/if}
-          {#if item.rating && !item.siteRatings?.length}<span class="rating"><Icon name="star" size={14} filled /> {item.rating.toFixed(1)}</span>{/if}
-          {#if endsAt}<span>{t("item.endsAt", { time: endsAt })}</span>{/if}
-          {#if item.watched}<span class="badge ok">{t("item.watched")}</span>{/if}
-        </div>
+        {#if !tvSeason}{@render facts()}{/if}
 
-        <!-- Notes des sites (réglables dans Réglages → Interface) et, avec Plex, la note de l'utilisateur. -->
-        {#if !collection}
-          <div class="scores">
-            {#if item.siteRatings}<SiteRatings {item} />{/if}
-            {#if nav.serverKind === "plex" && !device.tv}<Stars {item} size={17} />{/if}
-          </div>
-        {/if}
-
-        <div class="actions" data-nav-row>
-          {#if item.playable}
-            <button class="btn primary big" onclick={() => playThis()}>
-              <Icon name="play" size={18} filled />
-              {item.viewOffsetMs ? t("item.resume") : t("item.play")}
-            </button>
-          {:else if nextUp}
-            <button class="btn primary big" onclick={() => start(nextUp!.ratingKey)}>
-              <Icon name="play" size={18} filled />
-              {collection ? t("item.playTitle", { title: nextUp.title }) : t("item.episodeNumber", { number: nextUp.index ?? "" })}
-            </button>
-          {/if}
-          <!-- Épisode : retour à la liste des épisodes de sa saison. -->
-          {#if item.kind === "episode" && item.seasonKey}
-            <button class="btn big" onclick={() => go({ name: "item", ratingKey: item!.seasonKey! })}>
-              <Icon name="library" size={18} />
-              {item.parentIndex != null ? t("item.seasonButton", { number: item.parentIndex }) : t("item.episodes")}
-            </button>
-          {/if}
-          <!-- Reprise en cours : recommencer depuis le début, après le bouton de la saison. -->
-          {#if item.playable && item.viewOffsetMs}
-            <button class="btn round big" onclick={() => playThis(true)} title={t("item.playFromStart")}>
-              <Icon name="restart" size={18} />
-            </button>
-          {/if}
-          <!-- Saison : retour à la série, et à toutes ses saisons. -->
-          {#if item.kind === "season" && item.showKey}
-            <button class="btn big" onclick={() => go({ name: "item", ratingKey: item!.showKey! })}>
-              <Icon name="tv" size={18} />
-              {t("item.allSeasons")}
-            </button>
-          {/if}
-          <!-- Android : film ou épisode, ou toute la saison, à regarder hors ligne. -->
-          {#if canDownload() && item.playable && (item.kind === "movie" || item.kind === "episode")}
-            <DownloadButton {item} />
-          {:else if canDownload() && item.kind === "season" && children.length}
-            <DownloadButton {item} episodes={children} />
-          {/if}
-          {#if !collection && (item.kind === "movie" || item.kind === "show")}
-            <button class="btn big" disabled={trailerBusy} onclick={openTrailer} title={t("item.trailer")}>
-              <Icon name="film" size={18} />
-              {t("item.trailer")}
-            </button>
-          {/if}
-          {#if !collection}
-          <button
-            class="btn round big"
-            class:on={item.watched}
-            onclick={toggleWatched}
-            title={item.watched ? t("item.markUnwatched") : t("item.markWatched")}
-          >
-            <Icon name="checkCircle" size={20} />
-          </button>
-          {#if nav.admin}
-            <button class="btn round big" onclick={() => (nav.editing = item)} title={t("item.editInfo")}>
-              <Icon name="edit" size={18} />
-            </button>
-          {/if}
-          {#if !device.tv}
-            <button class="btn round big" onclick={openMenu} title={t("trackGrid.moreActions")} aria-label={t("trackGrid.moreActions")}>
-              <Icon name="more" size={20} />
-            </button>
-          {/if}
-          {/if}
-        </div>
-        {#if trailerMissing}<p class="muted small no-trailer">{t("item.noTrailer")}</p>{/if}
-
-        {#if progress > 0}
-          <div class="watch-progress">
-            <div class="bar"><div style:width="{progress}%"></div></div>
-            {#if remaining}<span>{t("item.remaining", { time: formatDuration(remaining) })}</span>{/if}
-          </div>
+        {#if seasonView}
+          {#if !tvSeason}{@render episodeSummary()}{/if}
+        {:else}
+          {@render actions()}
         {/if}
       </div>
     </section>
 
+    {#if seasonView}
+      <!-- Les épisodes de la saison : en choisir un change le haut de la page ; ▶ (ou OK sur TV) le lance. -->
+      <div class="ep-row" bind:this={rowEl} data-nav-row>
+        {#each children as ep (ep.ratingKey)}
+          <div class="ep" class:sel={ep.ratingKey === selKey} data-ep={ep.ratingKey}>
+            <button
+              class="ep-thumb"
+              data-key="ep-{ep.ratingKey}"
+              aria-pressed={ep.ratingKey === selKey}
+              data-nav-current={ep.ratingKey === selKey ? "" : undefined}
+              data-nav-default={ep.ratingKey === selKey ? "" : undefined}
+              aria-label={t("item.seasonEpisode", { season: ep.parentIndex ?? "", episode: ep.index ?? "" }) + " · " + ep.title}
+              onfocus={() => device.tv && select(ep.ratingKey)}
+              onclick={() => pressEpisode(ep.ratingKey)}
+              ondblclick={() => !device.tv && playEpisode(ep.ratingKey)}
+            >
+              {#if ep.thumb}<img src={ep.thumb} alt="" loading="lazy" />{/if}
+              <span class="ep-badge">
+                {#if ep.watched}<Icon name="check" size={13} />{/if}
+                {t("item.episodeShort", { number: ep.index ?? "" })}
+              </span>
+              {#if ep.viewOffsetMs && ep.durationMs}
+                <div class="progress"><div style:width="{(ep.viewOffsetMs / ep.durationMs) * 100}%"></div></div>
+              {/if}
+            </button>
+            {#if !device.tv}
+              <button class="ep-play" onclick={() => playEpisode(ep.ratingKey)} aria-label={t("item.playTitle", { title: ep.title })} title={t("item.playTitle", { title: ep.title })}>
+                <Icon name="play" size={20} filled />
+              </button>
+            {/if}
+            <div class="ep-name">{ep.title}</div>
+          </div>
+        {/each}
+      </div>
+      {#if tvSeason}
+        <!-- Sans la ligne de l'épisode : son titre est déjà sous sa vignette, son numéro dessus. -->
+        <div class="season-info">
+          {@render facts()}
+          {@render episodeSummary()}
+        </div>
+      {/if}
+      <div class="season-actions">{@render actions()}</div>
+    {/if}
+
     <!-- Sous le bandeau, en pleine largeur : l'accroche et le résumé, dépliable. -->
-    {#if item.tagline || item.summary}
+    {#if !seasonView && (view.tagline || view.summary)}
       <section class="about">
-        {#if item.tagline && item.kind !== "episode"}<p class="tagline">{item.tagline}</p>{/if}
-        {#if item.summary}
+        {#if view.tagline && view.kind !== "episode"}<p class="tagline">{view.tagline}</p>{/if}
+        {#if view.summary}
           <!-- Sur téléviseur, le résumé n'est pas une étape de la navigation. -->
           <button class="summary" class:open={summaryOpen} tabindex={device.tv ? -1 : 0} onclick={() => (summaryOpen = !summaryOpen)}>
-            {item.summary}
+            {view.summary}
           </button>
         {/if}
       </section>
@@ -341,23 +600,23 @@
       <div class="panels">
         {#if hasCredits}
           <dl class="panel credits">
-            {#if item.directors.length}<div><dt>{t("item.facts.director")}</dt><dd>{item.directors.join(", ")}</dd></div>{/if}
-            {#if item.writers.length}<div><dt>{t("item.facts.writer")}</dt><dd>{item.writers.slice(0, 3).join(", ")}</dd></div>{/if}
-            {#if item.studio}<div><dt>{t("item.facts.studio")}</dt><dd>{item.studio}</dd></div>{/if}
-            {#if item.genres.length}
-              <div><dt>{t("item.facts.genres")}</dt><dd class="genres">{#each item.genres as g}<span>{g}</span>{/each}</dd></div>
+            {#if view.directors.length}<div><dt>{t("item.facts.director")}</dt><dd>{view.directors.join(", ")}</dd></div>{/if}
+            {#if view.writers.length}<div><dt>{t("item.facts.writer")}</dt><dd>{view.writers.slice(0, 3).join(", ")}</dd></div>{/if}
+            {#if view.studio}<div><dt>{t("item.facts.studio")}</dt><dd>{view.studio}</dd></div>{/if}
+            {#if view.genres.length}
+              <div><dt>{t("item.facts.genres")}</dt><dd class="genres">{#each view.genres as g}<span>{g}</span>{/each}</dd></div>
             {/if}
           </dl>
         {/if}
         {#if hasMedia}
           <div class="panel media">
             <!-- Plusieurs versions (4K, 1080p…) : la ligne vidéo devient un choix, comme dans Plex. -->
-            {#if item.versions?.length > 1}
+            {#if view.versions?.length > 1}
               <label class="track" data-nav-row>
                 <span class="ico" title={t("item.facts.version")}><Icon name="film" size={18} /></span>
                 <TrackSelect
                   value={version}
-                  options={item.versions.map((v, i) => ({ value: i, label: v.label }))}
+                  options={view.versions.map((v, i) => ({ value: i, label: v.label }))}
                   label={t("item.facts.version")}
                   onchange={(v) => chooseVersion(Number(v))}
                 />
@@ -375,7 +634,7 @@
                 />
               </label>
             {/if}
-            {#if item.playable}
+            {#if view.playable}
               <label class="track" data-nav-row>
                 <span class="ico" title={t("item.facts.subtitles")}><Icon name="subtitles" size={18} /></span>
                 <TrackSelect
@@ -400,36 +659,12 @@
       <div class="grid" data-nav-row="grid">
         {#each children as season (season.ratingKey)}<PosterCard item={season} />{/each}
       </div>
-    {:else if item.kind === "season"}
-      <h2 class="row-title">{t("item.episodes")}</h2>
-      <div class="episodes">
-        {#each children as ep (ep.ratingKey)}
-          <div class="episode" data-nav-row>
-            <button class="thumb" onclick={() => start(ep.ratingKey)} aria-label={t("item.playTitle", { title: ep.title })}>
-              {#if ep.thumb}<img src={ep.thumb} alt="" loading="lazy" />{/if}
-              <span class="play"><Icon name="play" size={20} filled /></span>
-              {#if ep.viewOffsetMs && ep.durationMs}
-                <div class="progress"><div style:width="{(ep.viewOffsetMs / ep.durationMs) * 100}%"></div></div>
-              {/if}
-            </button>
-            <div class="ep-body">
-              <button class="ep-title" onclick={() => go({ name: "item", ratingKey: ep.ratingKey })}>
-                <span class="ep-num">{ep.index}</span>
-                {ep.title}
-                {#if ep.watched}<span class="badge ok">{t("item.watched")}</span>{/if}
-              </button>
-              <div class="ep-meta">{formatDuration(ep.durationMs)}</div>
-              {#if ep.summary}<p class="ep-summary">{ep.summary}</p>{/if}
-            </div>
-          </div>
-        {/each}
-      </div>
     {/if}
 
-    {#if item.cast.length}
+    {#if cast.length}
       <h2 class="row-title">{t("item.cast")}</h2>
       <div class="cast" data-nav-row>
-        {#each item.cast as person (person.name + person.role)}
+        {#each cast as person (person.name + person.role)}
           <!-- Comme dans Plex : un acteur ouvre la liste de ses films et séries du serveur. -->
           <button
             class="person"
@@ -805,38 +1040,153 @@
     font-weight: 600;
   }
 
-  .episodes {
-    display: grid;
-    gap: 6px;
+  /* ---------- Saison : onglets, rangée des épisodes, boutons de l'épisode choisi ---------- */
+
+  /* Le bandeau d'une saison laisse la place à la rangée des épisodes dans le premier écran. */
+  .hero.season {
+    min-height: calc(100vh - 68px - 400px);
+    padding-bottom: 18px;
   }
 
-  .episode {
-    display: grid;
-    grid-template-columns: 260px 1fr;
-    gap: 20px;
-    padding: 10px;
-    border-radius: var(--radius-lg);
-    transition: background 0.15s;
+  .season-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 4px;
+    margin-bottom: 18px;
+    padding: 4px;
+    border-radius: 999px;
+    background: #00000066;
+    backdrop-filter: blur(12px);
   }
 
-  .episode:hover {
-    background: #ffffff0a;
+  .season-tabs button {
+    padding: 6px 16px;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    background: none;
+    color: #ffffffb0;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
   }
 
-  .thumb {
+  .season-tabs button:hover {
+    color: #fff;
+  }
+
+  .season-tabs button[aria-selected="true"] {
+    border-color: #ffffffb0;
+    color: #fff;
+  }
+
+  .hero-summary {
+    max-width: 760px;
+    margin-top: 14px;
+    text-align: center;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+  }
+
+  /* Ce qui change d'un épisode à l'autre garde la même hauteur : une ligne pour le titre et les
+     informations, une pour les notes (même vide), deux pour le résumé. */
+  .hero-summary:not(.open) {
+    height: 3.2em;
+  }
+
+  .hero.season .line,
+  .season-info .line {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .hero.season .meta,
+  .season-info .meta {
+    flex-wrap: nowrap;
+    min-height: 1.6em;
+    white-space: nowrap;
+  }
+
+  .hero.season .scores,
+  .hero.season .scores:empty,
+  .season-info .scores,
+  .season-info .scores:empty {
+    display: flex;
+    flex-wrap: nowrap;
+    min-height: 24px;
+  }
+
+  .ep-row {
     position: relative;
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 280px;
+    gap: 16px;
+    overflow-x: auto;
+    /* La place du cadre de sélection, sans rogner les vignettes. */
+    padding: 8px 8px 6px;
+    margin: 0 -8px;
+    scrollbar-width: thin;
+  }
+
+  /* Téléviseur : la télécommande fait défiler la rangée, sans barre de défilement. */
+  :global(html.tv) .ep-row {
+    scrollbar-width: none;
+  }
+
+  .ep {
+    position: relative;
+    min-width: 0;
+  }
+
+  .ep-thumb {
+    position: relative;
+    display: block;
+    width: 100%;
     aspect-ratio: 16 / 9;
     padding: 0;
     overflow: hidden;
-    border: none;
+    border: 2px solid transparent;
     border-radius: var(--radius);
     background: var(--bg-elev);
+    transition: border-color 0.15s, transform 0.2s var(--ease);
   }
 
-  .thumb img {
+  .ep.sel .ep-thumb {
+    border-color: var(--accent);
+  }
+
+  .ep-thumb img {
     width: 100%;
     height: 100%;
     object-fit: cover;
+  }
+
+  /* Les épisodes autres que celui choisi restent un peu en retrait, comme dans Plex. */
+  .ep:not(.sel) .ep-thumb img {
+    filter: brightness(0.72);
+    transition: filter 0.15s;
+  }
+
+  .ep:not(.sel):hover .ep-thumb img {
+    filter: none;
+  }
+
+  .ep-badge {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 1px 7px;
+    border-radius: 6px;
+    background: #000000b0;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
   }
 
   .progress {
@@ -849,79 +1199,102 @@
     background: var(--accent);
   }
 
-  .thumb .progress {
+  .ep-thumb .progress {
     position: absolute;
     left: 0;
     right: 0;
     bottom: 0;
   }
 
-  .play {
+  /* Souris : ▶ au survol de la vignette ; au doigt, sur l'épisode choisi. */
+  .ep-play {
     position: absolute;
-    inset: 0;
+    top: calc((280px - 16px) * 9 / 32 - 22px);
+    left: calc(50% - 22px);
     display: grid;
     place-items: center;
-    background: #0007;
-    color: var(--accent);
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #000;
     opacity: 0;
-    transition: opacity 0.15s;
+    transition: opacity 0.15s, transform 0.15s;
   }
 
-  .thumb:hover .play {
+  .ep:hover .ep-play,
+  .ep-play:focus-visible {
     opacity: 1;
   }
 
-  .ep-body {
-    min-width: 0;
-    padding-top: 4px;
+  .ep-play:hover {
+    transform: scale(1.08);
   }
 
-  .ep-title {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 0;
-    border: none;
-    background: none;
-    font-size: 16px;
-    font-weight: 600;
-    text-align: left;
-    /* Cadre de sélection (télécommande) arrondi, comme celui de la vignette et des boutons. */
-    border-radius: 6px;
+  :global(html.phone) .ep.sel .ep-play {
+    opacity: 1;
   }
 
-  /* Télécommande : le cadre du titre s'écarte du texte sans déborder sur la durée en dessous. */
-  :global(html.tv) .ep-title {
-    margin: -4px -8px 6px;
-    padding: 4px 8px;
-  }
-
-  :global(html.tv) .ep-title:focus {
-    outline-offset: 0;
-  }
-
-  .ep-title:hover {
-    color: var(--accent);
-  }
-
-  .ep-num {
-    color: var(--text-faint);
-  }
-
-  .ep-meta {
-    margin-top: 2px;
-    color: var(--text-dim);
-    font-size: 13px;
-  }
-
-  .ep-summary {
-    display: -webkit-box;
-    margin: 8px 0 0;
+  .ep-name {
+    margin-top: 6px;
     overflow: hidden;
     color: var(--text-dim);
-    -webkit-line-clamp: 3;
-    line-clamp: 3;
-    -webkit-box-orient: vertical;
+    font-size: 14px;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .ep.sel .ep-name {
+    color: var(--text);
+  }
+
+  /* Télécommande : la sélection agrandit un peu la vignette, le cadre doré suit l'épisode choisi. */
+  :global(html.tv) .ep-thumb:focus {
+    outline: none;
+    border-color: #fff;
+    transform: scale(1.03);
+  }
+
+  /* Téléviseur : les informations de l'épisode choisi sous la rangée, l'image dégagée au-dessus. */
+  .season-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 14px;
+    text-align: center;
+  }
+
+  .season-info .meta,
+  .season-info .scores {
+    margin-top: 6px;
+  }
+
+  .season-info .hero-summary {
+    margin-top: 8px;
+  }
+
+  /* Le bandeau ne garde que les onglets et le logo, sur l'image dégagée : la rangée reste en bas du premier
+     écran, et les informations de l'épisode viennent encore dessous. */
+  :global(html.tv) .hero.season {
+    min-height: 60vh;
+  }
+
+  .season-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 28px;
+  }
+
+  .season-actions .actions {
+    margin-top: 16px;
+  }
+
+  :global(html.tv) .season-actions .actions {
+    margin-top: 12px;
   }
 
   .cast {
@@ -1045,16 +1418,17 @@
     grid-template-columns: 96px minmax(0, 1fr);
   }
 
-  :global(html.phone) .episode {
-    grid-template-columns: 132px minmax(0, 1fr);
+  :global(html.phone) .ep-row {
+    grid-auto-columns: 200px;
     gap: 12px;
-    padding: 6px 0;
   }
 
-  :global(html.phone) .ep-summary {
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    font-size: 13px;
+  :global(html.phone) .ep-play {
+    top: calc((200px - 16px) * 9 / 32 - 22px);
+  }
+
+  :global(html.phone) .hero.season {
+    min-height: 46vh;
   }
 
   :global(html.phone) .cast {
@@ -1078,5 +1452,14 @@
 
   :global(html.phone) h1 {
     --logo-h: 120px;
+  }
+
+  /* Saison : un logo plus petit, pour voir la rangée des épisodes sans descendre. */
+  .hero.season h1 {
+    --logo-h: 150px;
+  }
+
+  :global(html.phone) .hero.season h1 {
+    --logo-h: 90px;
   }
 </style>

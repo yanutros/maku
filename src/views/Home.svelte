@@ -66,7 +66,7 @@
     if (!home) return [];
     return rows
       .map((r) => {
-        if (r.id === "continue") return { title: t("tv.continueWatching"), cards: home!.onDeck.map((i) => fromItem(i, t("tv.resume"), true)) };
+        if (r.id === "continue") return { title: t("tv.continueWatching"), cards: home!.onDeck.map((i) => fromItem(i, t("tv.resume"))) };
         if (r.id === "recent") return { title: t("tv.recentlyAdded"), cards: home!.recentlyAdded.map((i) => fromItem(i, t("tv.recentlyAddedOne"))) };
         if (r.id === "trending") return { title: t("tv.trendingToRequest"), cards: trending.map(fromSeerr) };
         const s = section(r.id);

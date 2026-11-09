@@ -116,7 +116,7 @@
 
   // --- Téléviseur : mêmes données, en rangées et grilles TV ---
   const tvRows = $derived([
-    ...continueHubs.map((h) => ({ title: h.title, cards: h.items.map((i) => fromItem(i, t("library.resume"), true)) })),
+    ...continueHubs.map((h) => ({ title: h.title, cards: h.items.map((i) => fromItem(i, t("library.resume"))) })),
     ...restHubs.map((h) => ({ title: h.title, cards: h.items.map((i) => fromItem(i, h.title)) })),
   ].filter((r) => r.cards.length));
   const tvItems = $derived(items.map((i) => fromItem(i, title)));

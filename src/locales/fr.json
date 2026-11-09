@@ -387,7 +387,6 @@
     "resume": "Reprendre",
     "play": "Lire",
     "playFromStart": "Lire depuis le début",
-    "episodeNumber": "Épisode {{number}}",
     "markUnwatched": "Marquer comme non vu",
     "markWatched": "Marquer comme vu",
     "editInfo": "Modifier les informations",
@@ -403,7 +402,6 @@
       "genres": "Genres"
     },
     "seasons": "Saisons",
-    "episodes": "Épisodes",
     "playTitle": "Lire {{title}}",
     "cast": "Distribution",
     "endsAt": "Se termine à {{time}}",
@@ -413,8 +411,10 @@
     "collectionMovies": "Films de la collection",
     "trailer": "Bande-annonce",
     "noTrailer": "Pas de bande-annonce trouvée pour ce contenu.",
-    "seasonButton": "Saison {{number}}",
-    "allSeasons": "Toutes les saisons"
+    "showTab": "Série",
+    "episodeShort": "E{{number}}",
+    "resumeEpisode": "Reprendre S{{season}} · E{{episode}}",
+    "playEpisode": "Lire S{{season}} · E{{episode}}"
   },
   "stats": {
     "title": "Mes statistiques",

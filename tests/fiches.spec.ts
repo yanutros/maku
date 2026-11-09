@@ -34,18 +34,48 @@ test("TV : le fond reste au bord quand le menu se déplie puis se replie", async
   expect(ecart(await pixel(page, 3, 120), avant)).toBeLessThan(30);
 });
 
-test("série → saison → épisode, puis « Saison N » et « Toutes les saisons »", async ({ page }, info) => {
+test("série → saison : un épisode choisi en haut, les autres en rangée, les saisons en onglets", async ({ page }, info) => {
   await ouvrir(page, info, "serie");
   await page.getByText("Saison 2", { exact: true }).first().click();
-  await expect(page.getByRole("button", { name: "Toutes les saisons" })).toBeVisible();
-  await page.locator(".ep-title").first().click();
-  const saison = page.getByRole("button", { name: /^Saison 2$/ });
-  await expect(saison).toBeVisible();
-  // L'ordre des boutons d'un épisode en cours : Reprendre, Saison, depuis le début.
-  await saison.click();
-  await expect(page.locator(".ep-title").first()).toBeVisible();
-  await page.getByRole("button", { name: "Toutes les saisons" }).click();
+  // La saison s'ouvre sur un épisode : sa ligne en haut, la rangée de la saison dessous.
+  const tabs = page.getByRole("tablist");
+  await expect(tabs.getByRole("tab", { name: "Saison 2" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator(".ep-thumb").first()).toBeVisible();
+  // Choisir un autre épisode change le haut de la page, sans la quitter ni lancer la lecture.
+  const second = page.locator(".ep-thumb").nth(1);
+  await second.click({ position: { x: 12, y: 12 } }); // à côté du bouton ▶ du milieu, qui lance l'épisode
+  await expect(second).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator(".ep.sel .ep-name")).toHaveText("Sous la glace");
+  // Sur TV, la sélection choisit déjà l'épisode : OK, comme ce clic, le lance (le lecteur couvre alors la page).
+  if (appareil(info) === "tv") return;
+  await expect(page.locator(".overlay")).toHaveCount(0);
+  // Onglet d'une autre saison, puis celui de la série.
+  await tabs.getByRole("tab", { name: "Saison 1" }).click();
+  await expect(tabs.getByRole("tab", { name: "Saison 1" })).toHaveAttribute("aria-selected", "true");
+  await tabs.getByRole("tab", { name: "Série" }).click();
   await expect(page.getByText("Saison 1", { exact: true }).first()).toBeVisible();
+});
+
+test("TV : une saison s'ouvre sur l'épisode choisi, la rangée ne bouge pas, les onglets sont au-dessus", async ({ page }, info) => {
+  test.skip(appareil(info) !== "tv", "télécommande : téléviseur");
+  await ouvrir(page, info, "serie");
+  await page.getByRole("button", { name: /Saison 2/ }).first().focus();
+  await touche(page, "Enter");
+  // La sélection arrive sur la vignette de l'épisode choisi, pas sur « Lire ».
+  await expect(page.locator(".ep-thumb[aria-pressed='true']")).toBeFocused();
+  // D'un épisode à l'autre, la rangée reste à la même hauteur.
+  const haut = () => page.locator(".ep-row").evaluate((el) => Math.round(el.getBoundingClientRect().top));
+  const avant = await haut();
+  for (const dir of ["ArrowLeft", "ArrowLeft", "ArrowRight"] as const) {
+    await touche(page, dir);
+    await page.waitForTimeout(400);
+    expect(await haut(), "la rangée des épisodes s'est déplacée").toBe(avant);
+  }
+  // Haut : les onglets, sur la saison ouverte ; gauche : la série.
+  await touche(page, "ArrowUp");
+  await expect(page.getByRole("tab", { name: "Saison 2" })).toBeFocused();
+  await touche(page, "ArrowLeft", 2);
+  await expect(page.getByRole("tab", { name: "Série" })).toBeFocused();
 });
 
 test("TV : en descendant une fiche, la sélection reste entière à l'écran", async ({ page }, info) => {

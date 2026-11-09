@@ -65,7 +65,7 @@ visionnage. Tout se fait avec son compte Plex (ou Jellyfin) : aucune clé d'API 
       <h4>🏠 Il met vos bibliothèques en valeur</h4>
       Accueil et bibliothèques avec un bandeau qui fait défiler cinq titres, puis un « Continuer à regarder »
       façon plateforme de streaming : grandes affiches, et celle survolée s'ouvre en grand avec sa scène, son
-      épisode, sa progression et le bouton Reprendre ; un clic sur la carte ouvre la fiche. Puis de grands panneaux « À la une » et les rangées de Plex. Au survol d'une affiche, un simple triangle blanc lance la lecture.
+      épisode, sa progression et le bouton Reprendre ; un clic sur la carte ouvre la fiche (la saison, pour un épisode) sans rien lancer. Puis de grands panneaux « À la une » et les rangées de Plex. Au survol d'une affiche, un simple triangle blanc lance la lecture.
       L'accueil se personnalise (Réglages → Interface, ou le bouton en bas de l'accueil) : rangées à masquer ou à
       réordonner, et bibliothèques à épingler avec leurs derniers ajouts, pour chaque appareil.
       La fiche d'un film ou d'une série plonge dans son ambiance, comme Jellyfin : son fond en haute définition
@@ -78,6 +78,11 @@ visionnage. Tout se fait avec son compte Plex (ou Jellyfin) : aucune clé d'API 
       que ce que Maku sait faire : noter, voir les informations du fichier, retirer de « Continuer à regarder »,
       vu / non vu ; et pour l'administrateur seulement, comme dans Plex : modifier, ajouter à une collection,
       actualiser les métadonnées et analyser.
+      Comme dans Plex, un épisode n'a pas de fiche à lui : il s'ouvre dans sa saison, avec les onglets de la série et
+      de ses saisons en haut, l'épisode choisi en grand (titre, notes, résumé), la rangée de tous les épisodes de la
+      saison, puis ses boutons, ses pistes et sa distribution. Choisir un autre épisode change le haut de la page ; le
+      bouton ▶ de sa vignette (au survol) ou un double-clic le lance. La fiche d'une série propose **Reprendre S1 · E2**,
+      qui ouvre la saison sur cet épisode.
       Les titres s'affichent avec leur logo officiel, comme dans Jellyfin : celui du serveur, sinon celui du
       service en ligne de Plex — un logo dans la langue de l'interface passe avant celui du serveur, souvent en anglais —, et en dernier recours de TMDB avec votre clé d'API gratuite (Réglages → Services ; sur téléviseur, un QR code permet de la coller depuis le téléphone) ; les épisodes et les saisons reprennent celui de leur série ; sans logo nulle part, une typographie de cinéma choisie selon le genre. La musique, elle, garde ses titres en texte simple.
     </td>
@@ -367,8 +372,10 @@ pour l'instant que Plex.
 > juste sous le champ, comme sur Apple TV : haut / bas, OK pour choisir, Retour pour refermer sans rien changer.
 > Vu, non vu et la note s'appliquent sur place, sans recharger la page, et une petite coche discrète marque
 > les titres vus, comme dans Plex.
-> La fiche d'un épisode a un bouton **Saison N** qui ramène à la liste des épisodes de sa saison, et celle d'une saison
-> un bouton **Toutes les saisons** qui remonte à la série (Plex, Jellyfin et Emby).
+> Une saison s'ouvre sur la vignette de l'épisode choisi, dans la rangée de tous ceux de la saison, posée en bas de
+> l'image de la série (le logo seul au-dessus) ; la date, les notes, le résumé et les boutons de l'épisode viennent
+> dessous. Déplacer la sélection change d'épisode sans faire bouger la page, OK le lance ; flèche haut vers les
+> onglets de la série et des autres saisons (Plex, Jellyfin et Emby).
 > La musique a son lecteur plein écran, comme dans Plex : la pochette en grand, les commandes qui s'effacent au
 > repos, la file d'attente en rangée de pochettes (flèche bas), un bouton **Paroles** qui les affiche en grand à côté
 > de la pochette, et un bouton pour tout arrêter. Pendant qu'on parcourt les pages, une petite
@@ -532,7 +539,7 @@ toute seule. Ce mode est aussi proposé sur ordinateur et tablette (**Avec un co
 ### 📺 À la télécommande
 
 Les flèches déplacent la sélection (entourée en doré), toujours visible en entier avec son cadre, à distance des bords de l'écran, comme dans Plex et Wholphin. **OK** ouvre ou lance, **Retour** ferme ce qui est ouvert
-puis revient à la page précédente. Sur « Continuer à regarder », OK reprend directement la lecture. Pendant une
+puis revient à la page précédente. Sur « Continuer à regarder », OK ouvre la fiche (la saison, pour un épisode) avec **Reprendre** déjà sélectionné : un second OK relance la lecture. Pendant une
 vidéo, les touches lecture / pause et suivant / précédent de la télécommande fonctionnent. Les champs de saisie
 (connexion, réglages, recherche) se traversent aux flèches sans ouvrir le clavier : **OK** l'ouvre.
 Les onglets du haut des bibliothèques (films, séries, musique) s'ouvrent dès qu'on y arrive avec les flèches,

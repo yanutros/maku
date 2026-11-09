@@ -387,7 +387,6 @@
     "resume": "Reanudar",
     "play": "Reproducir",
     "playFromStart": "Reproducir desde el principio",
-    "episodeNumber": "Episodio {{number}}",
     "markUnwatched": "Marcar como no visto",
     "markWatched": "Marcar como visto",
     "editInfo": "Editar la información",
@@ -403,7 +402,6 @@
       "genres": "Géneros"
     },
     "seasons": "Temporadas",
-    "episodes": "Episodios",
     "playTitle": "Reproducir {{title}}",
     "cast": "Reparto",
     "endsAt": "Termina a las {{time}}",
@@ -413,8 +411,10 @@
     "collectionMovies": "Películas de la colección",
     "trailer": "Tráiler",
     "noTrailer": "No se encontró ningún tráiler para este título.",
-    "seasonButton": "Temporada {{number}}",
-    "allSeasons": "Todas las temporadas"
+    "showTab": "Serie",
+    "episodeShort": "E{{number}}",
+    "resumeEpisode": "Reanudar T{{season}} · E{{episode}}",
+    "playEpisode": "Reproducir T{{season}} · E{{episode}}"
   },
   "stats": {
     "title": "Mis estadísticas",

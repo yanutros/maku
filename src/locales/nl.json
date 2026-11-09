@@ -387,7 +387,6 @@
     "resume": "Hervatten",
     "play": "Afspelen",
     "playFromStart": "Vanaf het begin afspelen",
-    "episodeNumber": "Aflevering {{number}}",
     "markUnwatched": "Markeren als niet bekeken",
     "markWatched": "Markeren als bekeken",
     "editInfo": "Info bewerken",
@@ -403,7 +402,6 @@
       "genres": "Genres"
     },
     "seasons": "Seizoenen",
-    "episodes": "Afleveringen",
     "playTitle": "{{title}} afspelen",
     "cast": "Cast",
     "endsAt": "Eindigt om {{time}}",
@@ -413,8 +411,10 @@
     "collectionMovies": "Films in deze collectie",
     "trailer": "Trailer",
     "noTrailer": "Geen trailer gevonden voor deze titel.",
-    "seasonButton": "Seizoen {{number}}",
-    "allSeasons": "Alle seizoenen"
+    "showTab": "Serie",
+    "episodeShort": "A{{number}}",
+    "resumeEpisode": "S{{season}} · A{{episode}} hervatten",
+    "playEpisode": "S{{season}} · A{{episode}} afspelen"
   },
   "stats": {
     "title": "Mijn statistieken",

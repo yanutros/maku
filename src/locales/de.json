@@ -387,7 +387,6 @@
     "resume": "Fortsetzen",
     "play": "Abspielen",
     "playFromStart": "Von vorne abspielen",
-    "episodeNumber": "Folge {{number}}",
     "markUnwatched": "Als ungesehen markieren",
     "markWatched": "Als gesehen markieren",
     "editInfo": "Infos bearbeiten",
@@ -403,7 +402,6 @@
       "genres": "Genres"
     },
     "seasons": "Staffeln",
-    "episodes": "Folgen",
     "playTitle": "{{title}} abspielen",
     "cast": "Besetzung",
     "endsAt": "Endet um {{time}}",
@@ -413,8 +411,10 @@
     "collectionMovies": "Filme der Sammlung",
     "trailer": "Trailer",
     "noTrailer": "Kein Trailer für diesen Titel gefunden.",
-    "seasonButton": "Staffel {{number}}",
-    "allSeasons": "Alle Staffeln"
+    "showTab": "Serie",
+    "episodeShort": "F{{number}}",
+    "resumeEpisode": "S{{season}} · F{{episode}} fortsetzen",
+    "playEpisode": "S{{season}} · F{{episode}} abspielen"
   },
   "stats": {
     "title": "Meine Statistiken",

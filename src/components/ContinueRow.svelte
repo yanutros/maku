@@ -76,7 +76,7 @@
         oncontextmenu={(e) => openMenu(e, item)}
       >
         <!-- Affiche, visible quand la carte est fermée. -->
-        <button class="poster" onclick={() => (open ? resume(item) : (active = i))} aria-label="{item.showTitle ?? item.title}" tabindex={open ? -1 : 0}>
+        <button class="poster" onclick={() => (open ? go({ name: "item", ratingKey: item.ratingKey }) : (active = i))} aria-label="{item.showTitle ?? item.title}" tabindex={open ? -1 : 0}>
           {#if item.poster}<img src={item.poster} alt="" loading="lazy" />{/if}
         </button>
 

@@ -2,7 +2,7 @@
 // quelle que soit l'origine (Plex, Seerr, catégories).
 import { episodeTitle, errorText, formatDuration, type Item, type SeerrMedia } from "./api";
 import { go, toast } from "./nav.svelte";
-import { play, playMusic } from "./player.svelte";
+import { playMusic } from "./player.svelte";
 import { t } from "./i18n";
 
 /** `tile` : grande tuile de catégorie (couleur du genre, éventail d'affiches), comme sur ordinateur. */
@@ -43,8 +43,7 @@ const MUSIC = new Set(["artist", "album", "track", "playlist"]);
 
 const fail = (e: unknown) => toast(errorText(e), true);
 
-/** `resume` : OK relance la lecture (« Continuer à regarder ») au lieu d'ouvrir la fiche. */
-export function fromItem(item: Item, eyebrow: string, resume = false): TvCard {
+export function fromItem(item: Item, eyebrow: string): TvCard {
   const music = MUSIC.has(item.kind);
   const parts: string[] = [];
   if (item.kind === "episode") {
@@ -60,8 +59,9 @@ export function fromItem(item: Item, eyebrow: string, resume = false): TvCard {
   else if (item.durationMs && !music) parts.push(formatDuration(item.durationMs));
 
   let open: () => void;
+  // Comme Plex, « Continuer à regarder » ne lance rien : OK ouvre la fiche (la saison pour un épisode),
+  // avec « Reprendre » déjà sélectionné.
   if (item.kind === "track") open = () => playMusic(item.ratingKey).catch(fail);
-  else if (resume) open = () => play(item.ratingKey).catch(fail);
   else open = () => go({ name: "item", ratingKey: item.ratingKey });
 
   return {

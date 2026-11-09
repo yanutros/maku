@@ -387,7 +387,6 @@
     "resume": "Resume",
     "play": "Play",
     "playFromStart": "Play from the beginning",
-    "episodeNumber": "Episode {{number}}",
     "markUnwatched": "Mark as unwatched",
     "markWatched": "Mark as watched",
     "editInfo": "Edit info",
@@ -403,7 +402,6 @@
       "genres": "Genres"
     },
     "seasons": "Seasons",
-    "episodes": "Episodes",
     "playTitle": "Play {{title}}",
     "cast": "Cast",
     "endsAt": "Ends at {{time}}",
@@ -413,8 +411,10 @@
     "collectionMovies": "Movies in this collection",
     "trailer": "Trailer",
     "noTrailer": "No trailer found for this title.",
-    "seasonButton": "Season {{number}}",
-    "allSeasons": "All seasons"
+    "showTab": "Show",
+    "episodeShort": "E{{number}}",
+    "resumeEpisode": "Resume S{{season}} · E{{episode}}",
+    "playEpisode": "Play S{{season}} · E{{episode}}"
   },
   "stats": {
     "title": "My stats",

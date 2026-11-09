@@ -174,7 +174,10 @@ function moveInRows(current: HTMLElement, dir: Dir): boolean {
     const target = best(current.getBoundingClientRect(), dir, inRow.filter((el) => el !== current));
     if (target) {
       target.focus({ preventScroll: true });
-      reveal(target, { inline: "center" });
+      // De côté dans une rangée déjà à l'écran, la page ne bouge pas en hauteur : sinon le premier pas
+      // la recadrait d'un coup (rangée des épisodes d'une saison, posée bas sur l'image).
+      const r = target.getBoundingClientRect();
+      reveal(target, { inline: "center", y: r.top < 0 || r.bottom > window.innerHeight });
       return true;
     }
     return dir === "ArrowRight";
@@ -194,10 +197,14 @@ function moveInRows(current: HTMLElement, dir: Dir): boolean {
   if (!next) return true;
   rowLast.set(row, current);
   const candidates = focusables(next);
-  // L'élément quitté dans cette rangée, sinon son premier élément visible (comme Plex).
+  // L'élément quitté dans cette rangée, sinon celui qu'elle désigne (`data-nav-current` : l'épisode choisi
+  // d'une saison), sinon son premier élément visible (comme Plex).
   const remembered = rowLast.get(next);
   const target =
-    (remembered && candidates.includes(remembered) && remembered) || candidates.find(onScreenX) || candidates[0];
+    (remembered && candidates.includes(remembered) && remembered) ||
+    candidates.find((el) => el.hasAttribute("data-nav-current")) ||
+    candidates.find(onScreenX) ||
+    candidates[0];
   show(target, rows.indexOf(next) === 0);
   return true;
 }
