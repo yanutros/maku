@@ -567,12 +567,26 @@ struct RawMetadata {
     /// Identifiants externes (« tmdb://… », « imdb://… »).
     #[serde(rename = "Guid")]
     guids: Vec<RawGuid>,
+    /// Notes des sites (IMDb, Rotten Tomatoes, TMDB), quand l'agent de Plex les a récupérées.
+    #[serde(rename = "Rating")]
+    site_ratings: Vec<RawRating>,
     /// Repères détectés par le serveur : intro, générique (« credits »).
     #[serde(rename = "Marker")]
     marker: Vec<RawMarker>,
     /// Bandes-annonces et autres extras.
     #[serde(rename = "Extras")]
     extras: Option<RawExtras>,
+}
+
+#[derive(Deserialize, Default)]
+#[serde(default)]
+struct RawRating {
+    /// « imdb://image.rating », « rottentomatoes://image.rating.ripe », « themoviedb://image.rating »…
+    image: String,
+    value: f32,
+    /// « critic » (presse) ou « audience » (public).
+    #[serde(rename = "type")]
+    kind: String,
 }
 
 #[derive(Deserialize, Default)]
@@ -749,6 +763,44 @@ pub struct ItemDetail {
     /// Versions du même titre (4K, 1080p…), dans l'ordre du serveur ; la première est celle des
     /// champs ci-dessus. Une seule version : pas de choix à proposer.
     pub versions: Vec<Version>,
+    /// Notes des sites d'évaluation connues du serveur.
+    pub site_ratings: Vec<SiteRating>,
+    /// Identifiant IMDb (« tt0322259 ») d'un film ou d'une série, pour chercher sa note Allociné.
+    pub imdb_id: Option<String>,
+}
+
+/// Note d'un site d'évaluation, sur 10.
+#[derive(Serialize, Clone, Debug, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct SiteRating {
+    /// `imdb`, `rtCritic` (tomate), `rtAudience` (pop-corn), `tmdb`, `community` (Jellyfin, Emby),
+    /// `allocinePress`, `allocineUsers`.
+    pub source: &'static str,
+    pub value: f32,
+    /// Rotten Tomatoes : tomate fraîche ou pop-corn debout (sinon tomate pourrie ou pop-corn renversé).
+    pub good: bool,
+}
+
+/// Notes des sites d'après le champ `Rating` de Plex.
+fn site_ratings(raw: &[RawRating]) -> Vec<SiteRating> {
+    raw.iter()
+        .filter_map(|r| {
+            let source = match (r.image.split("://").next()?, r.kind.as_str()) {
+                ("imdb", _) => "imdb",
+                ("rottentomatoes", "critic") => "rtCritic",
+                ("rottentomatoes", _) => "rtAudience",
+                ("themoviedb", _) => "tmdb",
+                _ => return None,
+            };
+            let good = !(r.image.ends_with(".rotten") || r.image.ends_with(".spilled"));
+            (r.value > 0.0).then_some(SiteRating { source, value: r.value, good })
+        })
+        .collect()
+}
+
+/// Identifiant IMDb parmi les identifiants externes d'un titre.
+fn imdb_of(guids: &[RawGuid]) -> Option<String> {
+    guids.iter().find_map(|g| g.id.strip_prefix("imdb://")).map(str::to_owned)
 }
 
 /// Une version d'un titre : un fichier, sa définition et ses pistes.
@@ -780,6 +832,12 @@ pub struct MediaInfo {
     /// Ajout à la bibliothèque (millisecondes depuis 1970).
     pub added_at: Option<u64>,
     pub play_count: Option<u64>,
+    /// Vidéo : la piste d'image (« 4K DoVi/HDR10+ (HEVC Main 10) ») et sa cadence (« 24p »).
+    pub video: Option<String>,
+    pub frame_rate: Option<String>,
+    /// Vidéo : la piste son par défaut (« Français (DTS 5.1) ») et le nombre de pistes de sous-titres.
+    pub audio: Option<String>,
+    pub subtitles: Option<u64>,
 }
 
 /// « 16,3 Mb/s » (virgule sauf en anglais), d'après un débit en kb/s.
@@ -1325,8 +1383,13 @@ impl PlexServer {
         let m = &v["MediaContainer"]["Metadata"][0];
         let media = &m["Media"][0];
         let part = &media["Part"][0];
-        let audio = part["Stream"].as_array().and_then(|s| s.iter().find(|s| s["streamType"] == 2)).cloned().unwrap_or_default();
+        let streams = part["Stream"].as_array().cloned().unwrap_or_default();
+        let of = |kind: u64| streams.iter().filter(move |s| s["streamType"] == kind);
+        let audio = of(2).find(|s| s["selected"] == true).or_else(|| of(2).next()).cloned().unwrap_or_default();
+        let video = of(1).next().cloned().unwrap_or_default();
         let text = |v: &serde_json::Value| v.as_str().filter(|s| !s.is_empty()).map(str::to_owned);
+        let title = |s: &serde_json::Value| text(&s["extendedDisplayTitle"]).or_else(|| text(&s["displayTitle"]));
+        let is_video = !video.is_null();
         Ok(MediaInfo {
             container: text(&media["container"]).or_else(|| text(&part["container"])),
             codec: text(&media["audioCodec"]).or_else(|| text(&audio["codec"])),
@@ -1339,6 +1402,10 @@ impl PlexServer {
             file: text(&part["file"]),
             added_at: m["addedAt"].as_u64().map(|s| s * 1000),
             play_count: m["viewCount"].as_u64(),
+            video: title(&video),
+            frame_rate: text(&media["videoFrameRate"]),
+            audio: if is_video { title(&audio) } else { None },
+            subtitles: is_video.then(|| of(3).count() as u64),
         })
     }
 
@@ -1493,7 +1560,11 @@ impl PlexServer {
             .collect();
         let original_title = m.original_title.take().filter(|o| !o.trim().is_empty() && *o != m.title);
         let backdrop_hd = m.art.as_ref().map(|p| self.image(p, 2560, 1440));
+        let site_ratings = site_ratings(&m.site_ratings);
+        let imdb_id = imdb_of(&m.guids);
         Ok(ItemDetail {
+            site_ratings,
+            imdb_id,
             tagline: m.tagline.take(),
             original_title,
             backdrop_hd,

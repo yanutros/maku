@@ -185,6 +185,17 @@
       "choose": "Pick an account from the list.",
       "saved": "Saved",
       "needLibrary": "At least one library is required."
+    },
+    "ratings": {
+      "title": "Movie and show ratings",
+      "hint": "Rating sites shown on movie and show pages.",
+      "imdb": "IMDb",
+      "rtCritic": "Rotten Tomatoes: critics (tomato)",
+      "rtAudience": "Rotten Tomatoes: audience (popcorn)",
+      "tmdb": "TMDB",
+      "community": "Community rating",
+      "allocine": "Allociné",
+      "allocineHint": "Critics and audience. Looked up on Wikidata and Allociné with the title’s IMDb ID."
     }
   },
   "login": {
@@ -902,6 +913,15 @@
     "size": "Size",
     "plays": "Plays",
     "added": "Added on",
-    "file": "File"
+    "file": "File",
+    "show": "Show",
+    "video": "Video",
+    "frameRate": "Frame rate",
+    "subtitles": "Subtitles"
+  },
+  "ratings": {
+    "press": "Critics",
+    "audience": "Audience",
+    "community": "Community rating"
   }
 }

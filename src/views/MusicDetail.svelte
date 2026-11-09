@@ -44,7 +44,7 @@
     e.stopPropagation();
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
     const fromButton = e.type === "click";
-    nav.menu = { item: it, x: fromButton ? r.left : e.clientX, y: fromButton ? r.bottom + 4 : e.clientY };
+    nav.menu = { item: it, x: fromButton ? r.left : e.clientX, y: fromButton ? r.bottom + 4 : e.clientY, here: it === item };
   }
 
   function start(opts: { start?: string; shuffle?: boolean; radio?: boolean } = {}) {

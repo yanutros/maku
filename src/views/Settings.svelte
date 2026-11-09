@@ -1,5 +1,6 @@
 <script lang="ts">
   import { lyricsPrefs, setLyricsEnabled } from "../lib/lyrics.svelte";
+  import { ratingPrefs, setRatingSite, type RatingSite } from "../lib/ratings.svelte";
   import { NEXT_DELAYS, autoNext, setNextDelay, diagAvailable, diagShare, diagText, passthroughAvailable, passthroughFormats, passthroughMode, setPassthroughMode } from "../lib/player.svelte";
   import { invoke } from "@tauri-apps/api/core";
   import { onMount, tick } from "svelte";
@@ -729,6 +730,21 @@
             <button class="btn" onclick={resetSidebar}>{t("settings.interface.resetMenu")}</button>
           </div>
         {/if}
+      </section>
+
+      <!-- Notes des sites sur les fiches des films et des séries : celles que le serveur connaît, et Allociné. -->
+      <h2 class="group-title">{t("settings.ratings.title")}</h2>
+      <section class="card list">
+        <p class="muted small">{t("settings.ratings.hint")}</p>
+        {#each (nav.serverKind === "plex" ? ["imdb", "rtCritic", "rtAudience", "tmdb", "allocine"] : ["community", "rtCritic", "allocine"]) as RatingSite[] as site (site)}
+          <label class="line">
+            <span class="line-text">
+              <strong>{t(`settings.ratings.${site}`)}</strong>
+              {#if site === "allocine"}<span class="muted small">{t("settings.ratings.allocineHint")}</span>{/if}
+            </span>
+            <input type="checkbox" class="switch" checked={ratingPrefs[site]} onchange={(e) => setRatingSite(site, e.currentTarget.checked)} />
+          </label>
+        {/each}
       </section>
 
       <h2 class="group-title">{t("settings.interface.home")}</h2>

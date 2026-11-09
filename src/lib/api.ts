@@ -120,6 +120,21 @@ export interface ItemDetail extends Item {
   subtitleTracks: Track[];
   /** Versions du même titre (4K, 1080p…) ; la première correspond aux champs ci-dessus. */
   versions: Version[];
+  /** Notes des sites d'évaluation connues du serveur. */
+  siteRatings: SiteRating[];
+  /** Identifiant IMDb d'un film ou d'une série (pour sa note Allociné). */
+  imdbId: string | null;
+}
+
+/** Site d'une note : IMDb, Rotten Tomatoes (presse : tomate ; public : pop-corn), TMDB, note du public de Jellyfin, Allociné. */
+export type RatingSource = "imdb" | "rtCritic" | "rtAudience" | "tmdb" | "community" | "allocinePress" | "allocineUsers";
+
+/** Note d'un site, sur 10. */
+export interface SiteRating {
+  source: RatingSource;
+  value: number;
+  /** Rotten Tomatoes : tomate fraîche ou pop-corn debout. */
+  good: boolean;
 }
 
 export interface Version {
@@ -174,6 +189,11 @@ export interface MediaInfo {
   file: string | null;
   addedAt: number | null;
   playCount: number | null;
+  /** Vidéo : piste d'image et cadence, piste son par défaut, nombre de sous-titres. */
+  video: string | null;
+  frameRate: string | null;
+  audio: string | null;
+  subtitles: number | null;
 }
 
 export interface QueueTrack {
@@ -412,6 +432,7 @@ export const api = {
   playlistChoices: () => invoke<Item[]>("playlist_choices"),
   addToPlaylist: (ratingKey: string, playlist: string) => invoke<void>("add_to_playlist", { ratingKey, playlist }),
   createPlaylist: (ratingKey: string, title: string) => invoke<void>("create_playlist", { ratingKey, title }),
+  allocineRatings: (imdbId: string, show: boolean) => invoke<SiteRating[]>("allocine_ratings", { imdbId, show }),
   mediaInfo: (ratingKey: string) => invoke<MediaInfo>("media_info", { ratingKey }),
   tracks: (ratingKey: string) => invoke<Item[]>("plex_tracks", { ratingKey }),
   home: () => invoke<Home>("plex_home"),

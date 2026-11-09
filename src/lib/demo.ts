@@ -281,6 +281,17 @@ function detail(key: string): ItemDetail {
       : [],
     subtitleTracks: base.playable ? [{ id: 3, label: "Français (SRT)", selected: false }] : [],
     versions: [],
+    // Notes fictives pour les captures (pas d'Allociné : aucun appel en ligne en mode démo).
+    siteRatings:
+      base.kind === "movie" || base.kind === "show"
+        ? [
+            { source: "imdb", value: 7.8, good: true },
+            { source: "rtCritic", value: 9.1, good: true },
+            { source: "rtAudience", value: 8.6, good: true },
+            { source: "tmdb", value: 7.6, good: true },
+          ]
+        : [],
+    imdbId: null,
   };
 }
 

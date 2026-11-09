@@ -76,6 +76,18 @@
     go({ name: "item", ratingKey });
   }
 
+  // Plex : la note de l'utilisateur, pour ce qui se note (pas les collections ni les playlists).
+  const rateable = $derived(nav.serverKind === "plex" && ["movie", "show", "season", "episode", "artist", "album", "track"].includes(item.kind));
+  // Un fichier à décrire dans « Voir les informations ».
+  const hasFile = $derived(item.kind === "track" || item.kind === "movie" || item.kind === "episode");
+
+  function removeContinue() {
+    run(async () => {
+      await api.removeFromContinue(item.ratingKey);
+      reload();
+    }, t("tvMenu.removedContinue"));
+  }
+
   // Le compte a le droit de télécharger (Android) : un titre, un album ou une playlist, pour l'hors-ligne.
   const downloadable = $derived(music && item.kind !== "artist" && canDownload());
 </script>
@@ -87,7 +99,7 @@
 <div class="menu" bind:this={el} style:left="{pos.left}px" style:top="{pos.top}px" role="menu">
   <div class="head">{item.showTitle && item.kind === "episode" ? item.showTitle : item.title}</div>
   <!-- Plex : la note de l'utilisateur (Jellyfin et Emby n'ont que « J'aime »). -->
-  {#if music && item.kind !== "playlist" && nav.serverKind === "plex"}
+  {#if rateable}
     <div class="rating"><Stars {item} size={17} /></div>
   {/if}
   {#if item.playable || music}
@@ -106,6 +118,9 @@
     {#if started}
       <button role="menuitem" onclick={() => setWatched(false)}><Icon name="restart" size={16} /> {t("cardMenu.markUnwatched")}</button>
     {/if}
+    {#if (item.viewOffsetMs ?? 0) > 0}
+      <button role="menuitem" onclick={removeContinue}><Icon name="x" size={16} /> {t("tvMenu.removeContinue")}</button>
+    {/if}
   {/if}
   {#if music}
     <button role="menuitem" onclick={() => queue(true)}><Icon name="playNext" size={16} /> {t("queue.playNext")}</button>
@@ -116,9 +131,9 @@
     {#if downloadable}
       <button role="menuitem" onclick={() => run(() => downloadMusic(item), t("cardMenu.downloadStarted"))}><Icon name="download" size={16} /> {t("cardMenu.download")}</button>
     {/if}
-    {#if item.kind === "track"}
-      <button role="menuitem" onclick={() => ((nav.infoFor = item), close())}><Icon name="info" size={16} /> {t("trackInfo.open")}</button>
-    {/if}
+  {/if}
+  {#if hasFile}
+    <button role="menuitem" onclick={() => ((nav.infoFor = item), close())}><Icon name="info" size={16} /> {t("trackInfo.open")}</button>
   {/if}
   {#if item.kind === "track"}
     {#if item.albumKey}
@@ -127,7 +142,7 @@
     {#if item.showKey}
       <button role="menuitem" onclick={() => open(item.showKey!)}><Icon name="user" size={16} /> {t("cardMenu.goToArtist")}</button>
     {/if}
-  {:else}
+  {:else if !menu.here}
     <button role="menuitem" onclick={openDetails}>
       <Icon name="chevronRight" size={16} /> {t("cardMenu.openDetails")}
     </button>

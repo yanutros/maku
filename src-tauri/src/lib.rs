@@ -3,6 +3,7 @@ mod config;
 mod error;
 mod i18n;
 mod jellyfin;
+mod allocine;
 mod lyrics;
 mod maku_server;
 mod media;
@@ -1811,6 +1812,12 @@ fn cast_stop(state: State<'_, AppState>) -> CmdResult<()> {
     Ok(())
 }
 
+/// Notes Allociné d'un film ou d'une série (voir allocine.rs), désactivables dans les Réglages.
+#[tauri::command]
+async fn allocine_ratings(state: State<'_, AppState>, imdb_id: String, show: bool) -> CmdResult<Vec<plex::SiteRating>> {
+    Ok(allocine::ratings(&state.http, &imdb_id, show).await?)
+}
+
 /// Paroles d'un morceau (lrclib.net), synchronisées si possible.
 #[tauri::command]
 async fn track_lyrics(state: State<'_, AppState>, artist: String, title: String, album: Option<String>, duration: f64) -> CmdResult<lyrics::Lyrics> {
@@ -2060,6 +2067,7 @@ pub fn run() {
             offline_list,
             plex_users,
             track_lyrics,
+            allocine_ratings,
             cast_devices,
             cast_start,
             cast_command,

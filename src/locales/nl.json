@@ -185,6 +185,17 @@
       "choose": "Kies een account uit de lijst.",
       "saved": "Opgeslagen",
       "needLibrary": "Er is minstens één bibliotheek nodig."
+    },
+    "ratings": {
+      "title": "Beoordelingen van films en series",
+      "hint": "De beoordelingssites die op de detailpagina’s staan.",
+      "imdb": "IMDb",
+      "rtCritic": "Rotten Tomatoes: pers (tomaat)",
+      "rtAudience": "Rotten Tomatoes: publiek (popcorn)",
+      "tmdb": "TMDB",
+      "community": "Publieksscore",
+      "allocine": "Allociné",
+      "allocineHint": "Pers en publiek. Opgezocht op Wikidata en Allociné met de IMDb-ID van de titel."
     }
   },
   "login": {
@@ -902,6 +913,15 @@
     "size": "Grootte",
     "plays": "Keer afgespeeld",
     "added": "Toegevoegd op",
-    "file": "Bestand"
+    "file": "Bestand",
+    "show": "Serie",
+    "video": "Video",
+    "frameRate": "Beeldsnelheid",
+    "subtitles": "Ondertitels"
+  },
+  "ratings": {
+    "press": "Pers",
+    "audience": "Publiek",
+    "community": "Publieksscore"
   }
 }

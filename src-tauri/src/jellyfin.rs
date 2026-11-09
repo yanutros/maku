@@ -553,7 +553,11 @@ impl JellyfinServer {
     pub async fn media_info(&self, id: &str) -> Result<crate::plex::MediaInfo> {
         let v = self.json(&format!("/Users/{}/Items/{id}?Fields=MediaSources,Path,DateCreated", self.uid())).await?;
         let source = &v["MediaSources"][0];
-        let audio = source["MediaStreams"].as_array().and_then(|s| s.iter().find(|s| s["Type"] == "Audio")).cloned().unwrap_or_default();
+        let streams = source["MediaStreams"].as_array().cloned().unwrap_or_default();
+        let of = |kind: &'static str| streams.iter().filter(move |s| s["Type"] == kind);
+        let audio = of("Audio").find(|s| s["IsDefault"] == true).or_else(|| of("Audio").next()).cloned().unwrap_or_default();
+        let video = of("Video").next().cloned().unwrap_or_default();
+        let is_video = !video.is_null();
         let text = |v: &Value| v.as_str().filter(|s| !s.is_empty()).map(str::to_owned);
         let ticks = |v: &Value| v.as_u64().map(|t| t / 10_000);
         Ok(crate::plex::MediaInfo {
@@ -568,6 +572,10 @@ impl JellyfinServer {
             file: text(&source["Path"]).or_else(|| text(&v["Path"])),
             added_at: v["DateCreated"].as_str().and_then(iso_ms),
             play_count: v["UserData"]["PlayCount"].as_u64(),
+            video: text(&video["DisplayTitle"]),
+            frame_rate: video["RealFrameRate"].as_f64().map(|f| format!("{}p", f.round())),
+            audio: if is_video { text(&audio["DisplayTitle"]) } else { None },
+            subtitles: is_video.then(|| of("Subtitle").count() as u64),
         })
     }
 
@@ -690,7 +698,18 @@ impl JellyfinServer {
         let streams = sources.first().map(streams_of).unwrap_or_default();
         let video = video_of(&streams);
         let tracks = |t: &str| tracks_of(&streams, t);
+        // Jellyfin et Emby : la note du public (TMDB ou IMDb selon le fournisseur) et celle de la presse
+        // (Rotten Tomatoes, en pourcentage).
+        let mut site_ratings = Vec::new();
+        if let Some(r) = v["CommunityRating"].as_f64().filter(|r| *r > 0.0) {
+            site_ratings.push(crate::plex::SiteRating { source: "community", value: r as f32, good: true });
+        }
+        if let Some(r) = v["CriticRating"].as_f64().filter(|r| *r > 0.0) {
+            site_ratings.push(crate::plex::SiteRating { source: "rtCritic", value: r as f32 / 10.0, good: r >= 60.0 });
+        }
         Ok(ItemDetail {
+            site_ratings,
+            imdb_id: str_of(&v["ProviderIds"]["Imdb"]),
             tagline: str_of(&v["Taglines"][0]),
             original_title: str_of(&v["OriginalTitle"]).filter(|o| *o != item.title),
             backdrop_hd: v["BackdropImageTags"][0].as_str().map(|t| self.image(&item.rating_key, "Backdrop", t, 2560)).or_else(|| item.backdrop.clone()),

@@ -7,8 +7,8 @@
   import { locale, t } from "../lib/i18n";
 
   /**
-   * « Voir les informations » d'un titre, comme dans Plex : son format et son fichier. Le chemin du
-   * fichier sur le serveur n'est montré qu'à l'administrateur.
+   * « Voir les informations » d'un titre, d'un film ou d'un épisode, comme dans Plex : son format et son
+   * fichier. Le chemin du fichier sur le serveur n'est montré qu'à l'administrateur.
    */
   const item = nav.infoFor!;
   let info = $state<MediaInfo | null>(null);
@@ -33,15 +33,28 @@
     if (!info) return [];
     const i = info;
     const r: [string, string][] = [];
-    if (item.subtitle) r.push([t("trackInfo.artist"), item.subtitle]);
-    if (item.albumTitle) r.push([t("trackInfo.album"), item.albumTitle]);
+    const video = !!i.video;
+    if (item.kind === "track") {
+      if (item.subtitle) r.push([t("trackInfo.artist"), item.subtitle]);
+      if (item.albumTitle) r.push([t("trackInfo.album"), item.albumTitle]);
+    } else if (item.kind === "episode" && item.showTitle) {
+      r.push([t("trackInfo.show"), [item.showTitle, item.subtitle].filter(Boolean).join(" · ")]);
+    }
     if (i.durationMs) r.push([t("trackInfo.duration"), formatClock(i.durationMs / 1000)]);
     if (i.container) r.push([t("trackInfo.container"), i.container.toUpperCase()]);
-    if (i.codec) r.push([t("trackInfo.codec"), i.codec.toUpperCase()]);
-    if (i.bitrateKbps) r.push([t("trackInfo.bitrate"), `${i.bitrateKbps.toLocaleString(locale)} kb/s`]);
-    if (i.channels) r.push([t("trackInfo.audio"), channels(i.channels)]);
-    if (i.samplingRate) r.push([t("trackInfo.samplingRate"), `${(i.samplingRate / 1000).toLocaleString(locale)} kHz`]);
-    if (i.bitDepth) r.push([t("trackInfo.bitDepth"), `${i.bitDepth} bits`]);
+    if (video) {
+      r.push([t("trackInfo.video"), i.video!]);
+      if (i.frameRate) r.push([t("trackInfo.frameRate"), i.frameRate]);
+      if (i.audio) r.push([t("trackInfo.audio"), i.audio]);
+      if (i.subtitles != null) r.push([t("trackInfo.subtitles"), String(i.subtitles)]);
+      if (i.bitrateKbps) r.push([t("trackInfo.bitrate"), `${(i.bitrateKbps / 1000).toLocaleString(locale, { maximumFractionDigits: 1 })} Mb/s`]);
+    } else {
+      if (i.codec) r.push([t("trackInfo.codec"), i.codec.toUpperCase()]);
+      if (i.bitrateKbps) r.push([t("trackInfo.bitrate"), `${i.bitrateKbps.toLocaleString(locale)} kb/s`]);
+      if (i.channels) r.push([t("trackInfo.audio"), channels(i.channels)]);
+      if (i.samplingRate) r.push([t("trackInfo.samplingRate"), `${(i.samplingRate / 1000).toLocaleString(locale)} kHz`]);
+      if (i.bitDepth) r.push([t("trackInfo.bitDepth"), `${i.bitDepth} bits`]);
+    }
     if (i.sizeBytes) r.push([t("trackInfo.size"), formatSize(i.sizeBytes)]);
     if (i.playCount != null) r.push([t("trackInfo.plays"), String(i.playCount)]);
     if (i.addedAt) r.push([t("trackInfo.added"), new Date(i.addedAt).toLocaleDateString(locale, { dateStyle: "long" })]);

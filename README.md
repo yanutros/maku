@@ -70,8 +70,14 @@ visionnage. Tout se fait avec son compte Plex (ou Jellyfin) : aucune clé d'API 
       réordonner, et bibliothèques à épingler avec leurs derniers ajouts, pour chaque appareil.
       La fiche d'un film ou d'une série plonge dans son ambiance, comme Jellyfin : son fond en haute définition
       sur toute la largeur (celui de la saison pour une série), le logo en grand et centré avec le titre
-      d'origine, la note et l'heure de fin, le résumé dessous, puis deux panneaux — l'équipe d'un côté, la
-      vidéo, l'audio et les sous-titres de l'autre — la distribution et « Plus de ce genre ».
+      d'origine et l'heure de fin, les notes des sites comme dans Plex — IMDb, Rotten Tomatoes (tomate de la
+      presse, pop-corn du public), TMDB, et Allociné (presse et spectateurs, trouvé grâce à Wikidata) — avec
+      vos étoiles de 1 à 5 (Plex), le résumé dessous, puis deux panneaux — l'équipe d'un côté, la
+      vidéo, l'audio et les sous-titres de l'autre — la distribution et « Plus de ce genre ». Chaque site se
+      masque dans Réglages → Interface. Le bouton **⋯** de la fiche (et le menu de chaque jaquette) ne garde
+      que ce que Maku sait faire : noter, voir les informations du fichier, retirer de « Continuer à regarder »,
+      vu / non vu ; et pour l'administrateur seulement, comme dans Plex : modifier, ajouter à une collection,
+      actualiser les métadonnées et analyser.
       Les titres s'affichent avec leur logo officiel, comme dans Jellyfin : celui du serveur, sinon celui du
       service en ligne de Plex — un logo dans la langue de l'interface passe avant celui du serveur, souvent en anglais —, et en dernier recours de TMDB avec votre clé d'API gratuite (Réglages → Services ; sur téléviseur, un QR code permet de la coller depuis le téléphone) ; les épisodes et les saisons reprennent celui de leur série ; sans logo nulle part, une typographie de cinéma choisie selon le genre. La musique, elle, garde ses titres en texte simple.
     </td>

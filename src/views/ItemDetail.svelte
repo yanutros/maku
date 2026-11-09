@@ -26,6 +26,8 @@
   import TitleLogo from "../components/TitleLogo.svelte";
   import { t, locale } from "../lib/i18n";
   import { device } from "../lib/device";
+  import SiteRatings from "../components/SiteRatings.svelte";
+  import Stars from "../components/Stars.svelte";
 
   let { ratingKey }: { ratingKey: string } = $props();
 
@@ -113,6 +115,12 @@
 
   function playThis(fromStart = false) {
     start(item!.ratingKey, { audioStream, subtitleStream, fromStart, mediaIndex: version });
+  }
+
+  /** Menu « ⋯ » de la fiche : informations, retrait de « Continuer à regarder », et la gestion (administrateur). */
+  function openMenu(e: MouseEvent) {
+    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    nav.menu = { item: item!, x: r.left, y: r.bottom + 6, here: true };
   }
 
   async function toggleWatched() {
@@ -226,10 +234,18 @@
             <span>{t("item.movieCount", { count: children.length })}</span>
           {/if}
           {#if item.contentRating}<span class="badge outline">{item.contentRating}</span>{/if}
-          {#if item.rating}<span class="rating"><Icon name="star" size={14} filled /> {item.rating.toFixed(1)}</span>{/if}
+          {#if item.rating && !item.siteRatings?.length}<span class="rating"><Icon name="star" size={14} filled /> {item.rating.toFixed(1)}</span>{/if}
           {#if endsAt}<span>{t("item.endsAt", { time: endsAt })}</span>{/if}
           {#if item.watched}<span class="badge ok">{t("item.watched")}</span>{/if}
         </div>
+
+        <!-- Notes des sites (réglables dans Réglages → Interface) et, avec Plex, la note de l'utilisateur. -->
+        {#if !collection}
+          <div class="scores">
+            {#if item.siteRatings}<SiteRatings {item} />{/if}
+            {#if nav.serverKind === "plex" && !device.tv}<Stars {item} size={17} />{/if}
+          </div>
+        {/if}
 
         <div class="actions" data-nav-row>
           {#if item.playable}
@@ -287,6 +303,11 @@
           {#if nav.admin}
             <button class="btn round big" onclick={() => (nav.editing = item)} title={t("item.editInfo")}>
               <Icon name="edit" size={18} />
+            </button>
+          {/if}
+          {#if !device.tv}
+            <button class="btn round big" onclick={openMenu} title={t("trackGrid.moreActions")} aria-label={t("trackGrid.moreActions")}>
+              <Icon name="more" size={20} />
             </button>
           {/if}
           {/if}
@@ -596,6 +617,22 @@
     gap: 4px;
     color: var(--accent);
     font-weight: 700;
+  }
+
+  .scores {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 8px 18px;
+    margin-top: 12px;
+    color: #ffffffe0;
+    font-size: 14px;
+    text-shadow: 0 1px 8px #000;
+  }
+
+  .scores:empty {
+    display: none;
   }
 
   .actions {
