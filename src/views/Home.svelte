@@ -4,7 +4,7 @@
   import { listen } from "@tauri-apps/api/event";
   import { api, errorText, type Home, type Item, type SeerrMedia, type Section } from "../lib/api";
   import { go } from "../lib/nav.svelte";
-  import { arrange, availableRows } from "../lib/homeRows.svelte";
+  import { arrange, availableRows, shownByDefault } from "../lib/homeRows.svelte";
   import { fromItem, fromSeerr } from "../lib/tvcards";
   import PosterCard from "../components/PosterCard.svelte";
   import SeerrCard from "../components/SeerrCard.svelte";
@@ -24,7 +24,7 @@
   let error = $state<string | null>(null);
 
   // Rangées choisies (Réglages → Interface), dans leur ordre.
-  const rows = $derived(arrange(availableRows(sections)).filter((r) => r.on));
+  const rows = $derived(arrange(availableRows(sections), shownByDefault(sections)).filter((r) => r.on));
 
   // Bannière : jusqu'à 5 éléments « À suivre », sinon les derniers ajouts.
   const slides = $derived(

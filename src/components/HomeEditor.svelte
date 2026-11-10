@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { api, type Section } from "../lib/api";
-  import { arrange, availableRows, resetHome, saveHome, type HomeRow } from "../lib/homeRows.svelte";
+  import { arrange, availableRows, resetHome, saveHome, shownByDefault, type HomeRow } from "../lib/homeRows.svelte";
   import Icon from "./Icon.svelte";
   import { t } from "../lib/i18n";
 
@@ -10,7 +10,7 @@
    * s'épingle ainsi à l'accueil) et à monter ou descendre. Le choix est gardé sur cet appareil.
    */
   let sections = $state<Section[]>([]);
-  const rows = $derived(arrange(availableRows(sections)));
+  const rows = $derived(arrange(availableRows(sections), shownByDefault(sections)));
 
   onMount(() => {
     api.sections().then((s) => (sections = s ?? []), () => {});

@@ -1,6 +1,7 @@
 // Rangées de l'accueil, gardées sur cet appareil : leur ordre, et celles qui s'affichent.
 // « continue », « recent » et « trending » sont celles de Maku ; « lib:<clé> » épingle
-// les derniers ajouts d'une bibliothèque (masquées au départ, comme les bibliothèques dans Plex).
+// les derniers ajouts d'une bibliothèque.
+import { ordered } from "./sidebar.svelte";
 const KEY = "maku.home";
 
 export interface HomeRow {
@@ -8,8 +9,16 @@ export interface HomeRow {
   on: boolean;
 }
 
-/** Affichées tant qu'on ne les a pas masquées ; les bibliothèques sont à épingler. */
-const SHOWN_BY_DEFAULT = ["continue", "recent", "trending"];
+/**
+ * Au départ (et après « Rétablir l'accueil ») : Continuer à regarder, les derniers ajouts de la première
+ * bibliothèque de films et de la première de séries (dans l'ordre du menu), et les tendances à demander.
+ * Les ajouts récents de tout le serveur, les autres bibliothèques et la musique restent à cocher.
+ */
+export function shownByDefault(sections: { key: string; kind: string }[]): string[] {
+  const list = ordered(sections);
+  const first = (kind: string) => list.find((s) => s.kind === kind);
+  return ["continue", ...[first("movie"), first("show")].filter((s) => !!s).map((s) => `lib:${s!.key}`), "trending"];
+}
 
 function load(): HomeRow[] {
   try {
@@ -26,9 +35,9 @@ export const homeRows = $state({ saved: load() });
  * Les rangées disponibles, dans l'ordre choisi : celles déjà rangées d'abord, les nouvelles (une
  * bibliothèque ajoutée sur le serveur) ensuite, affichées ou non selon leur type.
  */
-export function arrange(available: string[]): HomeRow[] {
+export function arrange(available: string[], shown: string[]): HomeRow[] {
   const known = homeRows.saved.filter((r) => available.includes(r.id));
-  const fresh = available.filter((id) => !known.some((r) => r.id === id)).map((id) => ({ id, on: SHOWN_BY_DEFAULT.includes(id) }));
+  const fresh = available.filter((id) => !known.some((r) => r.id === id)).map((id) => ({ id, on: shown.includes(id) }));
   return [...known, ...fresh];
 }
 
