@@ -122,7 +122,8 @@ visionnage. Tout se fait avec son compte Plex (ou Jellyfin) : aucune clé d'API 
     <td valign="top">
       <h4>📥 Il fait vos demandes</h4>
       Découvrez les tendances et les sorties à venir via Seerr, lisez la fiche complète (notes, casting,
-      bande-annonce) et demandez un film ou des saisons en un clic.
+      bande-annonce) et demandez un film ou des saisons en un clic. Un titre déjà demandé (en cours, partiellement
+      disponible ou disponible) ne se redemande pas.
     </td>
     <td valign="top">
       <h4>📊 Il raconte vos habitudes</h4>

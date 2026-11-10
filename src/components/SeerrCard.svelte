@@ -6,8 +6,9 @@
   let { media }: { media: SeerrMedia } = $props();
 
   const label = $derived(seerrStatusLabel(media.status));
-  // Une série partiellement disponible peut encore recevoir des demandes de saisons.
-  const requestable = $derived(media.status === 0 || media.status === 1 || (media.mediaType === "tv" && media.status === 4));
+  // À demander seulement si rien n'est encore demandé : en cours, partiellement disponible (série) ou
+  // disponible, la demande est déjà faite.
+  const requestable = $derived(media.status === 0 || media.status === 1);
 
   function open() {
     go({ name: "seerr", mediaType: media.mediaType, tmdbId: media.tmdbId });

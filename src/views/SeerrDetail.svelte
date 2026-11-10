@@ -31,9 +31,8 @@
   const money = new Intl.NumberFormat(locale, { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 
   const label = $derived(item ? seerrStatusLabel(item.status) : null);
-  const requestable = $derived(
-    !!item && (item.status === 0 || item.status === 1 || (item.mediaType === "tv" && item.status === 4)),
-  );
+  // Comme sur les jaquettes : en cours, partiellement disponible ou disponible, rien de plus à demander.
+  const requestable = $derived(!!item && (item.status === 0 || item.status === 1));
   const releaseDate = $derived(
     item?.releaseDate
       ? new Date(item.releaseDate).toLocaleDateString(locale, { day: "numeric", month: "long", year: "numeric" })
@@ -117,7 +116,7 @@
           {/if}
           {#if requestable}
             <button class="btn big" class:primary={!item.plexRatingKey} onclick={() => (nav.requesting = item)}>
-              <Icon name="plus" size={18} /> {item.status === 4 ? t("seerr.detail.requestMoreSeasons") : t("seerr.detail.request")}
+              <Icon name="plus" size={18} /> {t("seerr.detail.request")}
             </button>
           {/if}
           {#if item.trailer}
