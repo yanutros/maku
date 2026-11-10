@@ -275,8 +275,6 @@
   const hasCredits = $derived(!!view && (view.directors.length + view.writers.length + view.genres.length > 0 || !!view.studio));
   const hasMedia = $derived(!!view && (!!view.video || view.audioTracks.length > 0 || view.playable));
 
-  /** Série et saison : résumé et équipe centrés, sous le bandeau centré. */
-  const centered = $derived(item?.kind === "show" || item?.kind === "season");
 
   /*
    * Saisons d'une série : sur une ligne pleine, la grille habituelle ; moins nombreuses que les places d'une
@@ -481,7 +479,7 @@
 
     <!-- Sous le bandeau, en pleine largeur : l'accroche et le résumé, dépliable. -->
     {#if view.tagline || view.summary}
-      <section class="about" class:centered>
+      <section class="about">
         {#if view.tagline && view.kind !== "episode"}<p class="tagline">{view.tagline}</p>{/if}
         {#if view.summary}
           <!-- Sur téléviseur, le résumé n'est pas une étape de la navigation. -->
@@ -727,19 +725,15 @@
     animation: rise 0.7s 0.15s var(--ease) backwards;
   }
 
+  /* L'accroche et le résumé au milieu, sous le titre centré, le résumé justifié (films, séries, saisons). */
   .about {
     max-width: 1100px;
-    margin-bottom: 28px;
+    margin: 0 auto 28px;
+    text-align: center;
     animation: rise 0.7s 0.3s var(--ease) backwards;
   }
 
-  /* Série et saison : l'accroche et le résumé au milieu, sous le titre centré, le résumé justifié. */
-  .about.centered {
-    margin-inline: auto;
-    text-align: center;
-  }
-
-  .about.centered .summary {
+  .about .summary {
     width: 100%;
     text-align: justify;
     /* La dernière ligne (ou un résumé d'une seule ligne) au milieu, comme le reste de la fiche. */

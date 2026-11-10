@@ -82,7 +82,7 @@ visionnage. Tout se fait avec son compte Plex (ou Jellyfin) : aucune clé d'API 
       de ses saisons au-dessus), puis tous les épisodes de haut en bas, chacun avec sa vignette (▶ au survol pour le
       lancer) et ses informations à droite : titre, vu, durée, temps restant, classement, note, vos étoiles et résumé,
       et son menu **⋯**. L'épisode ouvert est mis en avant, et le bouton principal le reprend (**Reprendre S1 · E2**).
-      La fiche d'une série propose aussi **Reprendre S1 · E2**, qui ouvre la saison sur cet épisode ; son résumé (justifié),
+      La fiche d'une série propose aussi **Reprendre S1 · E2**, qui ouvre la saison sur cet épisode ; son résumé (justifié, comme celui d'un film),
       son encart studio et genres et ses saisons, quand elles ne remplissent pas une ligne, sont centrés sous le titre.
       Les titres s'affichent avec leur logo officiel, comme dans Jellyfin : celui du serveur, sinon celui du
       service en ligne de Plex — un logo dans la langue de l'interface passe avant celui du serveur, souvent en anglais —, et en dernier recours de TMDB avec votre clé d'API gratuite (Réglages → Services ; sur téléviseur, un QR code permet de la coller depuis le téléphone) ; les épisodes et les saisons reprennent celui de leur série ; sans logo nulle part, une typographie de cinéma choisie selon le genre. La musique, elle, garde ses titres en texte simple.
