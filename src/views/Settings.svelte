@@ -251,7 +251,12 @@
     toast(t("settings.invite.codeCopied"));
   }
 
-  // Le QR code en image PNG, à coller dans un message.
+  // Android : le presse-papiers de la page n'y garde pas d'image (« copiée », mais rien à coller) ; l'image passe
+  // par le partage d'Android, qui propose aussi de la copier.
+  const shareBridge = (window as { PlexrDevice?: { shareImage?(base64: string, name: string): void } }).PlexrDevice;
+  const canShareImage = !!shareBridge?.shareImage;
+
+  // Le QR code en image PNG, à coller dans un message (ou, sur Android, à partager).
   async function copyInviteImage() {
     const svg = inviteQr?.querySelector("svg");
     if (!svg) return;
@@ -262,6 +267,10 @@
       const canvas = document.createElement("canvas");
       canvas.width = canvas.height = 600;
       canvas.getContext("2d")!.drawImage(img, 0, 0, 600, 600);
+      if (canShareImage) {
+        shareBridge!.shareImage!(canvas.toDataURL("image/png").split(",")[1], "maku-invitation");
+        return;
+      }
       const blob = await new Promise<Blob>((ok, ko) => canvas.toBlob((b) => (b ? ok(b) : ko(new Error("image"))), "image/png"));
       await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
       toast(t("settings.invite.imageCopied"));
@@ -928,7 +937,7 @@
                 {#if !device.tv}
                   <div class="row">
                     <button class="btn" onclick={copyInviteCode}><Icon name="copy" size={16} /> {t("settings.invite.copyCode")}</button>
-                    <button class="btn" onclick={copyInviteImage}><Icon name="image" size={16} /> {t("settings.invite.copyImage")}</button>
+                    <button class="btn" onclick={copyInviteImage}><Icon name="image" size={16} /> {canShareImage ? t("settings.invite.shareImage") : t("settings.invite.copyImage")}</button>
                   </div>
                 {/if}
               </div>

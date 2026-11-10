@@ -151,6 +151,25 @@ class MainActivity : TauriActivity() {
         runOnUiThread { startActivity(Intent.createChooser(send, null)) }
       }
 
+      /**
+       * Invitation : l'image PNG du QR code (en base64), confiée au partage d'Android (Messages, WhatsApp…,
+       * ou « Copier »). Le presse-papiers de la page ne sait pas y mettre une image : elle n'arrivait nulle part.
+       */
+      @JavascriptInterface
+      fun shareImage(base64: String, name: String) {
+        val file = File(cacheDir, "partage/$name.png")
+        file.parentFile?.mkdirs()
+        file.writeBytes(android.util.Base64.decode(base64, android.util.Base64.DEFAULT))
+        val uri = FileProvider.getUriForFile(this@MainActivity, "$packageName.fileprovider", file)
+        val send = Intent(Intent.ACTION_SEND)
+          .setType("image/png")
+          .putExtra(Intent.EXTRA_STREAM, uri)
+          .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        // Aperçu de l'image dans la fenêtre de partage (Android 10 et plus).
+        send.clipData = android.content.ClipData.newRawUri(name, uri)
+        runOnUiThread { startActivity(Intent.createChooser(send, null)) }
+      }
+
       /** Téléviseur : OK sur un champ de saisie ouvre le clavier (il ne s'ouvre pas au simple passage). */
       @JavascriptInterface
       fun showKeyboard() {

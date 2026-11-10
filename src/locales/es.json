@@ -84,7 +84,8 @@
       "copyImage": "Copiar imagen",
       "photoHint": "Elige en tus fotos la captura del código QR enviada por el administrador del servidor, o pega su código de invitación.",
       "pickPhoto": "Elegir el código QR en mis fotos",
-      "relayHint": "Para no exponer Seerr y Tracearr en Internet, instala Maku Server junto al servidor: sus direcciones (…:32700/seerr y …:32700/tracearr) sustituyen entonces a las de Seerr y Tracearr."
+      "relayHint": "Para no exponer Seerr y Tracearr en Internet, instala Maku Server junto al servidor: sus direcciones (…:32700/seerr y …:32700/tracearr) sustituyen entonces a las de Seerr y Tracearr.",
+      "shareImage": "Compartir la imagen"
     },
     "player": {
       "saved": "Ruta de mpv guardada",

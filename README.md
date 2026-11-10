@@ -624,7 +624,7 @@ Chaque changement est envoyé aussitôt à plex.tv, avec le compte du propriéta
 Dans **Réglages → Services**, l'administrateur du serveur trouve **Inviter des utilisateurs** : il y
 indique les adresses de Seerr et de Tracearr à partager (pré-remplies avec les siennes, s'il les a configurées) et
 obtient un QR code, et le code équivalent (`MAKU-INVITE:…` ; les anciens `PLEXR-INVITE:` restent acceptés), qui
-les contient **sans aucun identifiant**. Il le copie (texte ou image) pour l'envoyer par message.
+les contient **sans aucun identifiant**. Il le copie (texte ou image) pour l'envoyer par message ; sur Android, **Partager l'image** ouvre le partage du téléphone (Messages, WhatsApp…, ou Copier).
 
 Chez l'utilisateur, la **Configuration rapide** de la même page l'applique : Maku enregistre les adresses, se
 connecte à Seerr avec le compte Plex et lance la connexion Tracearr.

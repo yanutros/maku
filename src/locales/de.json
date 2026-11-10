@@ -84,7 +84,8 @@
       "copyImage": "Bild kopieren",
       "photoHint": "Wähle in deinen Fotos den Screenshot des QR-Codes vom Server-Admin oder füge seinen Einladungscode ein.",
       "pickPhoto": "QR-Code aus meinen Fotos wählen",
-      "relayHint": "Damit Seerr und Tracearr nicht im Internet erreichbar sein müssen, installieren Sie Maku Server neben dem Server: Seine Adressen (…:32700/seerr und …:32700/tracearr) ersetzen dann die von Seerr und Tracearr."
+      "relayHint": "Damit Seerr und Tracearr nicht im Internet erreichbar sein müssen, installieren Sie Maku Server neben dem Server: Seine Adressen (…:32700/seerr und …:32700/tracearr) ersetzen dann die von Seerr und Tracearr.",
+      "shareImage": "Bild teilen"
     },
     "player": {
       "saved": "mpv-Pfad gespeichert",

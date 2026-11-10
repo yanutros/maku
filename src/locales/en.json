@@ -84,7 +84,8 @@
       "copyImage": "Copy image",
       "photoHint": "Pick the screenshot of the QR code sent by the server admin from your photos, or paste their invite code.",
       "pickPhoto": "Pick the QR code from my photos",
-      "relayHint": "To keep Seerr and Tracearr off the internet, install Maku Server next to the server: its addresses (…:32700/seerr and …:32700/tracearr) then replace those of Seerr and Tracearr."
+      "relayHint": "To keep Seerr and Tracearr off the internet, install Maku Server next to the server: its addresses (…:32700/seerr and …:32700/tracearr) then replace those of Seerr and Tracearr.",
+      "shareImage": "Share image"
     },
     "player": {
       "saved": "mpv path saved",

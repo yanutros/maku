@@ -84,7 +84,8 @@
       "copyImage": "Afbeelding kopiëren",
       "photoHint": "Kies in je foto's de schermafbeelding van de QR-code van de serverbeheerder, of plak de uitnodigingscode.",
       "pickPhoto": "QR-code uit mijn foto's kiezen",
-      "relayHint": "Om Seerr en Tracearr niet op internet open te zetten, installeer je Maku Server naast de server: de adressen (…:32700/seerr en …:32700/tracearr) vervangen dan die van Seerr en Tracearr."
+      "relayHint": "Om Seerr en Tracearr niet op internet open te zetten, installeer je Maku Server naast de server: de adressen (…:32700/seerr en …:32700/tracearr) vervangen dan die van Seerr en Tracearr.",
+      "shareImage": "Afbeelding delen"
     },
     "player": {
       "saved": "mpv-pad opgeslagen",
