@@ -251,6 +251,17 @@ export function ensureFocus() {
 
 export function moveFocus(dir: Dir): boolean {
   const current = document.activeElement as HTMLElement | null;
+  // Fenêtre ou menu ouvert par-dessus la page (demande Seerr…) alors que la sélection est restée derrière :
+  // la flèche la fait entrer dans la fenêtre, au lieu de continuer à parcourir la page en dessous.
+  const layer = scope();
+  if (layer !== document && !(current && layer.contains(current))) {
+    const first = focusables(layer)[0];
+    if (first) {
+      first.focus({ preventScroll: true });
+      reveal(first);
+      return true;
+    }
+  }
   if (current && current !== document.body && moveInRows(current, dir)) return true;
   // Onglets (Recommandé, Bibliothèque…) : gauche / droite d'un onglet à l'autre ; au premier, la
   // flèche gauche rejoint le menu, au dernier la droite ne fait rien.

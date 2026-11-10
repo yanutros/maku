@@ -1,8 +1,10 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onMount, tick } from "svelte";
   import { api, errorText, seerrStatusLabel, type SeerrMedia, type SeerrSeason } from "../lib/api";
   import { nav, toast } from "../lib/nav.svelte";
   import { t } from "../lib/i18n";
+  import { device } from "../lib/device";
+  import { reveal } from "../lib/spatial";
 
   let { media }: { media: SeerrMedia } = $props();
 
@@ -26,6 +28,20 @@
     } finally {
       loading = false;
     }
+  });
+
+  // Télécommande : la sélection entre dans la fenêtre dès l'ouverture, sur « Envoyer la demande » (une fois les
+  // saisons chargées), sinon elle restait sur la page derrière et la fenêtre n'était jamais atteinte.
+  let submitBtn = $state<HTMLButtonElement>();
+  let focused = false;
+  $effect(() => {
+    if (!device.tv || focused || loading || !submitBtn) return;
+    focused = true;
+    tick().then(() => {
+      const target = submitBtn && !submitBtn.disabled ? submitBtn : submitBtn?.closest(".dialog")?.querySelector<HTMLElement>("input:not(:disabled), button:not(:disabled)");
+      target?.focus({ preventScroll: true });
+      if (target) reveal(target);
+    });
   });
 
   function toggle(n: number) {
@@ -99,6 +115,7 @@
         <button class="btn" onclick={close}>{t("request.cancel")}</button>
         <button
           class="btn primary"
+          bind:this={submitBtn}
           disabled={sending || loading || (media.mediaType === "tv" && !selected.length)}
           onclick={submit}
         >
@@ -122,6 +139,7 @@
   .dialog {
     width: min(560px, 92vw);
     max-height: 86vh;
+    scrollbar-width: thin;
     overflow-y: auto;
     background: var(--bg-elev);
     border: 1px solid var(--border);
@@ -194,5 +212,14 @@
     justify-content: flex-end;
     gap: 8px;
     margin-top: 20px;
+  }
+
+  /* Téléviseur : la fenêtre tient dans l'écran visible, boutons compris (elle défile avec la sélection). */
+  :global(html.tv) .dialog {
+    max-height: 78vh;
+  }
+
+  :global(html.tv) .hero {
+    height: 130px;
   }
 </style>
