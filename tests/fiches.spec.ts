@@ -34,21 +34,17 @@ test("TV : le fond reste au bord quand le menu se déplie puis se replie", async
   expect(ecart(await pixel(page, 3, 120), avant)).toBeLessThan(30);
 });
 
-test("série → saison : un épisode choisi en haut, les autres en rangée, les saisons en onglets", async ({ page }, info) => {
+test("série → saison : les épisodes de haut en bas, l'épisode à reprendre en avant, les saisons en onglets", async ({ page }, info) => {
   await ouvrir(page, info, "serie");
   await page.getByText("Saison 2", { exact: true }).first().click();
-  // La saison s'ouvre sur un épisode : sa ligne en haut, la rangée de la saison dessous.
   const tabs = page.getByRole("tablist");
   await expect(tabs.getByRole("tab", { name: "Saison 2" })).toHaveAttribute("aria-selected", "true");
-  await expect(page.locator(".ep-thumb").first()).toBeVisible();
-  // Choisir un autre épisode change le haut de la page, sans la quitter ni lancer la lecture.
-  const second = page.locator(".ep-thumb").nth(1);
-  await second.click({ position: { x: 12, y: 12 } }); // à côté du bouton ▶ du milieu, qui lance l'épisode
-  await expect(second).toHaveAttribute("aria-pressed", "true");
-  await expect(page.locator(".ep.sel .ep-name")).toHaveText("Sous la glace");
-  // Sur TV, la sélection choisit déjà l'épisode : OK, comme ce clic, le lance (le lecteur couvre alors la page).
-  if (appareil(info) === "tv") return;
-  await expect(page.locator(".overlay")).toHaveCount(0);
+  // Tous les épisodes, chacun avec son titre et son résumé ; celui à reprendre mis en avant, et repris
+  // par le bouton principal.
+  await expect(page.locator(".episode").first()).toBeVisible();
+  await expect(page.locator(".episode.target")).toHaveCount(1);
+  await expect(page.locator(".episode.target .ep-title")).toContainText("Aurore");
+  await expect(page.locator(".actions .btn.primary")).toContainText(/S2 · E4/);
   // Onglet d'une autre saison, puis celui de la série.
   await tabs.getByRole("tab", { name: "Saison 1" }).click();
   await expect(tabs.getByRole("tab", { name: "Saison 1" })).toHaveAttribute("aria-selected", "true");
@@ -56,26 +52,20 @@ test("série → saison : un épisode choisi en haut, les autres en rangée, les
   await expect(page.getByText("Saison 1", { exact: true }).first()).toBeVisible();
 });
 
-test("TV : une saison s'ouvre sur l'épisode choisi, la rangée ne bouge pas, les onglets sont au-dessus", async ({ page }, info) => {
+test("TV : une saison s'ouvre sur l'épisode à reprendre, les onglets sont au-dessus", async ({ page }, info) => {
   test.skip(appareil(info) !== "tv", "télécommande : téléviseur");
   await ouvrir(page, info, "serie");
   await page.getByRole("button", { name: /Saison 2/ }).first().focus();
   await touche(page, "Enter");
-  // La sélection arrive sur la vignette de l'épisode choisi, pas sur « Lire ».
-  await expect(page.locator(".ep-thumb[aria-pressed='true']")).toBeFocused();
-  // D'un épisode à l'autre, la rangée reste à la même hauteur.
-  const haut = () => page.locator(".ep-row").evaluate((el) => Math.round(el.getBoundingClientRect().top));
-  const avant = await haut();
-  for (const dir of ["ArrowLeft", "ArrowLeft", "ArrowRight"] as const) {
-    await touche(page, dir);
-    await page.waitForTimeout(400);
-    expect(await haut(), "la rangée des épisodes s'est déplacée").toBe(avant);
+  // La sélection arrive sur la vignette de l'épisode à reprendre, pas sur le bouton du haut.
+  await expect(page.locator(".episode.target .thumb")).toBeFocused();
+  await touche(page, "ArrowDown");
+  await expect(page.locator(".episode.target + .episode .thumb")).toBeFocused();
+  // En remontant : les boutons de la saison, puis les onglets, sur la saison ouverte.
+  for (let i = 0; i < 8 && !(await page.evaluate(() => document.activeElement?.getAttribute("role") === "tab")); i++) {
+    await touche(page, "ArrowUp");
   }
-  // Haut : les onglets, sur la saison ouverte ; gauche : la série.
-  await touche(page, "ArrowUp");
   await expect(page.getByRole("tab", { name: "Saison 2" })).toBeFocused();
-  await touche(page, "ArrowLeft", 2);
-  await expect(page.getByRole("tab", { name: "Série" })).toBeFocused();
 });
 
 test("TV : en descendant une fiche, la sélection reste entière à l'écran", async ({ page }, info) => {

@@ -414,7 +414,8 @@
     "showTab": "Série",
     "episodeShort": "E{{number}}",
     "resumeEpisode": "Reprendre S{{season}} · E{{episode}}",
-    "playEpisode": "Lire S{{season}} · E{{episode}}"
+    "playEpisode": "Lire S{{season}} · E{{episode}}",
+    "episodes": "Épisodes"
   },
   "stats": {
     "title": "Mes statistiques",

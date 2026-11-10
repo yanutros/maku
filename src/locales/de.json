@@ -414,7 +414,8 @@
     "showTab": "Serie",
     "episodeShort": "F{{number}}",
     "resumeEpisode": "S{{season}} · F{{episode}} fortsetzen",
-    "playEpisode": "S{{season}} · F{{episode}} abspielen"
+    "playEpisode": "S{{season}} · F{{episode}} abspielen",
+    "episodes": "Folgen"
   },
   "stats": {
     "title": "Meine Statistiken",

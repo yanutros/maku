@@ -414,7 +414,8 @@
     "showTab": "Serie",
     "episodeShort": "A{{number}}",
     "resumeEpisode": "S{{season}} · A{{episode}} hervatten",
-    "playEpisode": "S{{season}} · A{{episode}} afspelen"
+    "playEpisode": "S{{season}} · A{{episode}} afspelen",
+    "episodes": "Afleveringen"
   },
   "stats": {
     "title": "Mijn statistieken",

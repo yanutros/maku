@@ -79,10 +79,10 @@ visionnage. Tout se fait avec son compte Plex (ou Jellyfin) : aucune clé d'API 
       vu / non vu ; et pour l'administrateur seulement, comme dans Plex : modifier, ajouter à une collection,
       actualiser les métadonnées et analyser.
       Comme dans Plex, un épisode n'a pas de fiche à lui : il s'ouvre dans sa saison, avec les onglets de la série et
-      de ses saisons en haut, l'épisode choisi en grand (titre, notes, résumé), la rangée de tous les épisodes de la
-      saison, puis ses boutons, ses pistes et sa distribution. Choisir un autre épisode change le haut de la page ; le
-      bouton ▶ de sa vignette (au survol) ou un double-clic le lance. La fiche d'une série propose **Reprendre S1 · E2**,
-      qui ouvre la saison sur cet épisode.
+      de ses saisons en haut, puis tous les épisodes de haut en bas, chacun avec sa vignette (▶ au survol pour le
+      lancer) et ses informations à droite : titre, vu, durée, temps restant, classement, note, vos étoiles et résumé,
+      et son menu **⋯**. L'épisode ouvert est mis en avant, et le bouton principal le reprend (**Reprendre S1 · E2**).
+      La fiche d'une série propose aussi **Reprendre S1 · E2**, qui ouvre la saison sur cet épisode.
       Les titres s'affichent avec leur logo officiel, comme dans Jellyfin : celui du serveur, sinon celui du
       service en ligne de Plex — un logo dans la langue de l'interface passe avant celui du serveur, souvent en anglais —, et en dernier recours de TMDB avec votre clé d'API gratuite (Réglages → Services ; sur téléviseur, un QR code permet de la coller depuis le téléphone) ; les épisodes et les saisons reprennent celui de leur série ; sans logo nulle part, une typographie de cinéma choisie selon le genre. La musique, elle, garde ses titres en texte simple.
     </td>
@@ -372,10 +372,10 @@ pour l'instant que Plex.
 > juste sous le champ, comme sur Apple TV : haut / bas, OK pour choisir, Retour pour refermer sans rien changer.
 > Vu, non vu et la note s'appliquent sur place, sans recharger la page, et une petite coche discrète marque
 > les titres vus, comme dans Plex.
-> Une saison s'ouvre sur la vignette de l'épisode choisi, dans la rangée de tous ceux de la saison, posée en bas de
-> l'image de la série (le logo seul au-dessus) ; la date, les notes, le résumé et les boutons de l'épisode viennent
-> dessous. Déplacer la sélection change d'épisode sans faire bouger la page, OK le lance ; flèche haut vers les
-> onglets de la série et des autres saisons (Plex, Jellyfin et Emby).
+> Une saison montre ses épisodes de haut en bas, chacun avec ses informations à droite ; elle s'ouvre avec la
+> sélection sur l'épisode visé (celui de « Continuer à regarder », sinon le prochain à voir) : OK le lance, haut et
+> bas passent d'un épisode à l'autre, et tout en haut viennent les onglets de la série et des autres saisons (Plex,
+> Jellyfin et Emby).
 > La musique a son lecteur plein écran, comme dans Plex : la pochette en grand, les commandes qui s'effacent au
 > repos, la file d'attente en rangée de pochettes (flèche bas), un bouton **Paroles** qui les affiche en grand à côté
 > de la pochette, et un bouton pour tout arrêter. Pendant qu'on parcourt les pages, une petite
