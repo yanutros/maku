@@ -540,7 +540,7 @@ toute seule. Ce mode est aussi proposé sur ordinateur et tablette (**Avec un co
 ### 📺 À la télécommande
 
 Les flèches déplacent la sélection (entourée en doré), toujours visible en entier avec son cadre, à distance des bords de l'écran, comme dans Plex et Wholphin. **OK** ouvre ou lance, **Retour** ferme ce qui est ouvert
-puis revient à la page précédente. Sur « Continuer à regarder », OK ouvre la fiche (la saison, pour un épisode) avec **Reprendre** déjà sélectionné : un second OK relance la lecture. Une fenêtre qui s'ouvre (demande Seerr, informations…) prend aussitôt la sélection, et les flèches y restent jusqu'à sa fermeture. Pendant une
+puis revient à la page précédente. Sur « Continuer à regarder », OK ouvre la fiche (la saison, pour un épisode) avec **Reprendre** déjà sélectionné : un second OK relance la lecture. Une fenêtre qui s'ouvre prend la sélection (dès l'ouverture pour une demande Seerr, à la première flèche pour les autres), et les flèches y restent jusqu'à sa fermeture. Pendant une
 vidéo, les touches lecture / pause et suivant / précédent de la télécommande fonctionnent. Les champs de saisie
 (connexion, réglages, recherche) se traversent aux flèches sans ouvrir le clavier : **OK** l'ouvre.
 Les onglets du haut des bibliothèques (films, séries, musique) s'ouvrent dès qu'on y arrive avec les flèches,
