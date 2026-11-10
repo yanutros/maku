@@ -394,12 +394,6 @@
               {t("item.playTitle", { title: nextUp.title })}
             </button>
           {/if}
-          <!-- Reprise en cours : recommencer depuis le début. -->
-          {#if view.playable && view.viewOffsetMs}
-            <button class="btn round big" onclick={() => playThis(true)} title={t("item.playFromStart")}>
-              <Icon name="restart" size={18} />
-            </button>
-          {/if}
           <!-- Android : film ou épisode, ou toute la saison, à regarder hors ligne. -->
           {#if canDownload() && view.playable && (view.kind === "movie" || view.kind === "episode")}
             <DownloadButton item={view} />
@@ -410,6 +404,12 @@
             <button class="btn big" disabled={trailerBusy} onclick={openTrailer} title={t("item.trailer")}>
               <Icon name="film" size={18} />
               {t("item.trailer")}
+            </button>
+          {/if}
+          <!-- Reprise en cours : recommencer depuis le début, avec les autres boutons ronds (après la bande-annonce). -->
+          {#if view.playable && view.viewOffsetMs}
+            <button class="btn round big" onclick={() => playThis(true)} title={t("item.playFromStart")}>
+              <Icon name="restart" size={18} />
             </button>
           {/if}
           {#if !collection}
