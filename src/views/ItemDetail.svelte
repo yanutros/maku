@@ -275,6 +275,24 @@
   const hasCredits = $derived(!!view && (view.directors.length + view.writers.length + view.genres.length > 0 || !!view.studio));
   const hasMedia = $derived(!!view && (!!view.video || view.audioTracks.length > 0 || view.playable));
 
+  /** Série et saison : résumé et équipe centrés, sous le bandeau centré. */
+  const centered = $derived(item?.kind === "show" || item?.kind === "season");
+
+  /*
+   * Saisons d'une série : sur une ligne pleine, la grille habituelle ; moins nombreuses que les places d'une
+   * ligne, elles gardent la même taille et se centrent. La largeur est lue avant l'affichage (rien ne saute).
+   */
+  let seasonsWidth = $state(0);
+  const few = $derived.by(() => {
+    if (!seasonsWidth || item?.kind !== "show") return null;
+    const gap = device.phone ? 10 : 20;
+    const min = device.phone ? 0 : 160;
+    const cols = device.phone ? 3 : Math.max(1, Math.floor((seasonsWidth + gap) / (min + gap)));
+    if (children.length >= cols) return null;
+    const card = (seasonsWidth - (cols - 1) * gap) / cols;
+    return { card, width: children.length * card + (children.length - 1) * gap };
+  });
+
   /** Temps restant d'un épisode commencé. */
   const left = (ep: Item) => (ep.viewOffsetMs && ep.durationMs ? ep.durationMs - ep.viewOffsetMs : null);
 
@@ -441,7 +459,7 @@
 
     <!-- Sous le bandeau, en pleine largeur : l'accroche et le résumé, dépliable. -->
     {#if view.tagline || view.summary}
-      <section class="about">
+      <section class="about" class:centered>
         {#if view.tagline && view.kind !== "episode"}<p class="tagline">{view.tagline}</p>{/if}
         {#if view.summary}
           <!-- Sur téléviseur, le résumé n'est pas une étape de la navigation. -->
@@ -454,7 +472,7 @@
 
     <!-- Deux panneaux, comme Jellyfin : l'équipe à gauche, les pistes à lire à droite. -->
     {#if hasCredits || hasMedia}
-      <div class="panels">
+      <div class="panels" class:single={!hasMedia || !hasCredits}>
         {#if hasCredits}
           <dl class="panel credits">
             {#if view.directors.length}<div><dt>{t("item.facts.director")}</dt><dd>{view.directors.join(", ")}</dd></div>{/if}
@@ -512,9 +530,13 @@
         {#each children as movie (movie.ratingKey)}<PosterCard item={movie} />{/each}
       </div>
     {:else if item.kind === "show" && children.length}
-      <h2 class="row-title">{t("item.seasons")}</h2>
-      <div class="grid" data-nav-row="grid">
-        {#each children as season (season.ratingKey)}<PosterCard item={season} />{/each}
+      <div class="seasons" bind:clientWidth={seasonsWidth}>
+        <div class="seasons-in" style:width={few ? `${few.width}px` : undefined}>
+          <h2 class="row-title">{t("item.seasons")}</h2>
+          <div class="grid" data-nav-row="grid" style:grid-template-columns={few ? `repeat(${children.length}, ${few.card}px)` : undefined}>
+            {#each children as season (season.ratingKey)}<PosterCard item={season} />{/each}
+          </div>
+        </div>
       </div>
     {:else if item.kind === "season"}
       <!-- Les épisodes de haut en bas, chacun avec ses informations à droite. La vignette (ou OK) le lance ;
@@ -687,6 +709,29 @@
     max-width: 1100px;
     margin-bottom: 28px;
     animation: rise 0.7s 0.3s var(--ease) backwards;
+  }
+
+  /* Série et saison : l'accroche et le résumé au milieu, sous le titre centré, le résumé justifié. */
+  .about.centered {
+    margin-inline: auto;
+    text-align: center;
+  }
+
+  .about.centered .summary {
+    width: 100%;
+    text-align: justify;
+    /* La dernière ligne (ou un résumé d'une seule ligne) au milieu, comme le reste de la fiche. */
+    text-align-last: center;
+  }
+
+  /* Un seul panneau (série, saison : pas de pistes à choisir) : à la même largeur, centré. */
+  .panels.single {
+    grid-template-columns: minmax(0, calc((100% - 20px) / 2));
+    justify-content: center;
+  }
+
+  .seasons-in {
+    margin: 0 auto;
   }
 
   @keyframes rise {
