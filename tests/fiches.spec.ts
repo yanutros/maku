@@ -34,21 +34,27 @@ test("TV : le fond reste au bord quand le menu se déplie puis se replie", async
   expect(ecart(await pixel(page, 3, 120), avant)).toBeLessThan(30);
 });
 
-test("série → saison : les épisodes de haut en bas, l'épisode à reprendre en avant, les saisons en onglets", async ({ page }, info) => {
+test("série → saison : les épisodes de haut en bas, l'épisode à reprendre en avant, retour à la série", async ({ page }, info) => {
   await ouvrir(page, info, "serie");
   await page.getByText("Saison 2", { exact: true }).first().click();
-  const tabs = page.getByRole("tablist");
-  await expect(tabs.getByRole("tab", { name: "Saison 2" })).toHaveAttribute("aria-selected", "true");
   // Tous les épisodes, chacun avec son titre et son résumé ; celui à reprendre mis en avant, et repris
   // par le bouton principal.
   await expect(page.locator(".episode").first()).toBeVisible();
   await expect(page.locator(".episode.target")).toHaveCount(1);
   await expect(page.locator(".episode.target .ep-title")).toContainText("Aurore");
   await expect(page.locator(".actions .btn.primary")).toContainText(/S2 · E4/);
-  // Onglet d'une autre saison, puis celui de la série.
-  await tabs.getByRole("tab", { name: "Saison 1" }).click();
-  await expect(tabs.getByRole("tab", { name: "Saison 1" })).toHaveAttribute("aria-selected", "true");
-  await tabs.getByRole("tab", { name: "Série" }).click();
+  if (appareil(info) === "tv") {
+    // Télécommande : les saisons en onglets, puis la série.
+    const tabs = page.getByRole("tablist");
+    await expect(tabs.getByRole("tab", { name: "Saison 2" })).toHaveAttribute("aria-selected", "true");
+    await tabs.getByRole("tab", { name: "Saison 1" }).click();
+    await expect(tabs.getByRole("tab", { name: "Saison 1" })).toHaveAttribute("aria-selected", "true");
+    await tabs.getByRole("tab", { name: "Série" }).click();
+  } else {
+    // Souris et doigt : pas d'onglets, le logo de la série y ramène.
+    await expect(page.getByRole("tablist")).toHaveCount(0);
+    await page.locator(".show-logo").click();
+  }
   await expect(page.getByText("Saison 1", { exact: true }).first()).toBeVisible();
 });
 

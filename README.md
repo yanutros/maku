@@ -78,8 +78,8 @@ visionnage. Tout se fait avec son compte Plex (ou Jellyfin) : aucune clé d'API 
       que ce que Maku sait faire : noter, voir les informations du fichier, retirer de « Continuer à regarder »,
       vu / non vu ; et pour l'administrateur seulement, comme dans Plex : modifier, ajouter à une collection,
       actualiser les métadonnées et analyser.
-      Comme dans Plex, un épisode n'a pas de fiche à lui : il s'ouvre dans sa saison, avec les onglets de la série et
-      de ses saisons en haut, puis tous les épisodes de haut en bas, chacun avec sa vignette (▶ au survol pour le
+      Comme dans Plex, un épisode n'a pas de fiche à lui : il s'ouvre dans sa saison, sous le logo de la série (qui y ramène ; sur TV, les onglets de la série et
+      de ses saisons au-dessus), puis tous les épisodes de haut en bas, chacun avec sa vignette (▶ au survol pour le
       lancer) et ses informations à droite : titre, vu, durée, temps restant, classement, note, vos étoiles et résumé,
       et son menu **⋯**. L'épisode ouvert est mis en avant, et le bouton principal le reprend (**Reprendre S1 · E2**).
       La fiche d'une série propose aussi **Reprendre S1 · E2**, qui ouvre la saison sur cet épisode ; son résumé (justifié),

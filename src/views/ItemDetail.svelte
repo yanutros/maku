@@ -121,7 +121,7 @@
     children = kids;
     target = want && kids.some((k) => k.ratingKey === want) ? want : (firstToWatch(kids)?.ratingKey ?? null);
     focusTarget();
-    if (detail.showKey && seasons[0]?.showKey !== detail.showKey)
+    if (device.tv && detail.showKey && seasons[0]?.showKey !== detail.showKey)
       api.children(detail.showKey).then(
         (s) => {
           seasons = s;
@@ -293,6 +293,28 @@
     return { card, width: children.length * card + (children.length - 1) * gap };
   });
 
+  /**
+   * Onglets des saisons, sur une seule ligne qui défile (une série de 29 saisons tenait sur quatre lignes) :
+   * la saison ouverte vient au milieu avant l'affichage, et la molette fait défiler la bande de côté.
+   */
+  function tabStrip(el: HTMLElement, _key: string) {
+    const center = () => {
+      const tab = el.querySelector<HTMLElement>('[aria-selected="true"]');
+      if (tab && el.scrollWidth > el.clientWidth) el.scrollLeft = tab.offsetLeft - (el.clientWidth - tab.offsetWidth) / 2;
+    };
+    const wheel = (e: WheelEvent) => {
+      if (el.scrollWidth <= el.clientWidth || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+      e.preventDefault();
+      el.scrollLeft += e.deltaY;
+    };
+    center();
+    el.addEventListener("wheel", wheel, { passive: false });
+    return {
+      update: () => tick().then(center),
+      destroy: () => el.removeEventListener("wheel", wheel),
+    };
+  }
+
   /** Temps restant d'un épisode commencé. */
   const left = (ep: Item) => (ep.viewOffsetMs && ep.durationMs ? ep.durationMs - ep.viewOffsetMs : null);
 
@@ -331,9 +353,9 @@
   <div class="page detail" bind:this={root} data-nav-rows>
     <section class="hero">
       <div class="hero-main">
-        {#if item.kind === "season" && item.showKey}
-          <!-- Comme Plex : la série, puis chacune de ses saisons, en onglets. -->
-          <div class="season-tabs" role="tablist" aria-label={item.showTitle ?? ""} data-nav-row>
+        {#if device.tv && item.kind === "season" && item.showKey}
+          <!-- Télécommande, comme Plex : la série, puis chacune de ses saisons, en onglets. Ailleurs, le logo ramène à la série. -->
+          <div class="season-tabs" role="tablist" aria-label={item.showTitle ?? ""} data-nav-row use:tabStrip={item.ratingKey + ":" + seasons.length}>
             <button role="tab" aria-selected="false" onclick={() => go({ name: "item", ratingKey: item!.showKey! })}>{t("item.showTab")}</button>
             {#each seasons.length ? seasons : [item] as s (s.ratingKey)}
               <button
@@ -987,15 +1009,27 @@
   /* ---------- Saison : onglets, puis les épisodes de haut en bas ---------- */
 
   .season-tabs {
+    position: relative;
     display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
     gap: 4px;
+    width: fit-content;
+    max-width: min(100%, 760px);
     margin-bottom: 18px;
     padding: 4px;
+    overflow-x: auto;
     border-radius: 999px;
     background: #00000066;
     backdrop-filter: blur(12px);
+    scrollbar-width: none;
+  }
+
+  .season-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .season-tabs button {
+    flex: none;
+    white-space: nowrap;
   }
 
   .season-tabs button {
