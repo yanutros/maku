@@ -10,6 +10,7 @@
   import Library from "./views/Library.svelte";
   import MusicLibrary from "./views/MusicLibrary.svelte";
   import ItemDetail from "./views/ItemDetail.svelte";
+  import MixDetail from "./views/MixDetail.svelte";
   import Search from "./views/Search.svelte";
   import Libraries from "./views/Libraries.svelte";
   import Person from "./views/Person.svelte";
@@ -241,7 +242,7 @@
       {/if}
       <!-- Sur téléviseur, la recherche passe par le menu : la barre n'apparaît que sur sa page. -->
       {#if !device.phone && (!device.tv || nav.view.name === "search")}
-      <header data-nav-low class:clear={nav.view.name === "stats" || nav.view.name === "item" || nav.view.name === "seerr"}>
+      <header data-nav-low class:clear={nav.view.name === "stats" || nav.view.name === "item" || nav.view.name === "mix" || nav.view.name === "seerr"}>
         <button class="btn round ghost" disabled={!nav.history.length} onclick={back} aria-label={t("common.c1.back")}>
           <Icon name="back" />
         </button>
@@ -272,6 +273,8 @@
             />
           {:else if nav.view.name === "item"}
             <ItemDetail ratingKey={nav.view.ratingKey} />
+          {:else if nav.view.name === "mix"}
+            <MixDetail id={nav.view.id} />
           {:else if nav.view.name === "person"}
             <Person id={nav.view.id} name={nav.view.personName} photo={nav.view.photo} seerr={nav.view.seerr ?? false} />
           {:else if nav.view.name === "search"}

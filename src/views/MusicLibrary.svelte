@@ -12,7 +12,10 @@
   import TvGrid from "../components/TvGrid.svelte";
   import { keepTabFocus } from "../lib/spatial";
   import { device } from "../lib/device";
-  import { fromItem } from "../lib/tvcards";
+  import { fromItem, type TvCard } from "../lib/tvcards";
+  import { createMix, liveMixes, playAllPlaylists, playMix, type Mix } from "../lib/mixes.svelte";
+  import MixCard from "../components/MixCard.svelte";
+  import Icon from "../components/Icon.svelte";
   import { t } from "../lib/i18n";
 
   let { sectionKey, title }: { sectionKey: string; title: string } = $props();
@@ -65,16 +68,81 @@
     })),
   );
 
+  /*
+   * Onglet Playlists : « Écouter tout » mélange toutes les playlists, comme dans Plex ; « Mix of Three » en
+   * fait choisir trois, mélangées le temps d'une écoute (le mix reste ensuite deux jours dans la rangée des
+   * playlists de l'onglet Recommandé). La troisième playlist choisie lance le mix.
+   */
+  let picking = $state(false);
+  let picked = $state<Item[]>([]);
+  const fail = (e: unknown) => toast(errorText(e), true);
+
+  function playAll() {
+    if (items.length) playAllPlaylists(items).catch(fail);
+  }
+
+  function startPicking() {
+    picked = [];
+    picking = true;
+  }
+
+  function pick(item: Item) {
+    picked = picked.some((p) => p.ratingKey === item.ratingKey) ? picked.filter((p) => p.ratingKey !== item.ratingKey) : [...picked, item];
+    if (picked.length < 3) return;
+    const mix = createMix(picked);
+    picking = false;
+    picked = [];
+    playMix(mix).catch(fail);
+  }
+
+  const mixCard = (mix: Mix): TvCard => ({
+    key: `mix-${mix.id}`,
+    image: mix.playlists[0]?.poster ?? null,
+    shape: "square",
+    label: t("mix.title"),
+    progress: 0,
+    eyebrow: t("mix.tag"),
+    title: t("mix.title"),
+    logo: null,
+    logoGuid: null,
+    genres: [],
+    line: mix.playlists.map((p) => p.title).join(" · "),
+    summary: null,
+    backdrop: null,
+    open: () => go({ name: "mix", id: mix.id }),
+  });
+
   // Téléviseur : mêmes données, en rangées et grilles TV.
+  const tvPlaylistRow = $derived([...liveMixes().map(mixCard), ...(playlistHub?.items ?? []).map((i) => fromItem(i, t("music.library.playlist")))]);
   const tvRows = $derived(
     [
-      ...(playlistHub ? [{ title: playlistHub.title, cards: playlistHub.items.map((i) => fromItem(i, t("music.library.playlist"))) }] : []),
+      { title: playlistHub?.title ?? t("music.library.tabs.playlists"), cards: tvPlaylistRow },
       { title: t("music.library.hotTracks"), cards: hotTracks.map((i) => fromItem(i, t("music.library.hotTrack"))) },
       { title: t("music.library.newReleases"), cards: newAlbums.map((i) => fromItem(i, t("music.library.newAlbum"))) },
       ...otherHubs.map((h) => ({ title: h.title, cards: h.items.map((i) => fromItem(i, h.title)) })),
     ].filter((r) => r.cards.length),
   );
-  const tvItems = $derived(items.map((i) => fromItem(i, title)));
+  // Onglet Playlists sur TV : « Écouter tout » et « Mix of Three » en tête ; pendant le choix d'un mix, OK
+  // coche une playlist (la coche de « vu ») au lieu de l'ouvrir.
+  const action = (key: string, label: string, open: () => void): TvCard => ({
+    ...mixCard({ id: key, playlists: [], at: 0 }),
+    key,
+    label,
+    title: label,
+    line: "",
+    image: null,
+    open,
+  });
+  const tvItems = $derived(
+    tab === "playlists" && items.length
+      ? picking
+        ? [
+            action("cancel-mix", t("mix.cancel"), () => (picking = false)),
+            ...items.map((i) => ({ ...fromItem(i, title), watched: picked.some((p) => p.ratingKey === i.ratingKey), open: () => pick(i) })),
+          ]
+        : [action("play-all", t("mix.playAll"), playAll), action("new-mix", t("mix.title"), startPicking), ...items.map((i) => fromItem(i, title))]
+      : items.map((i) => fromItem(i, title)),
+  );
 
   async function loadMore() {
     if (tab === "recommended" || loading || (total && items.length >= total)) return;
@@ -112,6 +180,7 @@
     total = 0;
     error = null;
     loading = false;
+    picking = false;
     loadMore();
   }
 
@@ -149,6 +218,7 @@
       {/each}
     </div>
     {#if tab !== "recommended" && total}<span class="muted">{total}</span>{/if}
+    {#if picking}<span class="pick-hint">{t("mix.pickHint", { count: picked.length })}</span>{/if}
   </div>
 {/snippet}
 
@@ -165,10 +235,25 @@
 {:else}
 <div class="page">
   <div class="head">
-    <h1 class="row-title page-title">
-      {title}
-      {#if tab !== "recommended" && total}<span class="muted">{total}</span>{/if}
-    </h1>
+    <!-- Le titre, et dans l'onglet Playlists ses deux boutons, sur la ligne des onglets. -->
+    <div class="title-line">
+      <h1 class="row-title page-title">
+        {title}
+        {#if tab !== "recommended" && total}<span class="muted">{total}</span>{/if}
+      </h1>
+      {#if tab === "playlists" && items.length}
+        <!-- Toutes les playlists d'un coup, ou trois au choix (Mix of Three). -->
+        <div class="mix-bar">
+          {#if picking}
+            <span class="pick-hint">{t("mix.pickHint", { count: picked.length })}</span>
+            <button class="btn" onclick={() => (picking = false)}><Icon name="x" size={16} /> {t("mix.cancel")}</button>
+          {:else}
+            <button class="btn primary" onclick={playAll}><Icon name="shuffle" size={16} /> {t("mix.playAll")}</button>
+            <button class="btn" onclick={startPicking}><Icon name="playlistAdd" size={16} /> {t("mix.title")}</button>
+          {/if}
+        </div>
+      {/if}
+    </div>
     <div class="tabs" role="tablist">
       {#each TABS as tb (tb.id)}
         <button role="tab" aria-selected={tab === tb.id} class:active={tab === tb.id} onclick={() => select(tb.id)}>
@@ -187,9 +272,10 @@
       <p class="muted">{t("music.library.nothingToRecommend")}</p>
     {:else}
       {#if !device.phone}<FeaturePanels {panels} />{/if}
-      {#if playlistHub}
-        <Row title={playlistHub.title} large>
-          {#each playlistHub.items as item (item.ratingKey)}<PosterCard {item} />{/each}
+      {#if playlistHub || liveMixes().length}
+        <Row title={playlistHub?.title ?? t("music.library.tabs.playlists")} large>
+          {#each liveMixes() as mix (mix.id)}<MixCard {mix} />{/each}
+          {#each playlistHub?.items ?? [] as item (item.ratingKey)}<PosterCard {item} />{/each}
         </Row>
       {/if}
       <TrackGrid title={t("music.library.hotTracks")} tracks={hotTracks} />
@@ -205,9 +291,25 @@
       {/each}
     {/if}
   {:else}
-    <div class="grid">
-      {#each items as item (item.ratingKey)}<PosterCard {item} />{/each}
-    </div>
+    {#if picking}
+      <div class="grid">
+        {#each items as item (item.ratingKey)}
+          {@const on = picked.some((p) => p.ratingKey === item.ratingKey)}
+          <button class="pick" class:on onclick={() => pick(item)} aria-pressed={on}>
+            <span class="pick-img">
+              {#if item.poster}<img src={item.poster} alt="" loading="lazy" />{/if}
+              <span class="pick-check">{#if on}<Icon name="check" size={18} />{/if}</span>
+            </span>
+            <span class="pick-title">{item.title}</span>
+            {#if item.subtitle}<span class="pick-sub">{item.subtitle}</span>{/if}
+          </button>
+        {/each}
+      </div>
+    {:else}
+      <div class="grid">
+        {#each items as item (item.ratingKey)}<PosterCard {item} />{/each}
+      </div>
+    {/if}
   {/if}
   <div bind:this={sentinel} class="sentinel">{#if loading}<span class="muted">{t("music.library.loading")}</span>{/if}</div>
 </div>
@@ -228,6 +330,7 @@
   }
 
   .head {
+    margin: 8px 0 14px;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -260,6 +363,106 @@
   .tabs button.active {
     background: var(--accent);
     color: var(--accent-text);
+  }
+
+  .title-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px 24px;
+  }
+
+  .title-line h1 {
+    margin: 0;
+  }
+
+  .mix-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .mix-bar .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .pick-hint {
+    color: var(--accent);
+    font-weight: 700;
+  }
+
+  /* Choix des trois playlists d'un mix : la pochette se coche, rien ne s'ouvre. */
+  .pick {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+    padding: 0;
+    border: none;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+  }
+
+  .pick-img {
+    position: relative;
+    display: block;
+    aspect-ratio: 1;
+    margin-bottom: 8px;
+    overflow: hidden;
+    border-radius: var(--radius);
+    background: var(--bg-elev);
+    box-shadow: 0 4px 14px #0006;
+    transition: box-shadow 0.15s, transform 0.2s var(--ease);
+  }
+
+  .pick-img img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .pick:hover .pick-img {
+    transform: translateY(-3px);
+  }
+
+  .pick.on .pick-img {
+    box-shadow: 0 0 0 3px var(--accent), 0 10px 24px #000a;
+  }
+
+  .pick-check {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    background: #0008;
+    color: var(--accent-text);
+  }
+
+  .pick.on .pick-check {
+    border-color: var(--accent);
+    background: var(--accent);
+  }
+
+  .pick-title {
+    overflow: hidden;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .pick-sub {
+    color: var(--text-dim);
+    font-size: 13px;
   }
 
   .sentinel {

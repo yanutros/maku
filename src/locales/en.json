@@ -924,5 +924,17 @@
     "press": "Critics",
     "audience": "Audience",
     "community": "Community rating"
+  },
+  "mix": {
+    "title": "Mix of Three",
+    "tag": "Mix",
+    "playAll": "Play all",
+    "cancel": "Cancel mix",
+    "pickHint": "Pick 3 playlists: {{count}} of 3",
+    "playTitle": "Play the mix {{names}}",
+    "forget": "Forget this mix",
+    "eyebrow": "Mix · kept for 2 days",
+    "openTitle": "See the tracks of the mix {{names}}",
+    "gone": "This mix is gone: it disappears two days after it was last played."
   }
 }

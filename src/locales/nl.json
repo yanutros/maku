@@ -924,5 +924,17 @@
     "press": "Pers",
     "audience": "Publiek",
     "community": "Publieksscore"
+  },
+  "mix": {
+    "title": "Mix of Three",
+    "tag": "Mix",
+    "playAll": "Alles afspelen",
+    "cancel": "Mix annuleren",
+    "pickHint": "Kies 3 playlists: {{count}} van 3",
+    "playTitle": "Mix {{names}} afspelen",
+    "forget": "Deze mix vergeten",
+    "eyebrow": "Mix · 2 dagen bewaard",
+    "openTitle": "Nummers van de mix {{names}} bekijken",
+    "gone": "Deze mix bestaat niet meer: hij verdwijnt twee dagen na de laatste keer afspelen."
   }
 }

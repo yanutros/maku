@@ -1157,12 +1157,18 @@ async fn build_queue(
 ) -> anyhow::Result<(Vec<QueueTrack>, usize)> {
     let mut tracks: Vec<QueueTrack> = match keys {
         _ if radio => server.radio(rating_key).await?,
-        Some(keys) => futures::future::join_all(keys.iter().map(|k| server.queue(k)))
-            .await
-            .into_iter()
-            .filter_map(Result::ok)
-            .flatten()
-            .collect(),
+        Some(keys) => {
+            // Plusieurs playlists d'un coup (« Écouter tout », « Mix of Three ») : un titre présent dans
+            // deux d'entre elles ne passe qu'une fois.
+            let mut seen = std::collections::HashSet::new();
+            futures::future::join_all(keys.iter().map(|k| server.queue(k)))
+                .await
+                .into_iter()
+                .filter_map(Result::ok)
+                .flatten()
+                .filter(|t| seen.insert(t.rating_key.clone()))
+                .collect()
+        }
         None => server.queue(rating_key).await?,
     };
     if tracks.is_empty() {

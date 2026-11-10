@@ -924,5 +924,17 @@
     "press": "Presse",
     "audience": "Spectateurs",
     "community": "Note du public"
+  },
+  "mix": {
+    "title": "Mix of Three",
+    "tag": "Mix",
+    "playAll": "Écouter tout",
+    "cancel": "Annuler le mix",
+    "pickHint": "Choisis 3 playlists : {{count}} sur 3",
+    "playTitle": "Écouter le mix {{names}}",
+    "forget": "Oublier ce mix",
+    "eyebrow": "Mix · gardé 2 jours",
+    "openTitle": "Voir les titres du mix {{names}}",
+    "gone": "Ce mix n'existe plus : il disparaît deux jours après sa dernière écoute."
   }
 }

@@ -12,8 +12,10 @@
   import { useAmbient } from "../lib/ambient.svelte";
   import { menuable } from "../lib/longpress";
   import Stars from "../components/Stars.svelte";
+  import { touchMix, type Mix } from "../lib/mixes.svelte";
 
-  let { item }: { item: ItemDetail } = $props();
+  // `mix` : la fiche d'un « Mix of Three » (MixDetail), dont les titres sont ceux de ses trois playlists.
+  let { item, mix = null }: { item: ItemDetail; mix?: Mix | null } = $props();
 
   let albums = $state<Item[]>([]);
   let tracks = $state<Item[] | null>(null);
@@ -48,12 +50,20 @@
   }
 
   function start(opts: { start?: string; shuffle?: boolean; radio?: boolean } = {}) {
-    playMusic(item.ratingKey, opts).catch((e) => toast(errorText(e), true));
+    if (mix) touchMix(mix.id);
+    const keys = mix ? mix.playlists.map((p) => p.key) : undefined;
+    playMusic(item.ratingKey, { ...opts, keys }).catch((e) => toast(errorText(e), true));
   }
 
   onMount(() => {
     if (item.kind === "artist") {
       api.children(item.ratingKey).then((a) => (albums = a), (e) => toast(errorText(e), true));
+    } else if (mix) {
+      // Les titres des trois playlists à la suite ; un titre présent dans deux d'entre elles n'y est qu'une fois.
+      Promise.all(mix.playlists.map((p) => api.tracks(p.key).catch(() => [] as Item[]))).then((lists) => {
+        const seen = new Set<string>();
+        tracks = lists.flat().filter((tr) => !seen.has(tr.ratingKey) && !!seen.add(tr.ratingKey));
+      });
     } else {
       api.tracks(item.ratingKey).then((list) => (tracks = list), (e) => toast(errorText(e), true));
     }
@@ -64,12 +74,20 @@
 
 <div class="page detail">
   <div class="head">
-    <div class="cover" class:round={isArtist}>
-      {#if item.poster}<img src={item.poster} alt="" />{:else}<Icon name="music" size={64} />{/if}
+    <div class="cover" class:round={isArtist} class:mosaic={!!mix}>
+      {#if mix}
+        <!-- Mix : les pochettes de ses trois playlists, la première en grand. -->
+        {#each mix.playlists as p, i (p.key)}<span class="tile" class:lead={i === 0}>{#if p.poster}<img src={p.poster} alt="" />{/if}</span>{/each}
+      {:else if item.poster}<img src={item.poster} alt="" />{:else}<Icon name="music" size={64} />{/if}
     </div>
     <div class="info">
-      <div class="eyebrow">{label[item.kind] ?? ""}</div>
+      <div class="eyebrow">{mix ? t("mix.eyebrow") : (label[item.kind] ?? "")}</div>
       <h1>{item.title}</h1>
+      {#if mix}
+        <div class="mix-of">
+          {#each mix.playlists as p, i (p.key)}{#if i}<span class="sep">·</span>{/if}<button class="artist" onclick={() => go({ name: "item", ratingKey: p.key })}>{p.title}</button>{/each}
+        </div>
+      {/if}
       {#if item.showKey && item.showTitle}
         <button class="artist" onclick={() => go({ name: "item", ratingKey: item.showKey! })}>{item.showTitle}</button>
       {/if}
@@ -97,7 +115,7 @@
           </button>
         {/if}
         <!-- Android : l'album ou la playlist, à écouter hors ligne. -->
-        {#if canDownload() && (item.kind === "album" || item.kind === "playlist")}
+        {#if canDownload() && !mix && (item.kind === "album" || item.kind === "playlist")}
           <DownloadButton {item} music />
         {/if}
         {#if nav.admin && item.kind !== "playlist"}
@@ -106,9 +124,11 @@
           </button>
         {/if}
         <!-- File d'attente, playlist, et pour l'administrateur : actualiser, analyser. -->
-        <button class="btn big round-more" onclick={(e) => openMenu(e, item)} aria-label={t("trackGrid.moreActions")} title={t("trackGrid.moreActions")}>
-          <Icon name="more" size={20} />
-        </button>
+        {#if !mix}
+          <button class="btn big round-more" onclick={(e) => openMenu(e, item)} aria-label={t("trackGrid.moreActions")} title={t("trackGrid.moreActions")}>
+            <Icon name="more" size={20} />
+          </button>
+        {/if}
       </div>
       {#if item.summary}<p class="summary">{item.summary}</p>{/if}
     </div>
@@ -543,5 +563,43 @@
 
   :global(html.phone) .actions > :global(.btn) {
     flex: 1 1 auto;
+  }
+
+  .cover.mosaic {
+    display: grid;
+    place-items: stretch;
+    grid-template-columns: 2fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 2px;
+  }
+
+  .cover.mosaic .tile {
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #ffffff12;
+  }
+
+  .cover.mosaic .tile.lead {
+    grid-row: 1 / 3;
+  }
+
+  .cover.mosaic .tile img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .mix-of {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 8px;
+  }
+
+  .mix-of .sep {
+    color: var(--text-faint);
   }
 </style>

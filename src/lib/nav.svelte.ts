@@ -18,6 +18,8 @@ export type View =
       loaded?: number;
     }
   | { name: "item"; ratingKey: string }
+  /** Fiche d'un « Mix of Three » (lib/mixes.svelte.ts). */
+  | { name: "mix"; id: string }
   | { name: "search"; query: string }
   | { name: "discover" }
   | { name: "seerr"; mediaType: "movie" | "tv"; tmdbId: number }

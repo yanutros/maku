@@ -924,5 +924,17 @@
     "press": "Presse",
     "audience": "Publikum",
     "community": "Publikumsbewertung"
+  },
+  "mix": {
+    "title": "Mix of Three",
+    "tag": "Mix",
+    "playAll": "Alle abspielen",
+    "cancel": "Mix abbrechen",
+    "pickHint": "Wähle 3 Playlists: {{count}} von 3",
+    "playTitle": "Mix {{names}} abspielen",
+    "forget": "Diesen Mix vergessen",
+    "eyebrow": "Mix · 2 Tage gespeichert",
+    "openTitle": "Titel des Mix {{names}} ansehen",
+    "gone": "Diesen Mix gibt es nicht mehr: Er verschwindet zwei Tage nach dem letzten Abspielen."
   }
 }
