@@ -4,6 +4,7 @@ import { episodeTitle, errorText, formatDuration, type Item, type SeerrMedia } f
 import { go, toast } from "./nav.svelte";
 import { playMusic } from "./player.svelte";
 import { t } from "./i18n";
+import type { IconName } from "../components/Icon.svelte";
 
 /** `tile` : grande tuile de catégorie (couleur du genre, éventail d'affiches), comme sur ordinateur. */
 export type Shape = "poster" | "square" | "round" | "wide" | "tile";
@@ -32,6 +33,12 @@ export interface TvCard {
   /** Tuile de catégorie : teinte du genre et affiches en éventail. */
   hue?: number;
   posters?: string[];
+  /** Jaquette sans pochette à elle (actions et mix de la musique) : une mosaïque de pochettes (TvArt). */
+  mosaic?: (string | null)[];
+  /** Grande icône au milieu de la jaquette (« Écouter tout », « Mix of Three »…). */
+  icon?: IconName;
+  /** Étiquette en haut à gauche (« Mix »). */
+  badge?: string;
 }
 
 export interface TvRow {

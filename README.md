@@ -103,7 +103,8 @@ visionnage. Tout se fait avec son compte Plex (ou Jellyfin) : aucune clé d'API 
       Une page d'accueil façon Apple Music : grands panneaux des derniers albums, playlists (la dernière lue en premier),
       « Titres du moment », pochettes qui grandissent avec la fenêtre. Dans l'onglet Playlists, **Écouter tout** mélange
       toutes vos playlists d'un coup, comme dans Plex, et **Mix of Three** en mélange trois au choix le temps d'une
-      écoute ; comme une playlist, sa pochette ouvre la liste de ses titres et ▶ le lance. Le mix reste deux jours après
+      écoute ; comme une playlist, sa pochette ouvre la liste de ses titres (avec **Oublier ce mix** pour le retirer plus
+      tôt) et ▶ le lance. Le mix reste deux jours après
       sa dernière écoute en tête des playlists de l'accueil musique, puis
       disparaît (ce n'est pas une playlist du serveur ; un titre présent dans deux playlists ne passe qu'une fois). File d'attente qui se réordonne en maintenant
       un titre puis en le glissant, lecture aléatoire et vue « En cours de lecture », dont le fond aux couleurs de la pochette passe jusque derrière le menu, avec les

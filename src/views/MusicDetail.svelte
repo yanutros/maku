@@ -12,7 +12,8 @@
   import { useAmbient } from "../lib/ambient.svelte";
   import { menuable } from "../lib/longpress";
   import Stars from "../components/Stars.svelte";
-  import { touchMix, type Mix } from "../lib/mixes.svelte";
+  import { removeMix, touchMix, type Mix } from "../lib/mixes.svelte";
+  import { back } from "../lib/nav.svelte";
 
   // `mix` : la fiche d'un « Mix of Three » (MixDetail), dont les titres sont ceux de ses trois playlists.
   let { item, mix = null }: { item: ItemDetail; mix?: Mix | null } = $props();
@@ -124,6 +125,11 @@
           </button>
         {/if}
         <!-- File d'attente, playlist, et pour l'administrateur : actualiser, analyser. -->
+        {#if mix}
+          <button class="btn big" onclick={() => (removeMix(mix!.id), back())}>
+            <Icon name="x" size={18} /> {t("mix.forget")}
+          </button>
+        {/if}
         {#if !mix}
           <button class="btn big round-more" onclick={(e) => openMenu(e, item)} aria-label={t("trackGrid.moreActions")} title={t("trackGrid.moreActions")}>
             <Icon name="more" size={20} />

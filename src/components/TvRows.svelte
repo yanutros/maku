@@ -4,6 +4,7 @@
   import { focusTabs, moveFocus } from "../lib/spatial";
   import TitleLogo from "./TitleLogo.svelte";
   import Icon from "./Icon.svelte";
+  import TvArt from "./TvArt.svelte";
   import type { TvRow } from "../lib/tvcards";
   import { useAmbient } from "../lib/ambient.svelte";
 
@@ -125,7 +126,7 @@
                   use:menuable={card.item}
                   aria-label={card.title}
                 >
-                  {#if card.image}<img src={card.image} alt="" loading="lazy" decoding="async" />{/if}
+                  {#if card.mosaic || card.icon || card.badge}<TvArt {card} />{:else if card.image}<img src={card.image} alt="" loading="lazy" decoding="async" />{/if}
                   {#if card.progress > 0}<div class="progress"><div style:width="{card.progress}%"></div></div>{/if}
                   {#if card.watched}<span class="watched"><Icon name="check" size={14} /></span>{/if}
                 </button>

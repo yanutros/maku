@@ -3,6 +3,7 @@
   import { focusTabs, moveFocus, reveal } from "../lib/spatial";
   import type { TvCard } from "../lib/tvcards";
   import Icon from "./Icon.svelte";
+  import TvArt from "./TvArt.svelte";
 
   /**
    * Grille des téléviseurs (toute une bibliothèque, ses catégories…) : nombre de colonnes fixe,
@@ -113,7 +114,7 @@
         </span>
       {:else}
       <span class="img">
-        {#if card.image}<img src={card.image} alt="" loading="lazy" decoding="async" />{/if}
+        {#if card.mosaic || card.icon || card.badge}<TvArt {card} />{:else if card.image}<img src={card.image} alt="" loading="lazy" decoding="async" />{/if}
         {#if shape === "wide"}<span class="overlay">{card.label}</span>{/if}
         {#if card.progress > 0}<span class="progress"><span style:width="{card.progress}%"></span></span>{/if}
         {#if card.watched}<span class="watched"><Icon name="check" size={14} /></span>{/if}

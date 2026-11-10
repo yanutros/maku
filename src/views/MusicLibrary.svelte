@@ -98,6 +98,8 @@
   const mixCard = (mix: Mix): TvCard => ({
     key: `mix-${mix.id}`,
     image: mix.playlists[0]?.poster ?? null,
+    mosaic: mix.playlists.map((p) => p.poster),
+    badge: t("mix.tag"),
     shape: "square",
     label: t("mix.title"),
     progress: 0,
@@ -124,23 +126,32 @@
   );
   // Onglet Playlists sur TV : « Écouter tout » et « Mix of Three » en tête ; pendant le choix d'un mix, OK
   // coche une playlist (la coche de « vu ») au lieu de l'ouvrir.
-  const action = (key: string, label: string, open: () => void): TvCard => ({
+  const action = (key: string, label: string, icon: TvCard["icon"], mosaic: (string | null)[], open: () => void): TvCard => ({
     ...mixCard({ id: key, playlists: [], at: 0 }),
     key,
     label,
     title: label,
     line: "",
     image: null,
+    badge: undefined,
+    mosaic: mosaic.length ? mosaic : undefined,
+    icon,
     open,
   });
+  // Pochettes des playlists pour illustrer les deux actions : quatre pour « Écouter tout », trois autres pour le mix.
+  const covers = $derived(items.map((i) => i.poster).filter((p): p is string => !!p));
   const tvItems = $derived(
     tab === "playlists" && items.length
       ? picking
         ? [
-            action("cancel-mix", t("mix.cancel"), () => (picking = false)),
+            action("cancel-mix", t("mix.cancel"), "x", [], () => (picking = false)),
             ...items.map((i) => ({ ...fromItem(i, title), watched: picked.some((p) => p.ratingKey === i.ratingKey), open: () => pick(i) })),
           ]
-        : [action("play-all", t("mix.playAll"), playAll), action("new-mix", t("mix.title"), startPicking), ...items.map((i) => fromItem(i, title))]
+        : [
+            action("play-all", t("mix.playAll"), "shuffle", covers.length >= 4 ? covers.slice(0, 4) : covers.slice(0, 1), playAll),
+            action("new-mix", t("mix.title"), "playlistAdd", covers.length >= 7 ? covers.slice(4, 7) : covers.slice(0, 3).length === 3 ? covers.slice(0, 3) : covers.slice(0, 1), startPicking),
+            ...items.map((i) => fromItem(i, title)),
+          ]
       : items.map((i) => fromItem(i, title)),
   );
 
