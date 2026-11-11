@@ -122,8 +122,9 @@
   :global(html.phone) .scroller {
     grid-auto-columns: calc((100vw - 32px - 20px) / 3.15);
     gap: 10px;
-    padding: 4px 16px 8px;
-    margin: -4px -16px -4px;
+    /* En haut, la place de la carte touchée, soulevée de 4 px avec son liseré de 2 px (sinon rognée). */
+    padding: 10px 16px 8px;
+    margin: -10px -16px -4px;
     scroll-padding: 0 16px;
     scroll-snap-type: x proximity;
   }
