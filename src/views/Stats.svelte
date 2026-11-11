@@ -6,6 +6,10 @@
   import { device } from "../lib/device";
   import { useAmbient } from "../lib/ambient.svelte";
   import Icon from "../components/Icon.svelte";
+  import ScrollArrows from "../components/ScrollArrows.svelte";
+
+  /** Rangée du Top 10, que ses flèches font défiler (ordinateur). */
+  let topRow = $state<HTMLElement>();
   import { t, locale } from "../lib/i18n";
 
   let { session, onChange }: { session: Session; onChange: () => void } = $props();
@@ -194,8 +198,8 @@
     {/if}
 
     {#if data.topTitles.length}
-      <h2 class="section">{t("stats.top.title")} <span class="muted">{t("stats.top.period")}</span></h2>
-      <div class="top">
+      <h2 class="section">{t("stats.top.title")} <span class="muted">{t("stats.top.period")}</span><ScrollArrows target={topRow} /></h2>
+      <div class="top" bind:this={topRow}>
         {#each data.topTitles as top (top.rank + top.title)}
           <button
             class="chart"

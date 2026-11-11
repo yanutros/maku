@@ -234,25 +234,14 @@ select:focus {
   }
 }
 
+/* Pas de barres de défilement visibles, nulle part (ordinateur, téléphone, TV) : les pages, rangées et listes
+   défilent toujours (molette, doigt, télécommande), seule la barre disparaît. */
+* {
+  scrollbar-width: none;
+}
+
 ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #ffffff38;
-  border-radius: 5px;
-  border: 2px solid transparent;
-  background-clip: padding-box;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #ffffff5c;
-  background-clip: padding-box;
+  display: none;
 }
 
 /* Télécommande (Android TV) : l'élément sélectionné est entouré de la couleur d'accent,
@@ -291,15 +280,6 @@ html.phone .row-title.page-title {
 html.phone .grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 18px 10px;
-}
-
-/* Page sans barre de défilement visible (onglet Collections, où le bandeau des lettres la remplace). */
-.content.no-scrollbar {
-  scrollbar-width: none;
-}
-
-.content.no-scrollbar::-webkit-scrollbar {
-  display: none;
 }
 
 /* Android : pas de rectangle bleu au toucher (il ignore les coins arrondis des boutons). */
@@ -363,20 +343,6 @@ input.switch:disabled {
 
 html.tv input.switch:focus {
   outline-offset: 4px;
-}
-
-html.phone ::-webkit-scrollbar {
-  display: none;
-}
-
-/* Téléviseur : pas de barres de défilement (la télécommande fait défiler, elles ne servent à rien).
-   Seules les barres disparaissent : les pages et les rangées défilent comme avant. */
-html.tv * {
-  scrollbar-width: none;
-}
-
-html.tv ::-webkit-scrollbar {
-  display: none;
 }
 
 /* Téléphone : pas de « ⋮ » sur les affiches ; un appui long ouvre le même menu (comme Plex). */

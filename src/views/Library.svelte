@@ -146,14 +146,6 @@
   });
   const showLetters = $derived(!device.tv && !device.mobile && !device.phone && (collections?.length ?? 0) > 0);
 
-  // Avec le bandeau des lettres, la barre de défilement de la page disparaît (elle se superposait au bandeau).
-  $effect(() => {
-    const page = document.querySelector<HTMLElement>(".content");
-    const hide = showLetters && tab === "collections";
-    page?.classList.toggle("no-scrollbar", hide);
-    return () => page?.classList.remove("no-scrollbar");
-  });
-
   function jumpTo(letter: string) {
     const key = firstByLetter.get(letter);
     const card = key ? [...document.querySelectorAll<HTMLElement>("[data-key]")].find((el) => el.dataset.key === key) : null;

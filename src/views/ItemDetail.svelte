@@ -35,6 +35,7 @@
   import { reveal } from "../lib/spatial";
   import SiteRatings from "../components/SiteRatings.svelte";
   import Stars from "../components/Stars.svelte";
+  import ScrollArrows from "../components/ScrollArrows.svelte";
 
   let { ratingKey }: { ratingKey: string } = $props();
 
@@ -369,6 +370,9 @@
       converting = false;
     }
   }
+
+  /** Rangée de la distribution, que ses flèches font défiler (ordinateur). */
+  let castRow = $state<HTMLElement>();
 
   // Pour une collection : premier film non vu (ordre de sortie).
   const nextUp = $derived(item?.kind === "collection" ? (children.find((c) => !c.watched) ?? children[0]) : undefined);
@@ -785,8 +789,8 @@
     {/if}
 
     {#if item.cast.length}
-      <h2 class="row-title">{t("item.cast")}</h2>
-      <div class="cast" data-nav-row>
+      <h2 class="row-title">{t("item.cast")}<ScrollArrows target={castRow} /></h2>
+      <div class="cast" data-nav-row bind:this={castRow}>
         {#each item.cast as person (person.name + person.role)}
           <!-- Comme dans Plex : un acteur ouvre la liste de ses films et séries du serveur. -->
           <button
