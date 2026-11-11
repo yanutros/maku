@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onDestroy, onMount } from "svelte";
   import { formatClock } from "../lib/api";
-  import { current, mpv, next, player, previous, stop } from "../lib/player.svelte";
+  import { current, mpv, next, player, previous, stop, cycleRepeat, toggleShuffle, repeatLabel } from "../lib/player.svelte";
   import Icon from "./Icon.svelte";
   import { t } from "../lib/i18n";
   import Lyrics from "./Lyrics.svelte";
@@ -24,7 +24,7 @@
 
   let root = $state<HTMLElement>();
   let zone = $state<"controls" | "queue">("controls");
-  let button = $state(2);
+  let button = $state(3);
   let qi = $state(0);
   let idle = $state(false);
   let idleTimer: ReturnType<typeof setTimeout> | undefined;
@@ -34,7 +34,7 @@
   $effect(() => {
     if (lyricsPrefs.enabled) loadLyrics(track);
   });
-  const BUTTONS = $derived(lyricsPrefs.enabled ? 6 : 5);
+  const BUTTONS = $derived(lyricsPrefs.enabled ? 7 : 6);
   const progress = $derived(player.duration ? Math.min(100, (player.position / player.duration) * 100) : 0);
 
   function wake() {
@@ -85,7 +85,7 @@
   }
 
   onMount(() => {
-    focusButton(2);
+    focusButton(3);
     wake();
   });
 
@@ -115,18 +115,21 @@
         <span class="time">-{formatClock(Math.max(0, player.duration - player.position))}</span>
       </div>
       <div class="buttons">
-        <button data-ctl="0" class="ctl" class:on={player.repeat} onclick={() => mpv("set_property", "loop-playlist", player.repeat ? "no" : "inf")} aria-label={t("musicBar.repeatQueue")}>
-          <Icon name="repeat" size={22} />
+        <button data-ctl="0" class="ctl" class:on={player.shuffled} onclick={toggleShuffle} aria-pressed={player.shuffled} aria-label={t("musicBar.shuffle")}>
+          <Icon name="shuffle" size={21} />
         </button>
-        <button data-ctl="1" class="ctl" onclick={previous} aria-label={t("common.c1.previous")}><Icon name="backward" size={26} filled /></button>
-        <button data-ctl="2" class="ctl" onclick={() => mpv("cycle", "pause")} aria-label={player.paused ? t("common.c1.playback") : t("common.c1.pause")}>
+        <button data-ctl="1" class="ctl" class:on={player.repeat || player.repeatOne} onclick={cycleRepeat} aria-label={repeatLabel()}>
+          <Icon name={player.repeatOne ? "repeatOne" : "repeat"} size={22} />
+        </button>
+        <button data-ctl="2" class="ctl" onclick={previous} aria-label={t("common.c1.previous")}><Icon name="backward" size={26} filled /></button>
+        <button data-ctl="3" class="ctl" onclick={() => mpv("cycle", "pause")} aria-label={player.paused ? t("common.c1.playback") : t("common.c1.pause")}>
           <Icon name={player.paused ? "play" : "pause"} size={26} filled />
         </button>
-        <button data-ctl="3" class="ctl" onclick={next} aria-label={t("common.c1.next")}><Icon name="forward" size={26} filled /></button>
+        <button data-ctl="4" class="ctl" onclick={next} aria-label={t("common.c1.next")}><Icon name="forward" size={26} filled /></button>
         <!-- Arrêter : la lecture s'arrête et le lecteur se ferme, la vignette disparaît avec lui. -->
-        <button data-ctl="4" class="ctl" onclick={stop} aria-label={t("common.c1.stop")}><Icon name="stop" size={20} filled /></button>
+        <button data-ctl="5" class="ctl" onclick={stop} aria-label={t("common.c1.stop")}><Icon name="stop" size={20} filled /></button>
         {#if lyricsPrefs.enabled}
-          <button data-ctl="5" class="ctl" class:on={showLyrics} onclick={() => (showLyrics = !showLyrics)} aria-label={t("lyrics.title")} aria-pressed={showLyrics}>
+          <button data-ctl="6" class="ctl" class:on={showLyrics} onclick={() => (showLyrics = !showLyrics)} aria-label={t("lyrics.title")} aria-pressed={showLyrics}>
             <Icon name="lyrics" size={22} />
           </button>
         {/if}

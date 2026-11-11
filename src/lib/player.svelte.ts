@@ -75,7 +75,12 @@ export const player = $state({
   /** File de lecture musicale et titre en cours. */
   queue: [] as QueueTrack[],
   index: 0,
+  /** Répéter la file (mpv : loop-playlist). */
   repeat: false,
+  /** Répéter le titre en cours (mpv : loop-file). */
+  repeatOne: false,
+  /** Ordre aléatoire activé sur la file en cours (bouton Aléatoire du lecteur). */
+  shuffled: false,
   /** Vue « En cours de lecture » ouverte. */
   expanded: false,
   /** Incrémenté à chaque saut dans le morceau (pour la notification Android). */
@@ -300,9 +305,12 @@ function reset(video: boolean) {
     queue: [],
     index: 0,
     repeat: false,
+    repeatOne: false,
+    shuffled: false,
     expanded: false,
     offline: "",
   });
+  unshuffled = null;
 }
 
 /** Session de la musique jouée depuis les téléchargements. */
@@ -482,6 +490,8 @@ export async function playMusic(
   const wasExpanded = player.expanded && !player.video;
   notePlay(ratingKey);
   reset(false);
+  player.shuffled = false;
+  unshuffled = null;
   // Téléviseur : le lecteur plein écran s'ouvre, comme dans Plex.
   player.expanded = wasExpanded || device.tv;
   try {
@@ -505,6 +515,64 @@ export async function playMusic(
     player.active = false;
     throw e;
   }
+}
+
+/**
+ * Bouton Répéter, comme dans Plex : un appui répète la file, un deuxième le titre en cours, un troisième
+ * arrête de répéter.
+ */
+export function cycleRepeat() {
+  const all = !player.repeat && !player.repeatOne;
+  const one = player.repeat && !player.repeatOne;
+  // Le bouton change tout de suite ; mpv (ou l'appareil) confirme ensuite le même état.
+  player.repeat = all;
+  player.repeatOne = one;
+  mpv("set_property", "loop-playlist", all ? "inf" : "no");
+  mpv("set_property", "loop-file", one ? "inf" : "no");
+}
+
+/** Libellé du bouton Répéter : ce qu'il fait en ce moment. */
+export const repeatLabel = () => t(player.repeatOne ? "musicBar.repeatOne" : player.repeat ? "musicBar.repeatQueue" : "musicBar.repeat");
+
+/** Ordre de la file avant l'aléatoire (clés des titres), pour le retrouver en le désactivant. */
+let unshuffled: string[] | null = null;
+
+/**
+ * Bouton Aléatoire du lecteur : les titres à venir passent dans un ordre au hasard (le titre en cours et ceux
+ * déjà écoutés restent à leur place) ; un second appui remet les titres à venir dans l'ordre d'origine.
+ */
+export function toggleShuffle() {
+  const queue = player.queue;
+  const head = player.index + 1;
+  if (queue.length - head < 2 && !player.shuffled) {
+    player.shuffled = !player.shuffled;
+    return;
+  }
+  const rest = [...Array(queue.length - head).keys()].map((i) => i + head);
+  if (!player.shuffled) {
+    unshuffled = queue.map((t) => t.ratingKey);
+    for (let i = rest.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [rest[i], rest[j]] = [rest[j], rest[i]];
+    }
+  } else {
+    // Les titres à venir reprennent leur ordre d'avant ; ceux ajoutés depuis restent après, dans l'ordre actuel.
+    const rank = new Map<string, number>();
+    (unshuffled ?? []).forEach((k, i) => rank.has(k) || rank.set(k, i));
+    const at = (i: number) => rank.get(queue[i].ratingKey) ?? Number.MAX_SAFE_INTEGER;
+    rest.sort((a, b) => at(a) - at(b) || a - b);
+    unshuffled = null;
+  }
+  reorderQueue([...Array(head).keys(), ...rest]);
+  player.shuffled = !player.shuffled;
+}
+
+/** Nouvel ordre de la file (`order[k]` : position d'avant du titre placé en `k`), le titre en cours ne bougeant pas. */
+function reorderQueue(order: number[]) {
+  const old = player.queue.slice();
+  player.queue = order.map((i) => old[i]);
+  if (cast.device) invoke("cast_queue_order", { order }).catch(() => {});
+  else if (!player.web) invoke("player_queue_order", { order }).catch(() => {});
 }
 
 /** Une musique est en cours (ou en pause) : la file peut s'allonger sans l'interrompre. */
@@ -659,6 +727,12 @@ function stopLocal() {
   }
 }
 
+/** Répétition de la file ou du titre, appliquée par l'appareil Chromecast lui-même. */
+function castRepeat() {
+  const mode = player.repeatOne ? "REPEAT_SINGLE" : player.repeat ? "REPEAT_ALL" : "REPEAT_OFF";
+  invoke("cast_repeat", { mode }).catch(() => {});
+}
+
 /** Les commandes au format mpv, traduites pour l'appareil. */
 function castCommand(args: unknown[]) {
   const send = (action: string, value?: number) => invoke("cast_command", { action, value: value ?? null }).catch(() => {});
@@ -683,7 +757,13 @@ function castCommand(args: unknown[]) {
       if (a === "volume") send("volume", (player.volume = Math.min(100, Number(b))));
       else if (a === "mute") send("mute", (player.muted = !!b) ? 1 : 0);
       else if (a === "playlist-pos") send("jump", Number(b));
-      else if (a === "loop-playlist") player.repeat = b !== "no";
+      else if (a === "loop-playlist") {
+        player.repeat = b !== "no";
+        castRepeat();
+      } else if (a === "loop-file") {
+        player.repeatOne = b !== "no";
+        castRepeat();
+      }
       break;
     case "playlist-next":
       send("next");
@@ -755,7 +835,8 @@ const web = (() => {
   let nextIndex = -1;
   let handoff: ReturnType<typeof setTimeout> | undefined;
 
-  const followingIndex = () => (player.index < player.queue.length - 1 ? player.index + 1 : player.repeat && player.queue.length > 1 ? 0 : -1);
+  const followingIndex = () =>
+    player.repeatOne ? -1 : player.index < player.queue.length - 1 ? player.index + 1 : player.repeat && player.queue.length > 1 ? 0 : -1;
 
   /** Pendant les 20 dernières secondes d'un titre : le suivant se charge, et l'enchaînement se prépare. */
   function prepareNext(el: HTMLMediaElement) {
@@ -836,7 +917,8 @@ const web = (() => {
       videoEnded();
       return;
     }
-    if (player.index < player.queue.length - 1) playTrack(player.index + 1);
+    if (player.repeatOne) playTrack(player.index);
+    else if (player.index < player.queue.length - 1) playTrack(player.index + 1);
     else if (player.repeat) playTrack(0);
     else stop();
   }
@@ -1044,6 +1126,7 @@ const web = (() => {
           else if (a === "mute") el.muted = !!b;
           else if (a === "playlist-pos") playTrack(Number(b));
           else if (a === "loop-playlist") player.repeat = b !== "no";
+          else if (a === "loop-file") player.repeatOne = b !== "no";
           break;
         case "playlist-next":
           if (player.index < player.queue.length - 1) playTrack(player.index + 1);
@@ -1147,6 +1230,9 @@ listen<{ name: string; data: unknown }>("player-prop", ({ payload: { name, data 
       break;
     case "loop-playlist":
       player.repeat = data !== false && data !== "no";
+      break;
+    case "loop-file":
+      player.repeatOne = data !== false && data !== "no";
       break;
     case "vo-configured":
       // Un court délai laisse mpv peindre sa première image avant que la page ne s'efface.

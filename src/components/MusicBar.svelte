@@ -1,7 +1,7 @@
 <script lang="ts">
   import { formatClock } from "../lib/api";
   import { go } from "../lib/nav.svelte";
-  import { cast, current, moveInQueue, mpv, next, player, previous, stop } from "../lib/player.svelte";
+  import { cast, current, moveInQueue, mpv, next, player, previous, stop, cycleRepeat, toggleShuffle, repeatLabel } from "../lib/player.svelte";
   import { reorder } from "../lib/reorder";
   import Icon from "./Icon.svelte";
   import CastButton from "./CastButton.svelte";
@@ -116,14 +116,12 @@
 
     <div class="mid">
       <div class="transport">
-        <button
-          class="ctl small"
-          class:on={player.repeat}
-          onclick={() => mpv("set_property", "loop-playlist", player.repeat ? "no" : "inf")}
-          aria-label={t("musicBar.repeatQueue")}
-          title={t("musicBar.repeatQueue")}
-        >
-          <Icon name="repeat" size={20} />
+        <!-- Aléatoire sur la file en cours, et Répéter : la file, puis le titre, puis plus rien (comme Plex). -->
+        <button class="ctl small" class:on={player.shuffled} onclick={toggleShuffle} aria-pressed={player.shuffled} aria-label={t("musicBar.shuffle")} title={t("musicBar.shuffle")}>
+          <Icon name="shuffle" size={19} />
+        </button>
+        <button class="ctl small" class:on={player.repeat || player.repeatOne} onclick={cycleRepeat} aria-label={repeatLabel()} title={repeatLabel()}>
+          <Icon name={player.repeatOne ? "repeatOne" : "repeat"} size={20} />
         </button>
         <button class="ctl" onclick={previous} aria-label={t("common.c1.previous")} title={t("common.c1.previous")}>
           <Icon name="backward" size={24} filled />

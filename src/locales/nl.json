@@ -577,7 +577,10 @@
     "showSlide": "{{title}} tonen"
   },
   "musicBar": {
-    "repeatQueue": "Wachtrij herhalen"
+    "repeatQueue": "Wachtrij herhalen",
+    "repeat": "Herhalen: uit",
+    "repeatOne": "Nummer herhalen",
+    "shuffle": "Shuffle"
   },
   "nowPlaying": {
     "collapse": "Inklappen",

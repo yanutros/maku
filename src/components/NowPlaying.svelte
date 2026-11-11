@@ -1,6 +1,6 @@
 <script lang="ts">
   import { formatClock } from "../lib/api";
-  import { current, moveInQueue, mpv, next, player, previous, stop } from "../lib/player.svelte";
+  import { current, moveInQueue, mpv, next, player, previous, stop, cycleRepeat, toggleShuffle, repeatLabel } from "../lib/player.svelte";
   import { reorder } from "../lib/reorder";
   import { device } from "../lib/device";
   import Icon from "./Icon.svelte";
@@ -60,8 +60,11 @@
             <span>-{formatClock(Math.max(0, player.duration - player.position))}</span>
           </div>
           <div class="buttons">
-            <button class="ctl" class:on={player.repeat} onclick={() => mpv("set_property", "loop-playlist", player.repeat ? "no" : "inf")} aria-label={t("musicBar.repeatQueue")}>
-              <Icon name="repeat" size={20} />
+            <button class="ctl" class:on={player.shuffled} onclick={toggleShuffle} aria-pressed={player.shuffled} aria-label={t("musicBar.shuffle")}>
+              <Icon name="shuffle" size={19} />
+            </button>
+            <button class="ctl" class:on={player.repeat || player.repeatOne} onclick={cycleRepeat} aria-label={repeatLabel()}>
+              <Icon name={player.repeatOne ? "repeatOne" : "repeat"} size={20} />
             </button>
             <button class="ctl" onclick={previous} aria-label={t("common.c1.previous")}><Icon name="backward" size={30} filled /></button>
             <button class="ctl" onclick={() => mpv("cycle", "pause")} aria-label={player.paused ? t("common.c1.playback") : t("common.c1.pause")}>

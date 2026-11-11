@@ -107,7 +107,9 @@ visionnage. Tout se fait avec son compte Plex (ou Jellyfin) : aucune clé d'API 
       tôt) et ▶ le lance. Le mix reste deux jours après
       sa dernière écoute en tête des playlists de l'accueil musique, puis
       disparaît (ce n'est pas une playlist du serveur ; un titre présent dans deux playlists ne passe qu'une fois). File d'attente qui se réordonne en maintenant
-      un titre puis en le glissant, lecture aléatoire et vue « En cours de lecture », dont le fond aux couleurs de la pochette passe jusque derrière le menu, avec les
+      un titre puis en le glissant ; dans le lecteur, **Aléatoire** mélange la suite de la file (un second appui la remet
+      dans l'ordre) et **Répéter** répète la file, puis le titre en cours, puis plus rien, comme dans Plex (ordinateur,
+      téléphone, TV, Chromecast). Vue « En cours de lecture », dont le fond aux couleurs de la pochette passe jusque derrière le menu, avec les
       paroles synchronisées à côté de la pochette (lrclib.net, gratuit ; la ligne chantée ressort, un clic y saute,
       désactivable dans Réglages → Lecteur). **Radio** sur la fiche d'un artiste : ses titres mêlés à ceux
       d'artistes proches, choisis par le serveur (station de Plex, mix instantané de Jellyfin et Emby). Les titres

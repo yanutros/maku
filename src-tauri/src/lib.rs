@@ -1133,7 +1133,7 @@ async fn play(
         subtitle: info.subtitle.clone(),
         embedded: parent.is_some(),
     };
-    let entries = vec![Entry { rating_key, duration_ms: info.duration_ms }];
+    let entries = vec![Entry { rating_key, duration_ms: info.duration_ms, url: String::new() }];
     let control = player::launch(app, server, mpv, session, entries, Source::Video { info, parent })?;
     *state.player.lock().unwrap() = Some(control);
     Ok(now)
@@ -1306,7 +1306,7 @@ async fn play_music(
     let session = uuid::Uuid::new_v4().to_string();
     let entries = tracks
         .iter()
-        .map(|t| Entry { rating_key: t.rating_key.clone(), duration_ms: t.duration_ms })
+        .map(|t| Entry { rating_key: t.rating_key.clone(), duration_ms: t.duration_ms, url: t.url.clone() })
         .collect();
     let urls = tracks.iter().map(|t| t.url.clone()).collect();
     let control = player::launch(app, server, mpv, session.clone(), entries, Source::Music { urls, start: index })?;
@@ -1325,7 +1325,7 @@ async fn music_tracks(state: State<'_, AppState>, rating_key: String) -> CmdResu
 #[tauri::command]
 async fn player_queue_insert(state: State<'_, AppState>, rating_key: String, at: usize) -> CmdResult<Vec<QueueTrack>> {
     let tracks = state.server()?.queue(&rating_key).await?;
-    let entries = tracks.iter().map(|t| Entry { rating_key: t.rating_key.clone(), duration_ms: t.duration_ms }).collect();
+    let entries = tracks.iter().map(|t| Entry { rating_key: t.rating_key.clone(), duration_ms: t.duration_ms, url: t.url.clone() }).collect();
     let urls = tracks.iter().map(|t| t.url.clone()).collect();
     let player = state.player.lock().unwrap();
     player.as_ref().ok_or_else(|| anyhow!(crate::i18n::tr("app.noPlayback")))?.insert(entries, urls, at)?;
@@ -1337,6 +1337,13 @@ async fn player_queue_insert(state: State<'_, AppState>, rating_key: String, at:
 fn player_queue_move(state: State<'_, AppState>, from: usize, to: usize) -> CmdResult<()> {
     let player = state.player.lock().unwrap();
     Ok(player.as_ref().ok_or_else(|| anyhow!(crate::i18n::tr("app.noPlayback")))?.move_entry(from, to)?)
+}
+
+/// Bouton Aléatoire du lecteur : la file de mpv prend le nouvel ordre (`order[k]` : position d'avant du titre en `k`).
+#[tauri::command]
+fn player_queue_order(state: State<'_, AppState>, order: Vec<usize>) -> CmdResult<()> {
+    let player = state.player.lock().unwrap();
+    Ok(player.as_ref().ok_or_else(|| anyhow!(crate::i18n::tr("app.noPlayback")))?.reorder(order)?)
 }
 
 /// Même chose pendant une diffusion Chromecast.
@@ -1356,6 +1363,29 @@ fn cast_queue_move(state: State<'_, AppState>, from: usize, to: usize) -> CmdRes
     Ok(())
 }
 
+/// Bouton Aléatoire du lecteur, pendant une diffusion : la file de l'appareil prend le nouvel ordre.
+#[tauri::command]
+fn cast_queue_order(state: State<'_, AppState>, order: Vec<usize>) -> CmdResult<()> {
+    if let Some(s) = state.cast.lock().unwrap().as_ref() {
+        s.send(cast::Command::Order(order));
+    }
+    Ok(())
+}
+
+/// Bouton Répéter, pendant une diffusion : l'appareil répète la file, le titre, ou rien.
+#[tauri::command]
+fn cast_repeat(state: State<'_, AppState>, mode: String) -> CmdResult<()> {
+    let mode = match mode.as_str() {
+        "REPEAT_ALL" => "REPEAT_ALL",
+        "REPEAT_SINGLE" => "REPEAT_SINGLE",
+        _ => "REPEAT_OFF",
+    };
+    if let Some(s) = state.cast.lock().unwrap().as_ref() {
+        s.send(cast::Command::Repeat(mode));
+    }
+    Ok(())
+}
+
 /// Commande mpv envoyée par la barre de lecture, par ex. `["cycle", "pause"]`.
 #[tauri::command]
 fn player_command(state: State<'_, AppState>, args: Vec<Value>) -> CmdResult<()> {
@@ -1371,7 +1401,7 @@ fn player_command(state: State<'_, AppState>, args: Vec<Value>) -> CmdResult<()>
 /// lancer des programmes (`run`, `subprocess`), ouvrir ou écrire des fichiers (`loadfile`, `write-watch-later-config`…) :
 /// ces commandes-là ne viennent que du code Rust, jamais de la page.
 fn allowed_player_command(args: &[Value]) -> bool {
-    const PROPERTIES: [&str; 6] = ["volume", "mute", "loop-playlist", "playlist-pos", "aid", "sid"];
+    const PROPERTIES: [&str; 7] = ["volume", "mute", "loop-playlist", "loop-file", "playlist-pos", "aid", "sid"];
     let arg = |i: usize| args.get(i).and_then(Value::as_str);
     let scalar = |i: usize| args.get(i).is_some_and(|v| v.is_number() || v.is_string() || v.is_boolean());
     match (arg(0), args.len()) {
@@ -2080,6 +2110,9 @@ pub fn run() {
             cast_stop,
             cast_queue_insert,
             cast_queue_move,
+            cast_queue_order,
+            cast_repeat,
+            player_queue_order,
             music_tracks,
             player_queue_insert,
             player_queue_move,

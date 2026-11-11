@@ -1,6 +1,26 @@
-// Musique : « Écouter tout » et « Mix of Three » dans l'onglet Playlists, et le mix gardé dans l'onglet Recommandé.
+// Musique : boutons Aléatoire et Répéter du lecteur, « Écouter tout » et « Mix of Three » dans l'onglet Playlists.
 import { expect, test } from "@playwright/test";
 import { appareil, ouvrir } from "./outils";
+
+test("lecteur : Aléatoire mélange la suite, Répéter passe de la file au titre puis à rien", async ({ page }, info) => {
+  test.skip(appareil(info) !== "telephone", "lecteur intégré (la démo n'a pas mpv)");
+  await ouvrir(page, info, "ecoute"); // « En cours de lecture » ouvert
+  const lecteur = page.locator(".now-playing");
+  const repeter = lecteur.getByRole("button", { name: /^Répéter/ });
+  await expect(repeter).toHaveAccessibleName("Répéter : non");
+  await repeter.click();
+  await expect(repeter).toHaveAccessibleName("Répéter la file");
+  await repeter.click();
+  await expect(repeter).toHaveAccessibleName("Répéter le titre");
+  await repeter.click();
+  await expect(repeter).toHaveAccessibleName("Répéter : non");
+
+  const aleatoire = lecteur.getByRole("button", { name: "Aléatoire" });
+  await aleatoire.click();
+  await expect(aleatoire).toHaveAttribute("aria-pressed", "true");
+  await aleatoire.click();
+  await expect(aleatoire).toHaveAttribute("aria-pressed", "false");
+});
 
 test("Mix of Three : trois playlists choisies lancent le mix, qui reste dans la rangée des playlists", async ({ page }, info) => {
   test.skip(appareil(info) === "tv", "souris et doigt (sur TV, les mêmes actions sont des jaquettes)");

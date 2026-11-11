@@ -577,7 +577,10 @@
     "showSlide": "Mostrar {{title}}"
   },
   "musicBar": {
-    "repeatQueue": "Repetir la cola"
+    "repeatQueue": "Repetir la cola",
+    "repeat": "Repetir: no",
+    "repeatOne": "Repetir la canción",
+    "shuffle": "Aleatorio"
   },
   "nowPlaying": {
     "collapse": "Contraer",

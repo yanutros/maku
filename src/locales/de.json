@@ -577,7 +577,10 @@
     "showSlide": "{{title}} anzeigen"
   },
   "musicBar": {
-    "repeatQueue": "Warteschlange wiederholen"
+    "repeatQueue": "Warteschlange wiederholen",
+    "repeat": "Wiederholen: aus",
+    "repeatOne": "Titel wiederholen",
+    "shuffle": "Zufallswiedergabe"
   },
   "nowPlaying": {
     "collapse": "Minimieren",

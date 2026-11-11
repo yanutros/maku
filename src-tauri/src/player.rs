@@ -34,6 +34,7 @@ const OBSERVED: &[&str] = &[
     "demuxer-cache-time",
     "playlist-pos",
     "loop-playlist",
+    "loop-file",
     // Vrai dès que mpv affiche l'image : la page ne devient transparente qu'à ce moment-là.
     "vo-configured",
 ];
@@ -49,6 +50,9 @@ enum Control {
     Insert { entries: Vec<Entry>, urls: Vec<String>, at: usize },
     /// Titre déplacé de `from` à `to` (sa position finale).
     Move { from: usize, to: usize },
+    /// Nouvel ordre des titres à venir : `order[k]` est la position d'avant du titre placé en `k` (bouton
+    /// Aléatoire). Le titre en cours et ceux d'avant gardent leur place.
+    Order(Vec<usize>),
 }
 
 /// Lecture en cours. La lâcher (ou la remplacer) ferme mpv.
@@ -73,6 +77,11 @@ impl PlayerControl {
     /// Déplace un titre de la file musicale de `from` à `to`.
     pub fn move_entry(&self, from: usize, to: usize) -> Result<()> {
         self.control(Control::Move { from, to })
+    }
+
+    /// Remet la file musicale dans un nouvel ordre (voir `Control::Order`).
+    pub fn reorder(&self, order: Vec<usize>) -> Result<()> {
+        self.control(Control::Order(order))
     }
 
     fn control(&self, c: Control) -> Result<()> {
@@ -253,6 +262,8 @@ mod embed {
 pub struct Entry {
     pub rating_key: String,
     pub duration_ms: u64,
+    /// Fichier lu par mpv (musique), pour remettre la file dans un autre ordre.
+    pub url: String,
 }
 
 /// Ce que mpv doit lire.
@@ -479,6 +490,14 @@ impl Session<'_> {
                                     current = moved_index(current, from, to);
                                     vec![move_command(from, to)]
                                 }
+                                Control::Order(order) => {
+                                    let Some(lines) = reorder_commands(&order, current, &self.entries) else {
+                                        continue;
+                                    };
+                                    let mut old: Vec<Option<Entry>> = self.entries.drain(..).map(Some).collect();
+                                    self.entries = order.iter().map(|&i| old[i].take().unwrap()).collect();
+                                    lines
+                                }
                             };
                             for line in lines {
                                 writer.write_all(format!("{line}\n").as_bytes()).await?;
@@ -551,6 +570,28 @@ fn insert_commands(len: usize, at: usize, urls: &[String]) -> Vec<Value> {
     out
 }
 
+/// Commandes mpv qui mettent les titres à venir dans l'ordre `order` : ils sont retirés puis remis à la fin,
+/// dans le nouvel ordre. Le titre en cours (`current`) et ceux d'avant ne bougent pas : mpv ne change jamais de
+/// titre en cours de route (le déplacer titre par titre figeait une longue file et faisait sauter la barre).
+/// `None` si l'ordre n'est pas une permutation de la file qui garde ces premiers titres à leur place.
+fn reorder_commands(order: &[usize], current: usize, entries: &[Entry]) -> Option<Vec<Value>> {
+    let len = entries.len();
+    if order.len() != len || current >= len {
+        return None;
+    }
+    let mut seen = vec![false; len];
+    for (k, &i) in order.iter().enumerate() {
+        if i >= len || std::mem::replace(&mut seen[i], true) || (k <= current && i != k) {
+            return None;
+        }
+    }
+    let head = current + 1;
+    let mut lines = Vec::with_capacity(2 * (len - head));
+    lines.extend((head..len).map(|_| json!({ "command": ["playlist-remove", head] })));
+    lines.extend(order[head..].iter().map(|&i| json!({ "command": ["loadfile", entries[i].url, "append"] })));
+    Some(lines)
+}
+
 /// Position du titre en cours après le déplacement d'un titre de `from` à `to`.
 fn moved_index(current: usize, from: usize, to: usize) -> usize {
     if current == from {
@@ -574,6 +615,9 @@ mod tests {
             let c = &c["command"];
             match c[0].as_str().unwrap() {
                 "loadfile" => list.push(c[1].as_str().unwrap().to_owned()),
+                "playlist-remove" => {
+                    list.remove(c[1].as_u64().unwrap() as usize);
+                }
                 "playlist-move" => {
                     let (a, b) = (c[1].as_u64().unwrap() as usize, c[2].as_u64().unwrap() as usize);
                     let e = list.remove(a);
@@ -609,5 +653,18 @@ mod tests {
         let mut list: Vec<String> = ["a", "b"].map(String::from).to_vec();
         apply(&mut list, &insert_commands(2, 2, &urls));
         assert_eq!(list, ["a", "b", "x", "y"]);
+    }
+
+    #[test]
+    fn remettre_la_suite_dans_un_ordre() {
+        let entries: Vec<Entry> = (0..6).map(|i| Entry { rating_key: i.to_string(), duration_ms: 0, url: i.to_string() }).collect();
+        let order = [0, 1, 4, 2, 5, 3];
+        let mut list: Vec<String> = (0..6).map(|i| i.to_string()).collect();
+        apply(&mut list, &reorder_commands(&order, 1, &entries).unwrap());
+        assert_eq!(list, order.map(|i| i.to_string()));
+        // Le titre en cours (ou un d'avant) déplacé, ou pas une permutation de la file : rien.
+        assert!(reorder_commands(&[1, 0, 2, 3, 4, 5], 1, &entries).is_none());
+        assert!(reorder_commands(&[0, 1, 2, 2, 4, 5], 1, &entries).is_none());
+        assert!(reorder_commands(&[0, 1], 0, &entries).is_none());
     }
 }

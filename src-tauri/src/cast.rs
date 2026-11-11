@@ -188,6 +188,10 @@ pub enum Command {
     Insert(Vec<Track>, usize),
     /// Titre déplacé de la position `from` à `to`.
     Reorder(usize, usize),
+    /// Nouvel ordre de la file : `order[k]` est la position d'avant du titre placé en `k`.
+    Order(Vec<usize>),
+    /// Répétition : « REPEAT_OFF », « REPEAT_ALL » (la file) ou « REPEAT_SINGLE » (le titre).
+    Repeat(&'static str),
 }
 
 /// Session en cours avec un appareil : la tâche qui lui parle reçoit les commandes par ce canal.
@@ -494,6 +498,15 @@ pub async fn start(app: AppHandle, device: Device, tracks: Vec<Track>, start: us
                             link.send(&transport, NS_MEDIA, json!({ "type": "QUEUE_REORDER", "mediaSessionId": ms, "itemIds": item_ids })).await
                         }
                         Command::Reorder(..) => Ok(0),
+                        Command::Order(order) if order.len() == item_ids.len() && order.iter().all(|&i| i < item_ids.len()) => {
+                            let ids: Vec<_> = order.iter().map(|&i| item_ids[i].clone()).collect();
+                            item_ids = ids;
+                            link.send(&transport, NS_MEDIA, json!({ "type": "QUEUE_REORDER", "mediaSessionId": ms, "itemIds": item_ids })).await
+                        }
+                        Command::Order(_) => Ok(0),
+                        Command::Repeat(mode) => {
+                            link.send(&transport, NS_MEDIA, json!({ "type": "QUEUE_UPDATE", "mediaSessionId": ms, "repeatMode": mode })).await
+                        }
                     };
                     if r.is_err() { reason = Some("disconnected"); break; }
                 }
