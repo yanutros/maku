@@ -263,6 +263,9 @@ export function moveFocus(dir: Dir): boolean {
     }
   }
   if (current && current !== document.body && moveInRows(current, dir)) return true;
+  // Barre sous les onglets (filtre et tri d'une bibliothèque) : haut remonte à l'onglet actif (les onglets, peu
+  // prioritaires, perdaient face au menu de gauche, et la barre des onglets devenait inatteignable).
+  if (dir === "ArrowUp" && current?.closest("[data-grid-bar]") && !current.closest("[role=menu]") && focusTabs()) return true;
   // Onglets (Recommandé, Bibliothèque…) : gauche / droite d'un onglet à l'autre ; au premier, la
   // flèche gauche rejoint le menu, au dernier la droite ne fait rien.
   const tabs = current?.closest('[role="tablist"]');

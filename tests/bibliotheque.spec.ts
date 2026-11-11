@@ -41,6 +41,13 @@ test("bibliothèque TV : haut depuis la grille mène au filtre, le menu se parco
   await expect(page.locator(":focus")).toHaveText(/Par Titre/);
   await touche(page, "ArrowLeft");
   await expect(page.locator(":focus")).toHaveText(/Tout/);
+  // Haut depuis la barre : retour à l'onglet actif (il était devenu inatteignable).
+  await touche(page, "ArrowUp");
+  await expect(page.locator(":focus")).toHaveText("Bibliothèque");
+  await touche(page, "ArrowDown");
+  await expect(page.locator(":focus")).toHaveText(/Tout|Par Titre/);
+  if (!/Tout/.test((await page.locator(":focus").textContent()) ?? "")) await touche(page, "ArrowLeft");
+  await expect(page.locator(":focus")).toHaveText(/Tout/);
   await touche(page, "Enter");
   await touche(page, "ArrowDown");
   await expect(page.locator(":focus")).toHaveText("Non vu");

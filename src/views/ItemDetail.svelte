@@ -1072,6 +1072,15 @@
     color: #fff;
   }
 
+  /* Téléviseur : la saison sélectionnée se remplit de la couleur du thème, dans la bulle (le contour habituel,
+     qui déborde de 6 px, était coupé par la bande qui défile). */
+  :global(html.tv) .season-tabs button:focus {
+    outline: none;
+    border-color: transparent;
+    background: var(--accent);
+    color: var(--accent-text);
+  }
+
   .episodes {
     display: grid;
     gap: 6px;
