@@ -16,6 +16,8 @@ export type View =
       focusKey?: string | null;
       scroll?: number;
       loaded?: number;
+      /** Filtres d'une collection intelligente à modifier (onglet Bibliothèque, filtres avancés ouverts). */
+      smart?: { ratingKey: string; title: string; content: string } | null;
     }
   | { name: "item"; ratingKey: string }
   /** Fiche d'un « Mix of Three » (lib/mixes.svelte.ts). */
@@ -52,6 +54,8 @@ export const nav = $state({
   toast: null as { text: string; error: boolean } | null,
   /** Film ou série à ranger dans une collection (fenêtre « Ajouter à la collection » ouverte). */
   collectionFor: null as Item | null,
+  /** « Ajouter à une collection » pour tous les titres de la bibliothèque filtrée (`keys` les rassemble). */
+  collectionBatch: null as { sectionKey: string; kind: string; count: number; keys: () => Promise<string[]> } | null,
   /** Musique à ranger dans une playlist (fenêtre « Ajouter à une playlist » ouverte). */
   playlistFor: null as Item | null,
   /** Titre dont la fenêtre « Informations » est ouverte. */

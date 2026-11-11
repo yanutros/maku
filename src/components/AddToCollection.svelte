@@ -1,20 +1,22 @@
 <script lang="ts">
   import { onMount, tick } from "svelte";
   import { api, errorText, type Item } from "../lib/api";
-  import { nav, reload, toast } from "../lib/nav.svelte";
+  import { go, nav, reload, toast } from "../lib/nav.svelte";
   import Icon from "./Icon.svelte";
   import { t } from "../lib/i18n";
 
   /**
    * « Ajouter à la collection », comme dans Plex (administrateur) : les collections de la bibliothèque
-   * du titre, avec une recherche, ou une nouvelle collection dont le nom part du titre.
+   * du titre, avec une recherche, ou une nouvelle collection dont le nom part du titre. Depuis la barre de
+   * la bibliothèque (`batch`), tous les titres qu'elle affiche, filtre compris.
    */
-  const item = nav.collectionFor!;
+  const item = nav.collectionFor;
+  const batch = nav.collectionBatch;
 
   let collections = $state<Item[] | null>(null);
   let search = $state("");
   // Comme Plex, le nom d'une nouvelle collection part du titre (« Primetime » → « Primetime »).
-  let name = $state(item.kind === "episode" || item.kind === "season" ? (item.showTitle ?? item.title) : item.title);
+  let name = $state(!item ? "" : item.kind === "episode" || item.kind === "season" ? (item.showTitle ?? item.title) : item.title);
   let busy = $state(false);
   let box = $state<HTMLElement>();
 
@@ -25,7 +27,8 @@
 
   onMount(async () => {
     try {
-      collections = await api.collectionChoices(item.ratingKey);
+      // Une collection intelligente se remplit d'elle-même : on n'y ajoute rien.
+      collections = batch ? (await api.collections(batch.sectionKey)).filter((c) => !c.smart) : await api.collectionChoices(item!.ratingKey);
     } catch (e) {
       toast(errorText(e), true);
       collections = [];
@@ -36,13 +39,21 @@
 
   function close() {
     nav.collectionFor = null;
+    nav.collectionBatch = null;
   }
 
   async function addTo(c: Item) {
     busy = true;
     try {
-      await api.addToCollection(item.ratingKey, c.ratingKey);
-      toast(t("collection.added", { title: item.title, collection: c.title }));
+      if (batch) {
+        const keys = await batch.keys();
+        await api.addManyToCollection(keys, c.ratingKey);
+        toast(t("collection.addedMany", { count: keys.length, collection: c.title }));
+        close();
+        return;
+      }
+      await api.addToCollection(item!.ratingKey, c.ratingKey);
+      toast(t("collection.added", { title: item!.title, collection: c.title }));
       close();
       reload();
     } catch (e) {
@@ -57,7 +68,14 @@
     if (!title) return;
     busy = true;
     try {
-      await api.createCollection(item.ratingKey, title);
+      if (batch) {
+        const id = await api.createCollectionWith(batch.sectionKey, batch.kind, title, await batch.keys());
+        toast(t("collection.created", { collection: title }));
+        close();
+        if (id) go({ name: "item", ratingKey: id });
+        return;
+      }
+      await api.createCollection(item!.ratingKey, title);
       toast(t("collection.created", { collection: title }));
       close();
       reload();
@@ -75,7 +93,7 @@
 <div class="backdrop" onclick={close}></div>
 <div class="dialog" role="dialog" aria-modal="true" aria-label={t("collection.title")} bind:this={box}>
   <div class="top">
-    <h2>{t("collection.title")}</h2>
+    <h2>{batch ? t("collection.titleMany", { count: batch.count }) : t("collection.title")}</h2>
     <button class="close" onclick={close} aria-label={t("collection.cancel")}><Icon name="x" size={20} /></button>
   </div>
   <input class="search" bind:value={search} placeholder={t("collection.search")} aria-label={t("collection.search")} />

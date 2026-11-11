@@ -134,7 +134,7 @@
   onBack(() => {
     if (nav.closePlayerMenu) nav.closePlayerMenu();
     else if (nav.profiles) nav.profiles = false;
-    else if (nav.collectionFor) nav.collectionFor = null;
+    else if (nav.collectionFor || nav.collectionBatch) nav.collectionFor = nav.collectionBatch = null;
     else if (nav.playlistFor) nav.playlistFor = null;
     else if (nav.infoFor) nav.infoFor = null;
     else if (nav.trailer) nav.trailer = null;
@@ -271,6 +271,7 @@
               initialFocus={nav.view.focusKey}
               initialScroll={nav.view.scroll}
               initialLoaded={nav.view.loaded}
+              smart={nav.view.smart}
             />
           {:else if nav.view.name === "item"}
             <ItemDetail ratingKey={nav.view.ratingKey} />
@@ -325,7 +326,7 @@
   <EditDialog />
 {/if}
 
-{#if nav.collectionFor}
+{#if nav.collectionFor || nav.collectionBatch}
   <AddToCollection />
 {/if}
 

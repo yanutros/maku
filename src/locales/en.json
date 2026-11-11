@@ -391,6 +391,58 @@
       "mediaHeight": "Resolution",
       "mediaBitrate": "Bitrate",
       "random": "Random"
+    },
+    "advanced": {
+      "title": "New smart collection",
+      "match": "Match",
+      "all": "Match all of the following",
+      "any": "Match any of the following",
+      "field": "Field",
+      "operator": "Operator",
+      "value": "Value",
+      "yes": "Yes",
+      "no": "No",
+      "choose": "Choose…",
+      "datePlaceholder": "2024-01-31 or -30d",
+      "remove": "Remove this rule",
+      "add": "Add a rule",
+      "limit": "Limit to",
+      "apply": "Preview",
+      "name": "Collection name",
+      "create": "Create collection",
+      "update": "Update collection",
+      "created": "Smart collection “{{title}}” created",
+      "updated": "Collection “{{title}}” updated",
+      "editTitle": "Rules of “{{title}}”",
+      "previewing": "Collection preview"
+    },
+    "ops": {
+      "contains": "contains",
+      "notContains": "does not contain",
+      "is": "is",
+      "isNot": "is not",
+      "beginsWith": "begins with",
+      "endsWith": "ends with",
+      "greater": "is greater than",
+      "less": "is less than",
+      "before": "is before",
+      "after": "is after"
+    },
+    "fields": {
+      "title": "Title",
+      "studio": "Studio",
+      "addedAt": "Date added",
+      "originallyAvailableAt": "Release date",
+      "lastViewedAt": "Date viewed",
+      "duration": "Duration",
+      "viewCount": "Plays",
+      "rating": "Critic rating",
+      "audienceRating": "Audience rating",
+      "userRating": "Your rating"
+    },
+    "collectionMenu": {
+      "title": "Collection",
+      "addAll": "Add to collection…"
     }
   },
   "music": {
@@ -472,7 +524,9 @@
     "episodeShort": "E{{number}}",
     "resumeEpisode": "Resume S{{season}} · E{{episode}}",
     "playEpisode": "Play S{{season}} · E{{episode}}",
-    "episodes": "Episodes"
+    "episodes": "Episodes",
+    "editSmart": "Edit filters",
+    "smartUnavailable": "This collection's filters could not be found."
   },
   "stats": {
     "title": "My stats",
@@ -649,7 +703,8 @@
   },
   "posterCard": {
     "episodeCode": "S{{season}} · E{{episode}}",
-    "openTitle": "Open {{title}}"
+    "openTitle": "Open {{title}}",
+    "smart": "Smart collection"
   },
   "format": {
     "daysHours": "{{days}}d {{hours}}h",
@@ -886,7 +941,11 @@
     "create": "Create",
     "cancel": "Close",
     "added": "“{{title}}” added to “{{collection}}”",
-    "created": "Collection “{{collection}}” created"
+    "created": "Collection “{{collection}}” created",
+    "titleMany_one": "Add {{count}} title to a collection",
+    "titleMany_other": "Add {{count}} titles to a collection",
+    "addedMany_one": "{{count}} title added to “{{collection}}”",
+    "addedMany_other": "{{count}} titles added to “{{collection}}”"
   },
   "offline": {
     "title": "Downloads",

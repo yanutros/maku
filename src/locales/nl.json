@@ -391,6 +391,58 @@
       "mediaHeight": "Resolutie",
       "mediaBitrate": "Bitrate",
       "random": "Willekeurig"
+    },
+    "advanced": {
+      "title": "Nieuwe slimme collectie",
+      "match": "Overeenkomst",
+      "all": "Voldoet aan alle volgende regels",
+      "any": "Voldoet aan een van de volgende regels",
+      "field": "Veld",
+      "operator": "Operator",
+      "value": "Waarde",
+      "yes": "Ja",
+      "no": "Nee",
+      "choose": "Kiezen…",
+      "datePlaceholder": "2024-01-31 of -30d",
+      "remove": "Regel verwijderen",
+      "add": "Regel toevoegen",
+      "limit": "Beperken tot",
+      "apply": "Voorbeeld",
+      "name": "Naam van de collectie",
+      "create": "Collectie maken",
+      "update": "Collectie bijwerken",
+      "created": "Slimme collectie ‘{{title}}’ gemaakt",
+      "updated": "Collectie ‘{{title}}’ bijgewerkt",
+      "editTitle": "Regels van ‘{{title}}’",
+      "previewing": "Voorbeeld van de collectie"
+    },
+    "ops": {
+      "contains": "bevat",
+      "notContains": "bevat niet",
+      "is": "is",
+      "isNot": "is niet",
+      "beginsWith": "begint met",
+      "endsWith": "eindigt op",
+      "greater": "is groter dan",
+      "less": "is kleiner dan",
+      "before": "is voor",
+      "after": "is na"
+    },
+    "fields": {
+      "title": "Titel",
+      "studio": "Studio",
+      "addedAt": "Toegevoegd op",
+      "originallyAvailableAt": "Releasedatum",
+      "lastViewedAt": "Bekeken op",
+      "duration": "Duur",
+      "viewCount": "Afspeelbeurten",
+      "rating": "Recensentenscore",
+      "audienceRating": "Publieksscore",
+      "userRating": "Eigen score"
+    },
+    "collectionMenu": {
+      "title": "Collectie",
+      "addAll": "Aan een collectie toevoegen…"
     }
   },
   "music": {
@@ -472,7 +524,9 @@
     "episodeShort": "A{{number}}",
     "resumeEpisode": "S{{season}} · A{{episode}} hervatten",
     "playEpisode": "S{{season}} · A{{episode}} afspelen",
-    "episodes": "Afleveringen"
+    "episodes": "Afleveringen",
+    "editSmart": "Filters bewerken",
+    "smartUnavailable": "De filters van deze collectie zijn niet gevonden."
   },
   "stats": {
     "title": "Mijn statistieken",
@@ -649,7 +703,8 @@
   },
   "posterCard": {
     "episodeCode": "S{{season}} · E{{episode}}",
-    "openTitle": "{{title}} openen"
+    "openTitle": "{{title}} openen",
+    "smart": "Slimme collectie"
   },
   "format": {
     "daysHours": "{{days}} d {{hours}} u",
@@ -886,7 +941,11 @@
     "create": "Maken",
     "cancel": "Sluiten",
     "added": "‘{{title}}’ toegevoegd aan ‘{{collection}}’",
-    "created": "Collectie ‘{{collection}}’ gemaakt"
+    "created": "Collectie ‘{{collection}}’ gemaakt",
+    "titleMany_one": "{{count}} titel aan een collectie toevoegen",
+    "titleMany_other": "{{count}} titels aan een collectie toevoegen",
+    "addedMany_one": "{{count}} titel toegevoegd aan ‘{{collection}}’",
+    "addedMany_other": "{{count}} titels toegevoegd aan ‘{{collection}}’"
   },
   "offline": {
     "title": "Downloads",

@@ -18,7 +18,7 @@
   import { fromItem, type TvCard } from "../lib/tvcards";
   import { t } from "../lib/i18n";
   import LibraryFilters from "../components/LibraryFilters.svelte";
-  import { loadView, saveView, viewFilters, viewSort } from "../lib/libraryView.svelte";
+  import { loadView, parseSmart, saveView, viewFilters, viewSort } from "../lib/libraryView.svelte";
 
   let {
     sectionKey,
@@ -29,6 +29,7 @@
     initialFocus = null,
     initialScroll = 0,
     initialLoaded = 0,
+    smart = null,
   }: {
     sectionKey: string;
     title: string;
@@ -38,6 +39,8 @@
     initialFocus?: string | null;
     initialScroll?: number;
     initialLoaded?: number;
+    /** Collection intelligente dont on modifie les filtres (depuis sa fiche). */
+    smart?: { ratingKey: string; title: string; content: string } | null;
   } = $props();
 
   // La page telle qu'elle est dans l'historique : l'onglet, la catégorie, la jaquette sélectionnée,
@@ -112,8 +115,15 @@
   // Filtre et tri (films et séries), gardés pour la prochaine visite. Chaque changement repart de zéro :
   // `generation` écarte une page arrivée pour l'ancien choix.
   const filterable = $derived(kind === "movie" || kind === "show");
+  // Collection intelligente à modifier : ses filtres et son ordre, sans toucher au choix gardé pour la bibliothèque.
   // svelte-ignore state_referenced_locally
-  let view = $state(loadView(sectionKey));
+  const editing = smart ? { ratingKey: smart.ratingKey, title: smart.title } : null;
+  function startView() {
+    if (!smart) return loadView(sectionKey);
+    const { filter, sort, desc } = parseSmart(smart.content);
+    return { flag: null, value: null, sort, desc, advanced: filter };
+  }
+  let view = $state(startView());
   let generation = 0;
 
   // --- Collections ---
@@ -174,9 +184,30 @@
     loading = false;
   }
 
+  /** « Ajouter à une collection » : tous les titres affichés (filtre compris), rassemblés au moment d'ajouter. */
+  function openBatch() {
+    const filters = viewFilters(view);
+    const sort = viewSort(view);
+    const forGenre = genre?.id ?? null;
+    nav.collectionBatch = {
+      sectionKey,
+      kind,
+      count: total,
+      keys: async () => {
+        const keys: string[] = [];
+        for (let start = 0; start < 100_000; start += 500) {
+          const page = await api.sectionItems(sectionKey, start, 500, null, forGenre, sort, filters);
+          keys.push(...page.items.map((i) => i.ratingKey));
+          if (!page.items.length || keys.length >= page.total) break;
+        }
+        return keys;
+      },
+    };
+  }
+
   /** Nouveau filtre ou nouvel ordre : la liste repart du début. */
   function changeView() {
-    saveView(sectionKey, view);
+    if (!editing) saveView(sectionKey, view);
     resetLibrary();
     error = null;
     if (memo) memo.loaded = 0;
@@ -340,7 +371,7 @@
       {#if tab === "library"}
         <!-- Sur sa propre ligne : à droite des onglets, on ne l'atteindrait pas (un onglet s'ouvre dès qu'on y passe). -->
         {#if filterable}
-          <div class="tv-bar" data-grid-bar><LibraryFilters {sectionKey} {kind} bind:view onchange={changeView} /></div>
+          <div class="tv-bar" data-grid-bar><LibraryFilters {sectionKey} {kind} {editing} bind:view onchange={changeView} /></div>
         {/if}
         <TvGrid cards={tvItems} onEnd={loadMore} initialKey={initialFocus} />
       {:else if tab === "collections"}
@@ -391,7 +422,7 @@
     {/if}
   {:else if tab === "library"}
     {#if filterable}
-      <LibraryFilters {sectionKey} {kind} bind:view onchange={changeView} />
+      <LibraryFilters {sectionKey} {kind} {editing} {total} onbatch={openBatch} bind:view onchange={changeView} />
     {/if}
     {#if genre}
       <div class="filter">

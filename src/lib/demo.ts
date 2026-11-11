@@ -86,6 +86,12 @@ const movies: Item[] = MOVIE_DATA.map(([title, year, genres, rating, tagline, su
 movies[2].viewOffsetMs = 41 * MIN;
 movies[7].viewOffsetMs = 72 * MIN;
 
+// Collections de la bibliothèque de films : une intelligente (remplie par Plex), une ordinaire.
+const collections: Item[] = [
+  item({ kind: "collection", title: "Science-fiction", subtitle: "4 éléments", poster: movies[1].poster, backdrop: movies[1].backdrop, smart: true }),
+  item({ kind: "collection", title: "Soirées d'été", subtitle: "3 éléments", poster: movies[4].poster, backdrop: movies[4].backdrop }),
+];
+
 // ---------- Séries ----------
 
 const SHOW_DATA: [string, number, string[], number, string, string][] = [
@@ -456,6 +462,9 @@ function handle(cmd: string, a: Args): unknown {
     case "plex_person_items":
       // Démo : chaque personne joue dans une partie du catalogue fictif.
       return [...movies, ...shows].filter((_, i) => i % 3 === Number(a.id) % 3);
+    // `?demo=…&admin` : la démo en administrateur (collections intelligentes…).
+    case "plex_is_admin":
+      return new URLSearchParams(location.search).has("admin");
     case "plex_sections":
       return SECTIONS.map(({ key, title, kind }) => ({ key, title, kind }));
     case "plex_home":
@@ -475,6 +484,8 @@ function handle(cmd: string, a: Args): unknown {
         else if (name === "inProgress") list = list.filter((m) => m.viewOffsetMs);
         else if (name === "genre") list = list.filter((m) => m.genres.includes(value));
         else if (name === "year") list = list.filter((m) => String(m.year) === value);
+        else if (name === "title") list = list.filter((m) => m.title.toLowerCase().includes(value.toLowerCase()));
+        else if (name === "year>>") list = list.filter((m) => (m.year ?? 0) > Number(value));
       }
       const [by, dir] = String(a.sort ?? "").split(":");
       const sortValue = (m: Item) => (by === "year" ? (m.year ?? 0) : by === "audienceRating" ? (m.rating ?? 0) : m.title);
@@ -487,6 +498,8 @@ function handle(cmd: string, a: Args): unknown {
       const all = [...list, ...list.map((m) => ({ ...m, ratingKey: m.ratingKey + "b" }))];
       return { items: a.start ? [] : all, total: all.length };
     }
+    case "plex_collections":
+      return a.key === "1" ? collections : [];
     case "plex_genres":
       return genres(a.key);
     case "plex_section_filters":
@@ -502,7 +515,28 @@ function handle(cmd: string, a: Args): unknown {
           { key: "year", title: "Year", desc: true },
           { key: "audienceRating", title: "Audience Rating", desc: true },
         ],
+        fields: [
+          { key: "title", title: "Title", kind: "string" },
+          { key: "year", title: "Year", kind: "integer" },
+          { key: "genre", title: "Genre", kind: "tag" },
+          { key: "unwatched", title: "Unwatched", kind: "boolean" },
+        ],
+        operators: [
+          { kind: "string", ops: [{ key: "=", title: "contains" }, { key: "!=", title: "does not contain" }, { key: "==", title: "is" }] },
+          { kind: "integer", ops: [{ key: "=", title: "is" }, { key: ">>=", title: "is greater than" }, { key: "<<=", title: "is less than" }] },
+          { kind: "tag", ops: [{ key: "=", title: "is" }, { key: "!=", title: "is not" }] },
+          { kind: "boolean", ops: [{ key: "=", title: "is" }] },
+        ],
       };
+    case "plex_create_smart_collection":
+    case "plex_create_collection_with":
+      return "";
+    case "plex_add_many_to_collection":
+      return null;
+    case "plex_update_smart_collection":
+      return null;
+    case "plex_smart_collection":
+      return { sectionKey: "1", title: "Science-fiction", content: "/library/sections/1/all?type=1&sort=year:desc&genre=Science-fiction" };
     case "plex_filter_values": {
       const pool = a.key === "2" ? shows : movies;
       const names = a.filter === "year" ? [...new Set(pool.map((m) => String(m.year)))].sort().reverse() : [...new Set(pool.flatMap((m) => m.genres))].sort();

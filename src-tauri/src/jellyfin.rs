@@ -389,6 +389,7 @@ impl JellyfinServer {
             genres: v["Genres"].as_array().map(|g| g.iter().filter_map(|x| x.as_str().map(str::to_owned)).collect()).unwrap_or_default(),
             resolution: None,
             playable: matches!(kind, "movie" | "episode" | "track"),
+            smart: false,
         }
     }
 
@@ -485,6 +486,7 @@ impl JellyfinServer {
                 sort("lastViewedAt", true),
                 sort("random", false),
             ],
+            ..Default::default()
         })
     }
 

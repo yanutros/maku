@@ -14,10 +14,12 @@
   import { onMount, tick } from "svelte";
   import { api, type FilterValue, type SectionFilters } from "../lib/api";
   import { device } from "../lib/device";
+  import { nav } from "../lib/nav.svelte";
   import { reveal } from "../lib/spatial";
   import { find, t } from "../lib/i18n";
-  import type { LibraryView } from "../lib/libraryView.svelte";
+  import { viewSort, type LibraryView, type SmartFilter } from "../lib/libraryView.svelte";
   import Icon from "./Icon.svelte";
+  import AdvancedFilters from "./AdvancedFilters.svelte";
 
   // Barre de l'onglet Bibliothèque (films et séries), comme dans Plex : « Tout » ou un filtre (non vus,
   // en cours, HDR… ou une valeur : genre, année, acteur…), puis l'ordre de tri et son sens.
@@ -26,13 +28,29 @@
     kind,
     view = $bindable(),
     onchange,
-  }: { sectionKey: string; kind: string; view: LibraryView; onchange: () => void } = $props();
+    editing = null,
+    total = 0,
+    onbatch = () => {},
+  }: {
+    sectionKey: string;
+    kind: string;
+    view: LibraryView;
+    onchange: () => void;
+    /** Collection intelligente dont on modifie les filtres : les filtres avancés s'ouvrent pour elle. */
+    editing?: { ratingKey: string; title: string } | null;
+    /** Titres affichés (filtre compris), à ranger d'un coup dans une collection avec `onbatch`. */
+    total?: number;
+    onbatch?: () => void;
+  } = $props();
+
+  // svelte-ignore state_referenced_locally
+  let showAdvanced = $state(!!editing);
 
   let defs = $state<SectionFilters | null>(null);
   onMount(() => {
     api.sectionFilters(sectionKey, kind).then(
       (d) => (defs = d),
-      () => (defs = { filters: [], sorts: [] }),
+      () => (defs = { filters: [], sorts: [], fields: [], operators: [] }),
     );
   });
 
@@ -46,13 +64,13 @@
   const fieldTitle = (id: string) => filterName(id, fields.find((f) => f.id === id)?.title ?? id);
 
   const filterLabel = $derived(
-    view.flag ? filterName(view.flag, flags.find((f) => f.id === view.flag)?.title) : t("library.filters.all"),
+    view.advanced ? t("library.advanced.previewing") : view.flag ? filterName(view.flag, flags.find((f) => f.id === view.flag)?.title) : t("library.filters.all"),
   );
   const currentSort = $derived(view.sort ?? "titleSort");
   const sortLabel = $derived(sortName(currentSort, sorts.find((s) => s.key === currentSort)?.title));
 
   // --- Menus ---
-  let open = $state<"filter" | "sort" | null>(null);
+  let open = $state<"filter" | "sort" | "collection" | null>(null);
   /** Filtre dont on parcourt les valeurs (genre, année…), sinon la liste des filtres. */
   let field = $state<string | null>(null);
   let values = $state<FilterValue[] | null>(null);
@@ -60,6 +78,7 @@
   let menu = $state<HTMLElement>();
   let filterBtn = $state<HTMLButtonElement>();
   let sortBtn = $state<HTMLButtonElement>();
+  let collBtn = $state<HTMLButtonElement>();
 
   const shownValues = $derived.by(() => {
     const q = query.trim().toLocaleLowerCase();
@@ -80,7 +99,7 @@
     reveal(target);
   }
 
-  function show(which: "filter" | "sort") {
+  function show(which: "filter" | "sort" | "collection") {
     if (open === which) return close();
     open = which;
     field = null;
@@ -93,7 +112,7 @@
     open = null;
     field = null;
     if (backOpen === back) backOpen = null;
-    (from === "sort" ? sortBtn : filterBtn)?.focus({ preventScroll: true });
+    (from === "sort" ? sortBtn : from === "collection" ? collBtn : filterBtn)?.focus({ preventScroll: true });
   }
 
   /** Retour : de la liste des valeurs à celle des filtres, puis menu fermé. */
@@ -110,7 +129,7 @@
   }
 
   function pickFlag(id: string | null) {
-    apply({ flag: id, ...(id ? {} : { value: null }) });
+    apply({ flag: id, advanced: null, ...(id ? {} : { value: null }) });
     close();
   }
 
@@ -129,7 +148,7 @@
   }
 
   function pickValue(v: FilterValue) {
-    apply({ value: { field: field!, id: v.id, title: v.title } });
+    apply({ value: { field: field!, id: v.id, title: v.title }, advanced: null });
     close();
   }
 
@@ -138,6 +157,19 @@
     if (key === currentSort) apply({ sort: key, desc: !view.desc });
     else apply({ sort: key, desc });
     close();
+  }
+
+  const creatable = $derived(!!defs?.fields.length && nav.admin && !device.tv && !device.mobile && !device.phone);
+
+  /** Le panneau se ferme : l'aperçu de la collection aussi. */
+  function closeAdvanced() {
+    showAdvanced = false;
+    if (view.advanced) applyAdvanced(null);
+  }
+
+  /** Aperçu d'une collection intelligente (ou retrait) : ses règles remplacent le filtre et la valeur. */
+  function applyAdvanced(f: SmartFilter | null) {
+    apply({ advanced: f, ...(f ? { flag: null, value: null } : {}) });
   }
 
   function onKey(e: KeyboardEvent) {
@@ -239,7 +271,43 @@
       <button class="chip-x" onclick={() => apply({ value: null })} aria-label={t("library.removeFilter")}><Icon name="x" size={13} /></button>
     </span>
   {/if}
+  <!-- Plex, administrateur, sur ordinateur seulement : ranger les titres affichés dans une collection (ordinaire),
+       ou créer une collection intelligente. -->
+  {#if creatable && !editing}
+    <div class="drop">
+      <button bind:this={collBtn} class="pick" aria-haspopup="menu" aria-expanded={open === "collection"} onclick={() => show("collection")}>
+        <Icon name="library" size={15} />
+        <span>{t("library.collectionMenu.title")}</span>
+        <Icon name="chevronDown" size={14} />
+      </button>
+      {#if open === "collection"}
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div class="menu" role="menu" tabindex="-1" bind:this={menu} onkeydown={onKey}>
+          <button role="menuitem" disabled={!total} onclick={() => (close(), onbatch())}>
+            <span class="text">{t("library.collectionMenu.addAll")}</span>
+            <span class="value">{t("library.titleCount", { count: total })}</span>
+          </button>
+          <button role="menuitem" onclick={() => (close(), (showAdvanced = true))}>
+            <span class="text">{t("library.advanced.title")}</span>
+          </button>
+        </div>
+      {/if}
+    </div>
+  {/if}
 </div>
+
+{#if showAdvanced && creatable && defs}
+  <AdvancedFilters
+    {sectionKey}
+    {kind}
+    {defs}
+    {editing}
+    filter={view.advanced ?? null}
+    sort={viewSort(view)}
+    onapply={applyAdvanced}
+    onclose={closeAdvanced}
+  />
+{/if}
 
 {#if open}
   <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->

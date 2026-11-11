@@ -712,6 +712,50 @@ async fn plex_section_filters(state: State<'_, AppState>, key: String, kind: Str
     Ok(state.server()?.section_filters(&key, &kind).await?)
 }
 
+/// Nouvelle collection intelligente (administrateur) : les titres de la bibliothèque qui répondent aux filtres.
+#[tauri::command]
+async fn plex_create_smart_collection(
+    state: State<'_, AppState>,
+    key: String,
+    kind: String,
+    title: String,
+    filters: Vec<(String, String)>,
+    sort: Option<String>,
+) -> CmdResult<String> {
+    Ok(state.admin_plex().await?.create_smart_collection(&key, &kind, &title, &filters, sort.as_deref()).await?)
+}
+
+/// Nouveaux filtres d'une collection intelligente (administrateur).
+#[tauri::command]
+async fn plex_update_smart_collection(
+    state: State<'_, AppState>,
+    rating_key: String,
+    key: String,
+    kind: String,
+    filters: Vec<(String, String)>,
+    sort: Option<String>,
+) -> CmdResult<()> {
+    Ok(state.admin_plex().await?.update_smart_collection(&rating_key, &key, &kind, &filters, sort.as_deref()).await?)
+}
+
+/// Plusieurs titres d'un coup dans une collection (administrateur).
+#[tauri::command]
+async fn plex_add_many_to_collection(state: State<'_, AppState>, keys: Vec<String>, collection: String) -> CmdResult<()> {
+    Ok(state.admin_plex().await?.add_many_to_collection(&keys, &collection).await?)
+}
+
+/// Nouvelle collection ordinaire avec ces titres (administrateur) ; rend son identifiant.
+#[tauri::command]
+async fn plex_create_collection_with(state: State<'_, AppState>, key: String, kind: String, title: String, keys: Vec<String>) -> CmdResult<String> {
+    Ok(state.admin_plex().await?.create_collection_with(&key, &kind, &title, &keys).await?)
+}
+
+/// Filtres d'une collection intelligente et sa bibliothèque.
+#[tauri::command]
+async fn plex_smart_collection(state: State<'_, AppState>, rating_key: String) -> CmdResult<plex::SmartCollection> {
+    Ok(state.server()?.smart_collection(&rating_key).await?)
+}
+
 /// Valeurs possibles d'un filtre (genres, années, acteurs…) dans une bibliothèque.
 #[tauri::command]
 async fn plex_filter_values(state: State<'_, AppState>, key: String, kind: String, filter: String) -> CmdResult<Vec<plex::FilterValue>> {
@@ -2036,6 +2080,11 @@ pub fn run() {
             plex_section_items,
             plex_section_filters,
             plex_filter_values,
+            plex_create_smart_collection,
+            plex_update_smart_collection,
+            plex_smart_collection,
+            plex_add_many_to_collection,
+            plex_create_collection_with,
             plex_section_hubs,
             plex_genres,
             plex_adjacent,

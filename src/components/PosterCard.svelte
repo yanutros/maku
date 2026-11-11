@@ -52,7 +52,10 @@
 <div class="card" class:wide class:square={music} class:round={item.kind === "artist"} oncontextmenu={openMenu} role="group" data-key={item.ratingKey}>
   <div class="img">
     {#if image}<img src={image} alt="" loading="lazy" />{/if}
-    {#if item.unwatchedCount}
+    {#if item.smart}
+      <!-- Collection intelligente : Plex la remplit lui-même, d'après ses filtres. -->
+      <span class="corner seen" title={t("posterCard.smart")}><Icon name="sliders" size={12} /></span>
+    {:else if item.unwatchedCount}
       <span class="corner">{item.unwatchedCount}</span>
     {:else if item.watched}
       <span class="corner seen"><Icon name="check" size={12} /></span>

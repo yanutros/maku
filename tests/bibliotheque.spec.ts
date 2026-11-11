@@ -48,3 +48,45 @@ test("bibliothèque TV : haut depuis la grille mène au filtre, le menu se parco
   await expect(page.getByRole("button", { name: "Non vu" })).toBeFocused();
   await expect(page.getByText("20 titres")).toBeVisible();
 });
+
+test("bibliothèque : nouvelle collection intelligente (administrateur, ordinateur), avec un aperçu dans la grille", async ({ page }, info) => {
+  await ouvrir(page, info, "films&admin");
+  await page.getByRole("tab", { name: "Bibliothèque" }).click();
+  const bouton = page.getByRole("button", { name: "Collection", exact: true });
+  if (appareil(info) === "tv" || appareil(info) === "telephone") {
+    // Réservé à l'ordinateur.
+    await expect(page.locator(".bar .pick").first()).toBeVisible();
+    await expect(bouton).toHaveCount(0);
+    return;
+  }
+  await bouton.click();
+  await page.getByRole("menuitem", { name: "Nouvelle collection intelligente" }).click();
+  await expect(page.getByRole("button", { name: "Créer la collection" })).toBeDisabled();
+  await page.getByRole("textbox", { name: "Valeur" }).fill("or");
+  await page.getByRole("button", { name: "Aperçu" }).click();
+  await expect(page.locator("h1 .muted")).toHaveText("6");
+  await expect(page.locator(".bar .pick").first()).toHaveText(/Aperçu de la collection/);
+  await page.getByRole("textbox", { name: "Nom de la collection" }).fill("Orbites");
+  await expect(page.getByRole("button", { name: "Créer la collection" })).toBeEnabled();
+  // Fermer le panneau retire l'aperçu.
+  await page.getByRole("button", { name: "Fermer" }).click();
+  await expect(page.locator("h1 .muted")).toHaveText("24");
+});
+
+test("bibliothèque : ranger les titres affichés dans une collection ordinaire (administrateur, ordinateur)", async ({ page }, info) => {
+  test.skip(appareil(info) !== "pc", "réservé à l'ordinateur (vérifié dans le test précédent)");
+  await ouvrir(page, info, "films&admin");
+  await page.getByRole("tab", { name: "Bibliothèque" }).click();
+  await page.getByRole("button", { name: "Tout" }).click();
+  await page.getByRole("menuitemradio", { name: "Non vu" }).click();
+  await expect(page.locator("h1 .muted")).toHaveText("20");
+  await page.getByRole("button", { name: "Collection", exact: true }).click();
+  await page.getByRole("menuitem", { name: /Ajouter à une collection/ }).click();
+  const fenêtre = page.getByRole("dialog");
+  await expect(fenêtre.getByRole("heading")).toHaveText("Ajouter 20 titres à la collection");
+  // Les collections intelligentes se remplissent seules : seules les ordinaires sont proposées.
+  await expect(fenêtre.getByText("Soirées d'été")).toBeVisible();
+  await expect(fenêtre.getByText("Science-fiction")).toHaveCount(0);
+  await fenêtre.getByText("Soirées d'été").click();
+  await expect(page.getByText("20 titres ajoutés à « Soirées d'été »")).toBeVisible();
+});

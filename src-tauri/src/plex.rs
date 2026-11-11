@@ -542,6 +542,8 @@ struct RawMetadata {
     /// Playlist intelligente (générée par Plex selon des règles).
     #[serde(deserialize_with = "flag")]
     smart: bool,
+    /// Collection intelligente : sa recherche (« /library/sections/1/all?type=1&genre=… »).
+    content: Option<String>,
     /// Bibliothèque de l'élément (ses collections y sont rangées).
     #[serde(rename = "librarySectionID")]
     library_section_id: Option<u64>,
@@ -730,6 +732,8 @@ pub struct Item {
     pub genres: Vec<String>,
     pub resolution: Option<String>,
     pub playable: bool,
+    /// Collection intelligente (remplie par Plex selon des filtres).
+    pub smart: bool,
     /// Dernière lecture sur le serveur (millisecondes depuis 1970), pour trier les playlists.
     pub last_played: Option<u64>,
 }
@@ -883,6 +887,9 @@ pub struct Adjacent {
 pub struct SectionFilters {
     pub filters: Vec<FilterField>,
     pub sorts: Vec<SortField>,
+    /// Filtres avancés (Plex seulement) : leurs champs, et les opérateurs de chaque type de champ.
+    pub fields: Vec<AdvancedField>,
+    pub operators: Vec<OperatorSet>,
 }
 
 /// Un filtre : à cocher (`boolean` : non vus, en cours, HDR…) ou à choisir parmi des valeurs (genre, année…).
@@ -905,6 +912,102 @@ pub struct SortField {
 pub struct FilterValue {
     pub id: String,
     pub title: String,
+}
+
+/// Filtre avancé : un champ (titre, année, genre…) et son type (« string », « integer », « tag »,
+/// « date », « boolean »), qui donne ses opérateurs.
+#[derive(Serialize)]
+pub struct AdvancedField {
+    pub key: String,
+    pub title: String,
+    pub kind: String,
+}
+
+/// Opérateurs d'un type de champ (« contient », « est », « est après »…). `key` : tel qu'il s'écrit
+/// dans la recherche, entre le champ et la valeur (« title!=nuit », « year>>=2000 »).
+#[derive(Serialize)]
+pub struct OperatorSet {
+    pub kind: String,
+    pub ops: Vec<Operator>,
+}
+
+#[derive(Serialize)]
+pub struct Operator {
+    pub key: String,
+    pub title: String,
+}
+
+/// Collection intelligente : sa bibliothèque et sa recherche (`content`, vide pour une collection ordinaire).
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SmartCollection {
+    pub section_key: String,
+    pub title: String,
+    pub content: String,
+}
+
+fn default_fields() -> Vec<AdvancedField> {
+    [
+        ("title", "Title", "string"),
+        ("year", "Year", "integer"),
+        ("genre", "Genre", "tag"),
+        ("collection", "Collection", "tag"),
+        ("actor", "Actor", "tag"),
+        ("director", "Director", "tag"),
+        ("studio", "Studio", "string"),
+        ("contentRating", "Content Rating", "tag"),
+        ("addedAt", "Date Added", "date"),
+        ("unwatched", "Unwatched", "boolean"),
+    ]
+    .into_iter()
+    .map(|(key, title, kind)| AdvancedField { key: key.into(), title: title.into(), kind: kind.into() })
+    .collect()
+}
+
+fn default_operators() -> Vec<OperatorSet> {
+    let set = |kind: &str, ops: &[(&str, &str)]| OperatorSet {
+        kind: kind.into(),
+        ops: ops.iter().map(|(key, title)| Operator { key: (*key).into(), title: (*title).into() }).collect(),
+    };
+    vec![
+        set("string", &[("=", "contains"), ("!=", "does not contain"), ("==", "is"), ("!==", "is not"), ("<=", "begins with"), (">=", "ends with")]),
+        set("integer", &[("=", "is"), ("!=", "is not"), (">>=", "is greater than"), ("<<=", "is less than")]),
+        set("tag", &[("=", "is"), ("!=", "is not")]),
+        set("date", &[("<<=", "is before"), (">>=", "is after")]),
+        set("boolean", &[("=", "is true"), ("!=", "is false")]),
+    ]
+}
+
+/// Opérateur d'un filtre avancé connu (voir `OperatorSet`).
+fn operator_ok(op: &str) -> bool {
+    matches!(op, "=" | "!=" | "==" | "!==" | "<=" | ">=" | "<<=" | ">>=")
+}
+
+/// Nom d'un filtre dans la recherche, avec son opérateur éventuel (« title! » pour « title!=… »,
+/// « year>> » pour « year>>=… ») ; `push`, `or` et `pop` regroupent des filtres (« l'un des »).
+pub(crate) fn query_name_ok(name: &str) -> bool {
+    let base = name.trim_end_matches(['!', '<', '>', '=']);
+    filter_name_ok(base) && operator_ok(&format!("{}=", &name[base.len()..]))
+}
+
+/// Les filtres choisis, à la suite d'une recherche (« &unwatched=1&push=1&title=x&or=1&title=y&pop=1 »).
+fn filter_query(filters: &[(String, String)]) -> String {
+    filters
+        .iter()
+        .filter(|(n, _)| query_name_ok(n))
+        .map(|(name, value)| format!("&{name}={}", urlencoding::encode(value)))
+        .collect()
+}
+
+/// Titres envoyés à la fois à une collection.
+const COLLECTION_BATCH: usize = 200;
+
+/// Adresse de plusieurs titres (« …/library/metadata/12,34,56 »), au format des collections de Plex.
+fn metadata_uri(machine: &str, keys: &[String]) -> Result<String> {
+    if keys.iter().any(|k| k.is_empty() || !k.chars().all(|c| c.is_ascii_digit())) {
+        bail!("élément inconnu");
+    }
+    Ok(urlencoding::encode(&format!("server://{machine}/com.plexapp.plugins.library/library/metadata/{}", keys.join(","))).into_owned())
 }
 
 /// Nom de filtre ou de tri sûr à placer dans une adresse (lettres, chiffres, point).
@@ -1186,6 +1289,7 @@ impl PlexServer {
             }
             .filter(|g| g.starts_with("plex://")),
             playable: matches!(m.kind.as_str(), "movie" | "episode" | "track"),
+            smart: m.smart && m.kind == "collection",
             resolution: media.and_then(|x| x.video_resolution.clone()),
             genres: m.genre.into_iter().map(|g| g.tag).collect(),
             subtitle,
@@ -1236,9 +1340,7 @@ impl PlexServer {
         if let Some(g) = genre {
             filter.push_str(&format!("&genre={}", urlencoding::encode(g)));
         }
-        for (name, value) in filters.iter().filter(|(n, _)| filter_name_ok(n)) {
-            filter.push_str(&format!("&{name}={}", urlencoding::encode(value)));
-        }
+        filter.push_str(&filter_query(filters));
         let c = self
             .container(&format!(
                 "/library/sections/{key}/all?sort={sort}{filter}&X-Plex-Container-Start={start}&X-Plex-Container-Size={size}"
@@ -1284,7 +1386,87 @@ impl PlexServer {
                     .collect()
             })
             .unwrap_or_default();
-        Ok(SectionFilters { filters, sorts })
+        let mut fields: Vec<AdvancedField> = meta["Field"]
+            .as_array()
+            .map(|l| {
+                l.iter()
+                    .filter(|f| filter_name_ok(f["key"].as_str().unwrap_or_default()))
+                    .map(|f| AdvancedField { key: text(&f["key"]), title: text(&f["title"]), kind: text(&f["type"]) })
+                    .collect()
+            })
+            .unwrap_or_default();
+        let mut operators: Vec<OperatorSet> = v["MediaContainer"]["Meta"]["FieldType"]
+            .as_array()
+            .map(|l| {
+                l.iter()
+                    .map(|t| OperatorSet {
+                        kind: text(&t["type"]),
+                        ops: t["Operator"]
+                            .as_array()
+                            .map(|o| o.iter().filter(|o| operator_ok(o["key"].as_str().unwrap_or_default())).map(|o| Operator { key: text(&o["key"]), title: text(&o["title"]) }).collect())
+                            .unwrap_or_default(),
+                    })
+                    .collect()
+            })
+            .unwrap_or_default();
+        // Serveur qui ne décrit pas ses filtres avancés : ceux, connus, de Plex Web.
+        if fields.is_empty() {
+            fields = default_fields();
+        }
+        if operators.is_empty() {
+            operators = default_operators();
+        }
+        Ok(SectionFilters { filters, sorts, fields, operators })
+    }
+
+    /// Nouvelle collection intelligente : Plex la remplit (et la tient à jour) avec les titres de la
+    /// bibliothèque qui répondent aux filtres. Rend son identifiant.
+    pub async fn create_smart_collection(&self, key: &str, kind: &str, title: &str, filters: &[(String, String)], sort: Option<&str>) -> Result<String> {
+        let ty = plex_type(kind);
+        let uri = self.search_uri(key, kind, filters, sort).await?;
+        let v: serde_json::Value = self
+            .request(
+                reqwest::Method::POST,
+                &format!("/library/collections?type={ty}&smart=1&sectionId={key}&title={}&uri={uri}", urlencoding::encode(title)),
+            )
+            .send()
+            .await?
+            .error_for_status()?
+            .json()
+            .await?;
+        Ok(v["MediaContainer"]["Metadata"][0]["ratingKey"].as_str().unwrap_or_default().to_string())
+    }
+
+    /// Nouveaux filtres d'une collection intelligente.
+    pub async fn update_smart_collection(&self, rating_key: &str, key: &str, kind: &str, filters: &[(String, String)], sort: Option<&str>) -> Result<()> {
+        let uri = self.search_uri(key, kind, filters, sort).await?;
+        self.request(reqwest::Method::PUT, &format!("/library/collections/{rating_key}/items?uri={uri}"))
+            .send()
+            .await?
+            .error_for_status()?;
+        Ok(())
+    }
+
+    /// Filtres d'une collection intelligente, et sa bibliothèque.
+    pub async fn smart_collection(&self, rating_key: &str) -> Result<SmartCollection> {
+        let m = self.raw_metadata(rating_key).await?;
+        Ok(SmartCollection {
+            section_key: m.library_section_id.map(|s| s.to_string()).unwrap_or_default(),
+            title: m.title,
+            content: m.content.filter(|_| m.smart).unwrap_or_default(),
+        })
+    }
+
+    /// Recherche d'une bibliothèque, au format attendu par les collections de Plex.
+    async fn search_uri(&self, key: &str, kind: &str, filters: &[(String, String)], sort: Option<&str>) -> Result<String> {
+        if !filter_name_ok(key) {
+            bail!("bibliothèque inconnue");
+        }
+        let v: serde_json::Value = self.get("/identity").send().await?.error_for_status()?.json().await?;
+        let machine = v["MediaContainer"]["machineIdentifier"].as_str().unwrap_or_default();
+        let sort = sort.filter(|s| s.chars().all(|c| c.is_ascii_alphanumeric() || c == ':')).map(|s| format!("&sort={s}")).unwrap_or_default();
+        let search = format!("/library/sections/{key}/all?type={}{sort}{}", plex_type(kind), filter_query(filters));
+        Ok(urlencoding::encode(&format!("server://{machine}/com.plexapp.plugins.library{search}")).into_owned())
     }
 
     /// Valeurs possibles d'un filtre (les genres, les années, les acteurs… présents dans la bibliothèque).
@@ -1411,6 +1593,50 @@ impl PlexServer {
             .await?
             .error_for_status()?;
         Ok(())
+    }
+
+    /// Plusieurs titres d'un coup dans une collection (ceux qu'affiche la bibliothèque filtrée), par lots
+    /// pour garder des adresses de taille raisonnable.
+    pub async fn add_many_to_collection(&self, keys: &[String], collection: &str) -> Result<()> {
+        let machine = self.machine_id().await?;
+        for chunk in keys.chunks(COLLECTION_BATCH) {
+            let uri = metadata_uri(&machine, chunk)?;
+            self.request(reqwest::Method::PUT, &format!("/library/collections/{collection}/items?uri={uri}"))
+                .send()
+                .await?
+                .error_for_status()?;
+        }
+        Ok(())
+    }
+
+    /// Nouvelle collection ordinaire dans une bibliothèque, avec ces titres. Rend son identifiant.
+    pub async fn create_collection_with(&self, key: &str, kind: &str, title: &str, keys: &[String]) -> Result<String> {
+        if !filter_name_ok(key) || keys.is_empty() {
+            bail!("collection vide");
+        }
+        let machine = self.machine_id().await?;
+        let (first, rest) = keys.split_at(keys.len().min(COLLECTION_BATCH));
+        let uri = metadata_uri(&machine, first)?;
+        let v: serde_json::Value = self
+            .request(
+                reqwest::Method::POST,
+                &format!("/library/collections?type={}&smart=0&sectionId={key}&title={}&uri={uri}", plex_type(kind), urlencoding::encode(title)),
+            )
+            .send()
+            .await?
+            .error_for_status()?
+            .json()
+            .await?;
+        let id = v["MediaContainer"]["Metadata"][0]["ratingKey"].as_str().unwrap_or_default().to_string();
+        if !rest.is_empty() && !id.is_empty() {
+            self.add_many_to_collection(rest, &id).await?;
+        }
+        Ok(id)
+    }
+
+    async fn machine_id(&self) -> Result<String> {
+        let v: serde_json::Value = self.get("/identity").send().await?.error_for_status()?.json().await?;
+        Ok(v["MediaContainer"]["machineIdentifier"].as_str().unwrap_or_default().to_string())
     }
 
     /// Nouvelle collection dans la bibliothèque du titre, qui en est le premier élément.
@@ -1984,5 +2210,22 @@ impl PlexServer {
             .await?
             .error_for_status()?;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn filtres_avances_dans_la_recherche() {
+        let pairs = |l: &[(&str, &str)]| l.iter().map(|(a, b)| (a.to_string(), b.to_string())).collect::<Vec<_>>();
+        assert_eq!(
+            filter_query(&pairs(&[("push", "1"), ("title", "la nuit"), ("or", "1"), ("title!", "aube"), ("pop", "1"), ("year>>", "2000")])),
+            "&push=1&title=la%20nuit&or=1&title!=aube&pop=1&year>>=2000"
+        );
+        // Opérateur inconnu ou nom douteux : écartés.
+        assert_eq!(filter_query(&pairs(&[("title<>", "x"), ("a&b", "1"), ("", "1")])), "");
+        assert!(query_name_ok("title!=") && query_name_ok("addedAt<<") && !query_name_ok("title=!"));
     }
 }

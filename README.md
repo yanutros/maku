@@ -102,6 +102,12 @@ visionnage. Tout se fait avec son compte Plex (ou Jellyfin) : aucune clé d'API 
       HDR, sans correspondance… ou une valeur : genre, année, décennie, acteur, réalisateur, studio…) et son menu
       de **tri** (titre, année, date de sortie, notes, durée, date d'ajout, au hasard…), croissant ou décroissant ;
       le choix est gardé pour la visite suivante. La liste des filtres est celle que propose le serveur.
+      Avec Plex, l'administrateur a sur ordinateur un menu **Collection** dans l'onglet Bibliothèque :
+      **Ajouter à une collection…** range tous les titres affichés (filtre compris) dans une collection ordinaire,
+      existante ou nouvelle, comme dans Plex ; **Nouvelle collection intelligente** la compose de règles libres (titre contient « nuit », année après 2000,
+      genre est…, correspondant à toutes ou à l'une d'elles, limitées à N titres), avec un **aperçu** dans la grille
+      des titres qu'elle contiendra. Plex la tient ensuite à jour à chaque ajout dans la bibliothèque. Elle est
+      marquée d'une icône dans les Collections, et **Modifier les filtres** sur sa fiche rouvre ses règles.
       Les bibliothèques de films ont aussi leurs **collections** (sagas, univers…) : chacune ouvre sa page, avec
       ses films dans l'ordre de sortie et un bouton qui lance le premier pas encore vu.
     </td>

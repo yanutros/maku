@@ -391,6 +391,58 @@
       "mediaHeight": "Auflösung",
       "mediaBitrate": "Bitrate",
       "random": "Zufällig"
+    },
+    "advanced": {
+      "title": "Neue intelligente Sammlung",
+      "match": "Übereinstimmung",
+      "all": "Alle folgenden Bedingungen",
+      "any": "Eine der folgenden Bedingungen",
+      "field": "Feld",
+      "operator": "Operator",
+      "value": "Wert",
+      "yes": "Ja",
+      "no": "Nein",
+      "choose": "Auswählen…",
+      "datePlaceholder": "2024-01-31 oder -30d",
+      "remove": "Regel entfernen",
+      "add": "Regel hinzufügen",
+      "limit": "Begrenzen auf",
+      "apply": "Vorschau",
+      "name": "Name der Sammlung",
+      "create": "Sammlung erstellen",
+      "update": "Sammlung aktualisieren",
+      "created": "Intelligente Sammlung „{{title}}“ erstellt",
+      "updated": "Sammlung „{{title}}“ aktualisiert",
+      "editTitle": "Regeln von „{{title}}“",
+      "previewing": "Vorschau der Sammlung"
+    },
+    "ops": {
+      "contains": "enthält",
+      "notContains": "enthält nicht",
+      "is": "ist",
+      "isNot": "ist nicht",
+      "beginsWith": "beginnt mit",
+      "endsWith": "endet mit",
+      "greater": "ist größer als",
+      "less": "ist kleiner als",
+      "before": "ist vor",
+      "after": "ist nach"
+    },
+    "fields": {
+      "title": "Titel",
+      "studio": "Studio",
+      "addedAt": "Hinzugefügt am",
+      "originallyAvailableAt": "Erscheinungsdatum",
+      "lastViewedAt": "Angesehen am",
+      "duration": "Dauer",
+      "viewCount": "Wiedergaben",
+      "rating": "Kritikerwertung",
+      "audienceRating": "Publikumswertung",
+      "userRating": "Eigene Wertung"
+    },
+    "collectionMenu": {
+      "title": "Sammlung",
+      "addAll": "Zu einer Sammlung hinzufügen…"
     }
   },
   "music": {
@@ -472,7 +524,9 @@
     "episodeShort": "F{{number}}",
     "resumeEpisode": "S{{season}} · F{{episode}} fortsetzen",
     "playEpisode": "S{{season}} · F{{episode}} abspielen",
-    "episodes": "Folgen"
+    "episodes": "Folgen",
+    "editSmart": "Filter bearbeiten",
+    "smartUnavailable": "Die Filter dieser Sammlung wurden nicht gefunden."
   },
   "stats": {
     "title": "Meine Statistiken",
@@ -649,7 +703,8 @@
   },
   "posterCard": {
     "episodeCode": "S{{season}} · E{{episode}}",
-    "openTitle": "{{title}} öffnen"
+    "openTitle": "{{title}} öffnen",
+    "smart": "Intelligente Sammlung"
   },
   "format": {
     "daysHours": "{{days}} T. {{hours}} Std.",
@@ -886,7 +941,11 @@
     "create": "Erstellen",
     "cancel": "Schließen",
     "added": "„{{title}}“ zu „{{collection}}“ hinzugefügt",
-    "created": "Sammlung „{{collection}}“ erstellt"
+    "created": "Sammlung „{{collection}}“ erstellt",
+    "titleMany_one": "{{count}} Titel zu einer Sammlung hinzufügen",
+    "titleMany_other": "{{count}} Titel zu einer Sammlung hinzufügen",
+    "addedMany_one": "{{count}} Titel zu „{{collection}}“ hinzugefügt",
+    "addedMany_other": "{{count}} Titel zu „{{collection}}“ hinzugefügt"
   },
   "offline": {
     "title": "Downloads",

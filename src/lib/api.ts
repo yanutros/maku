@@ -67,6 +67,8 @@ export interface Item {
   ratingKey: string;
   kind: string;
   title: string;
+  /** Collection intelligente (remplie par Plex selon des filtres). */
+  smart?: boolean;
   subtitle: string | null;
   year: number | null;
   summary: string | null;
@@ -106,6 +108,16 @@ export interface SectionFilters {
   filters: { id: string; title: string; boolean: boolean }[];
   /** `desc` : l'ordre va d'abord du plus grand au plus petit (année, date d'ajout…). */
   sorts: { key: string; title: string; desc: boolean }[];
+  /** Filtres avancés (Plex) : leurs champs, et les opérateurs de chaque type (« string », « tag », « date »…). */
+  fields: { key: string; title: string; kind: string }[];
+  operators: { kind: string; ops: { key: string; title: string }[] }[];
+}
+
+/** Collection intelligente : sa bibliothèque et sa recherche Plex (vide pour une collection ordinaire). */
+export interface SmartCollection {
+  sectionKey: string;
+  title: string;
+  content: string;
 }
 
 export interface FilterValue {
@@ -440,12 +452,23 @@ export const api = {
   /** Filtres et tris d'une bibliothèque de films (`kind` « movie ») ou de séries (« show »). */
   sectionFilters: (key: string, kind: string) => invoke<SectionFilters>("plex_section_filters", { key, kind }),
   filterValues: (key: string, kind: string, filter: string) => invoke<FilterValue[]>("plex_filter_values", { key, kind, filter }),
+  /** Nouvelle collection intelligente (administrateur) ; rend son identifiant. */
+  createSmartCollection: (key: string, kind: string, title: string, filters: [string, string][], sort: string | null) =>
+    invoke<string>("plex_create_smart_collection", { key, kind, title, filters, sort }),
+  updateSmartCollection: (ratingKey: string, key: string, kind: string, filters: [string, string][], sort: string | null) =>
+    invoke<void>("plex_update_smart_collection", { ratingKey, key, kind, filters, sort }),
+  smartCollection: (ratingKey: string) => invoke<SmartCollection>("plex_smart_collection", { ratingKey }),
   genres: (key: string) => invoke<Genre[]>("plex_genres", { key }),
   sectionHubs: (key: string) => invoke<Hub[]>("plex_section_hubs", { key }),
   playlists: (key: string) => invoke<Item[]>("plex_playlists", { key }),
   collectionChoices: (ratingKey: string) => invoke<Item[]>("collection_choices", { ratingKey }),
   addToCollection: (ratingKey: string, collection: string) => invoke<void>("add_to_collection", { ratingKey, collection }),
   createCollection: (ratingKey: string, title: string) => invoke<void>("create_collection", { ratingKey, title }),
+  /** Plusieurs titres d'un coup dans une collection (administrateur, Plex). */
+  addManyToCollection: (keys: string[], collection: string) => invoke<void>("plex_add_many_to_collection", { keys, collection }),
+  /** Nouvelle collection ordinaire avec ces titres (administrateur, Plex) ; rend son identifiant. */
+  createCollectionWith: (key: string, kind: string, title: string, keys: string[]) =>
+    invoke<string>("plex_create_collection_with", { key, kind, title, keys }),
   playlistChoices: () => invoke<Item[]>("playlist_choices"),
   addToPlaylist: (ratingKey: string, playlist: string) => invoke<void>("add_to_playlist", { ratingKey, playlist }),
   createPlaylist: (ratingKey: string, title: string) => invoke<void>("create_playlist", { ratingKey, title }),

@@ -244,6 +244,25 @@
     }
   }
 
+  /** Ouvre les filtres d'une collection intelligente dans sa bibliothèque, pour les modifier. */
+  async function editSmart() {
+    try {
+      const [smart, sections] = await Promise.all([api.smartCollection(item!.ratingKey), api.sections()]);
+      const section = sections.find((s) => s.key === smart.sectionKey);
+      if (!section || !smart.content) throw new Error(t("item.smartUnavailable"));
+      go({
+        name: "section",
+        key: section.key,
+        title: section.title,
+        kind: section.kind,
+        tab: "library",
+        smart: { ratingKey: item!.ratingKey, title: smart.title, content: smart.content },
+      });
+    } catch (e) {
+      toast(errorText(e), true);
+    }
+  }
+
   // Pour une collection : premier film non vu (ordre de sortie).
   const nextUp = $derived(item?.kind === "collection" ? (children.find((c) => !c.watched) ?? children[0]) : undefined);
   const collection = $derived(item?.kind === "collection");
@@ -448,6 +467,13 @@
           {#if view.playable && view.viewOffsetMs}
             <button class="btn round big" onclick={() => playThis(true)} title={t("item.playFromStart")}>
               <Icon name="restart" size={18} />
+            </button>
+          {/if}
+          <!-- Collection intelligente (administrateur, sur ordinateur) : ses règles s'ouvrent dans la bibliothèque, comme dans Plex. -->
+          {#if collection && view.smart && nav.admin && !device.tv && !device.mobile && !device.phone}
+            <button class="btn big" onclick={editSmart}>
+              <Icon name="sliders" size={18} />
+              {t("item.editSmart")}
             </button>
           {/if}
           {#if !collection}
