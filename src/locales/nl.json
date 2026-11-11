@@ -526,7 +526,18 @@
     "playEpisode": "S{{season}} · A{{episode}} afspelen",
     "episodes": "Afleveringen",
     "editSmart": "Filters bewerken",
-    "smartUnavailable": "De filters van deze collectie zijn niet gevonden."
+    "smartUnavailable": "De filters van deze collectie zijn niet gevonden.",
+    "order": "Volgorde",
+    "orderRelease": "Releasedatum",
+    "orderAlpha": "Alfabetisch",
+    "orderCustom": "Aangepast",
+    "orderHint": "Sleep de posters om ze te ordenen.",
+    "convert": "Omzetten naar gewone collectie",
+    "convertConfirm": "Klik nogmaals om te bevestigen",
+    "converting": "Bezig met omzetten…",
+    "convertHint": "Een gewone collectie orden je met de hand, maar vult zichzelf niet meer (de slimme collectie wordt verwijderd).",
+    "converted": "Collectie omgezet: je kunt nu de volgorde kiezen.",
+    "collectionSettings": "Collectie-instellingen"
   },
   "stats": {
     "title": "Mijn statistieken",

@@ -88,6 +88,11 @@ fn has_genres(kind: &str) -> bool {
     matches!(kind, "movie" | "show" | "artist" | "album")
 }
 
+/// Identifiant Plex (que des chiffres), sûr à placer dans une adresse.
+fn digits(s: &str) -> bool {
+    !s.is_empty() && s.chars().all(|c| c.is_ascii_digit())
+}
+
 fn text(v: &Value) -> String {
     match v {
         Value::String(s) => s.clone(),
@@ -321,6 +326,106 @@ impl PlexServer {
             s if !s.is_success() => bail!(crate::i18n::tr_with("admin.serverReplied", &[("status", &s.to_string())])),
             _ => Ok(()),
         }
+    }
+
+    /// Ordre d'une collection ordinaire : 0 date de sortie, 1 alphabétique, 2 personnalisé.
+    pub async fn set_collection_sort(&self, rating_key: &str, sort: u32) -> Result<()> {
+        if !digits(rating_key) || sort > 2 {
+            bail!(crate::i18n::tr_with("admin.notFound", &[("id", rating_key)]));
+        }
+        self.send(Method::PUT, &format!("/library/metadata/{rating_key}/prefs?collectionSort={sort}")).await
+    }
+
+    /// Ordre personnalisé : place `item` juste après `after` (en tête sans `after`).
+    pub async fn move_in_collection(&self, rating_key: &str, item: &str, after: Option<&str>) -> Result<()> {
+        if !digits(rating_key) || !digits(item) || after.is_some_and(|a| !digits(a)) {
+            bail!(crate::i18n::tr_with("admin.notFound", &[("id", item)]));
+        }
+        let after = after.map(|a| format!("?after={a}")).unwrap_or_default();
+        self.send(Method::PUT, &format!("/library/collections/{rating_key}/items/{item}/move{after}")).await
+    }
+
+    /// Collection intelligente → collection ordinaire : les mêmes titres, le même nom, la même affiche, le même
+    /// fond et le même résumé, puis l'intelligente est supprimée. Rend l'identifiant de la nouvelle.
+    pub async fn convert_collection(&self, rating_key: &str) -> Result<String> {
+        if !digits(rating_key) {
+            bail!(crate::i18n::tr_with("admin.notFound", &[("id", rating_key)]));
+        }
+        let (container, m) = self.metadata_value(rating_key).await?;
+        let section = m["librarySectionID"]
+            .as_u64()
+            .or_else(|| container["librarySectionID"].as_u64())
+            .ok_or_else(|| anyhow!(crate::i18n::tr("admin.libraryNotFound")))?
+            .to_string();
+        let kind = m["subtype"].as_str().unwrap_or("movie").to_owned();
+        let title = text(&m["title"]);
+        let children = self.json(Method::GET, &format!("/library/collections/{rating_key}/children")).await?;
+        let keys: Vec<String> = children["MediaContainer"]["Metadata"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(|c| c["ratingKey"].as_str().map(str::to_owned))
+            .collect();
+        // Dans Plex, une collection est une étiquette posée sur chaque titre : supprimer l'intelligente retire
+        // l'étiquette de ce nom à tous ses titres, et son nom reste pris un moment (renommer vers lui : 409).
+        // D'où : une copie de sécurité sous un nom provisoire (vérifiée avant de supprimer quoi que ce soit),
+        // l'intelligente supprimée, puis la collection définitive créée sous son vrai nom, et la copie retirée.
+        let count = |v: &Value| v["MediaContainer"]["Metadata"].as_array().map_or(0, Vec::len);
+        let backup_title = format!("{title} (Maku)");
+        let backup = self.create_collection_with(&section, &kind, &backup_title, &keys).await?;
+        let copied = if backup.is_empty() {
+            0
+        } else {
+            self.json(Method::GET, &format!("/library/collections/{backup}/children")).await.map(|v| count(&v)).unwrap_or(0)
+        };
+        if copied < keys.len() {
+            if !backup.is_empty() {
+                let _ = self.send(Method::DELETE, &format!("/library/metadata/{backup}")).await;
+            }
+            bail!(crate::i18n::tr("admin.convertFailed"));
+        }
+        // Affiche et fond d'écran actuels, récupérés avant que l'intelligente ne disparaisse.
+        let mut images = Vec::new();
+        for (field, list) in [("thumb", "posters"), ("art", "arts")] {
+            let Some(path) = m[field].as_str().filter(|p| p.starts_with('/')) else { continue };
+            if let Ok(resp) = self.get(path).send().await {
+                if let Ok(bytes) = resp.error_for_status().map(|r| r.bytes()) {
+                    if let Ok(bytes) = bytes.await {
+                        images.push((list, bytes.to_vec()));
+                    }
+                }
+            }
+        }
+        self.send(Method::DELETE, &format!("/library/metadata/{rating_key}")).await?;
+        // La collection définitive, sous son vrai nom ; en cas d'échec, la copie reste (rien n'est perdu).
+        let id = self.create_collection_with(&section, &kind, &title, &keys).await.unwrap_or_default();
+        let made = if id.is_empty() {
+            0
+        } else {
+            self.json(Method::GET, &format!("/library/collections/{id}/children")).await.map(|v| count(&v)).unwrap_or(0)
+        };
+        let id = if made >= keys.len() {
+            let _ = self.send(Method::DELETE, &format!("/library/metadata/{backup}")).await;
+            id
+        } else {
+            if !id.is_empty() {
+                let _ = self.send(Method::DELETE, &format!("/library/metadata/{id}")).await;
+            }
+            backup
+        };
+        for (list, bytes) in images {
+            let _ = self.upload_image(&id, list, bytes).await;
+        }
+        let summary = text(&m["summary"]);
+        if !summary.is_empty() {
+            let _ = self
+                .send(
+                    Method::PUT,
+                    &format!("/library/sections/{section}/all?type=18&id={id}&summary.value={}&summary.locked=1", urlencoding::encode(&summary)),
+                )
+                .await;
+        }
+        Ok(id)
     }
 
     pub async fn refresh_metadata(&self, rating_key: &str) -> Result<()> {

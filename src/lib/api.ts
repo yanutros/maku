@@ -118,6 +118,9 @@ export interface SmartCollection {
   sectionKey: string;
   title: string;
   content: string;
+  smart: boolean;
+  /** Ordre d'une collection ordinaire : 0 date de sortie, 1 alphabétique, 2 personnalisé. */
+  sort: number;
 }
 
 export interface FilterValue {
@@ -458,6 +461,12 @@ export const api = {
   updateSmartCollection: (ratingKey: string, key: string, kind: string, filters: [string, string][], sort: string | null) =>
     invoke<void>("plex_update_smart_collection", { ratingKey, key, kind, filters, sort }),
   smartCollection: (ratingKey: string) => invoke<SmartCollection>("plex_smart_collection", { ratingKey }),
+  setCollectionSort: (ratingKey: string, sort: number) => invoke<void>("plex_set_collection_sort", { ratingKey, sort }),
+  /** Ordre personnalisé : `item` juste après `after` (en tête avec `null`). */
+  moveInCollection: (ratingKey: string, item: string, after: string | null) =>
+    invoke<void>("plex_move_in_collection", { ratingKey, item, after }),
+  /** Collection intelligente changée en collection ordinaire ; rend son nouvel identifiant. */
+  convertCollection: (ratingKey: string) => invoke<string>("plex_convert_collection", { ratingKey }),
   genres: (key: string) => invoke<Genre[]>("plex_genres", { key }),
   sectionHubs: (key: string) => invoke<Hub[]>("plex_section_hubs", { key }),
   playlists: (key: string) => invoke<Item[]>("plex_playlists", { key }),

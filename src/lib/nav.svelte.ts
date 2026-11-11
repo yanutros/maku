@@ -153,6 +153,11 @@ export function go(view: View) {
   history.pushState({ plexr: nav.history.length }, "");
 }
 
+/** Remplace la vue affichée sans l'ajouter à l'historique (la page quittée n'existe plus : collection convertie…). */
+export function replace(view: View) {
+  nav.view = view;
+}
+
 /** Recharge la vue affichée (après une modification). */
 export function reload() {
   pendingSpot = spot();

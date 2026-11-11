@@ -750,6 +750,24 @@ async fn plex_create_collection_with(state: State<'_, AppState>, key: String, ki
     Ok(state.admin_plex().await?.create_collection_with(&key, &kind, &title, &keys).await?)
 }
 
+/// Ordre d'une collection ordinaire (administrateur) : 0 date de sortie, 1 alphabétique, 2 personnalisé.
+#[tauri::command]
+async fn plex_set_collection_sort(state: State<'_, AppState>, rating_key: String, sort: u32) -> CmdResult<()> {
+    Ok(state.admin_plex().await?.set_collection_sort(&rating_key, sort).await?)
+}
+
+/// Ordre personnalisé d'une collection (administrateur) : `item` juste après `after`, en tête sans.
+#[tauri::command]
+async fn plex_move_in_collection(state: State<'_, AppState>, rating_key: String, item: String, after: Option<String>) -> CmdResult<()> {
+    Ok(state.admin_plex().await?.move_in_collection(&rating_key, &item, after.as_deref()).await?)
+}
+
+/// Collection intelligente changée en collection ordinaire (administrateur) ; rend son nouvel identifiant.
+#[tauri::command]
+async fn plex_convert_collection(state: State<'_, AppState>, rating_key: String) -> CmdResult<String> {
+    Ok(state.admin_plex().await?.convert_collection(&rating_key).await?)
+}
+
 /// Filtres d'une collection intelligente et sa bibliothèque.
 #[tauri::command]
 async fn plex_smart_collection(state: State<'_, AppState>, rating_key: String) -> CmdResult<plex::SmartCollection> {
@@ -2111,6 +2129,9 @@ pub fn run() {
             plex_create_smart_collection,
             plex_update_smart_collection,
             plex_smart_collection,
+            plex_set_collection_sort,
+            plex_move_in_collection,
+            plex_convert_collection,
             plex_add_many_to_collection,
             plex_create_collection_with,
             plex_section_hubs,

@@ -526,7 +526,18 @@
     "playEpisode": "Lire S{{season}} · E{{episode}}",
     "episodes": "Épisodes",
     "editSmart": "Modifier les filtres",
-    "smartUnavailable": "Filtres de cette collection introuvables."
+    "smartUnavailable": "Filtres de cette collection introuvables.",
+    "order": "Ordre",
+    "orderRelease": "Date de sortie",
+    "orderAlpha": "Alphabétique",
+    "orderCustom": "Personnalisé",
+    "orderHint": "Glisse les jaquettes pour les ranger.",
+    "convert": "Convertir en collection ordinaire",
+    "convertConfirm": "Cliquer à nouveau pour confirmer",
+    "converting": "Conversion…",
+    "convertHint": "Une collection ordinaire se range à la main, mais ne se remplit plus seule (la collection intelligente est supprimée).",
+    "converted": "Collection convertie : tu peux maintenant choisir son ordre.",
+    "collectionSettings": "Réglages de la collection"
   },
   "stats": {
     "title": "Mes statistiques",

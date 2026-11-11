@@ -108,6 +108,9 @@ visionnage. Tout se fait avec son compte Plex (ou Jellyfin) : aucune clé d'API 
       genre est…, correspondant à toutes ou à l'une d'elles, limitées à N titres), avec un **aperçu** dans la grille
       des titres qu'elle contiendra. Plex la tient ensuite à jour à chaque ajout dans la bibliothèque. Elle est
       marquée d'une icône dans les Collections, et **Modifier les filtres** sur sa fiche rouvre ses règles.
+      Sur la page d'une collection, la **roue dentée** de l'administrateur règle son **ordre** (date de sortie, alphabétique ou
+      **personnalisé**, en glissant les jaquettes — une saga dans l'ordre de son histoire) ; une collection intelligente
+      peut être **convertie en collection ordinaire** pour la ranger ainsi (elle ne se remplit alors plus seule).
       Les bibliothèques de films ont aussi leurs **collections** (sagas, univers…) : chacune ouvre sa page, avec
       ses films dans l'ordre de sortie et un bouton qui lance le premier pas encore vu.
     </td>

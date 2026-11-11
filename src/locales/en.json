@@ -526,7 +526,18 @@
     "playEpisode": "Play S{{season}} · E{{episode}}",
     "episodes": "Episodes",
     "editSmart": "Edit filters",
-    "smartUnavailable": "This collection's filters could not be found."
+    "smartUnavailable": "This collection's filters could not be found.",
+    "order": "Order",
+    "orderRelease": "Release date",
+    "orderAlpha": "Alphabetical",
+    "orderCustom": "Custom",
+    "orderHint": "Drag the posters to arrange them.",
+    "convert": "Convert to regular collection",
+    "convertConfirm": "Click again to confirm",
+    "converting": "Converting…",
+    "convertHint": "A regular collection can be arranged by hand, but no longer fills itself (the smart collection is deleted).",
+    "converted": "Collection converted: you can now choose its order.",
+    "collectionSettings": "Collection settings"
   },
   "stats": {
     "title": "My stats",

@@ -526,7 +526,18 @@
     "playEpisode": "S{{season}} · F{{episode}} abspielen",
     "episodes": "Folgen",
     "editSmart": "Filter bearbeiten",
-    "smartUnavailable": "Die Filter dieser Sammlung wurden nicht gefunden."
+    "smartUnavailable": "Die Filter dieser Sammlung wurden nicht gefunden.",
+    "order": "Reihenfolge",
+    "orderRelease": "Erscheinungsdatum",
+    "orderAlpha": "Alphabetisch",
+    "orderCustom": "Benutzerdefiniert",
+    "orderHint": "Ziehe die Cover, um sie anzuordnen.",
+    "convert": "In normale Sammlung umwandeln",
+    "convertConfirm": "Zum Bestätigen erneut klicken",
+    "converting": "Umwandlung…",
+    "convertHint": "Eine normale Sammlung lässt sich von Hand ordnen, füllt sich aber nicht mehr selbst (die intelligente Sammlung wird gelöscht).",
+    "converted": "Sammlung umgewandelt: du kannst jetzt ihre Reihenfolge wählen.",
+    "collectionSettings": "Sammlungseinstellungen"
   },
   "stats": {
     "title": "Meine Statistiken",

@@ -544,6 +544,9 @@ struct RawMetadata {
     smart: bool,
     /// Collection intelligente : sa recherche (« /library/sections/1/all?type=1&genre=… »).
     content: Option<String>,
+    /// Ordre d'une collection : 0 date de sortie, 1 alphabétique, 2 personnalisé (texte ou nombre selon Plex).
+    #[serde(rename = "collectionSort")]
+    collection_sort: Option<serde_json::Value>,
     /// Bibliothèque de l'élément (ses collections y sont rangées).
     #[serde(rename = "librarySectionID")]
     library_section_id: Option<u64>,
@@ -944,6 +947,10 @@ pub struct SmartCollection {
     pub section_key: String,
     pub title: String,
     pub content: String,
+    /// Collection intelligente (remplie par Plex selon ses filtres).
+    pub smart: bool,
+    /// Ordre d'une collection ordinaire : 0 date de sortie, 1 alphabétique, 2 personnalisé.
+    pub sort: u32,
 }
 
 fn default_fields() -> Vec<AdvancedField> {
@@ -1454,6 +1461,11 @@ impl PlexServer {
             section_key: m.library_section_id.map(|s| s.to_string()).unwrap_or_default(),
             title: m.title,
             content: m.content.filter(|_| m.smart).unwrap_or_default(),
+            smart: m.smart,
+            sort: m
+                .collection_sort
+                .and_then(|v| v.as_u64().or_else(|| v.as_str().and_then(|s| s.parse().ok())))
+                .unwrap_or(0) as u32,
         })
     }
 
@@ -1907,10 +1919,10 @@ impl PlexServer {
 
     /// Films d'une collection, du plus ancien au plus récent (l'ordre d'une saga).
     pub async fn collection_items(&self, rating_key: &str) -> Result<Vec<Item>> {
+        // Dans l'ordre choisi pour la collection dans Plex : date de sortie, alphabétique ou personnalisé
+        // (« Ordre » de sa page, voir plex_admin) ; une collection intelligente suit le tri de ses filtres.
         let c = self.container(&format!("/library/collections/{rating_key}/children")).await?;
-        let mut items = self.to_items(c.metadata);
-        items.sort_by_key(|i| i.year.unwrap_or(i32::MAX));
-        Ok(items)
+        Ok(self.to_items(c.metadata))
     }
 
     /// « Plus de ce genre » : les titres que Plex associe à un film ou une série (films / séries associés).

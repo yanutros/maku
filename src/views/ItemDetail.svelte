@@ -21,7 +21,7 @@
   import { listen } from "@tauri-apps/api/event";
   import { api, errorText, formatDuration, isMusic, type Item, type ItemDetail } from "../lib/api";
   import MusicDetail from "./MusicDetail.svelte";
-  import { go, nav, toast } from "../lib/nav.svelte";
+  import { go, nav, replace, toast } from "../lib/nav.svelte";
   import { play, type PlayOptions } from "../lib/player.svelte";
   import PosterCard from "../components/PosterCard.svelte";
   import Row from "../components/Row.svelte";
@@ -263,6 +263,113 @@
     }
   }
 
+  // --- Collection, pour l'administrateur sur ordinateur : son ordre (date de sortie, alphabétique ou personnalisé,
+  // les jaquettes se glissant alors pour les ranger), ou la conversion d'une collection intelligente ---
+  const manages = $derived(nav.admin && nav.serverKind !== "jellyfin" && !device.tv && !device.mobile && !device.phone);
+  let order = $state<number | null>(null);
+  /** Collection intelligente (elle se convertit, mais ne se range pas à la main). */
+  let colSmart = $state(false);
+  /** Roue dentée : les réglages de la collection (ordre, conversion). */
+  let settingsOpen = $state(false);
+  let converting = $state(false);
+  let confirmConvert = $state(false);
+  let confirmTimer: ReturnType<typeof setTimeout> | undefined;
+  $effect(() => {
+    const key = item?.kind === "collection" && manages ? item.ratingKey : null;
+    order = null;
+    colSmart = false;
+    settingsOpen = false;
+    if (!key) return;
+    api.smartCollection(key).then(
+      (c) => ((colSmart = c.smart), (order = c.smart ? null : c.sort)),
+      () => {},
+    );
+  });
+
+  async function setOrder(sort: number) {
+    const key = item!.ratingKey;
+    try {
+      await api.setCollectionSort(key, sort);
+      order = sort;
+      children = await api.collectionItems(key);
+    } catch (e) {
+      toast(errorText(e), true);
+    }
+  }
+
+  // Glisser une jaquette (ordre personnalisé), à la souris : le glisser-déposer du navigateur ne fonctionne pas
+  // dans la fenêtre de l'application (elle réserve le dépôt aux fichiers). Maintenir le bouton et bouger de quelques
+  // pixels saisit la jaquette ; la grille se réarrange sous la souris, et Plex n'est prévenu qu'au lâcher, avec la
+  // nouvelle place (juste après la jaquette qui la précède). Un simple clic ouvre toujours le film.
+  let dragKey = $state<string | null>(null);
+  let dragFrom = -1;
+  let press: { key: string; x: number; y: number } | null = null;
+
+  function pressDown(e: PointerEvent, key: string) {
+    if (e.button !== 0) return;
+    press = { key, x: e.clientX, y: e.clientY };
+  }
+
+  function pointerMove(e: PointerEvent) {
+    if (!press) return;
+    if (!dragKey) {
+      if (Math.hypot(e.clientX - press.x, e.clientY - press.y) < 8) return;
+      dragKey = press.key;
+      dragFrom = children.findIndex((c) => c.ratingKey === dragKey);
+    }
+    e.preventDefault();
+    const slot = document.elementFromPoint(e.clientX, e.clientY)?.closest<HTMLElement>("[data-slot]");
+    const i = slot ? Number(slot.dataset.slot) : -1;
+    const from = children.findIndex((c) => c.ratingKey === dragKey);
+    if (i < 0 || from < 0 || from === i) return;
+    const next = [...children];
+    const [moved] = next.splice(from, 1);
+    next.splice(i, 0, moved);
+    children = next;
+  }
+
+  async function pointerUp() {
+    press = null;
+    const key = dragKey;
+    if (!key) return;
+    // Le clic qui suit aussitôt le lâcher n'ouvre pas le film (et seulement lui : un lâcher sans clic ne doit
+    // pas avaler le clic d'après).
+    const swallow = (e: Event) => (e.stopPropagation(), e.preventDefault());
+    window.addEventListener("click", swallow, { capture: true, once: true });
+    setTimeout(() => window.removeEventListener("click", swallow, { capture: true }));
+    setTimeout(() => (dragKey = null));
+    const to = children.findIndex((c) => c.ratingKey === key);
+    if (to < 0 || to === dragFrom) return;
+    try {
+      await api.moveInCollection(item!.ratingKey, key, to > 0 ? children[to - 1].ratingKey : null);
+    } catch (e) {
+      toast(errorText(e), true);
+      children = await api.collectionItems(item!.ratingKey).catch(() => children);
+    }
+  }
+
+  /** Collection intelligente → ordinaire : un premier clic demande confirmation, le second convertit. */
+  async function convert() {
+    if (!confirmConvert) {
+      confirmConvert = true;
+      clearTimeout(confirmTimer);
+      confirmTimer = setTimeout(() => (confirmConvert = false), 5000);
+      return;
+    }
+    confirmConvert = false;
+    converting = true;
+    try {
+      const id = await api.convertCollection(item!.ratingKey);
+      toast(t("item.converted"));
+      // L'ancienne collection n'existe plus : Retour ne doit pas y ramener.
+      replace({ name: "item", ratingKey: id });
+    } catch (e) {
+      toast(errorText(e), true);
+    } finally {
+      converting = false;
+    }
+  }
+
   // Pour une collection : premier film non vu (ordre de sortie).
   const nextUp = $derived(item?.kind === "collection" ? (children.find((c) => !c.watched) ?? children[0]) : undefined);
   const collection = $derived(item?.kind === "collection");
@@ -351,6 +458,8 @@
     return () => unlisten.then((f) => f());
   });
 </script>
+
+<svelte:window onpointermove={pointerMove} onpointerup={pointerUp} />
 
 {#if error}
   <div class="page"><p class="error">{error}</p></div>
@@ -476,6 +585,44 @@
               {t("item.editSmart")}
             </button>
           {/if}
+          <!-- Roue dentée (administrateur, sur ordinateur) : l'ordre de la collection, ou la conversion d'une intelligente. -->
+          {#if collection && manages && (order !== null || colSmart)}
+            <div class="coll-settings">
+              <button class="btn round big" class:on={settingsOpen} onclick={() => (settingsOpen = !settingsOpen)} title={t("item.collectionSettings")} aria-label={t("item.collectionSettings")} aria-expanded={settingsOpen}>
+                <Icon name="settings" size={19} />
+              </button>
+              {#if settingsOpen}
+                <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+                <div class="settings-backdrop" onclick={() => (settingsOpen = false)}></div>
+                <div class="settings-panel" role="dialog" aria-label={t("item.collectionSettings")}>
+                  {#if order !== null}
+                    <label class="order">
+                      <span>{t("item.order")}</span>
+                      <TrackSelect
+                        value={order}
+                        label={t("item.order")}
+                        options={[
+                          { value: 0, label: t("item.orderRelease") },
+                          { value: 1, label: t("item.orderAlpha") },
+                          { value: 2, label: t("item.orderCustom") },
+                        ]}
+                        onchange={(v) => setOrder(Number(v))}
+                      />
+                    </label>
+                    {#if order === 2}<p class="muted small">{t("item.orderHint")}</p>{/if}
+                  {:else}
+                    <!-- Une collection intelligente ne se range pas à la main (Plex la trie selon ses filtres) : la changer
+                         en collection ordinaire le permet, mais elle ne se remplira plus seule. -->
+                    <p class="muted small">{t("item.convertHint")}</p>
+                    <button class="btn" class:danger={confirmConvert} disabled={converting} onclick={convert}>
+                      <Icon name="library" size={16} />
+                      {converting ? t("item.converting") : confirmConvert ? t("item.convertConfirm") : t("item.convert")}
+                    </button>
+                  {/if}
+                </div>
+              {/if}
+            </div>
+          {/if}
           {#if !collection}
             <button class="btn round big" class:on={view.watched} onclick={toggleWatched} title={view.watched ? t("item.markUnwatched") : t("item.markWatched")}>
               <Icon name="checkCircle" size={20} />
@@ -572,8 +719,17 @@
 
     {#if collection && children.length}
       <h2 class="row-title">{t("item.collectionMovies")}</h2>
-      <div class="grid" data-nav-row="grid">
-        {#each children as movie (movie.ratingKey)}<PosterCard item={movie} />{/each}
+      <div class="grid" data-nav-row="grid" class:sortable={manages && order === 2} class:dragging-on={dragKey !== null}>
+        {#each children as movie, i (movie.ratingKey)}
+          {#if manages && order === 2}
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div class="slot" data-slot={i} class:dragging={dragKey === movie.ratingKey} onpointerdown={(e) => pressDown(e, movie.ratingKey)}>
+              <PosterCard item={movie} />
+            </div>
+          {:else}
+            <PosterCard item={movie} />
+          {/if}
+        {/each}
       </div>
     {:else if item.kind === "show" && children.length}
       <div class="seasons" bind:clientWidth={seasonsWidth}>
@@ -1024,6 +1180,78 @@
   .video {
     font-size: 14px;
     font-weight: 600;
+  }
+
+  /* ---------- Collection : roue dentée (ordre, conversion) et jaquettes à glisser (ordre personnalisé) ---------- */
+
+  .coll-settings {
+    position: relative;
+  }
+
+  .settings-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+  }
+
+  .settings-panel {
+    position: absolute;
+    top: calc(100% + 10px);
+    left: 50%;
+    z-index: 21;
+    display: grid;
+    gap: 10px;
+    width: 320px;
+    padding: 14px;
+    border: 1px solid #ffffff1a;
+    border-radius: 14px;
+    background: #1c1e23f2;
+    backdrop-filter: blur(18px);
+    box-shadow: 0 18px 44px #000b;
+    text-align: left;
+    transform: translateX(-50%);
+  }
+
+  .settings-panel .small {
+    margin: 0;
+    font-size: 12px;
+  }
+
+  .order {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text-dim);
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .sortable {
+    user-select: none;
+  }
+
+  .sortable .slot {
+    cursor: grab;
+    transition: opacity 0.15s;
+  }
+
+  .dragging-on,
+  .dragging-on .slot {
+    cursor: grabbing;
+  }
+
+  .sortable .slot.dragging {
+    opacity: 0.35;
+  }
+
+  /* L'image ne part pas seule (glisser du navigateur) : c'est la jaquette entière qui se déplace. */
+  .sortable :global(img) {
+    -webkit-user-drag: none;
+  }
+
+  .btn.danger {
+    background: #c0392b;
+    color: #fff;
   }
 
   /* ---------- Saison : onglets, puis les épisodes de haut en bas ---------- */

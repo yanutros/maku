@@ -526,7 +526,18 @@
     "playEpisode": "Reproducir T{{season}} · E{{episode}}",
     "episodes": "Episodios",
     "editSmart": "Editar los filtros",
-    "smartUnavailable": "No se encontraron los filtros de esta colección."
+    "smartUnavailable": "No se encontraron los filtros de esta colección.",
+    "order": "Orden",
+    "orderRelease": "Fecha de estreno",
+    "orderAlpha": "Alfabético",
+    "orderCustom": "Personalizado",
+    "orderHint": "Arrastra las carátulas para ordenarlas.",
+    "convert": "Convertir en colección normal",
+    "convertConfirm": "Vuelve a hacer clic para confirmar",
+    "converting": "Convirtiendo…",
+    "convertHint": "Una colección normal se ordena a mano, pero ya no se llena sola (se elimina la colección inteligente).",
+    "converted": "Colección convertida: ya puedes elegir su orden.",
+    "collectionSettings": "Ajustes de la colección"
   },
   "stats": {
     "title": "Mis estadísticas",

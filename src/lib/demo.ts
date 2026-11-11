@@ -258,7 +258,7 @@ function genres(key: string): Genre[] {
 }
 
 function findItem(key: string): Item | undefined {
-  return [...movies, ...shows, ...artists, ...albums, ...playlists, ...[...showSeasons.values()].flat(), ...[...seasonEpisodes.values()].flat()].find(
+  return [...movies, ...shows, ...collections, ...artists, ...albums, ...playlists, ...[...showSeasons.values()].flat(), ...[...seasonEpisodes.values()].flat()].find(
     (i) => i.ratingKey === key,
   );
 }
@@ -498,6 +498,8 @@ function handle(cmd: string, a: Args): unknown {
       const all = [...list, ...list.map((m) => ({ ...m, ratingKey: m.ratingKey + "b" }))];
       return { items: a.start ? [] : all, total: all.length };
     }
+    case "plex_collection_items":
+      return a.ratingKey === collections[0].ratingKey ? movies.filter((m) => m.genres.includes("Science-fiction")) : movies.slice(4, 8);
     case "plex_collections":
       return a.key === "1" ? collections : [];
     case "plex_genres":
@@ -535,8 +537,17 @@ function handle(cmd: string, a: Args): unknown {
       return null;
     case "plex_update_smart_collection":
       return null;
-    case "plex_smart_collection":
-      return { sectionKey: "1", title: "Science-fiction", content: "/library/sections/1/all?type=1&sort=year:desc&genre=Science-fiction" };
+    case "plex_smart_collection": {
+      const smart = collections.find((c) => c.ratingKey === a.ratingKey)?.smart === true;
+      return smart
+        ? { sectionKey: "1", title: "Science-fiction", content: "/library/sections/1/all?type=1&sort=year:desc&genre=Science-fiction", smart: true, sort: 0 }
+        : { sectionKey: "1", title: "Soirées d'été", content: "", smart: false, sort: 2 };
+    }
+    case "plex_set_collection_sort":
+    case "plex_move_in_collection":
+      return null;
+    case "plex_convert_collection":
+      return a.ratingKey;
     case "plex_filter_values": {
       const pool = a.key === "2" ? shows : movies;
       const names = a.filter === "year" ? [...new Set(pool.map((m) => String(m.year)))].sort().reverse() : [...new Set(pool.flatMap((m) => m.genres))].sort();

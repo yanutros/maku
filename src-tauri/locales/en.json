@@ -63,7 +63,8 @@
       "trackNumber": "Track number"
     },
     "forbidden": "Only the server administrator can do this.",
-    "badImage": "Image not recognised: choose a JPEG, PNG or WebP file of 25 MB at most."
+    "badImage": "Image not recognised: choose a JPEG, PNG or WebP file of 25 MB at most.",
+    "convertFailed": "The regular collection could not be created: the smart collection is kept."
   },
   "seerr": {
     "plexRequired": "A Plex sign-in is required to connect to Seerr",

@@ -129,3 +129,32 @@ test("bibliothèque TV : appuis rapides vers le bas, la grille glisse en continu
   expect(box!.y).toBeGreaterThanOrEqual(0);
   expect(box!.y + box!.height).toBeLessThanOrEqual(vh);
 });
+
+test("collection : ordre personnalisé en glissant les jaquettes, conversion d'une intelligente (administrateur, ordinateur)", async ({ page }, info) => {
+  test.skip(appareil(info) !== "pc", "réservé à l'ordinateur");
+  await ouvrir(page, info, "films&admin");
+  await page.getByRole("tab", { name: "Collections" }).click();
+  await page.locator(".card", { hasText: "Soirées d'été" }).locator(".open").click();
+  // Les réglages sont derrière la roue dentée.
+  await expect(page.locator(".order")).toHaveCount(0);
+  await page.getByRole("button", { name: "Réglages de la collection" }).click();
+  await expect(page.locator(".order")).toBeVisible();
+  await page.locator(".settings-backdrop").click({ position: { x: 5, y: 5 } });
+  const titres = page.locator(".grid .title");
+  const avant = await titres.allTextContents();
+  await page.locator(".sortable .slot").nth(0).dragTo(page.locator(".sortable .slot").nth(2));
+  await expect(titres.nth(2)).toHaveText(avant[0]);
+
+  // Une collection intelligente : pas d'ordre à la main, mais la conversion (confirmée par un second clic).
+  await page.goBack();
+  await page.locator(".card", { hasText: "Science-fiction" }).locator(".open").click();
+  await page.getByRole("button", { name: "Réglages de la collection" }).click();
+  await expect(page.locator(".order")).toHaveCount(0);
+  await page.getByRole("button", { name: "Convertir en collection ordinaire" }).click();
+  await expect(page.getByRole("button", { name: "Cliquer à nouveau pour confirmer" })).toBeVisible();
+  await page.getByRole("button", { name: "Cliquer à nouveau pour confirmer" }).click();
+  await expect(page.getByText("Collection convertie")).toBeVisible();
+  // Retour ne ramène pas à l'ancienne collection (supprimée) : on revient à la liste des collections.
+  await page.goBack();
+  await expect(page.getByRole("tab", { name: "Collections" })).toHaveAttribute("aria-selected", "true");
+});
