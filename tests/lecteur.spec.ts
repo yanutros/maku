@@ -54,3 +54,31 @@ test("TV : en pause, les commandes partent seules ; le premier OK ne fait que le
   await page.keyboard.press("Enter");
   await expect.poll(() => page.evaluate(() => (window as unknown as { sent: unknown[] }).sent.length)).toBeGreaterThan(0);
 });
+
+test("barre minimaliste (Réglages → Interface) : une seule rangée, les pistes en icônes", async ({ page }, info) => {
+  const device = { tv: "tv", telephone: "phone" }[appareil(info) as string];
+  await page.addInitScript(() => {
+    localStorage.clear();
+    localStorage.setItem("maku.playerBar", "minimal");
+  });
+  await page.goto(`/?demo=lecteur${device ? `&device=${device}` : ""}`);
+  await page.waitForLoadState("networkidle");
+  await expect(page.locator(".overlay .mini-row")).toBeVisible();
+  await expect(page.locator(".overlay .capsule")).toHaveCount(0);
+  // Les pistes s'ouvrent depuis leur icône, comme dans la barre complète.
+  await page.locator(".pill.compact").nth(1).click();
+  await expect(page.locator(".overlay .menu")).toBeVisible();
+});
+
+test("TV : Retour ferme le menu des pistes ouvert, sans quitter le film", async ({ page }, info) => {
+  test.skip(appareil(info) !== "tv", "télécommande");
+  await ouvrir(page, info, "lecteur");
+  await page.locator(".overlay .pill").nth(1).click();
+  await expect(page.locator(".overlay .menu")).toBeVisible();
+  await page.goBack(); // touche Retour de la télécommande
+  await expect(page.locator(".overlay .menu")).toHaveCount(0);
+  await expect(page.locator(".overlay")).toBeVisible();
+  // Un second Retour quitte le film, comme avant.
+  await page.goBack();
+  await expect(page.locator(".overlay")).toHaveCount(0);
+});

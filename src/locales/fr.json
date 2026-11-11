@@ -135,7 +135,11 @@
       "rowDown": "Descendre",
       "resetHome": "Rétablir l'accueil",
       "simpleBar": "Barre de navigation simplifiée",
-      "simpleBarHint": "Seulement les icônes, dans une pilule qui ne se déplie plus : la page garde toute sa largeur."
+      "simpleBarHint": "Seulement les icônes, dans une pilule qui ne se déplie plus : la page garde toute sa largeur.",
+      "playerBar": "Barre de lecture",
+      "playerBarHint": "Pendant un film ou un épisode.",
+      "playerBarFull": "Complète",
+      "playerBarMinimal": "Minimaliste"
     },
     "tmdb": {
       "title": "Logos des titres (TMDB)",

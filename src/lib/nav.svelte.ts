@@ -35,6 +35,8 @@ export const nav = $state({
   history: [] as View[],
   /** Média Seerr dont la fenêtre de demande est ouverte. */
   requesting: null as SeerrMedia | null,
+  /** Lecteur vidéo : ferme le menu ouvert (qualité, sous-titres, audio) ; Retour le ferme avant de quitter le film. */
+  closePlayerMenu: null as (() => void) | null,
   /** Menu « ⋮ » ouvert sur une jaquette, à la position du clic. */
   menu: null as { item: Item; x: number; y: number; here?: boolean } | null,
   /** Téléviseur : menu d'un titre (appui long sur OK ou touche Menu), en panneau à droite. */

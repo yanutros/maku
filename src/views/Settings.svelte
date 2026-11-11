@@ -1,6 +1,7 @@
 <script lang="ts">
   import { lyricsPrefs, setLyricsEnabled } from "../lib/lyrics.svelte";
   import { ratingPrefs, setRatingSite, type RatingSite } from "../lib/ratings.svelte";
+  import { playerBar, setPlayerBar, type PlayerBar } from "../lib/playerBar.svelte";
   import { NEXT_DELAYS, autoNext, setNextDelay, diagAvailable, diagShare, diagText, passthroughAvailable, passthroughFormats, passthroughMode, setPassthroughMode } from "../lib/player.svelte";
   import { invoke } from "@tauri-apps/api/core";
   import { onMount, tick } from "svelte";
@@ -713,6 +714,24 @@
               options={[{ value: "auto", label: t("settings.interface.languageAuto") }, ...LANGUAGES.map((l) => ({ value: l.id, label: l.label }))]}
               label={t("settings.interface.language")}
               onchange={(id) => id !== language && setLanguage(id as Parameters<typeof setLanguage>[0])}
+            />
+          </div>
+        </div>
+        <!-- Barre du lecteur vidéo : la capsule complète, ou la rangée minimaliste. -->
+        <div class="line">
+          <div class="line-text">
+            <strong>{t("settings.interface.playerBar")}</strong>
+            <span class="muted small">{t("settings.interface.playerBarHint")}</span>
+          </div>
+          <div class="field-slot">
+            <TrackSelect
+              value={playerBar.style}
+              options={[
+                { value: "full", label: t("settings.interface.playerBarFull") },
+                { value: "minimal", label: t("settings.interface.playerBarMinimal") },
+              ]}
+              label={t("settings.interface.playerBar")}
+              onchange={(v) => setPlayerBar(v as PlayerBar)}
             />
           </div>
         </div>

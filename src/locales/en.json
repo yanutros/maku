@@ -135,7 +135,11 @@
       "rowDown": "Move down",
       "resetHome": "Reset home",
       "simpleBar": "Simplified navigation bar",
-      "simpleBarHint": "Icons only, in a pill that no longer expands: the page keeps its full width."
+      "simpleBarHint": "Icons only, in a pill that no longer expands: the page keeps its full width.",
+      "playerBar": "Playback bar",
+      "playerBarHint": "While watching a movie or an episode.",
+      "playerBarFull": "Full",
+      "playerBarMinimal": "Minimal"
     },
     "tmdb": {
       "title": "Title logos (TMDB)",

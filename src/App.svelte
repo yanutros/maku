@@ -132,7 +132,8 @@
 
   // Bouton Retour (Android, souris) : il ferme d'abord ce qui est ouvert par-dessus la page.
   onBack(() => {
-    if (nav.profiles) nav.profiles = false;
+    if (nav.closePlayerMenu) nav.closePlayerMenu();
+    else if (nav.profiles) nav.profiles = false;
     else if (nav.collectionFor) nav.collectionFor = null;
     else if (nav.playlistFor) nav.playlistFor = null;
     else if (nav.infoFor) nav.infoFor = null;

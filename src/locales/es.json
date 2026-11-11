@@ -135,7 +135,11 @@
       "rowDown": "Bajar",
       "resetHome": "Restablecer el inicio",
       "simpleBar": "Barra de navegación simplificada",
-      "simpleBarHint": "Solo los iconos, en una píldora que ya no se despliega: la página conserva todo su ancho."
+      "simpleBarHint": "Solo los iconos, en una píldora que ya no se despliega: la página conserva todo su ancho.",
+      "playerBar": "Barra de reproducción",
+      "playerBarHint": "Durante una película o un episodio.",
+      "playerBarFull": "Completa",
+      "playerBarMinimal": "Minimalista"
     },
     "tmdb": {
       "title": "Logotipos de títulos (TMDB)",

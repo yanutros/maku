@@ -135,7 +135,11 @@
       "rowDown": "Nach unten",
       "resetHome": "Startseite zurücksetzen",
       "simpleBar": "Vereinfachte Navigationsleiste",
-      "simpleBarHint": "Nur die Symbole, in einer Leiste, die sich nicht mehr aufklappt: Die Seite behält ihre volle Breite."
+      "simpleBarHint": "Nur die Symbole, in einer Leiste, die sich nicht mehr aufklappt: Die Seite behält ihre volle Breite.",
+      "playerBar": "Wiedergabeleiste",
+      "playerBarHint": "Während eines Films oder einer Folge.",
+      "playerBarFull": "Vollständig",
+      "playerBarMinimal": "Minimal"
     },
     "tmdb": {
       "title": "Titel-Logos (TMDB)",

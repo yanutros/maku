@@ -135,7 +135,11 @@
       "rowDown": "Omlaag",
       "resetHome": "Startscherm herstellen",
       "simpleBar": "Vereenvoudigde navigatiebalk",
-      "simpleBarHint": "Alleen de pictogrammen, in een balk die niet meer uitklapt: de pagina houdt haar volle breedte."
+      "simpleBarHint": "Alleen de pictogrammen, in een balk die niet meer uitklapt: de pagina houdt haar volle breedte.",
+      "playerBar": "Afspeelbalk",
+      "playerBarHint": "Tijdens een film of aflevering.",
+      "playerBarFull": "Volledig",
+      "playerBarMinimal": "Minimalistisch"
     },
     "tmdb": {
       "title": "Titellogo's (TMDB)",

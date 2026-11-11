@@ -2,7 +2,7 @@
   import { onDestroy, onMount } from "svelte";
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import { errorText } from "../lib/api";
-  import { toast } from "../lib/nav.svelte";
+  import { nav, toast } from "../lib/nav.svelte";
   import {
     QUALITIES,
     attachVideo,
@@ -22,6 +22,7 @@
   import EndScreen from "./EndScreen.svelte";
   import { t } from "../lib/i18n";
   import { device } from "../lib/device";
+  import { playerBar } from "../lib/playerBar.svelte";
 
   // Téléphone : la vidéo passe en paysage et en plein écran (barres système masquées), comme Plex.
   const android = (window as { PlexrDevice?: { setVideoMode?(on: boolean): void } }).PlexrDevice;
@@ -101,6 +102,22 @@
       if (canHide()) visible = false;
     }, player.paused ? HIDE_PAUSED_TV : HIDE_PLAYING);
   }
+
+  // Retour (télécommande, Android) avec un menu de pistes ouvert : il se ferme, la sélection revient à son bouton, et
+  // le film continue (sinon Retour quittait le film).
+  $effect(() => {
+    if (!menu) {
+      nav.closePlayerMenu = null;
+      return;
+    }
+    nav.closePlayerMenu = () => {
+      const opener = document.querySelector<HTMLElement>(".overlay .pill.on");
+      menu = null;
+      opener?.focus({ preventScroll: true });
+      poke();
+    };
+    return () => (nav.closePlayerMenu = null);
+  });
 
   /** Ordinateur : la souris sort de la fenêtre, les commandes partent aussitôt (en pause comme en lecture). */
   function onPointerLeave(e: PointerEvent) {
@@ -329,6 +346,140 @@
 
 <svelte:window onkeydown={onKey} onkeydowncapture={onKeyCapture} />
 
+<!-- Qualité, sous-titres et audio : en pastilles avec la piste en cours (barre complète), ou en icônes seules
+     (barre minimaliste, la piste dans l'infobulle). -->
+{#snippet pickers(compact: boolean)}
+    <div class="menu-anchor">
+      <button
+        class="pill"
+        class:compact
+        class:on={menu === "quality"}
+        onclick={() => (menu = menu === "quality" ? null : "quality")}
+        aria-label={t("player.quality")}
+        title={t("player.quality")}
+      >
+        <Icon name="sliders" size={16} />
+        {#if !compact}<span>{qualityLabel(player.quality)}</span>{/if}
+      </button>
+      {#if menu === "quality"}
+        <div class="menu">
+          <div class="menu-title">{t("player.quality")}</div>
+          {#each QUALITIES as kbps (kbps)}
+            <button class:selected={player.quality === kbps} onclick={() => selectQuality(kbps)}>
+              <span class="tick">{#if player.quality === kbps}<Icon name="check" size={16} />{/if}</span>
+              {qualityLabel(kbps)}
+            </button>
+          {/each}
+        </div>
+      {/if}
+    </div>
+    <div class="menu-anchor">
+      <button
+        class="pill"
+        class:compact
+        class:on={menu === "sub"}
+        onclick={() => (menu = menu === "sub" ? null : "sub")}
+        aria-label={t("player.subtitles")}
+        title={t("player.subtitles")}
+      >
+        <Icon name="subtitles" size={16} />
+        {#if !compact}<span>{subLabel}</span>{/if}
+      </button>
+      {#if menu === "sub" && player.transcoded}
+        <div class="menu">
+          <div class="menu-title">{t("player.subtitles")}</div>
+          <button class:selected={serverSubId === 0} onclick={() => selectServerTrack("subtitle", 0)}>
+            <span class="tick">{#if serverSubId === 0}<Icon name="check" size={16} />{/if}</span>
+            {t("player.none")}
+          </button>
+          {#each player.serverSubs as track (track.id)}
+            <button class:selected={serverSubId === track.id} onclick={() => selectServerTrack("subtitle", track.id)}>
+              <span class="tick">{#if serverSubId === track.id}<Icon name="check" size={16} />{/if}</span>
+              {track.label}
+            </button>
+          {/each}
+        </div>
+      {:else if menu === "sub"}
+        <div class="menu">
+          <div class="menu-title">{t("player.subtitles")}</div>
+          <button class:selected={player.sid === null} onclick={() => selectTrack("sid", "no")}>
+            <span class="tick">{#if player.sid === null}<Icon name="check" size={16} />{/if}</span>
+            {t("player.none")}
+          </button>
+          {#each subTracks as track (track.id)}
+            <button class:selected={player.sid === track.id} onclick={() => selectTrack("sid", track.id)}>
+              <span class="tick">{#if player.sid === track.id}<Icon name="check" size={16} />{/if}</span>
+              {trackLabel(track)}
+            </button>
+          {/each}
+        </div>
+      {/if}
+    </div>
+    <div class="menu-anchor">
+      <button
+        class="pill"
+        class:compact
+        class:on={menu === "audio"}
+        onclick={() => (menu = menu === "audio" ? null : "audio")}
+        aria-label={t("player.audioTracks")}
+        title={t("player.audioTracks")}
+      >
+        <Icon name="audio" size={16} />
+        {#if !compact}<span>{audioLabel}</span>{/if}
+      </button>
+      {#if menu === "audio" && player.transcoded}
+        <div class="menu">
+          <div class="menu-title">{t("player.audio")}</div>
+          {#each player.serverAudio as track (track.id)}
+            <button class:selected={serverAudioId === track.id} onclick={() => selectServerTrack("audio", track.id)}>
+              <span class="tick">{#if serverAudioId === track.id}<Icon name="check" size={16} />{/if}</span>
+              {track.label}
+            </button>
+          {/each}
+        </div>
+      {:else if menu === "audio"}
+        <div class="menu">
+          <div class="menu-title">{t("player.audio")}</div>
+          {#each audioTracks as track (track.id)}
+            <button class:selected={player.aid === track.id} onclick={() => selectTrack("aid", track.id)}>
+              <span class="tick">{#if player.aid === track.id}<Icon name="check" size={16} />{/if}</span>
+              {trackLabel(track)}
+            </button>
+          {/each}
+        </div>
+      {/if}
+    </div>
+{/snippet}
+
+{#snippet seekBar()}
+    <div
+      class="bar"
+      bind:this={bar}
+      onpointerdown={onBarDown}
+      onpointermove={onBarMove}
+      onpointerup={onBarUp}
+      onpointerleave={() => (hoverTime = null)}
+      role="slider"
+      tabindex="-1"
+      aria-label={t("player.position")}
+      aria-valuemin={0}
+      aria-valuemax={player.duration}
+      aria-valuenow={player.position}
+    >
+      <div class="track">
+        <div class="buffered" style:width="{buffered}%"></div>
+        <div class="played" style:width="{progress}%"></div>
+      </div>
+      <div class="thumb" style:left="{progress}%"></div>
+      {#if preview}
+        <div class="preview" style:left="{preview.left}px" style:width="{preview.width}px" style:height="{preview.height}px" style={preview.style}>
+          <span>{fmt(hoverTime ?? 0)}</span>
+        </div>
+      {:else if hoverTime !== null}
+        <div class="hover-time" style:left="{hoverX}px">{fmt(hoverTime)}</div>
+      {/if}
+    </div>{/snippet}
+
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div class="overlay" class:hidden={!visible} style:--controls="{controlsHeight}px" class:remote={!player.embedded} class:web={player.web && !player.native} class:loading={!player.web && player.embedded && !player.videoReady} onpointermove={poke} onpointerleave={onPointerLeave}>
   <!-- Android : la vidéo est dessinée sous la page par le lecteur natif ; sinon par cet élément. -->
@@ -357,6 +508,7 @@
     <button class="icon-btn glass" onclick={close} aria-label={t("player.close")} title={t("player.close")}>
       <Icon name="arrowLeft" size={22} />
     </button>
+    {#if playerBar.style !== "minimal"}
     <div class="corner">
       <div class="volume glass">
         <input
@@ -375,6 +527,7 @@
         <Icon name={fullscreen ? "exitFullscreen" : "fullscreen"} size={20} />
       </button>
     </div>
+    {/if}
   </div>
   {/if}
 
@@ -386,6 +539,52 @@
     </button>
   {/if}
 
+  {#if playerBar.style === "minimal"}
+  <!-- Barre minimaliste (Réglages → Interface) : sans cadre, sur un dégradé, le titre en petit puis une seule
+       rangée — lecture, ±10 s, épisode suivant, arrêt, progression, temps restant, pistes, volume et plein écran. -->
+  <div class="bottom minimal" bind:clientHeight={controlsHeight}>
+    <div class="mini">
+      <div class="mini-title">{player.title}{#if player.subtitle}<span>{" · "}{player.subtitle}</span>{/if}</div>
+      <div class="mini-row">
+        <button class="icon-btn main" class:paused={player.paused} onclick={() => mpv("cycle", "pause")} aria-label={player.paused ? t("player.play") : t("player.pause")}>
+          <Icon name={player.paused ? "play" : "pause"} size={24} filled />
+        </button>
+        <button class="icon-btn" onclick={() => mpv("seek", -10, "relative")} aria-label={t("player.back10")} title={t("player.back10")}>
+          <Icon name="replay10" size={22} />
+        </button>
+        <button class="icon-btn" onclick={() => mpv("seek", 10, "relative")} aria-label={t("player.forward10")} title={t("player.forward10")}>
+          <Icon name="forward10" size={22} />
+        </button>
+        {#if player.nextKey}
+          <button class="icon-btn" onclick={() => goTo(player.nextKey)} aria-label={t("player.nextEpisode")} title={t("player.nextEpisode")}>
+            <Icon name="skipNext" size={20} filled />
+          </button>
+        {/if}
+        <!-- Arrêter : la lecture s'arrête et le lecteur se ferme (la reprise reste enregistrée). -->
+        <button class="icon-btn" onclick={close} aria-label={t("common.c1.stop")} title={t("common.c1.stop")}>
+          <Icon name="stop" size={22} filled />
+        </button>
+        <div class="mini-bar">{@render seekBar()}</div>
+        <span class="time end">−{fmt(player.duration - player.position)}</span>
+        <div class="pills">{@render pickers(true)}</div>
+        <!-- Téléphone : ses touches font le volume, et la vidéo est déjà plein écran. -->
+        {#if device.phone}
+          <!-- rien de plus -->
+        {:else if !device.tv}
+          <div class="volume">
+            <input type="range" min="0" max="130" value={player.muted ? 0 : player.volume} oninput={setVolume} aria-label={t("player.volume")} />
+            <button class="icon-btn" onclick={() => mpv("cycle", "mute")} aria-label={t("player.mute")}>
+              <Icon name={player.muted || player.volume === 0 ? "mute" : "volume"} size={20} />
+            </button>
+          </div>
+          <button class="icon-btn" onclick={toggleFullscreen} aria-label={t("player.fullscreen")} title={t("player.fullscreen")}>
+            <Icon name={fullscreen ? "exitFullscreen" : "fullscreen"} size={20} />
+          </button>
+        {/if}
+      </div>
+    </div>
+  </div>
+  {:else}
   <!-- Capsule flottante, façon Apple TV : titre et pistes, progression, puis commandes de lecture. -->
   <div class="bottom" bind:clientHeight={controlsHeight}>
     <div class="capsule">
@@ -397,133 +596,11 @@
         <!-- Qualité, sous-titres et audio. Une vidéo convertie par le serveur change de piste ou de qualité
              en relançant la conversion au même endroit. -->
         <div class="pills">
-            <div class="menu-anchor">
-              <button
-                class="pill"
-                class:on={menu === "quality"}
-                onclick={() => (menu = menu === "quality" ? null : "quality")}
-                aria-label={t("player.quality")}
-                title={t("player.quality")}
-              >
-                <Icon name="sliders" size={16} />
-                <span>{qualityLabel(player.quality)}</span>
-              </button>
-              {#if menu === "quality"}
-                <div class="menu">
-                  <div class="menu-title">{t("player.quality")}</div>
-                  {#each QUALITIES as kbps (kbps)}
-                    <button class:selected={player.quality === kbps} onclick={() => selectQuality(kbps)}>
-                      <span class="tick">{#if player.quality === kbps}<Icon name="check" size={16} />{/if}</span>
-                      {qualityLabel(kbps)}
-                    </button>
-                  {/each}
-                </div>
-              {/if}
-            </div>
-            <div class="menu-anchor">
-              <button
-                class="pill"
-                class:on={menu === "sub"}
-                onclick={() => (menu = menu === "sub" ? null : "sub")}
-                aria-label={t("player.subtitles")}
-                title={t("player.subtitles")}
-              >
-                <Icon name="subtitles" size={16} />
-                <span>{subLabel}</span>
-              </button>
-              {#if menu === "sub" && player.transcoded}
-                <div class="menu">
-                  <div class="menu-title">{t("player.subtitles")}</div>
-                  <button class:selected={serverSubId === 0} onclick={() => selectServerTrack("subtitle", 0)}>
-                    <span class="tick">{#if serverSubId === 0}<Icon name="check" size={16} />{/if}</span>
-                    {t("player.none")}
-                  </button>
-                  {#each player.serverSubs as track (track.id)}
-                    <button class:selected={serverSubId === track.id} onclick={() => selectServerTrack("subtitle", track.id)}>
-                      <span class="tick">{#if serverSubId === track.id}<Icon name="check" size={16} />{/if}</span>
-                      {track.label}
-                    </button>
-                  {/each}
-                </div>
-              {:else if menu === "sub"}
-                <div class="menu">
-                  <div class="menu-title">{t("player.subtitles")}</div>
-                  <button class:selected={player.sid === null} onclick={() => selectTrack("sid", "no")}>
-                    <span class="tick">{#if player.sid === null}<Icon name="check" size={16} />{/if}</span>
-                    {t("player.none")}
-                  </button>
-                  {#each subTracks as track (track.id)}
-                    <button class:selected={player.sid === track.id} onclick={() => selectTrack("sid", track.id)}>
-                      <span class="tick">{#if player.sid === track.id}<Icon name="check" size={16} />{/if}</span>
-                      {trackLabel(track)}
-                    </button>
-                  {/each}
-                </div>
-              {/if}
-            </div>
-            <div class="menu-anchor">
-              <button
-                class="pill"
-                class:on={menu === "audio"}
-                onclick={() => (menu = menu === "audio" ? null : "audio")}
-                aria-label={t("player.audioTracks")}
-                title={t("player.audioTracks")}
-              >
-                <Icon name="audio" size={16} />
-                <span>{audioLabel}</span>
-              </button>
-              {#if menu === "audio" && player.transcoded}
-                <div class="menu">
-                  <div class="menu-title">{t("player.audio")}</div>
-                  {#each player.serverAudio as track (track.id)}
-                    <button class:selected={serverAudioId === track.id} onclick={() => selectServerTrack("audio", track.id)}>
-                      <span class="tick">{#if serverAudioId === track.id}<Icon name="check" size={16} />{/if}</span>
-                      {track.label}
-                    </button>
-                  {/each}
-                </div>
-              {:else if menu === "audio"}
-                <div class="menu">
-                  <div class="menu-title">{t("player.audio")}</div>
-                  {#each audioTracks as track (track.id)}
-                    <button class:selected={player.aid === track.id} onclick={() => selectTrack("aid", track.id)}>
-                      <span class="tick">{#if player.aid === track.id}<Icon name="check" size={16} />{/if}</span>
-                      {trackLabel(track)}
-                    </button>
-                  {/each}
-                </div>
-              {/if}
-            </div>
+            {@render pickers(false)}
           </div>
       </div>
 
-      <div
-        class="bar"
-        bind:this={bar}
-        onpointerdown={onBarDown}
-        onpointermove={onBarMove}
-        onpointerup={onBarUp}
-        onpointerleave={() => (hoverTime = null)}
-        role="slider"
-        tabindex="-1"
-        aria-label={t("player.position")}
-        aria-valuemin={0}
-        aria-valuemax={player.duration}
-        aria-valuenow={player.position}
-      >
-        <div class="track">
-          <div class="buffered" style:width="{buffered}%"></div>
-          <div class="played" style:width="{progress}%"></div>
-        </div>
-        <div class="thumb" style:left="{progress}%"></div>
-        {#if preview}
-          <div class="preview" style:left="{preview.left}px" style:width="{preview.width}px" style:height="{preview.height}px" style={preview.style}>
-            <span>{fmt(hoverTime ?? 0)}</span>
-          </div>
-        {:else if hoverTime !== null}
-          <div class="hover-time" style:left="{hoverX}px">{fmt(hoverTime)}</div>
-        {/if}
-      </div>
+      {@render seekBar()}
 
       <div class="controls">
         <span class="time">{fmt(player.position)}</span>
@@ -559,6 +636,7 @@
       </div>
     </div>
   </div>
+  {/if}
   {#if player.endScreen && player.upNext}<EndScreen />{/if}
 </div>
 
@@ -947,6 +1025,82 @@
 
   .menu-anchor {
     position: relative;
+  }
+
+  /* ---------- Barre minimaliste ---------- */
+
+  .bottom.minimal {
+    padding: 0;
+  }
+
+  .mini {
+    padding: 70px 28px 16px;
+    background: linear-gradient(#0000, #000000b8 55%, #000000e0);
+  }
+
+  .mini-title {
+    margin: 0 0 4px 10px;
+    overflow: hidden;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mini-title span {
+    color: #fffb;
+    font-weight: 500;
+  }
+
+  .mini-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .mini-bar {
+    flex: 1;
+    min-width: 80px;
+    margin: 0 10px;
+  }
+
+  .mini-row .time {
+    min-width: 56px;
+  }
+
+  .mini-row .pills {
+    gap: 2px;
+    margin-left: 6px;
+  }
+
+  /* Téléphone en portrait : la progression passe sur sa propre ligne, au-dessus des boutons. */
+  :global(html.phone) .mini-row {
+    flex-wrap: wrap;
+  }
+
+  :global(html.phone) .mini-bar {
+    order: -1;
+    flex-basis: 100%;
+    margin: 0 4px 2px;
+  }
+
+  :global(html.phone) .mini-row .time {
+    margin-left: auto;
+  }
+
+  /* Pistes en icônes seules : rondes comme les autres boutons de la rangée. */
+  .pill.compact {
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    background: none;
+  }
+
+  .pill.compact:hover,
+  .pill.compact.on {
+    background: #ffffff1f;
   }
 
   .menu {

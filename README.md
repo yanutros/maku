@@ -55,7 +55,9 @@ visionnage. Tout se fait avec son compte Plex (ou Jellyfin) : aucune clé d'API 
       Vidéo intégrée, qui s'ouvre sur un fond noir jusqu'à sa première image, avec des commandes façon Apple TV : une capsule translucide qui flotte en bas de l'image
       (titre, pistes audio et sous-titres en cours, progression, temps restant, ±10 s, épisode précédent et
       suivant, arrêt), retour, volume et plein écran en boutons ronds dans les coins, raccourcis clavier. Comme dans
-      Plex, les commandes s'effacent après 4 s sans bouger la souris, et en pause quand la souris sort de la fenêtre. Reprise là où
+      Plex, les commandes s'effacent après 4 s sans bouger la souris, et en pause quand la souris sort de la fenêtre. Dans
+      Réglages → Interface, **Barre de lecture : Minimaliste** remplace la capsule par une seule rangée sur un dégradé, sans
+      cadre (lecture, ±10 s, épisode suivant, arrêt, progression, temps restant, pistes en icônes, volume et plein écran). Reprise là où
       vous vous étiez arrêté. Qualité au choix, comme dans Plex : le fichier d'origine, ou une conversion par le
       serveur de 20 Mb/s en 1080p à 1,5 Mb/s en 480p, retenue pour les vidéos suivantes et visible telle quelle
       dans Tautulli et Tracearr. Un film en plusieurs versions (4K, 1080p…) se choisit sur sa fiche, avec ses
