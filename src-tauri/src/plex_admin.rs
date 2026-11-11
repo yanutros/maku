@@ -19,6 +19,8 @@ fn type_id(kind: &str) -> Option<u32> {
         "artist" => 8,
         "album" => 9,
         "track" => 10,
+        // Collection (films ou séries) : son titre, son résumé… et ses images.
+        "collection" => 18,
         _ => return None,
     })
 }
@@ -71,6 +73,12 @@ fn fields_for(kind: &str) -> &'static [(&'static str, &'static str, &'static str
             ("titleSort", "titleSort", "text"),
             ("originalTitle", "trackArtist", "text"),
             ("index", "trackNumber", "text"),
+        ],
+        "collection" => &[
+            ("title", "title", "text"),
+            ("titleSort", "titleSort", "text"),
+            ("contentRating", "contentRating", "text"),
+            ("summary", "summary", "long"),
         ],
         _ => &[],
     }
@@ -301,6 +309,18 @@ impl PlexServer {
             self.send(Method::POST, &format!("/library/metadata/{rating_key}/{list}?url={url}")).await?;
         }
         self.send(Method::PUT, &format!("/library/metadata/{rating_key}/{one}?url={url}")).await
+    }
+
+    /// Envoie une image (affiche ou fond d'écran) depuis l'ordinateur, comme « Choisir une image » de Plex :
+    /// elle rejoint la liste des images de l'élément et devient celle affichée.
+    pub async fn upload_image(&self, rating_key: &str, kind: &str, bytes: Vec<u8>) -> Result<()> {
+        let list = if kind == "arts" { "arts" } else { "posters" };
+        let resp = self.request(Method::POST, &format!("/library/metadata/{rating_key}/{list}")).body(bytes).send().await?;
+        match resp.status() {
+            StatusCode::UNAUTHORIZED | StatusCode::FORBIDDEN => bail!(crate::i18n::tr("admin.adminOnly")),
+            s if !s.is_success() => bail!(crate::i18n::tr_with("admin.serverReplied", &[("status", &s.to_string())])),
+            _ => Ok(()),
+        }
     }
 
     pub async fn refresh_metadata(&self, rating_key: &str) -> Result<()> {

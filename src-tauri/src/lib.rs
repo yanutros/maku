@@ -1062,6 +1062,34 @@ async fn plex_images(state: State<'_, AppState>, rating_key: String, kind: Strin
     Ok(state.admin_plex().await?.images(&rating_key, &kind).await?)
 }
 
+/// Image choisie sur l'ordinateur (`data` : son contenu en base64) ou déposée sur la fenêtre (`path`),
+/// envoyée comme affiche ou fond d'écran (administrateur). JPEG, PNG ou WebP, 25 Mo au plus.
+#[tauri::command]
+async fn plex_upload_image(state: State<'_, AppState>, rating_key: String, kind: String, data: Option<String>, path: Option<String>) -> CmdResult<()> {
+    use base64::Engine;
+    let bytes = match (data, path) {
+        (Some(b64), _) => base64::engine::general_purpose::STANDARD
+            .decode(b64.as_bytes())
+            .map_err(|_| anyhow::anyhow!(i18n::tr("admin.badImage")))?,
+        (None, Some(p)) => {
+            let meta = std::fs::metadata(&p).map_err(|_| anyhow::anyhow!(i18n::tr("admin.badImage")))?;
+            if meta.len() > 25 * 1024 * 1024 {
+                return Err(anyhow::anyhow!(i18n::tr("admin.badImage")).into());
+            }
+            std::fs::read(&p).map_err(|_| anyhow::anyhow!(i18n::tr("admin.badImage")))?
+        }
+        _ => return Err(anyhow::anyhow!(i18n::tr("admin.badImage")).into()),
+    };
+    // Une vraie image, d'après ses premiers octets (et pas n'importe quel fichier déposé).
+    let image = bytes.starts_with(&[0xFF, 0xD8, 0xFF])
+        || bytes.starts_with(b"\x89PNG")
+        || (bytes.len() > 12 && &bytes[0..4] == b"RIFF" && &bytes[8..12] == b"WEBP");
+    if !image || bytes.len() > 25 * 1024 * 1024 {
+        return Err(anyhow::anyhow!(i18n::tr("admin.badImage")).into());
+    }
+    Ok(state.admin_plex().await?.upload_image(&rating_key, &kind, bytes).await?)
+}
+
 #[tauri::command]
 async fn plex_set_image(state: State<'_, AppState>, rating_key: String, kind: String, url: String) -> CmdResult<()> {
     Ok(state.admin_plex().await?.set_image(&rating_key, &kind, &url).await?)
@@ -2121,6 +2149,7 @@ pub fn run() {
             plex_edit,
             plex_images,
             plex_set_image,
+            plex_upload_image,
             plex_refresh_metadata,
             plex_analyze,
             plex_prefs,

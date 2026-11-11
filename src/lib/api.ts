@@ -503,6 +503,9 @@ export const api = {
   edit: (ratingKey: string, changes: { name: string; value: string; locked: boolean }[], genres: string[] | null) =>
     invoke<void>("plex_edit", { ratingKey, changes, genres }),
   images: (ratingKey: string, kind: "posters" | "arts") => invoke<ImageChoice[]>("plex_images", { ratingKey, kind }),
+  /** Image de l'ordinateur : son contenu en base64 (`data`) ou son chemin (fichier déposé sur la fenêtre). */
+  uploadImage: (ratingKey: string, kind: "posters" | "arts", file: { data?: string; path?: string }) =>
+    invoke<void>("plex_upload_image", { ratingKey, kind, data: file.data ?? null, path: file.path ?? null }),
   setImage: (ratingKey: string, kind: "posters" | "arts", url: string) =>
     invoke<void>("plex_set_image", { ratingKey, kind, url }),
   refreshMetadata: (ratingKey: string) => invoke<void>("plex_refresh_metadata", { ratingKey }),

@@ -674,7 +674,11 @@
     "noImages": "Keine Bilder verfügbar.",
     "imageUrlPlaceholder": "Oder füge eine Bildadresse ein (https://…)",
     "use": "Verwenden",
-    "clickToApply": "Ein Klick auf ein Bild übernimmt es sofort."
+    "clickToApply": "Ein Klick auf ein Bild übernimmt es sofort.",
+    "chooseImage": "Bild auswählen",
+    "orDrop": "oder hierher ziehen (JPEG, PNG oder WebP)",
+    "uploading": "Bild wird hochgeladen…",
+    "imageType": "Wähle ein JPEG-, PNG- oder WebP-Bild."
   },
   "genreTile": {
     "ariaLabel": "{{genre}}, {{titles}}",

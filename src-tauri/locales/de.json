@@ -62,7 +62,8 @@
       "trackArtist": "Titelkünstler",
       "trackNumber": "Titelnummer"
     },
-    "forbidden": "Nur der Server-Administrator kann das tun."
+    "forbidden": "Nur der Server-Administrator kann das tun.",
+    "badImage": "Bild nicht erkannt: wähle eine JPEG-, PNG- oder WebP-Datei mit höchstens 25 MB."
   },
   "seerr": {
     "plexRequired": "Für die Verbindung mit Seerr ist eine Plex-Anmeldung nötig",

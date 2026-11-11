@@ -618,7 +618,8 @@ Ces choix sont gardés sur l'appareil.
 
 Pour l'administrateur du serveur, le menu ⋮ d'une jaquette (ou un clic droit) et le bouton **Modifier** des
 fiches ouvrent l'édition : champs (titre, tri, titre original, date, classification, studio, accroche, résumé…
-selon le type), genres, affiche et fond d'écran parmi les images proposées par Plex ou depuis une adresse web.
+selon le type), genres, affiche et fond d'écran parmi les images proposées par Plex, depuis une adresse web ou depuis l'ordinateur
+(**Choisir une image**, ou la glisser sur la fenêtre). Les collections s'éditent aussi (titre, résumé, images).
 Un champ modifié est verrouillé, comme dans Plex, pour que l'actualisation des métadonnées ne l'écrase pas ; le
 cadenas permet de le déverrouiller. Le même menu propose **Actualiser les métadonnées** et **Analyser**. Pour tous, il permet aussi de lire, d'ouvrir
 la fiche et de marquer un titre comme vu ou non vu (« non vu » remet aussi à zéro une lecture commencée).

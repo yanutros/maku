@@ -2706,6 +2706,7 @@ name = "plexr"
 version = "0.22.2"
 dependencies = [
  "anyhow",
+ "base64 0.22.1",
  "futures",
  "mdns-sd",
  "mpris-server",

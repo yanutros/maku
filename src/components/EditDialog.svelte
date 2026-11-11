@@ -5,6 +5,7 @@
   import { nav, reload, toast } from "../lib/nav.svelte";
   import Icon from "./Icon.svelte";
   import { t } from "../lib/i18n";
+  import { device } from "../lib/device";
 
   // Fenêtre « Modifier » d'un film, d'une série, d'un épisode ou d'un élément musical.
   const item = nav.editing!;
@@ -31,8 +32,13 @@
     ],
   );
 
+  // Une image changée (choisie, ajoutée par adresse ou envoyée) : la page se met à jour à la fermeture, même
+  // sans « Enregistrer », pour montrer la nouvelle affiche.
+  let imageChanged = false;
+
   function close() {
     nav.editing = null;
+    if (imageChanged) reload();
   }
 
   function onInput(name: string, value: string) {
@@ -61,11 +67,65 @@
     try {
       await api.setImage(item.ratingKey, kind, key);
       images[kind] = (images[kind] ?? []).map((i) => ({ ...i, selected: i.key === key }));
+      imageChanged = true;
       toast(kind === "posters" ? t("editDialog.posterUpdated") : t("editDialog.backgroundUpdated"));
     } catch (e) {
       toast(errorText(e), true);
     }
   }
+
+  // --- Image de l'ordinateur : bouton « Choisir une image » ou fichier glissé sur la fenêtre, comme dans Plex ---
+  let uploading = $state(false);
+  let dragOver = $state(false);
+  let picker = $state<HTMLInputElement>();
+
+  async function upload(file: { data?: string; path?: string }) {
+    if (tab !== "posters" && tab !== "arts") return;
+    const kind = tab;
+    uploading = true;
+    try {
+      await api.uploadImage(item.ratingKey, kind, file);
+      imageChanged = true;
+      toast(kind === "posters" ? t("editDialog.posterUpdated") : t("editDialog.backgroundUpdated"));
+      images[kind] = null;
+      await loadImages(kind);
+    } catch (e) {
+      toast(errorText(e), true);
+    } finally {
+      uploading = false;
+    }
+  }
+
+  /** Fichier choisi (ou déposé dans un navigateur) : envoyé en base64. */
+  function uploadFile(file: File | undefined) {
+    if (!file) return;
+    if (!/^image\/(jpeg|png|webp)$/.test(file.type)) return toast(t("editDialog.imageType"), true);
+    const reader = new FileReader();
+    reader.onload = () => upload({ data: String(reader.result).split(",")[1] ?? "" });
+    reader.readAsDataURL(file);
+  }
+
+  // Application : un fichier glissé sur la fenêtre arrive par Tauri (la page n'en reçoit pas le contenu).
+  onMount(() => {
+    let stop: (() => void) | undefined;
+    import("@tauri-apps/api/webview")
+      .then(({ getCurrentWebview }) =>
+        getCurrentWebview().onDragDropEvent((e) => {
+          const images = tab === "posters" || tab === "arts";
+          if (e.payload.type === "over" || e.payload.type === "enter") dragOver = images;
+          else if (e.payload.type === "leave") dragOver = false;
+          else if (e.payload.type === "drop") {
+            dragOver = false;
+            const path = e.payload.paths.find((p) => /\.(jpe?g|png|webp)$/i.test(p));
+            if (!images) return;
+            if (path) upload({ path });
+            else toast(t("editDialog.imageType"), true);
+          }
+        }),
+      )
+      .then((unlisten) => (stop = unlisten), () => {});
+    return () => stop?.();
+  });
 
   async function addImageFromUrl(kind: "posters" | "arts") {
     const url = imageUrl.trim();
@@ -90,8 +150,8 @@
       const genresChanged = info.genres !== null && genres.join("\n") !== info.genres.join("\n");
       await api.edit(item.ratingKey, changes, genresChanged ? genres : null);
       toast(t("editDialog.saved"));
+      imageChanged = true;
       close();
-      reload();
     } catch (e) {
       error = errorText(e);
     } finally {
@@ -183,6 +243,26 @@
           </form>
         {:else}
           {@const kind = tab}
+          <!-- Comme Plex : « Choisir une image » sur l'ordinateur, ou la glisser ici. -->
+          {#if !device.tv}
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div
+              class="drop"
+              class:over={dragOver}
+              ondragover={(e) => (e.preventDefault(), (dragOver = true))}
+              ondragleave={() => (dragOver = false)}
+              ondrop={(e) => (e.preventDefault(), (dragOver = false), uploadFile(e.dataTransfer?.files[0]))}
+            >
+              <Icon name="image" size={18} />
+              {#if uploading}
+                <span>{t("editDialog.uploading")}</span>
+              {:else}
+                <button class="link" onclick={() => picker?.click()}>{t("editDialog.chooseImage")}</button>
+                <span>{t("editDialog.orDrop")}</span>
+              {/if}
+              <input bind:this={picker} type="file" accept="image/jpeg,image/png,image/webp" hidden onchange={(e) => (uploadFile(e.currentTarget.files?.[0]), (e.currentTarget.value = ""))} />
+            </div>
+          {/if}
           <div class="images" class:wide={kind === "arts"}>
             {#if !images[kind]}
               {#each Array(8) as _, i (i)}<div class="skeleton img-skeleton"></div>{/each}
@@ -414,6 +494,41 @@
 
   .chip button:hover {
     background: var(--danger);
+  }
+
+  /* Zone « Choisir une image · ou la glisser ici » : en pointillés, dorée quand un fichier la survole. */
+  .drop {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 14px;
+    padding: 14px;
+    border: 1.5px dashed var(--border);
+    border-radius: 12px;
+    color: var(--text-dim);
+    font-size: 13px;
+    transition: border-color 0.15s, background 0.15s;
+  }
+
+  .drop.over {
+    border-color: var(--accent);
+    background: #ffffff0a;
+    color: var(--text);
+  }
+
+  .link {
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--accent);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .link:hover {
+    text-decoration: underline;
   }
 
   .add {

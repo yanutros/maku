@@ -62,7 +62,8 @@
       "trackArtist": "Artiest van nummer",
       "trackNumber": "Nummer op album"
     },
-    "forbidden": "Alleen de serverbeheerder kan dit doen."
+    "forbidden": "Alleen de serverbeheerder kan dit doen.",
+    "badImage": "Afbeelding niet herkend: kies een JPEG-, PNG- of WebP-bestand van maximaal 25 MB."
   },
   "seerr": {
     "plexRequired": "Je moet bij Plex inloggen om verbinding te maken met Seerr",

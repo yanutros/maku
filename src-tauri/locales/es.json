@@ -62,7 +62,8 @@
       "trackArtist": "Artista de la canción",
       "trackNumber": "Número de pista"
     },
-    "forbidden": "Solo el administrador del servidor puede hacerlo."
+    "forbidden": "Solo el administrador del servidor puede hacerlo.",
+    "badImage": "Imagen no reconocida: elige un archivo JPEG, PNG o WebP de 25 MB como máximo."
   },
   "seerr": {
     "plexRequired": "Hay que iniciar sesión en Plex para conectarse a Seerr",

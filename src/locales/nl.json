@@ -674,7 +674,11 @@
     "noImages": "Geen afbeeldingen beschikbaar.",
     "imageUrlPlaceholder": "Of plak het adres van een afbeelding (https://…)",
     "use": "Gebruiken",
-    "clickToApply": "Klik op een afbeelding om die meteen toe te passen."
+    "clickToApply": "Klik op een afbeelding om die meteen toe te passen.",
+    "chooseImage": "Afbeelding kiezen",
+    "orDrop": "of sleep hem hierheen (JPEG, PNG of WebP)",
+    "uploading": "Afbeelding wordt geüpload…",
+    "imageType": "Kies een JPEG-, PNG- of WebP-afbeelding."
   },
   "genreTile": {
     "ariaLabel": "{{genre}}, {{titles}}",
