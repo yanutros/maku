@@ -275,6 +275,15 @@
     font-weight: 600;
   }
 
+  /* Au toucher, la pilule s'enfonce un peu (à la place du rectangle bleu d'Android). */
+  .tabs button {
+    transition: transform 0.1s, background 0.15s;
+  }
+
+  .tabs button:active {
+    transform: scale(0.95);
+  }
+
   .tabs button.on {
     border-color: transparent;
     background: var(--accent);
@@ -298,7 +307,13 @@
     inset: 0;
     padding: 0;
     z-index: 60;
+    overflow-x: hidden;
     overflow-y: auto;
+  }
+
+  /* Fond flou fixé à l'écran : plus grand que lui, il élargissait la page, qui glissait alors de côté. */
+  :global(html.phone) .bg {
+    position: fixed;
   }
 
   :global(html.phone) .close {
@@ -333,6 +348,7 @@
   }
 
   :global(html.phone) .next {
+    display: block;
     width: 100%;
     max-height: none;
   }

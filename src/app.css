@@ -293,6 +293,11 @@ html.phone .grid {
   gap: 18px 10px;
 }
 
+/* Android : pas de rectangle bleu au toucher (il ignore les coins arrondis des boutons). */
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
 /* Onglets des bibliothèques : une bande qui défile au doigt. */
 html.phone [role="tablist"] {
   max-width: 100%;

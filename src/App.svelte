@@ -211,7 +211,7 @@
 {:else if !session.serverName}
   <ServerPicker onDone={refresh} />
 {:else}
-  <div class="app">
+  <div class="app" class:listening>
   <!-- Téléviseur : fond flouté de la page (musique, statistiques), derrière le menu translucide. -->
   {#if device.tv}
     {#key ambient.image}
@@ -485,6 +485,11 @@
 
   .shell.phone .content {
     padding-top: 0;
+  }
+
+  /* Téléphone : le mini-lecteur flotte sur le bas de la page (voir MusicBar) ; la fin de la page reste au-dessus de lui. */
+  .app.listening .shell.phone .content {
+    padding-bottom: 80px;
   }
 
   /* Masqué mais conservé pendant la lecture, pour retrouver la page au retour. */

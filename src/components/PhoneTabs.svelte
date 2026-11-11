@@ -30,7 +30,10 @@
 </nav>
 
 <style>
+  /* Au-dessus des fonds fixés des pages (Statistiques, fiches), qui la recouvraient. */
   .tabs {
+    position: relative;
+    z-index: 30;
     display: grid;
     grid-template-columns: repeat(5, 1fr);
     padding: 6px 4px calc(6px + var(--safe-bottom));

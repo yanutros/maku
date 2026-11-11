@@ -680,8 +680,23 @@
 
   /* ---------- Téléphone : mini-lecteur (pochette, titre, précédent / lecture / suivant) ---------- */
 
+  /* Téléphone : la carte flotte sur la page (sans rangée ni fond à elle), comme Spotify : la marge négative
+     la remonte de toute sa hauteur au-dessus des onglets. */
   :global(html.phone) .dock {
+    margin-top: -76px;
     padding: 6px 8px;
+    pointer-events: none;
+  }
+
+  /* Seule la carte se touche : autour d'elle, c'est la page. */
+  :global(html.phone) .dock > * {
+    pointer-events: auto;
+  }
+
+  /* La lueur de la pochette suit les coins de la carte du téléphone (14 px, pas les 22 px de l'ordinateur) :
+     sinon ses coins restaient sans couleur et le bord de la carte paraissait incomplet. */
+  :global(html.phone) .ambient {
+    clip-path: inset(60px round 13px);
   }
 
   :global(html.phone) .bar {

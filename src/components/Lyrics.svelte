@@ -3,6 +3,7 @@
   // Après un défilement à la main, le suivi reprend au bout de quelques secondes.
   import { t } from "../lib/i18n";
   import { lineAt, lyrics } from "../lib/lyrics.svelte";
+  import { onMount } from "svelte";
   import { mpv, player } from "../lib/player.svelte";
 
   let { tv = false }: { tv?: boolean } = $props();
@@ -11,14 +12,31 @@
   let manualUntil = 0;
 
   const lines = $derived(lyrics.state.status === "synced" ? lyrics.state.lines : []);
-  const active = $derived(lineAt(lines, player.position));
+
+  // Le lecteur ne donne sa position que de temps en temps (moins souvent sur téléphone) : entre deux, elle
+  // avance avec l'horloge, pour que la ligne change au moment où elle est chantée.
+  let last = { pos: 0, at: 0 };
+  $effect(() => {
+    last = { pos: player.position, at: performance.now() };
+  });
+  let now = $state(0);
+  onMount(() => {
+    const timer = setInterval(() => {
+      const ahead = player.paused ? 0 : Math.min(2, (performance.now() - last.at) / 1000);
+      now = last.pos + ahead;
+    }, 100);
+    return () => clearInterval(timer);
+  });
+  const active = $derived(lineAt(lines, now));
 
   $effect(() => {
     const i = active;
     if (!box || i < 0 || Date.now() < manualUntil) return;
     const el = box.querySelector<HTMLElement>(`[data-line="${i}"]`);
     if (!el) return;
-    box.scrollTo({ top: el.offsetTop - box.clientHeight / 2 + el.clientHeight / 2, behavior: "smooth" });
+    // Mesuré dans la zone des paroles (offsetTop part du premier bloc positionné : sur téléphone, toute la page).
+    const top = box.scrollTop + el.getBoundingClientRect().top - box.getBoundingClientRect().top;
+    box.scrollTo({ top: top - box.clientHeight / 2 + el.clientHeight / 2, behavior: "smooth" });
   });
 
   // Retour en haut à chaque nouveau morceau.
@@ -29,6 +47,12 @@
 
   function manual() {
     manualUntil = Date.now() + 4000;
+  }
+
+  /** Une ligne touchée : le morceau y saute, et le suivi reprend tout de suite. */
+  function jump(at: number) {
+    manualUntil = 0;
+    mpv("seek", at, "absolute");
   }
 </script>
 
@@ -43,7 +67,7 @@
       {#if tv}
         <p class="line" class:on={i === active} class:past={i < active} data-line={i}>{line.text || "♪"}</p>
       {:else}
-        <button class="line" class:on={i === active} class:past={i < active} data-line={i} onclick={() => mpv("seek", line.at, "absolute")}>
+        <button class="line" class:on={i === active} class:past={i < active} data-line={i} onclick={() => jump(line.at)}>
           {line.text || "♪"}
         </button>
       {/if}
