@@ -16,20 +16,11 @@ jobs:
   tests:
     uses: ./.github/workflows/tests.yml
 
-  paquets:
-    name: ${{ matrix.nom }}
+  # macOS d'abord : il crée la version brouillon, à laquelle Windows puis Linux joignent leurs paquets.
+  macos:
+    name: macOS (Apple Silicon et Intel)
     needs: tests
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - nom: Linux (RPM, DEB et AppImage)
-            os: ubuntu-22.04
-            args: ""
-          - nom: macOS (Apple Silicon et Intel)
-            os: macos-latest
-            args: "--target universal-apple-darwin"
-    runs-on: ${{ matrix.os }}
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v7
 
@@ -40,26 +31,15 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.os == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
 
       - uses: swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
 
-      - name: Dépendances système (Linux)
-        if: matrix.os == 'ubuntu-22.04'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
-
       - run: npm ci
 
-      # Tous les paquets. Sur Linux, l'AppImage dépend d'outils que Tauri télécharge sur GitHub au moment
-      # d'empaqueter, sans nouvel essai : une erreur passagère (504) faisait échouer Linux, et Windows avec.
-      # En cas d'échec, une seconde passe ne construit que le DEB et le RPM (la version sort sans AppImage).
       - uses: tauri-apps/tauri-action@v1
-        id: tous
-        continue-on-error: ${{ matrix.os == 'ubuntu-22.04' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -78,7 +58,64 @@ jobs:
             Code signing policy : https://github.com/yanutros/maku#-signature-du-code
           releaseDraft: true
           prerelease: false
-          args: ${{ matrix.args }}
+          args: --target universal-apple-darwin
+
+  # Linux en dernier, même si Windows a échoué : ses dépendances (miroirs Ubuntu d'Azure) et les outils de
+  # l'AppImage, téléchargés au moment d'empaqueter, tombent régulièrement en panne ; il ne bloque plus les
+  # autres paquets.
+  linux:
+    name: Linux (RPM, DEB et AppImage)
+    needs: [macos, windows]
+    if: ${{ !cancelled() && needs.macos.result == 'success' }}
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      # Nouveaux essais en cas d'erreur réseau, et pas plus de 20 minutes (la panne d'un miroir le laissait
+      # bloqué plus d'une heure).
+      - name: Dépendances système
+        timeout-minutes: 20
+        run: |
+          sudo apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 update
+          sudo apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - run: npm ci
+
+      # Tous les paquets. L'AppImage dépend d'outils que Tauri télécharge sur GitHub au moment d'empaqueter,
+      # sans nouvel essai : en cas d'échec, une seconde passe ne construit que le DEB et le RPM (la version
+      # sort sans AppImage).
+      - uses: tauri-apps/tauri-action@v1
+        id: tous
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: v__VERSION__
+          releaseName: Maku v__VERSION__
+          releaseBody: |
+            Paquets de Maku v__VERSION__.
+
+            - **Windows** : `Maku_…_x64-setup.exe` (ou le `.msi`), non signés pour l'instant.
+            - **Fedora / RHEL** : `Maku-….x86_64.rpm` — `sudo dnf install ./Maku-*.rpm` (installe aussi mpv).
+            - **Debian / Ubuntu** : `Maku_…_amd64.deb` — `sudo apt install ./Maku_*.deb`.
+            - **Autres Linux** : `Maku_…_amd64.AppImage` (mpv à installer avec le gestionnaire de paquets).
+            - **macOS** : `Maku_…_universal.dmg` (mpv : `brew install mpv`). L'application n'est pas signée :
+              au premier lancement, clic droit sur Maku → Ouvrir.
+
+            Code signing policy : https://github.com/yanutros/maku#-signature-du-code
+          releaseDraft: true
+          prerelease: false
 
       - uses: tauri-apps/tauri-action@v1
         if: steps.tous.outcome == 'failure'
@@ -105,10 +142,10 @@ jobs:
   # Windows à part : plexr.exe est signé avant d'être empaqueté, puis les installeurs à leur tour
   # (SignPath Foundation, chaque signature approuvée à la main dans SignPath). Tant que la variable
   # de dépôt SIGNPATH_ORGANIZATION_ID n'existe pas, les paquets sont construits sans signature.
-  # Ce job attend les autres pour que la version brouillon existe déjà.
+  # Ce job attend macOS pour que la version brouillon existe déjà.
   windows:
     name: Windows (installeur NSIS et MSI)
-    needs: paquets
+    needs: macos
     runs-on: windows-latest
     env:
       SIGNER: ${{ vars.SIGNPATH_ORGANIZATION_ID != '' }}
