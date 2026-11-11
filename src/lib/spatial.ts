@@ -101,6 +101,63 @@ function scroller(el: HTMLElement, axis: "x" | "y"): HTMLElement | null {
   return document.scrollingElement as HTMLElement | null;
 }
 
+/**
+ * Défilement animé qui poursuit sa cible au lieu de repartir de zéro. Le défilement « smooth » du navigateur
+ * relance une animation complète (départ lent compris) à chaque appel : flèche maintenue ou appuis rapides,
+ * la page s'arrêtait et repartait sans cesse (saccades sur téléviseur). Ici, comme les listes de Leanback
+ * (Plex, Moonfin) ou de Compose pour TV (Wholphin), chaque appui ne fait que déplacer la cible ; la page y
+ * glisse en continu, d'autant plus vite qu'elle en est loin, sans à-coup.
+ */
+type Glide = { x: number; y: number; tx: number; ty: number; raf: number; last: number };
+const glides = new WeakMap<HTMLElement, Glide>();
+
+/** Fait glisser `el` jusqu'à la position voulue (`left` / `top` absolus ; absent : inchangé). */
+export function glideTo(el: HTMLElement, to: { left?: number; top?: number }) {
+  let g = glides.get(el);
+  if (!g || !g.raf) {
+    g = { x: el.scrollLeft, y: el.scrollTop, tx: el.scrollLeft, ty: el.scrollTop, raf: 0, last: 0 };
+    if (!glides.has(el)) {
+      // La molette ou le doigt reprennent la main : l'animation s'arrête là.
+      const stop = () => {
+        const cur = glides.get(el);
+        if (cur?.raf) cancelAnimationFrame(cur.raf);
+        if (cur) cur.raf = 0;
+      };
+      el.addEventListener("wheel", stop, { passive: true });
+      el.addEventListener("touchstart", stop, { passive: true });
+    }
+    glides.set(el, g);
+  }
+  const maxX = el.scrollWidth - el.clientWidth;
+  const maxY = el.scrollHeight - el.clientHeight;
+  if (to.left !== undefined) g.tx = Math.max(0, Math.min(maxX, to.left));
+  if (to.top !== undefined) g.ty = Math.max(0, Math.min(maxY, to.top));
+  if (g.raf) return;
+  const state = g;
+  state.last = performance.now();
+  const step = (now: number) => {
+    // Rapprochement exponentiel (≈ 90 % du chemin en 230 ms), indépendant de la cadence d'affichage.
+    const k = 1 - Math.exp(-(now - state.last) / 100);
+    state.last = now;
+    state.x += (state.tx - state.x) * k;
+    state.y += (state.ty - state.y) * k;
+    const done = Math.abs(state.tx - state.x) < 0.5 && Math.abs(state.ty - state.y) < 0.5;
+    if (done) [state.x, state.y] = [state.tx, state.ty];
+    el.scrollLeft = state.x;
+    el.scrollTop = state.y;
+    state.raf = done ? 0 : requestAnimationFrame(step);
+  };
+  state.raf = requestAnimationFrame(step);
+}
+
+/** Décalage mesuré à la position actuelle (l'élément visé se mesure à l'écran, animation en cours comprise). */
+function glideBy(el: HTMLElement, by: { left?: number; top?: number }) {
+  glideTo(el, {
+    left: by.left === undefined ? undefined : el.scrollLeft + by.left,
+    top: by.top === undefined ? undefined : el.scrollTop + by.top,
+  });
+}
+
 /** Cadre de sélection (contour et son décalage) et marge laissée autour, comme dans Plex et Wholphin. */
 const RING = 8;
 
@@ -134,7 +191,7 @@ export function reveal(el: HTMLElement, opts: { center?: boolean; inline?: "cent
     const top = Math.max(box.top, screen.top);
     const bottom = Math.min(box.bottom, screen.bottom);
     const dy = delta(r.top - RING, r.bottom + RING, top, bottom, !!opts.center, Math.min(64, (bottom - top) * 0.1));
-    if (Math.abs(dy) > 1) sy.scrollBy({ top: dy, behavior: "smooth" });
+    if (Math.abs(dy) > 1) glideBy(sy, { top: dy });
   }
   const sx = scroller(el, "x");
   if (sx && sx !== document.scrollingElement) {
@@ -142,7 +199,7 @@ export function reveal(el: HTMLElement, opts: { center?: boolean; inline?: "cent
     const left = Math.max(box.left, screen.left);
     const right = Math.min(box.right, screen.right);
     const dx = delta(r.left - RING, r.right + RING, left, right, opts.inline === "center", Math.min(48, (right - left) * 0.05));
-    if (Math.abs(dx) > 1) sx.scrollBy({ left: dx, behavior: "smooth" });
+    if (Math.abs(dx) > 1) glideBy(sx, { left: dx });
   }
 }
 
@@ -159,7 +216,10 @@ function focusables(root: ParentNode): HTMLElement[] {
 function show(el: HTMLElement, first: boolean) {
   el.focus({ preventScroll: true });
   // Première rangée : on remonte tout en haut, pour revoir le bandeau du titre.
-  if (first) el.closest<HTMLElement>("[data-nav-rows]")?.closest(".content")?.scrollTo({ top: 0, behavior: "smooth" });
+  if (first) {
+    const page = el.closest<HTMLElement>("[data-nav-rows]")?.closest<HTMLElement>(".content");
+    if (page) glideTo(page, { top: 0 });
+  }
   else reveal(el, { center: true });
 }
 
@@ -301,7 +361,7 @@ export function moveFocus(dir: Dir): boolean {
   // ce qui n'a rien à sélectionner (bandeau des statistiques…), avant de quitter le contenu.
   const content = document.querySelector<HTMLElement>(".content");
   if (dir === "ArrowUp" && current && content?.contains(current) && content.scrollTop > 0 && (!target || !content.contains(target))) {
-    content.scrollTo({ top: 0, behavior: "smooth" });
+    glideTo(content, { top: 0 });
     return true;
   }
   if (!target) return false;

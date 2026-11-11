@@ -1,6 +1,6 @@
 <script lang="ts">
   import { menuable } from "../lib/longpress";
-  import { focusTabs, moveFocus, reveal } from "../lib/spatial";
+  import { focusTabs, glideTo, moveFocus, reveal } from "../lib/spatial";
   import type { TvCard } from "../lib/tvcards";
   import Icon from "./Icon.svelte";
   import TvArt from "./TvArt.svelte";
@@ -31,7 +31,8 @@
 
   /** Première rangée : la page remonte tout en haut (titre et onglets visibles) ; sinon la case se centre. */
   function show(el: HTMLElement, i: number) {
-    if (i < columns) root?.closest(".content")?.scrollTo({ top: 0, behavior: "smooth" });
+    const page = root?.closest<HTMLElement>(".content");
+    if (i < columns) page && glideTo(page, { top: 0 });
     else reveal(el, { center: true });
   }
 

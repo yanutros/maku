@@ -97,3 +97,35 @@ test("bibliothèque : ranger les titres affichés dans une collection ordinaire 
   await fenêtre.getByText("Soirées d'été").click();
   await expect(page.getByText("20 titres ajoutés à « Soirées d'été »")).toBeVisible();
 });
+
+test("bibliothèque TV : appuis rapides vers le bas, la grille glisse en continu jusqu'à la case visée", async ({ page }, info) => {
+  test.skip(appareil(info) !== "tv", "navigation à la télécommande");
+  await ouvrir(page, info, "films");
+  await page.getByRole("tab", { name: "Bibliothèque" }).click();
+  await page.locator("[data-index='0']").focus();
+  // Relevé du défilement à chaque image pendant une rafale d'appuis (un toutes les 50 ms, comme une flèche maintenue).
+  await page.evaluate(() => {
+    const el = document.querySelector<HTMLElement>(".content")!;
+    const w = window as unknown as { __pos: number[] };
+    w.__pos = [];
+    const t0 = performance.now();
+    const loop = () => {
+      w.__pos.push(el.scrollTop);
+      if (performance.now() - t0 < 1500) requestAnimationFrame(loop);
+    };
+    requestAnimationFrame(loop);
+  });
+  for (let i = 0; i < 3; i++) {
+    await page.keyboard.press("ArrowDown");
+    await page.waitForTimeout(50);
+  }
+  await page.waitForTimeout(1500);
+  const pos = await page.evaluate(() => (window as unknown as { __pos: number[] }).__pos);
+  // Jamais de recul (une animation relancée repartait de sa position de départ).
+  for (let i = 1; i < pos.length; i++) expect(pos[i]).toBeGreaterThanOrEqual(pos[i - 1] - 1);
+  expect(pos[pos.length - 1]).toBeGreaterThan(0);
+  const box = await page.locator(":focus").boundingBox();
+  const vh = page.viewportSize()!.height;
+  expect(box!.y).toBeGreaterThanOrEqual(0);
+  expect(box!.y + box!.height).toBeLessThanOrEqual(vh);
+});
