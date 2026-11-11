@@ -100,6 +100,19 @@ export interface Item {
   lastPlayed?: number | null;
 }
 
+/** Filtres et tris d'une bibliothèque, comme dans Plex Web. */
+export interface SectionFilters {
+  /** `boolean` : à cocher (non vus, en cours, HDR…) ; sinon une valeur à choisir (genre, année…). */
+  filters: { id: string; title: string; boolean: boolean }[];
+  /** `desc` : l'ordre va d'abord du plus grand au plus petit (année, date d'ajout…). */
+  sorts: { key: string; title: string; desc: boolean }[];
+}
+
+export interface FilterValue {
+  id: string;
+  title: string;
+}
+
 export interface Track {
   id: number;
   label: string;
@@ -422,7 +435,11 @@ export const api = {
     kind: number | null = null,
     genre: string | null = null,
     sort: string | null = null,
-  ) => invoke<Page>("plex_section_items", { key, start, size, kind, genre, sort }),
+    filters: [string, string][] | null = null,
+  ) => invoke<Page>("plex_section_items", { key, start, size, kind, genre, sort, filters }),
+  /** Filtres et tris d'une bibliothèque de films (`kind` « movie ») ou de séries (« show »). */
+  sectionFilters: (key: string, kind: string) => invoke<SectionFilters>("plex_section_filters", { key, kind }),
+  filterValues: (key: string, kind: string, filter: string) => invoke<FilterValue[]>("plex_filter_values", { key, kind, filter }),
   genres: (key: string) => invoke<Genre[]>("plex_genres", { key }),
   sectionHubs: (key: string) => invoke<Hub[]>("plex_section_hubs", { key }),
   playlists: (key: string) => invoke<Item[]>("plex_playlists", { key }),

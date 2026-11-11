@@ -68,7 +68,8 @@
     else if (e.key === "ArrowUp") {
       if (index < columns) {
         e.preventDefault();
-        if (!focusTabs()) moveFocus("ArrowUp");
+        // Une barre au-dessus de la grille (filtre et tri de la bibliothèque) d'abord, puis les onglets.
+        if (document.querySelector("main [data-grid-bar]") || !focusTabs()) moveFocus("ArrowUp");
         return;
       }
       next = index - columns;

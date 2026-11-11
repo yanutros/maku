@@ -9,7 +9,7 @@ use reqwest::header::{HeaderMap, HeaderValue};
 use reqwest::{Client, RequestBuilder};
 use serde::Deserialize;
 
-use crate::plex::{Marker, PRODUCT, Section, TrailerSource};
+use crate::plex::{FilterField, FilterValue, Marker, PRODUCT, Section, SectionFilters, SortField, TrailerSource};
 
 /// En-tête d'authentification de Jellyfin : l'application, l'appareil et, une fois connecté, le jeton.
 fn authorization(client_id: &str, token: Option<&str>) -> String {
@@ -419,6 +419,7 @@ impl JellyfinServer {
         kind: Option<u32>,
         genre: Option<&str>,
         sort: Option<&str>,
+        filters: &[(String, String)],
     ) -> Result<Page> {
         let types = match kind {
             Some(8) => "MusicArtist",
@@ -431,13 +432,20 @@ impl JellyfinServer {
             "addedAt" => ("DateCreated", ""),
             "lastViewedAt" => ("DatePlayed", "&IsPlayed=true"),
             "viewCount" => ("PlayCount", ""),
-            "originallyAvailableAt" | "year" => ("PremiereDate", ""),
-            "rating" | "audienceRating" => ("CommunityRating", ""),
+            "originallyAvailableAt" => ("PremiereDate", ""),
+            "year" => ("ProductionYear,SortName", ""),
+            "rating" => ("CriticRating", ""),
+            "audienceRating" => ("CommunityRating", ""),
+            "contentRating" => ("OfficialRating", ""),
+            "duration" => ("Runtime", ""),
             "random" => ("Random", ""),
             _ => ("SortName", ""),
         };
         let order = if order == "desc" { "Descending" } else { "Ascending" };
-        let genre = genre.map(|g| format!("&GenreIds={g}")).unwrap_or_default();
+        let mut genre = genre.map(|g| format!("&GenreIds={g}")).unwrap_or_default();
+        for (name, value) in filters {
+            genre.push_str(&jellyfin_filter(name, value));
+        }
         let v = self
             .json(&format!(
                 "/Users/{}/Items?ParentId={key}&Recursive=true&IncludeItemTypes={types}&StartIndex={start}&Limit={size}&SortBy={by}&SortOrder={order}{extra}{genre}&{FIELDS}",
@@ -446,6 +454,70 @@ impl JellyfinServer {
             .await?;
         let items = v["Items"].as_array().cloned().unwrap_or_default().iter().map(|i| self.to_item(i)).collect();
         Ok(Page { items, total: v["TotalRecordCount"].as_u64().unwrap_or(0) as u32 })
+    }
+
+    /// Filtres et tris d'une bibliothèque, avec les noms de ceux de Plex (l'interface les traduit).
+    pub async fn section_filters(&self, _key: &str, _kind: &str) -> Result<SectionFilters> {
+        let field = |id: &str, boolean| FilterField { id: id.into(), title: id.into(), boolean };
+        let sort = |key: &str, desc| SortField { key: key.into(), title: key.into(), desc };
+        Ok(SectionFilters {
+            filters: vec![
+                field("unwatched", true),
+                field("inProgress", true),
+                field("favorite", true),
+                field("genre", false),
+                field("year", false),
+                field("decade", false),
+                field("contentRating", false),
+                field("studio", false),
+                field("label", false),
+            ],
+            sorts: vec![
+                sort("titleSort", false),
+                sort("year", true),
+                sort("originallyAvailableAt", true),
+                sort("rating", true),
+                sort("audienceRating", true),
+                sort("contentRating", false),
+                sort("duration", true),
+                sort("viewCount", true),
+                sort("addedAt", true),
+                sort("lastViewedAt", true),
+                sort("random", false),
+            ],
+        })
+    }
+
+    /// Valeurs d'un filtre, tirées des titres de la bibliothèque.
+    pub async fn filter_values(&self, key: &str, kind: &str, filter: &str) -> Result<Vec<FilterValue>> {
+        let types = if kind == "show" { "Series" } else { "Movie" };
+        if filter == "studio" {
+            let v = self.json(&format!("/Studios?ParentId={key}&UserId={}&IncludeItemTypes={types}&Recursive=true", self.uid())).await?;
+            let list = v["Items"].as_array().cloned().unwrap_or_default();
+            return Ok(list
+                .iter()
+                .map(|s| FilterValue { id: str_of(&s["Id"]).unwrap_or_default(), title: str_of(&s["Name"]).unwrap_or_default() })
+                .collect());
+        }
+        let v = self.json(&format!("/Items/Filters?UserId={}&ParentId={key}&IncludeItemTypes={types}", self.uid())).await?;
+        let names = |field: &str| -> Vec<String> {
+            v[field].as_array().map(|l| l.iter().filter_map(|x| x.as_str().map(String::from).or_else(|| x.as_u64().map(|n| n.to_string()))).collect()).unwrap_or_default()
+        };
+        let same = |list: Vec<String>| list.into_iter().map(|n| FilterValue { id: n.clone(), title: n }).collect();
+        let mut years: Vec<u32> = names("Years").iter().filter_map(|y| y.parse().ok()).collect();
+        years.sort_unstable_by(|a, b| b.cmp(a));
+        Ok(match filter {
+            "genre" => same(names("Genres")),
+            "contentRating" => same(names("OfficialRatings")),
+            "label" => same(names("Tags")),
+            "year" => same(years.iter().map(u32::to_string).collect()),
+            "decade" => {
+                let mut decades: Vec<u32> = years.iter().map(|y| y / 10 * 10).collect();
+                decades.dedup();
+                decades.into_iter().map(|d| FilterValue { id: d.to_string(), title: format!("{d}s") }).collect()
+            }
+            _ => Vec::new(),
+        })
     }
 
     /// Rangées d'une bibliothèque, comme celles de Plex.
@@ -485,7 +557,7 @@ impl JellyfinServer {
         let list = v["Items"].as_array().cloned().unwrap_or_default();
         let out = futures::future::join_all(list.iter().map(|g| async move {
             let id = g["Id"].as_str().unwrap_or_default().to_string();
-            let page = self.section_items(key, 0, 4, None, Some(&id), Some("rating:desc")).await.ok()?;
+            let page = self.section_items(key, 0, 4, None, Some(&id), Some("audienceRating:desc"), &[]).await.ok()?;
             (page.total > 0).then(|| Genre {
                 id: id.clone(),
                 title: g["Name"].as_str().unwrap_or_default().into(),
@@ -1125,5 +1197,22 @@ mod tests {
         assert!(h.contains_key("Authorization"));
         assert!(h.contains_key("X-Emby-Authorization"));
         assert_eq!(h["X-Emby-Token"], "tok");
+    }
+}
+
+/// Un filtre de l'onglet Bibliothèque (noms de Plex) traduit en paramètre de Jellyfin.
+fn jellyfin_filter(name: &str, value: &str) -> String {
+    let v = urlencoding::encode(value);
+    match name {
+        "unwatched" => "&IsPlayed=false".into(),
+        "inProgress" => "&Filters=IsResumable".into(),
+        "favorite" => "&Filters=IsFavorite".into(),
+        "genre" => format!("&Genres={v}"),
+        "year" => format!("&Years={v}"),
+        "decade" => value.parse::<u32>().map(|d| format!("&Years={}", (d..d + 10).map(|y| y.to_string()).collect::<Vec<_>>().join(","))).unwrap_or_default(),
+        "contentRating" => format!("&OfficialRatings={v}"),
+        "studio" => format!("&StudioIds={v}"),
+        "label" => format!("&Tags={v}"),
+        _ => String::new(),
     }
 }

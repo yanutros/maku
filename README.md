@@ -98,6 +98,10 @@ visionnage. Tout se fait avec son compte Plex (ou Jellyfin) : aucune clé d'API 
       <h4>🗂️ Il range par catégories</h4>
       Chaque genre devient une grande carte colorée avec un éventail des affiches les mieux notées. Un clic
       filtre la bibliothèque.
+      Comme dans Plex, l'onglet **Bibliothèque** des films et des séries a son menu **Tout** (non vus, en cours,
+      HDR, sans correspondance… ou une valeur : genre, année, décennie, acteur, réalisateur, studio…) et son menu
+      de **tri** (titre, année, date de sortie, notes, durée, date d'ajout, au hasard…), croissant ou décroissant ;
+      le choix est gardé pour la visite suivante. La liste des filtres est celle que propose le serveur.
       Les bibliothèques de films ont aussi leurs **collections** (sagas, univers…) : chacune ouvre sa page, avec
       ses films dans l'ordre de sortie et un bouton qui lance le premier pas encore vu.
     </td>

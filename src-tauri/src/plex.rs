@@ -878,6 +878,45 @@ pub struct Adjacent {
     pub next: Option<String>,
 }
 
+/// Filtres et tris proposés pour une bibliothèque (menus « Tout » et « Par … » de l'onglet Bibliothèque).
+#[derive(Serialize, Default)]
+pub struct SectionFilters {
+    pub filters: Vec<FilterField>,
+    pub sorts: Vec<SortField>,
+}
+
+/// Un filtre : à cocher (`boolean` : non vus, en cours, HDR…) ou à choisir parmi des valeurs (genre, année…).
+#[derive(Serialize)]
+pub struct FilterField {
+    pub id: String,
+    pub title: String,
+    pub boolean: bool,
+}
+
+/// Un ordre de tri, et s'il se fait d'abord du plus grand au plus petit (année, date d'ajout…).
+#[derive(Serialize)]
+pub struct SortField {
+    pub key: String,
+    pub title: String,
+    pub desc: bool,
+}
+
+#[derive(Serialize)]
+pub struct FilterValue {
+    pub id: String,
+    pub title: String,
+}
+
+/// Nom de filtre ou de tri sûr à placer dans une adresse (lettres, chiffres, point).
+pub(crate) fn filter_name_ok(name: &str) -> bool {
+    !name.is_empty() && name.chars().all(|c| c.is_ascii_alphanumeric() || c == '.')
+}
+
+/// Type Plex d'une bibliothèque vidéo : 1 films, 2 séries.
+fn plex_type(kind: &str) -> u32 {
+    if kind == "show" { 2 } else { 1 }
+}
+
 /// Genre d'une bibliothèque, avec quelques affiches pour l'illustrer.
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -1180,7 +1219,8 @@ impl PlexServer {
     }
 
     /// Contenu d'une bibliothèque. `kind` filtre le type (9 = albums dans une bibliothèque musicale),
-    /// `genre` l'identifiant d'un genre, `sort` l'ordre Plex (par ex. « addedAt:desc », titre par défaut).
+    /// `genre` l'identifiant d'un genre, `sort` l'ordre Plex (par ex. « addedAt:desc », titre par défaut),
+    /// `filters` les filtres choisis (« unwatched » = « 1 », « year » = « 1999 »…, voir `section_filters`).
     pub async fn section_items(
         &self,
         key: &str,
@@ -1189,11 +1229,15 @@ impl PlexServer {
         kind: Option<u32>,
         genre: Option<&str>,
         sort: Option<&str>,
+        filters: &[(String, String)],
     ) -> Result<Page> {
         let sort = sort.filter(|s| s.chars().all(|c| c.is_ascii_alphanumeric() || c == ':')).unwrap_or("titleSort");
         let mut filter = kind.map(|k| format!("&type={k}")).unwrap_or_default();
         if let Some(g) = genre {
             filter.push_str(&format!("&genre={}", urlencoding::encode(g)));
+        }
+        for (name, value) in filters.iter().filter(|(n, _)| filter_name_ok(n)) {
+            filter.push_str(&format!("&{name}={}", urlencoding::encode(value)));
         }
         let c = self
             .container(&format!(
@@ -1202,6 +1246,54 @@ impl PlexServer {
             .await?;
         let total = c.total_size.unwrap_or(c.metadata.len() as u32);
         Ok(Page { items: self.to_items(c.metadata), total })
+    }
+
+    /// Filtres et tris d'une bibliothèque de films ou de séries, tels que le serveur les propose
+    /// (ceux de Plex Web : non vus, en cours, HDR…, genre, année, acteur…, et les ordres possibles).
+    pub async fn section_filters(&self, key: &str, kind: &str) -> Result<SectionFilters> {
+        let ty = plex_type(kind);
+        let v: serde_json::Value = self
+            .get(&format!("/library/sections/{key}/all?type={ty}&includeMeta=1&X-Plex-Container-Start=0&X-Plex-Container-Size=0"))
+            .send()
+            .await?
+            .error_for_status()?
+            .json()
+            .await?;
+        let types = v["MediaContainer"]["Meta"]["Type"].as_array().cloned().unwrap_or_default();
+        let meta = types.iter().find(|t| t["type"].as_str() == Some(kind)).or(types.first()).cloned().unwrap_or_default();
+        let text = |v: &serde_json::Value| v.as_str().unwrap_or_default().to_string();
+        let filters = meta["Filter"]
+            .as_array()
+            .map(|l| {
+                l.iter()
+                    .filter(|f| filter_name_ok(f["filter"].as_str().unwrap_or_default()))
+                    .map(|f| FilterField { id: text(&f["filter"]), title: text(&f["title"]), boolean: f["filterType"].as_str() == Some("boolean") })
+                    .collect()
+            })
+            .unwrap_or_default();
+        let sorts = meta["Sort"]
+            .as_array()
+            .map(|l| {
+                l.iter()
+                    .filter(|s| filter_name_ok(s["key"].as_str().unwrap_or_default()))
+                    .map(|s| SortField {
+                        key: text(&s["key"]),
+                        title: text(&s["title"]),
+                        desc: s["defaultDirection"].as_str().or(s["default"].as_str()) == Some("desc"),
+                    })
+                    .collect()
+            })
+            .unwrap_or_default();
+        Ok(SectionFilters { filters, sorts })
+    }
+
+    /// Valeurs possibles d'un filtre (les genres, les années, les acteurs… présents dans la bibliothèque).
+    pub async fn filter_values(&self, key: &str, kind: &str, filter: &str) -> Result<Vec<FilterValue>> {
+        if !filter_name_ok(filter) {
+            bail!("filtre inconnu");
+        }
+        let c = self.container(&format!("/library/sections/{key}/{filter}?type={}", plex_type(kind))).await?;
+        Ok(c.directory.into_iter().map(|d| FilterValue { id: d.key, title: d.title }).collect())
     }
 
     /// Films et séries d'une personne (acteur) dans toutes les bibliothèques vidéo du serveur.

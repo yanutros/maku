@@ -17,6 +17,8 @@
   import { device } from "../lib/device";
   import { fromItem, type TvCard } from "../lib/tvcards";
   import { t } from "../lib/i18n";
+  import LibraryFilters from "../components/LibraryFilters.svelte";
+  import { loadView, saveView, viewFilters, viewSort } from "../lib/libraryView.svelte";
 
   let {
     sectionKey,
@@ -107,6 +109,12 @@
   let loading = $state(false);
   let genre = $state<Genre | null>(null);
   let sentinel = $state<HTMLElement>();
+  // Filtre et tri (films et séries), gardés pour la prochaine visite. Chaque changement repart de zéro :
+  // `generation` écarte une page arrivée pour l'ancien choix.
+  const filterable = $derived(kind === "movie" || kind === "show");
+  // svelte-ignore state_referenced_locally
+  let view = $state(loadView(sectionKey));
+  let generation = 0;
 
   // --- Collections ---
   let collections = $state<Item[] | null>(null);
@@ -145,23 +153,35 @@
   async function loadMore() {
     if (tab !== "library" || loading || (total && items.length >= total)) return;
     loading = true;
-    const forGenre = genre?.id ?? null;
+    const forGeneration = generation;
+    const filters = filterable ? viewFilters(view) : [];
     try {
-      const page = await api.sectionItems(sectionKey, items.length, PAGE_SIZE, null, forGenre);
-      if ((genre?.id ?? null) !== forGenre) return;
+      const page = await api.sectionItems(sectionKey, items.length, PAGE_SIZE, null, genre?.id ?? null, filterable ? viewSort(view) : null, filters);
+      if (forGeneration !== generation) return;
       items.push(...page.items);
       total = page.total;
     } catch (e) {
-      error = errorText(e);
+      if (forGeneration === generation) error = errorText(e);
     } finally {
-      loading = false;
+      if (forGeneration === generation) loading = false;
     }
   }
 
   function resetLibrary() {
+    generation++;
     items = [];
     total = 0;
     loading = false;
+  }
+
+  /** Nouveau filtre ou nouvel ordre : la liste repart du début. */
+  function changeView() {
+    saveView(sectionKey, view);
+    resetLibrary();
+    error = null;
+    if (memo) memo.loaded = 0;
+    document.querySelector(".content")?.scrollTo({ top: 0 });
+    loadMore();
   }
 
   // Téléviseur : l'onglet s'ouvre dès qu'on y arrive avec les flèches, sans appuyer sur OK. Un court
@@ -318,6 +338,10 @@
       {@render tvHead()}
       {#if error}<p class="error">{error}</p>{/if}
       {#if tab === "library"}
+        <!-- Sur sa propre ligne : à droite des onglets, on ne l'atteindrait pas (un onglet s'ouvre dès qu'on y passe). -->
+        {#if filterable}
+          <div class="tv-bar" data-grid-bar><LibraryFilters {sectionKey} {kind} bind:view onchange={changeView} /></div>
+        {/if}
         <TvGrid cards={tvItems} onEnd={loadMore} initialKey={initialFocus} />
       {:else if tab === "collections"}
         <TvGrid cards={tvCollections} initialKey={initialFocus} />
@@ -366,6 +390,9 @@
       {/each}
     {/if}
   {:else if tab === "library"}
+    {#if filterable}
+      <LibraryFilters {sectionKey} {kind} bind:view onchange={changeView} />
+    {/if}
     {#if genre}
       <div class="filter">
         <span>{t("library.genreFilter")} <strong>{genreLabel(genre.title)}</strong></span>
@@ -411,6 +438,10 @@
     margin: 0;
     font-size: 26px;
     font-weight: 800;
+  }
+
+  .tv-bar {
+    margin: -6px 0 20px;
   }
 
   .tv-filter {

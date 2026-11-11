@@ -469,11 +469,45 @@ function handle(cmd: string, a: Args): unknown {
         const g = genres(a.key).find((x) => x.id === a.genre);
         list = list.filter((m) => g && m.genres.includes(g.title));
       }
+      // Filtres et tri de l'onglet Bibliothèque (une partie de ceux de Plex, pour les captures et les tests).
+      for (const [name, value] of (a.filters ?? []) as [string, string][]) {
+        if (name === "unwatched") list = list.filter((m) => !m.watched);
+        else if (name === "inProgress") list = list.filter((m) => m.viewOffsetMs);
+        else if (name === "genre") list = list.filter((m) => m.genres.includes(value));
+        else if (name === "year") list = list.filter((m) => String(m.year) === value);
+      }
+      const [by, dir] = String(a.sort ?? "").split(":");
+      const sortValue = (m: Item) => (by === "year" ? (m.year ?? 0) : by === "audienceRating" ? (m.rating ?? 0) : m.title);
+      if (["titleSort", "year", "audienceRating"].includes(by)) list = [...list].sort((x, y) => {
+        const p = sortValue(x);
+        const q = sortValue(y);
+        const c = typeof p === "number" && typeof q === "number" ? p - q : String(p).localeCompare(String(q));
+        return dir === "desc" ? -c : c;
+      });
       const all = [...list, ...list.map((m) => ({ ...m, ratingKey: m.ratingKey + "b" }))];
       return { items: a.start ? [] : all, total: all.length };
     }
     case "plex_genres":
       return genres(a.key);
+    case "plex_section_filters":
+      return {
+        filters: [
+          { id: "unwatched", title: "Unwatched", boolean: true },
+          { id: "inProgress", title: "In Progress", boolean: true },
+          { id: "genre", title: "Genre", boolean: false },
+          { id: "year", title: "Year", boolean: false },
+        ],
+        sorts: [
+          { key: "titleSort", title: "Title", desc: false },
+          { key: "year", title: "Year", desc: true },
+          { key: "audienceRating", title: "Audience Rating", desc: true },
+        ],
+      };
+    case "plex_filter_values": {
+      const pool = a.key === "2" ? shows : movies;
+      const names = a.filter === "year" ? [...new Set(pool.map((m) => String(m.year)))].sort().reverse() : [...new Set(pool.flatMap((m) => m.genres))].sort();
+      return names.map((n) => ({ id: n, title: n }));
+    }
     case "plex_playlists":
       return playlists;
     case "plex_metadata":

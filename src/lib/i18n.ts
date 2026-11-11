@@ -58,7 +58,7 @@ function lookup(dict: Dict, key: string): string | undefined {
   return typeof node === "string" ? node : undefined;
 }
 
-function find(key: string): string | undefined {
+export function find(key: string): string | undefined {
   return lookup(DICTS[language], key) ?? lookup(DICTS.en, key) ?? lookup(DICTS.fr, key);
 }
 

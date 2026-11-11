@@ -698,11 +698,24 @@ async fn plex_section_items(
     kind: Option<u32>,
     genre: Option<String>,
     sort: Option<String>,
+    filters: Option<Vec<(String, String)>>,
 ) -> CmdResult<Page> {
     Ok(state
         .server()?
-        .section_items(&key, start, size, kind, genre.as_deref(), sort.as_deref())
+        .section_items(&key, start, size, kind, genre.as_deref(), sort.as_deref(), &filters.unwrap_or_default())
         .await?)
+}
+
+/// Filtres et tris proposés pour une bibliothèque de films ou de séries.
+#[tauri::command]
+async fn plex_section_filters(state: State<'_, AppState>, key: String, kind: String) -> CmdResult<plex::SectionFilters> {
+    Ok(state.server()?.section_filters(&key, &kind).await?)
+}
+
+/// Valeurs possibles d'un filtre (genres, années, acteurs…) dans une bibliothèque.
+#[tauri::command]
+async fn plex_filter_values(state: State<'_, AppState>, key: String, kind: String, filter: String) -> CmdResult<Vec<plex::FilterValue>> {
+    Ok(state.server()?.filter_values(&key, &kind, &filter).await?)
 }
 
 #[tauri::command]
@@ -2021,6 +2034,8 @@ pub fn run() {
             plex_select_server,
             plex_sections,
             plex_section_items,
+            plex_section_filters,
+            plex_filter_values,
             plex_section_hubs,
             plex_genres,
             plex_adjacent,
