@@ -13,7 +13,7 @@
   import Icon from "../components/Icon.svelte";
   import TvRows from "../components/TvRows.svelte";
   import TvGrid from "../components/TvGrid.svelte";
-  import { keepTabFocus } from "../lib/spatial";
+  import { glideTo, keepTabFocus } from "../lib/spatial";
   import { device } from "../lib/device";
   import { fromItem, type TvCard } from "../lib/tvcards";
   import { t } from "../lib/i18n";
@@ -128,6 +128,40 @@
 
   // --- Collections ---
   let collections = $state<Item[] | null>(null);
+
+  // Bandeau des lettres (ordinateur), comme dans Plex : « # » puis A à Z ; une lettre sans collection est éteinte,
+  // les autres mènent à la première collection qui commence par elle (accents et chiffres compris).
+  const LETTERS = ["#", ..."ABCDEFGHIJKLMNOPQRSTUVWXYZ"];
+  const letterOf = (title: string) => {
+    const c = title.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().charAt(0).toUpperCase();
+    return c >= "A" && c <= "Z" ? c : "#";
+  };
+  const firstByLetter = $derived.by(() => {
+    const map = new Map<string, string>();
+    for (const c of collections ?? []) {
+      const l = letterOf(c.title);
+      if (!map.has(l)) map.set(l, c.ratingKey);
+    }
+    return map;
+  });
+  const showLetters = $derived(!device.tv && !device.mobile && !device.phone && (collections?.length ?? 0) > 0);
+
+  // Avec le bandeau des lettres, la barre de défilement de la page disparaît (elle se superposait au bandeau).
+  $effect(() => {
+    const page = document.querySelector<HTMLElement>(".content");
+    const hide = showLetters && tab === "collections";
+    page?.classList.toggle("no-scrollbar", hide);
+    return () => page?.classList.remove("no-scrollbar");
+  });
+
+  function jumpTo(letter: string) {
+    const key = firstByLetter.get(letter);
+    const card = key ? [...document.querySelectorAll<HTMLElement>("[data-key]")].find((el) => el.dataset.key === key) : null;
+    const page = document.querySelector<HTMLElement>(".content");
+    if (!card || !page) return;
+    // La rangée vient en haut, sous l'en-tête qui flotte au-dessus du contenu.
+    glideTo(page, { top: page.scrollTop + card.getBoundingClientRect().top - page.getBoundingClientRect().top - 84 });
+  }
 
   // --- Catégories ---
   let genres = $state<Genre[] | null>(null);
@@ -439,9 +473,16 @@
     {:else if !collections.length}
       <p class="muted">{t("library.noCollections")}</p>
     {:else}
-      <div class="grid">
+      <div class="grid" class:lettered={showLetters}>
         {#each collections as item (item.ratingKey)}<PosterCard {item} />{/each}
       </div>
+      {#if showLetters}
+        <nav class="letters" aria-label={t("library.letters")}>
+          {#each LETTERS as l (l)}
+            <button disabled={!firstByLetter.has(l)} onclick={() => jumpTo(l)}>{l}</button>
+          {/each}
+        </nav>
+      {/if}
     {/if}
   {:else if !genres}
     <div class="categories">
@@ -568,6 +609,50 @@
   .tile-skeleton {
     aspect-ratio: 16 / 9;
     border-radius: 18px;
+  }
+
+  /* Lettres collées au bord droit, sur toute la hauteur utile, comme dans Plex. */
+  .letters {
+    position: fixed;
+    top: 50%;
+    right: 10px;
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    padding: 6px 2px;
+    border-radius: 12px;
+    background: #0008;
+    backdrop-filter: blur(10px);
+    transform: translateY(-50%);
+  }
+
+  .letters button {
+    width: 24px;
+    height: min(22px, calc((100vh - 220px) / 27));
+    padding: 0;
+    border: none;
+    border-radius: 6px;
+    background: none;
+    color: var(--text-dim);
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .letters button:hover:not(:disabled) {
+    background: var(--accent);
+    color: var(--accent-text);
+  }
+
+  .letters button:disabled {
+    color: var(--text-faint);
+    opacity: 0.4;
+  }
+
+  /* La grille laisse la place du bandeau. */
+  .grid.lettered {
+    margin-right: 28px;
   }
 
   .sentinel {

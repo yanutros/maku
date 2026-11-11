@@ -443,7 +443,8 @@
     "collectionMenu": {
       "title": "Collection",
       "addAll": "Add to collection…"
-    }
+    },
+    "letters": "Jump to letter"
   },
   "music": {
     "library": {

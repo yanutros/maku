@@ -293,6 +293,15 @@ html.phone .grid {
   gap: 18px 10px;
 }
 
+/* Page sans barre de défilement visible (onglet Collections, où le bandeau des lettres la remplace). */
+.content.no-scrollbar {
+  scrollbar-width: none;
+}
+
+.content.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 /* Android : pas de rectangle bleu au toucher (il ignore les coins arrondis des boutons). */
 html {
   -webkit-tap-highlight-color: transparent;

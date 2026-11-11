@@ -158,3 +158,17 @@ test("collection : ordre personnalisé en glissant les jaquettes, conversion d'u
   await page.goBack();
   await expect(page.getByRole("tab", { name: "Collections" })).toHaveAttribute("aria-selected", "true");
 });
+
+test("collections : bandeau des lettres sur ordinateur (lettres sans collection éteintes), absent sur TV et téléphone", async ({ page }, info) => {
+  await ouvrir(page, info, "films");
+  await page.getByRole("tab", { name: "Collections" }).first().click();
+  const lettres = page.locator(".letters button");
+  if (appareil(info) === "tv" || appareil(info) === "telephone") {
+    await expect(page.locator(".grid, [data-key]").first()).toBeVisible();
+    await expect(lettres).toHaveCount(0);
+    return;
+  }
+  await expect(lettres).toHaveCount(27);
+  // Démo : « Science-fiction » et « Soirées d'été », toutes deux en S.
+  await expect(page.locator(".letters button:not(:disabled)")).toHaveText(["S"]);
+});

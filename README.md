@@ -111,7 +111,8 @@ visionnage. Tout se fait avec son compte Plex (ou Jellyfin) : aucune clé d'API 
       Sur la page d'une collection, la **roue dentée** de l'administrateur règle son **ordre** (date de sortie, alphabétique ou
       **personnalisé**, en glissant les jaquettes — une saga dans l'ordre de son histoire) ; une collection intelligente
       peut être **convertie en collection ordinaire** pour la ranger ainsi (elle ne se remplit alors plus seule).
-      Les bibliothèques de films ont aussi leurs **collections** (sagas, univers…) : chacune ouvre sa page, avec
+      Les bibliothèques de films ont aussi leurs **collections** (sagas, univers…), avec sur ordinateur le bandeau des
+      lettres de Plex pour y sauter : chacune ouvre sa page, avec
       ses films dans l'ordre de sortie et un bouton qui lance le premier pas encore vu.
     </td>
     <td valign="top">
