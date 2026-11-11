@@ -254,7 +254,11 @@
     "seerrUnavailable": "Seerr niet beschikbaar: {{error}}",
     "settings": "Instellingen",
     "searchingSeerr": "Zoeken in Seerr…",
-    "nothingElse": "Verder niets om aan te vragen."
+    "nothingElse": "Verder niets om aan te vragen.",
+    "movies": "Films",
+    "shows": "Series",
+    "music": "Muziek",
+    "other": "Overig"
   },
   "discover": {
     "title": "Ontdekken",

@@ -145,7 +145,8 @@ visionnage. Tout se fait avec son compte Plex (ou Jellyfin) : aucune clé d'API 
     <td valign="top">
       <h4>🔍 Il trouve tout</h4>
       Une seule recherche pour les films, séries et artistes de la bibliothèque, puis les titres absents
-      que l'on peut demander. Un acteur, sur une fiche, ouvre tous ses films et séries du serveur.
+      que l'on peut demander, rangés par type : une rangée Films, une Séries, une Musique (seulement celles qui ont des
+      résultats). Un acteur, sur une fiche, ouvre tous ses films et séries du serveur.
     </td>
     <td valign="top">
       <h4>🔑 Il se connecte avec Plex</h4>

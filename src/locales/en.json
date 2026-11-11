@@ -254,7 +254,11 @@
     "seerrUnavailable": "Seerr unavailable: {{error}}",
     "settings": "Settings",
     "searchingSeerr": "Searching Seerr…",
-    "nothingElse": "Nothing else to request."
+    "nothingElse": "Nothing else to request.",
+    "movies": "Movies",
+    "shows": "Shows",
+    "music": "Music",
+    "other": "Other"
   },
   "discover": {
     "title": "Discover",
