@@ -77,20 +77,57 @@
     return h ? `${h}:${String(m).padStart(2, "0")}:${sec}` : `${m}:${sec}`;
   }
 
-  // Les contrôles s'effacent après 3 s sans mouvement, sauf en pause ou menu ouvert.
+  /*
+   * Comme dans Plex, les commandes s'effacent pour laisser toute la place à l'image :
+   * - pendant la lecture, après 4 s sans bouger la souris ni toucher la télécommande ;
+   * - en pause, sur ordinateur et téléphone, elles restent tant que la souris est dans la fenêtre (elles partent
+   *   quand elle en sort) ; à la télécommande, elles partent après 8 s sans rien toucher (le temps d'aller
+   *   chercher à boire, l'image reste seule).
+   * Jamais avec un menu ouvert, pendant qu'on glisse la tête de lecture, ni avec une fenêtre mpv séparée (cette
+   * page lui sert alors de télécommande).
+   */
+  const HIDE_PLAYING = 4000;
+  const HIDE_PAUSED_TV = 8000;
+
+  function canHide() {
+    return !menu && !dragging && player.embedded;
+  }
+
   function poke() {
     visible = true;
     clearTimeout(hideTimer);
+    if (player.paused && !device.tv) return;
     hideTimer = setTimeout(() => {
-      // Avec une fenêtre mpv séparée, cette page sert de télécommande : elle reste affichée.
-      if (!player.paused && !menu && !dragging && player.embedded) visible = false;
-    }, 3000);
+      if (canHide()) visible = false;
+    }, player.paused ? HIDE_PAUSED_TV : HIDE_PLAYING);
   }
 
+  /** Ordinateur : la souris sort de la fenêtre, les commandes partent aussitôt (en pause comme en lecture). */
+  function onPointerLeave(e: PointerEvent) {
+    if (device.tv || e.pointerType === "touch") return;
+    clearTimeout(hideTimer);
+    if (canHide()) visible = false;
+  }
+
+  // Pause ou reprise : les commandes reviennent, puis repartent selon le nouvel état.
   $effect(() => {
-    if (player.paused) visible = true;
-    else poke();
+    void player.paused;
+    poke();
   });
+
+  /**
+   * Télécommande, commandes effacées : le premier appui (OK ou une flèche) ne fait que les réafficher, comme dans
+   * Plex. OK ne met donc pas en pause par surprise, et l'on voit le temps restant sans arrêter le film. Le bouton
+   * « Passer » (intro, générique), lui, reste à un seul OK.
+   */
+  function onKeyCapture(e: KeyboardEvent) {
+    if (!device.tv || visible || player.endScreen) return;
+    if (e.key !== "Enter" && e.key !== " " && !e.key.startsWith("Arrow")) return;
+    if (skipEl && document.activeElement === skipEl && e.key === "Enter") return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    poke();
+  }
 
   async function toggleFullscreen() {
     try {
@@ -290,10 +327,10 @@
   });
 </script>
 
-<svelte:window onkeydown={onKey} />
+<svelte:window onkeydown={onKey} onkeydowncapture={onKeyCapture} />
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="overlay" class:hidden={!visible} style:--controls="{controlsHeight}px" class:remote={!player.embedded} class:web={player.web && !player.native} class:loading={!player.web && player.embedded && !player.videoReady} onpointermove={poke}>
+<div class="overlay" class:hidden={!visible} style:--controls="{controlsHeight}px" class:remote={!player.embedded} class:web={player.web && !player.native} class:loading={!player.web && player.embedded && !player.videoReady} onpointermove={poke} onpointerleave={onPointerLeave}>
   <!-- Android : la vidéo est dessinée sous la page par le lecteur natif ; sinon par cet élément. -->
   {#if player.web && !player.native}
     <!-- svelte-ignore a11y_media_has_caption -->

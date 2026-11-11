@@ -1,4 +1,4 @@
-// Lecteur vidéo : lecture / pause à la taille des autres boutons ; sur TV, pas de boutons du haut.
+// Lecteur vidéo : bouton lecture / pause, boutons du haut sur TV, et commandes qui s'effacent comme dans Plex.
 import { expect, test } from "@playwright/test";
 import { appareil, ouvrir } from "./outils";
 
@@ -15,4 +15,42 @@ test("TV : pas de boutons retour, volume ni plein écran en haut", async ({ page
   await ouvrir(page, info, "lecteur");
   await expect(page.locator(".overlay .icon-btn.main")).toBeVisible();
   await expect(page.locator(".overlay .top")).toHaveCount(0);
+});
+
+test("ordinateur : en pause, les commandes partent quand la souris sort de la fenêtre", async ({ page }, info) => {
+  test.skip(appareil(info) === "tv" || appareil(info) === "telephone", "souris");
+  await ouvrir(page, info, "lecteur"); // la démo est en pause
+  const overlay = page.locator(".overlay");
+  await page.mouse.move(400, 300);
+  await expect(overlay).not.toHaveClass(/hidden/);
+  await overlay.dispatchEvent("pointerleave", { pointerType: "mouse" });
+  await expect(overlay).toHaveClass(/hidden/);
+  // La souris revient : les commandes aussi.
+  await page.mouse.move(420, 320);
+  await expect(overlay).not.toHaveClass(/hidden/);
+});
+
+test("TV : en pause, les commandes partent seules ; le premier OK ne fait que les réafficher", async ({ page }, info) => {
+  test.skip(appareil(info) !== "tv", "télécommande");
+  await ouvrir(page, info, "lecteur"); // la démo est en pause
+  const overlay = page.locator(".overlay");
+  await expect(overlay).toHaveClass(/hidden/, { timeout: 12000 });
+  const avant = await page.evaluate(() => document.activeElement?.className ?? "");
+  // Chaque commande envoyée au lecteur (la démo n'a pas mpv) : le premier OK n'en envoie aucune.
+  await page.evaluate(() => {
+    const w = window as unknown as { __TAURI_INTERNALS__: { invoke: (c: string, a: unknown, o: unknown) => Promise<unknown> }; sent: unknown[] };
+    const invoke = w.__TAURI_INTERNALS__.invoke;
+    w.sent = [];
+    w.__TAURI_INTERNALS__.invoke = (c, a, o) => {
+      if (c === "player_command") w.sent.push(a);
+      return invoke(c, a, o);
+    };
+  });
+  await page.keyboard.press("Enter");
+  await expect(overlay).not.toHaveClass(/hidden/);
+  expect(await page.evaluate(() => (window as unknown as { sent: unknown[] }).sent.length), "OK a mis en pause ou en lecture").toBe(0);
+  expect(await page.evaluate(() => document.activeElement?.className ?? "")).toBe(avant);
+  // Commandes affichées : OK agit de nouveau sur le bouton sélectionné.
+  await page.keyboard.press("Enter");
+  await expect.poll(() => page.evaluate(() => (window as unknown as { sent: unknown[] }).sent.length)).toBeGreaterThan(0);
 });

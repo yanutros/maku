@@ -54,7 +54,8 @@ visionnage. Tout se fait avec son compte Plex (ou Jellyfin) : aucune clé d'API 
       <h4>🎬 Il lit tout, dans sa propre fenêtre</h4>
       Vidéo intégrée, qui s'ouvre sur un fond noir jusqu'à sa première image, avec des commandes façon Apple TV : une capsule translucide qui flotte en bas de l'image
       (titre, pistes audio et sous-titres en cours, progression, temps restant, ±10 s, épisode précédent et
-      suivant, arrêt), retour, volume et plein écran en boutons ronds dans les coins, raccourcis clavier. Reprise là où
+      suivant, arrêt), retour, volume et plein écran en boutons ronds dans les coins, raccourcis clavier. Comme dans
+      Plex, les commandes s'effacent après 4 s sans bouger la souris, et en pause quand la souris sort de la fenêtre. Reprise là où
       vous vous étiez arrêté. Qualité au choix, comme dans Plex : le fichier d'origine, ou une conversion par le
       serveur de 20 Mb/s en 1080p à 1,5 Mb/s en 480p, retenue pour les vidéos suivantes et visible telle quelle
       dans Tautulli et Tracearr. Un film en plusieurs versions (4K, 1080p…) se choisit sur sa fiche, avec ses
@@ -551,7 +552,9 @@ toute seule. Ce mode est aussi proposé sur ordinateur et tablette (**Avec un co
 
 Les flèches déplacent la sélection (entourée en doré), toujours visible en entier avec son cadre, à distance des bords de l'écran, comme dans Plex et Wholphin. **OK** ouvre ou lance, **Retour** ferme ce qui est ouvert
 puis revient à la page précédente. Sur « Continuer à regarder », OK ouvre la fiche (la saison, pour un épisode) avec **Reprendre** déjà sélectionné : un second OK relance la lecture. Une fenêtre qui s'ouvre prend la sélection (dès l'ouverture pour une demande Seerr, à la première flèche pour les autres), et les flèches y restent jusqu'à sa fermeture. Pendant une
-vidéo, les touches lecture / pause et suivant / précédent de la télécommande fonctionnent. Les champs de saisie
+vidéo, les commandes s'effacent après 4 s (8 s en pause) ; comme dans Plex, le premier OK (ou la première flèche) ne fait
+que les réafficher, sans mettre en pause : on voit le temps restant sans arrêter le film. Les touches lecture / pause et
+suivant / précédent de la télécommande fonctionnent. Les champs de saisie
 (connexion, réglages, recherche) se traversent aux flèches sans ouvrir le clavier : **OK** l'ouvre.
 Les onglets du haut des bibliothèques (films, séries, musique) s'ouvrent dès qu'on y arrive avec les flèches,
 sans appuyer sur OK.

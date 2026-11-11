@@ -21,8 +21,9 @@ async function start() {
   setupBackButton();
   // Sur téléviseur, les flèches de la télécommande déplacent le focus d'un élément à l'autre.
   if (device.tv) {
-    // Le menu d'un titre (TvMenu) gère lui-même ses flèches.
-    enableSpatialNavigation(() => !!document.querySelector(".tv-menu"));
+    // Le menu d'un titre (TvMenu) gère lui-même ses flèches ; le lecteur vidéo aussi quand ses commandes sont
+    // effacées (la première flèche ne fait que les réafficher).
+    enableSpatialNavigation(() => !!document.querySelector(".tv-menu, .overlay.hidden"));
     (await import("./lib/longpress")).enableLongPress();
     (await import("./lib/sidebar.svelte")).collapseForTv();
   }
