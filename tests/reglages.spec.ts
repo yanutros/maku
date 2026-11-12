@@ -2,7 +2,7 @@
 import { expect, test } from "@playwright/test";
 import { appareil, ouvrir, selectionVisible, touche } from "./outils";
 
-const RUBRIQUES = ["Compte", "Lecteur", "Interface", "Services", "Réglages du serveur"];
+const RUBRIQUES = ["Compte", "Lecteur", "Interface", "Services"];
 
 test("aucune case à cocher : des interrupteurs partout", async ({ page }, info) => {
   test.skip(appareil(info) === "tv", "les rubriques s'ouvrent au clic : ordinateur, téléphone");

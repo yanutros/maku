@@ -392,7 +392,42 @@ export interface Pref {
   options: [string, string][];
 }
 
+/** Compte du serveur dans les statistiques. */
+export interface StatAccount {
+  id: number;
+  name: string;
+  thumb: string | null;
+}
+
+export interface Bandwidth {
+  points: { at: number; lan: boolean; bytes: number; accountId: number }[];
+  accounts: StatAccount[];
+}
+
+/** Lectures d'un compte pendant un intervalle : `kind` 1 film, 4 épisode, 10 titre, 13 photo ; durée en secondes. */
+export interface MediaStats {
+  entries: { at: number; accountId: number; kind: number; count: number; duration: number }[];
+  accounts: StatAccount[];
+}
+
+export interface PlayHistory {
+  entries: {
+    ratingKey: string;
+    kind: string;
+    title: string;
+    grandparentKey: string | null;
+    grandparentTitle: string | null;
+    poster: string | null;
+    grandparentPoster: string | null;
+    accountId: number;
+    viewedAt: number;
+  }[];
+  accounts: StatAccount[];
+}
+
 export interface ServerSession {
+  /** Identifiant de la session (pour l'arrêter). */
+  sessionId: string;
   user: string;
   userThumb: string | null;
   title: string;
@@ -522,6 +557,13 @@ export const api = {
   prefs: () => invoke<Pref[]>("plex_prefs"),
   setPrefs: (changes: Record<string, string>) => invoke<void>("plex_set_prefs", { changes }),
   sessions: () => invoke<ServerSession[]>("plex_sessions"),
+  /** Arrête une lecture en cours, avec un message pour celui qui regarde (Plex Pass). */
+  stopSession: (sessionId: string, reason: string) => invoke<void>("plex_stop_session", { sessionId, reason }),
+  /** Débit du serveur : `timespan` 6 secondes, 4 heures, 3 jours ; depuis `since` (secondes). */
+  bandwidth: (timespan: number, since: number) => invoke<Bandwidth>("plex_bandwidth", { timespan, since }),
+  /** Lectures par compte et par type : `timespan` 3 jours, 2 semaines, 1 mois. */
+  mediaStats: (timespan: number, since: number) => invoke<MediaStats>("plex_media_stats", { timespan, since }),
+  history: (since: number) => invoke<PlayHistory>("plex_history", { since }),
   scanSection: (key: string) => invoke<void>("plex_scan_section", { key }),
   emptyTrash: (key: string) => invoke<void>("plex_empty_trash", { key }),
 

@@ -750,6 +750,30 @@ async fn plex_create_collection_with(state: State<'_, AppState>, key: String, ki
     Ok(state.admin_plex().await?.create_collection_with(&key, &kind, &title, &keys).await?)
 }
 
+/// Débit du serveur (administrateur) : `timespan` 6 secondes, 4 heures, 3 jours, 2 semaines ; depuis `since`.
+#[tauri::command]
+async fn plex_bandwidth(state: State<'_, AppState>, timespan: u32, since: i64) -> CmdResult<plex_admin::Bandwidth> {
+    Ok(state.admin_plex().await?.bandwidth(timespan, since).await?)
+}
+
+/// Lectures par compte et par type (administrateur).
+#[tauri::command]
+async fn plex_media_stats(state: State<'_, AppState>, timespan: u32, since: i64) -> CmdResult<plex_admin::MediaStats> {
+    Ok(state.admin_plex().await?.media_stats(timespan, since).await?)
+}
+
+/// Historique des lectures de tous les comptes (administrateur).
+#[tauri::command]
+async fn plex_history(state: State<'_, AppState>, since: i64) -> CmdResult<plex_admin::History> {
+    Ok(state.admin_plex().await?.history(since).await?)
+}
+
+/// Arrête une lecture en cours avec un message (administrateur, Plex Pass).
+#[tauri::command]
+async fn plex_stop_session(state: State<'_, AppState>, session_id: String, reason: String) -> CmdResult<()> {
+    Ok(state.admin_plex().await?.stop_session(&session_id, &reason).await?)
+}
+
 /// Ordre d'une collection ordinaire (administrateur) : 0 date de sortie, 1 alphabétique, 2 personnalisé.
 #[tauri::command]
 async fn plex_set_collection_sort(state: State<'_, AppState>, rating_key: String, sort: u32) -> CmdResult<()> {
@@ -2130,6 +2154,10 @@ pub fn run() {
             plex_update_smart_collection,
             plex_smart_collection,
             plex_set_collection_sort,
+            plex_bandwidth,
+            plex_media_stats,
+            plex_history,
+            plex_stop_session,
             plex_move_in_collection,
             plex_convert_collection,
             plex_add_many_to_collection,

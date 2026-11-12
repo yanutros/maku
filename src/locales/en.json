@@ -805,7 +805,40 @@
     "scan": "Scan for new files",
     "trashEmptied": "Trash of “{{title}}” emptied",
     "emptyTrashHint": "Removes items whose file is gone",
-    "emptyTrash": "Empty trash"
+    "emptyTrash": "Empty trash",
+    "stop": "Stop playback",
+    "stopTitle": "Stop “{{title}}”",
+    "stopQuestion": "Stop {{user}}'s playback?",
+    "stopMessage": "Message for {{user}}",
+    "stopPlaceholder": "E.g. the server restarts in 5 minutes",
+    "stopConfirm": "Stop",
+    "stopped": "{{user}}'s playback stopped",
+    "bandwidthTitle": "Bandwidth",
+    "remoteSeries": "Remote",
+    "localSeries": "Local",
+    "allUsers": "All users",
+    "unknownUser": "User",
+    "period": "Period",
+    "live": "Real time",
+    "last24h": "Last 24 hours",
+    "last7d": "Last 7 days",
+    "last30d": "Last 30 days",
+    "last12m": "Last 12 months",
+    "average": "Averages: remote {{remote}} · local {{local}}",
+    "topUsers": "Top users",
+    "plays_one": "{{count}} play",
+    "plays_other": "{{count}} plays",
+    "movies": "Movies",
+    "tv": "TV",
+    "music": "Music",
+    "photos": "Photos",
+    "history": "Play history",
+    "mostPlayed": "Most played",
+    "artists": "Artists",
+    "users_one": "{{count}} user",
+    "users_other": "{{count}} users",
+    "noData": "Nothing in this period.",
+    "statsUnavailable": "Statistics unavailable: {{error}}"
   },
   "serverPrefs": {
     "saved": "Server settings saved",
@@ -835,7 +868,8 @@
     "discover": "Discover",
     "stats": "My stats",
     "settings": "Settings",
-    "switchUser": "Switch user"
+    "switchUser": "Switch user",
+    "admin": "Admin"
   },
   "trackGrid": {
     "previous": "Previous",
@@ -1071,5 +1105,9 @@
     "eyebrow": "Mix · kept for 2 days",
     "openTitle": "See the tracks of the mix {{names}}",
     "gone": "This mix is gone: it disappears two days after it was last played."
+  },
+  "admin": {
+    "dashboard": "Dashboard",
+    "serverSettings": "Server settings"
   }
 }

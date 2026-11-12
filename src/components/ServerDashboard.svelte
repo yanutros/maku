@@ -3,6 +3,7 @@
   import { api, errorText, formatClock, type Section, type ServerSession } from "../lib/api";
   import { toast } from "../lib/nav.svelte";
   import Icon from "./Icon.svelte";
+  import ServerStats from "./ServerStats.svelte";
   import { t } from "../lib/i18n";
 
   // Tableau de bord du serveur : lectures en cours de tous les utilisateurs et entretien des bibliothèques.
@@ -26,6 +27,28 @@
       toast(done);
     } catch (e) {
       toast(errorText(e), true);
+    }
+  }
+
+  // « Arrêter la lecture », comme dans Plex : un message s'affiche chez celui qui regarde (Plex Pass).
+  let stopping = $state<ServerSession | null>(null);
+  let reason = $state("");
+  let stopBusy = $state(false);
+
+  async function stopSession() {
+    const s = stopping;
+    if (!s) return;
+    stopBusy = true;
+    try {
+      await api.stopSession(s.sessionId, reason.trim());
+      toast(t("dashboard.stopped", { user: s.user }));
+      stopping = null;
+      reason = "";
+      setTimeout(load, 1500);
+    } catch (e) {
+      toast(errorText(e), true);
+    } finally {
+      stopBusy = false;
     }
   }
 
@@ -66,11 +89,16 @@
               {#if s.bandwidthKbps}· {t("dashboard.bandwidth", { rate: (s.bandwidthKbps / 1000).toFixed(1) })}{/if}
             </span>
           </div>
+          {#if s.sessionId}
+            <button class="btn stop" onclick={() => ((stopping = s), (reason = ""))}><Icon name="x" size={15} /> {t("dashboard.stop")}</button>
+          {/if}
         </div>
       </div>
     {/each}
   </div>
 {/if}
+
+<ServerStats />
 
 <h3 class="sub">{t("dashboard.libraries")}</h3>
 <div class="libs">
@@ -88,7 +116,100 @@
   {/each}
 </div>
 
+{#if stopping}
+  <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+  <div class="stop-backdrop" onclick={() => (stopping = null)}></div>
+  <div class="stop-dialog" role="dialog" aria-modal="true" aria-label={t("dashboard.stopTitle", { title: stopping.title })}>
+    <h3>{t("dashboard.stopTitle", { title: stopping.title })}</h3>
+    <div class="stop-who">
+      {#if stopping.userThumb}<img class="avatar big" src={stopping.userThumb} alt="" />{/if}
+      <p>{t("dashboard.stopQuestion", { user: stopping.user })}</p>
+    </div>
+    <label class="stop-label" for="stop-reason">{t("dashboard.stopMessage", { user: stopping.user })}</label>
+    <textarea id="stop-reason" bind:value={reason} rows="3" maxlength="300" placeholder={t("dashboard.stopPlaceholder")}></textarea>
+    <div class="stop-actions">
+      <button class="btn" onclick={() => (stopping = null)}>{t("common.c1.cancel")}</button>
+      <button class="btn primary" disabled={stopBusy} onclick={stopSession}>{t("dashboard.stopConfirm")}</button>
+    </div>
+  </div>
+{/if}
+
 <style>
+  .btn.stop {
+    justify-self: start;
+    margin-top: 8px;
+    background: #c0392b33;
+    color: #ff8a80;
+  }
+
+  .btn.stop:hover {
+    background: #c0392b;
+    color: #fff;
+  }
+
+  .stop-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 70;
+    background: #000a;
+  }
+
+  .stop-dialog {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    z-index: 71;
+    display: grid;
+    gap: 12px;
+    width: min(480px, calc(100vw - 32px));
+    padding: 22px;
+    border: 1px solid #ffffff1a;
+    border-radius: 18px;
+    background: #1c1e23f7;
+    box-shadow: 0 24px 60px #000c;
+    transform: translate(-50%, -50%);
+  }
+
+  .stop-dialog h3 {
+    margin: 0;
+    font-size: 19px;
+  }
+
+  .stop-who {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .stop-who p {
+    margin: 0;
+  }
+
+  .avatar.big {
+    width: 56px;
+    height: 56px;
+  }
+
+  .stop-label {
+    color: var(--text-dim);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  textarea {
+    resize: vertical;
+    padding: 10px 12px;
+    font: inherit;
+  }
+
+  .stop-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
   .sub {
     margin: 8px 0 14px;
     font-size: 17px;

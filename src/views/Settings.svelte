@@ -12,7 +12,7 @@
   import KofiLogo from "../components/KofiLogo.svelte";
   import RatingLogo from "../components/RatingLogo.svelte";
   import { applyInvite, decodeInvite, encodeInvite, readQrImage, type InviteStatus } from "../lib/invite";
-  import { api, errorText, tracearrLogin, type Account, type HomeUser, type Pref, type Section, type ServerKinds, type Session } from "../lib/api";
+  import { api, errorText, tracearrLogin, type Account, type HomeUser, type Section, type ServerKinds, type Session } from "../lib/api";
   import { go, nav, toast } from "../lib/nav.svelte";
   import { ordered, saveSidebar, sidebar } from "../lib/sidebar.svelte";
   import { device } from "../lib/device";
@@ -23,30 +23,15 @@
   import { applyTheme, savedTheme, THEME_COLORS, THEMES, type Theme } from "../lib/theme";
   import Icon, { type IconName } from "../components/Icon.svelte";
   import HomeEditor from "../components/HomeEditor.svelte";
-  import ServerPrefs from "../components/ServerPrefs.svelte";
-  import ServerUsers from "../components/ServerUsers.svelte";
-  import ServerDashboard from "../components/ServerDashboard.svelte";
   import { LANGUAGES, savedLanguage, setLanguage, t } from "../lib/i18n";
 
   let { session, onChange, initialPage }: { session: Session; onChange: () => void; initialPage?: string } = $props();
 
-  // Rubriques de Maku, puis celles du serveur Plex (administrateur seulement), comme dans Plex Web.
-  const GROUPS: Record<string, { label: string; icon: IconName }> = {
-    general: { label: t("settings.groups.general"), icon: "sliders" },
-    library: { label: t("settings.groups.library"), icon: "film" },
-    network: { label: t("settings.groups.network"), icon: "compass" },
-    transcoder: { label: t("settings.groups.transcoder"), icon: "play" },
-    dlna: { label: t("settings.groups.dlna"), icon: "tv" },
-    extras: { label: t("settings.groups.extras"), icon: "star" },
-    butler: { label: t("settings.groups.butler"), icon: "clock" },
-  };
-
-  // Anciennes adresses des rubriques du serveur (une par rubrique) : elles ouvrent l'onglet correspondant.
+  // Rubriques de Maku. Les réglages du serveur Plex sont dans la catégorie Admin du menu (ordinateur).
+  // Les anciennes adresses de leurs rubriques ouvrent le compte.
+  const SERVER_PAGES = ["server", "dashboard", "general", "library", "network", "transcoder", "dlna", "extras", "butler"];
   // svelte-ignore state_referenced_locally
-  const legacy = initialPage && (initialPage === "dashboard" || initialPage in GROUPS) ? initialPage : null;
-  // svelte-ignore state_referenced_locally
-  let page = $state(legacy ? "server" : (initialPage ?? "account"));
-  let serverTab = $state(legacy ?? "dashboard");
+  let page = $state(initialPage && !SERVER_PAGES.includes(initialPage) ? initialPage : "account");
 
   /** QR code déplié sous sa ligne (journal, clé TMDB, configuration rapide, Ko-fi) : un seul à la fois. */
   let qr = $state<string | null>(null);
@@ -77,13 +62,6 @@
   }
   const KOFI = "https://ko-fi.com/yanutros";
   let account = $state<Account | null>(null);
-  let prefs = $state<Pref[] | null>(null);
-  let prefsError = $state<string | null>(null);
-  let advanced = $state(false);
-
-  const groups = $derived(
-    Object.keys(GROUPS).filter((g) => prefs?.some((p) => p.group === g)),
-  );
 
   // Champs éditables, initialisés une fois depuis la session.
   let seerrUrl = $state("");
@@ -141,15 +119,6 @@
     tmdbKey = key;
     const ok = await saveTmdb();
     api.relayStatus(ok ? { step: "done" } : { step: "error", error: tmdbError }, true).catch(() => {});
-  }
-
-  async function loadPrefs() {
-    try {
-      prefs = await api.prefs();
-      prefsError = null;
-    } catch (e) {
-      prefsError = errorText(e);
-    }
   }
 
   async function saveSeerr() {
@@ -470,7 +439,6 @@
       api.homeUsers().then((h) => ((homeUsers = h.users), (homeCurrent = h.current)), () => {});
     }
     if (device.tv) api.sections().then((s) => (sections = s), () => {});
-    if (nav.admin) loadPrefs();
     // Relais Maku Server : ses adresses remplissent les champs vides (et Seerr se connecte avec Plex).
     api.relayDiscover().then((r) => {
       if (!r) return;
@@ -508,12 +476,6 @@
     {@render link("interface", t("settings.menu.interface"), "menu")}
     {@render link("services", t("settings.menu.services"), "compass")}
 
-    <div class="menu-group">{t("settings.menu.server", { name: session.serverName ?? "" })}</div>
-    {#if nav.admin}
-      {@render link("server", t("settings.menu.serverSettings"), "server")}
-    {:else}
-      <p class="locked"><Icon name="lock" size={14} /> {t("settings.menu.locked")}</p>
-    {/if}
   </nav>
 
   <!-- `data-nav-lines` : haut / bas passent par chaque ligne, dans l'ordre (télécommande). -->
@@ -964,29 +926,6 @@
           {/if}
         </section>
       {/if}
-    {:else if page === "server" && nav.admin}
-      <h1 class="title">{t("settings.menu.serverSettings")}</h1>
-      <!-- Réglages du serveur Plex, comme dans Plex Web : un onglet par rubrique, au lieu de neuf entrées dans le rail. -->
-      <div class="server-tabs">
-        {#each [{ id: "dashboard", label: t("settings.menu.dashboard") }, ...(session.serverKind === "plex" ? [{ id: "users", label: t("settings.users.title") }] : []), ...groups.map((g) => ({ id: g, label: GROUPS[g].label }))] as tab (tab.id)}
-          <button class="btn" class:primary={serverTab === tab.id} aria-pressed={serverTab === tab.id} onclick={() => (serverTab = tab.id)}>{tab.label}</button>
-        {/each}
-      </div>
-      {#if serverTab === "dashboard"}
-        <ServerDashboard />
-      {:else if serverTab === "users"}
-        <ServerUsers />
-      {:else if prefsError}
-        <p class="error">{prefsError}</p>
-      {:else if !prefs}
-        <div class="skeleton" style:height="300px"></div>
-      {:else}
-        <label class="switch-line adv-line">
-          <span><strong>{t("settings.menu.advanced")}</strong></span>
-          <input type="checkbox" class="switch" bind:checked={advanced} />
-        </label>
-        <ServerPrefs prefs={prefs.filter((p) => p.group === serverTab)} {advanced} onSaved={loadPrefs} />
-      {/if}
     {/if}
   </div>
 </div>
@@ -1321,19 +1260,6 @@
     gap: 8px;
   }
 
-  .server-tabs {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    max-width: 900px;
-    margin-bottom: 20px;
-  }
-
-  .adv-line {
-    max-width: 720px;
-    margin-bottom: 16px;
-  }
-
   /* ---------- Téléviseur : rail plus grand, la rubrique ouverte bien marquée ---------- */
 
   :global(html.tv) .settings {
@@ -1535,22 +1461,6 @@
     background: var(--accent);
     color: var(--accent-text);
   }
-
-  .switch-line {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 20px;
-    color: var(--text);
-    font-size: 14px;
-    cursor: pointer;
-  }
-
-  .switch-line span {
-    display: grid;
-    gap: 2px;
-  }
-
 
   /* ---------- Téléphone : rubriques en bande défilante, contenu en pleine largeur ---------- */
 

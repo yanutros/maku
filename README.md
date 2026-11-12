@@ -633,15 +633,18 @@ la fiche et de marquer un titre comme vu ou non vu (« non vu » remet aussi à 
 ### 🖥️ Réglages du serveur Plex
 
 **Réglages** se présente en rail et panneau, comme Netflix et Wholphin : à gauche les rubriques de Maku (Compte,
-avec son en-tête de profil aux couleurs du thème ; Lecteur ; Interface ; Services : Seerr, Tracearr et TMDB) et, pour
-l'administrateur du serveur, **Réglages du serveur** ; à droite, une ligne par réglage (son nom, une phrase
-d'explication, sa commande : interrupteur, choix ou bouton). Sur téléviseur, la rubrique s'ouvre au passage des
-flèches, droite entre dans le panneau, gauche revient au rail ; les QR codes (journal, clé TMDB, configuration
-rapide, Ko-fi) s'affichent à la demande. **Réglages du serveur** reprend ceux de Plex en onglets : **Tableau de bord**
-(lectures en cours de tous les utilisateurs, recherche de nouveaux fichiers et corbeille de chaque bibliothèque),
-**Utilisateurs**, puis **Général, Bibliothèque, Réseau, Transcodeur, DLNA, Bonus et Tâches planifiées**. Les réglages avancés
-s'affichent sur demande. Un utilisateur
-partagé ne voit pas cette partie : Plex la lui refuserait de toute façon.
+avec son en-tête de profil aux couleurs du thème ; Lecteur ; Interface ; Services : Seerr, Tracearr et TMDB) ; à
+droite, une ligne par réglage (son nom, une phrase d'explication, sa commande : interrupteur, choix ou bouton). Sur
+téléviseur, la rubrique s'ouvre au passage des flèches, droite entre dans le panneau, gauche revient au rail ; les QR
+codes (journal, clé TMDB, configuration rapide, Ko-fi) s'affichent à la demande.
+
+L'administrateur du serveur a, sur ordinateur, une catégorie **Admin** dans le menu de gauche, avec la barre de
+sections des bibliothèques : **Dashboard** (**Tableau de bord** comme celui de Plex : lectures en cours de tous les
+utilisateurs, que l'on peut **arrêter avec un message** (Plex Pass) ; **débit** en temps réel ou sur 24 heures / 30 jours,
+distant et local ; **top des utilisateurs** ; **historique de lecture** par type ; **les plus lus** (films, séries,
+artistes) ; recherche de nouveaux fichiers et corbeille de chaque bibliothèque — puis **Utilisateurs**) et **Réglages serveur**
+(**Général, Bibliothèque, Réseau, Transcodeur, DLNA, Bonus et Tâches planifiées**, les réglages avancés sur
+demande). Un utilisateur partagé ne la voit pas : Plex la lui refuserait de toute façon.
 
 **Utilisateurs** reprend « Gérer l'accès à la bibliothèque » de Plex : la liste des comptes avec qui le serveur est
 partagé à gauche, la fiche du compte choisi à droite, en trois onglets. **Bibliothèques** : un interrupteur par

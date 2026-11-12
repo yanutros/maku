@@ -160,6 +160,8 @@ pub struct Pref {
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ServerSession {
+    /// Identifiant de la session de lecture (pour l'arrêter).
+    pub session_id: String,
     pub user: String,
     pub user_thumb: Option<String>,
     pub title: String,
@@ -174,7 +176,164 @@ pub struct ServerSession {
     pub bandwidth_kbps: Option<u64>,
 }
 
+/// Compte du serveur, tel que les statistiques le désignent (`accountID`).
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StatAccount {
+    pub id: i64,
+    pub name: String,
+    pub thumb: Option<String>,
+}
+
+/// Débit : octets envoyés pendant un intervalle (`at` : sa fin, en secondes), en local ou à distance.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BandwidthPoint {
+    pub at: i64,
+    pub lan: bool,
+    pub bytes: u64,
+    pub account_id: i64,
+}
+
+#[derive(Serialize)]
+pub struct Bandwidth {
+    pub points: Vec<BandwidthPoint>,
+    pub accounts: Vec<StatAccount>,
+}
+
+/// Lectures d'un compte pendant un intervalle, par type (1 film, 4 épisode, 10 titre, 13 photo) ; durée en secondes.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MediaStat {
+    pub at: i64,
+    pub account_id: i64,
+    pub kind: u32,
+    pub count: u64,
+    pub duration: u64,
+}
+
+#[derive(Serialize)]
+pub struct MediaStats {
+    pub entries: Vec<MediaStat>,
+    pub accounts: Vec<StatAccount>,
+}
+
+/// Une lecture de l'historique du serveur (film, épisode, titre…), pour « Les plus lus ».
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HistoryEntry {
+    pub rating_key: String,
+    pub kind: String,
+    pub title: String,
+    /// Série (épisode) ou artiste (titre).
+    pub grandparent_key: Option<String>,
+    pub grandparent_title: Option<String>,
+    pub poster: Option<String>,
+    pub grandparent_poster: Option<String>,
+    pub account_id: i64,
+    pub viewed_at: i64,
+}
+
+#[derive(Serialize)]
+pub struct History {
+    pub entries: Vec<HistoryEntry>,
+    pub accounts: Vec<StatAccount>,
+}
+
 impl PlexServer {
+    /// Comptes d'une réponse de statistiques (`Account`), ou de `/accounts`.
+    fn stat_accounts(&self, v: &Value) -> Vec<StatAccount> {
+        v["MediaContainer"]["Account"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(|a| {
+                let id = a["id"].as_i64()?;
+                let thumb = a["thumb"].as_str().filter(|t| !t.is_empty()).map(|t| if t.starts_with('/') { self.image(t, 96, 96) } else { t.to_owned() });
+                Some(StatAccount { id, name: text(&a["name"]), thumb })
+            })
+            .collect()
+    }
+
+    /// Débit du serveur depuis `since` (secondes depuis 1970). `timespan` : 6 secondes, 4 heures, 3 jours, 2 semaines.
+    pub async fn bandwidth(&self, timespan: u32, since: i64) -> Result<Bandwidth> {
+        let v = self.json(Method::GET, &format!("/statistics/bandwidth?timespan={timespan}&at%3E={since}")).await?;
+        let points = v["MediaContainer"]["StatisticsBandwidth"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .map(|p| BandwidthPoint {
+                at: p["at"].as_i64().unwrap_or(0),
+                lan: p["lan"].as_bool().unwrap_or(false) || p["lan"].as_i64() == Some(1),
+                bytes: p["bytes"].as_u64().unwrap_or(0),
+                account_id: p["accountID"].as_i64().unwrap_or(0),
+            })
+            .collect();
+        Ok(Bandwidth { points, accounts: self.stat_accounts(&v) })
+    }
+
+    /// Lectures par compte et par type depuis `since` (même `timespan` que le débit).
+    pub async fn media_stats(&self, timespan: u32, since: i64) -> Result<MediaStats> {
+        let v = self.json(Method::GET, &format!("/statistics/media?timespan={timespan}&at%3E={since}")).await?;
+        let entries = v["MediaContainer"]["StatisticsMedia"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .map(|m| MediaStat {
+                at: m["at"].as_i64().unwrap_or(0),
+                account_id: m["accountID"].as_i64().unwrap_or(0),
+                kind: m["metadataType"].as_u64().unwrap_or(0) as u32,
+                count: m["count"].as_u64().unwrap_or(0),
+                duration: m["duration"].as_u64().unwrap_or(0),
+            })
+            .collect();
+        Ok(MediaStats { entries, accounts: self.stat_accounts(&v) })
+    }
+
+    /// Historique des lectures de tous les comptes depuis `since` (au plus 5 000).
+    pub async fn history(&self, since: i64) -> Result<History> {
+        let v = self
+            .json(
+                Method::GET,
+                &format!("/status/sessions/history/all?sort=viewedAt:desc&viewedAt%3E={since}&X-Plex-Container-Start=0&X-Plex-Container-Size=5000"),
+            )
+            .await?;
+        let img = |p: &Value| p.as_str().filter(|p| p.starts_with('/')).map(|p| self.image(p, 120, 180));
+        let entries = v["MediaContainer"]["Metadata"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .map(|m| HistoryEntry {
+                rating_key: text(&m["ratingKey"]),
+                kind: text(&m["type"]),
+                title: text(&m["title"]),
+                grandparent_key: m["grandparentRatingKey"]
+                    .as_str()
+                    .map(str::to_owned)
+                    .or_else(|| m["grandparentKey"].as_str().and_then(|k| k.rsplit('/').next()).map(str::to_owned)),
+                grandparent_title: m["grandparentTitle"].as_str().map(str::to_owned),
+                poster: img(&m["thumb"]),
+                grandparent_poster: img(&m["grandparentThumb"]),
+                account_id: m["accountID"].as_i64().unwrap_or(0),
+                viewed_at: m["viewedAt"].as_i64().unwrap_or(0),
+            })
+            .collect();
+        let accounts = self.json(Method::GET, "/accounts").await.map(|a| self.stat_accounts(&a)).unwrap_or_default();
+        Ok(History { entries, accounts })
+    }
+
+    /// Arrête une lecture en cours, avec un message pour celui qui regarde (Plex Pass).
+    pub async fn stop_session(&self, session_id: &str, reason: &str) -> Result<()> {
+        if session_id.is_empty() || !session_id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') {
+            bail!(crate::i18n::tr_with("admin.notFound", &[("id", session_id)]));
+        }
+        self.send(
+            Method::GET,
+            &format!("/status/sessions/terminate?sessionId={session_id}&reason={}", urlencoding::encode(reason)),
+        )
+        .await
+    }
+
     async fn json(&self, method: Method, path: &str) -> Result<Value> {
         let resp = self.request(method, path).send().await?;
         match resp.status() {
@@ -510,6 +669,7 @@ impl PlexServer {
                 let video = m["TranscodeSession"]["videoDecision"].as_str();
                 let audio = m["TranscodeSession"]["audioDecision"].as_str();
                 ServerSession {
+                    session_id: text(&m["Session"]["id"]),
                     user: text(&m["User"]["title"]),
                     user_thumb: m["User"]["thumb"].as_str().map(str::to_owned),
                     title,

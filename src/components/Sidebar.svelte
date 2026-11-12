@@ -214,6 +214,18 @@
             aria-current={isActive("stats") ? "page" : undefined} onclick={() => open({ name: "stats" })} title={t("sidebar.stats")}>
       <Icon name="stats" /> <span class="label">{t("sidebar.stats")}</span>
     </button>
+    <!-- Admin : l'administrateur du serveur, sur ordinateur seulement. -->
+    {#if nav.admin && !device.tv && !device.phone && !device.mobile}
+      <div class="group"><span>{t("sidebar.admin")}</span></div>
+      <button class="item" class:active={nav.view.name === "admin" && nav.view.page === "dashboard"}
+              aria-current={nav.view.name === "admin" && nav.view.page === "dashboard" ? "page" : undefined} onclick={() => open({ name: "admin", page: "dashboard" })} title={t("admin.dashboard")}>
+        <Icon name="server" /> <span class="label">{t("admin.dashboard")}</span>
+      </button>
+      <button class="item" class:active={nav.view.name === "admin" && nav.view.page === "settings"}
+              aria-current={nav.view.name === "admin" && nav.view.page === "settings" ? "page" : undefined} onclick={() => open({ name: "admin", page: "settings" })} title={t("admin.serverSettings")}>
+        <Icon name="sliders" /> <span class="label">{t("admin.serverSettings")}</span>
+      </button>
+    {/if}
   </nav>
 
   <div class="spacer"></div>

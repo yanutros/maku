@@ -805,7 +805,40 @@
     "scan": "Zoeken naar nieuwe bestanden",
     "trashEmptied": "Prullenbak van ‘{{title}}’ geleegd",
     "emptyTrashHint": "Verwijdert items waarvan het bestand verdwenen is",
-    "emptyTrash": "Prullenbak legen"
+    "emptyTrash": "Prullenbak legen",
+    "stop": "Afspelen stoppen",
+    "stopTitle": "‘{{title}}’ stoppen",
+    "stopQuestion": "Afspelen van {{user}} stoppen?",
+    "stopMessage": "Bericht voor {{user}}",
+    "stopPlaceholder": "Bijv. de server herstart over 5 minuten",
+    "stopConfirm": "Stoppen",
+    "stopped": "Afspelen van {{user}} gestopt",
+    "bandwidthTitle": "Bandbreedte",
+    "remoteSeries": "Extern",
+    "localSeries": "Lokaal",
+    "allUsers": "Alle gebruikers",
+    "unknownUser": "Gebruiker",
+    "period": "Periode",
+    "live": "Realtime",
+    "last24h": "Laatste 24 uur",
+    "last7d": "Laatste 7 dagen",
+    "last30d": "Laatste 30 dagen",
+    "last12m": "Laatste 12 maanden",
+    "average": "Gemiddelden: extern {{remote}} · lokaal {{local}}",
+    "topUsers": "Topgebruikers",
+    "plays_one": "{{count}} keer afgespeeld",
+    "plays_other": "{{count}} keer afgespeeld",
+    "movies": "Films",
+    "tv": "Tv",
+    "music": "Muziek",
+    "photos": "Foto's",
+    "history": "Afspeelgeschiedenis",
+    "mostPlayed": "Meest afgespeeld",
+    "artists": "Artiesten",
+    "users_one": "{{count}} gebruiker",
+    "users_other": "{{count}} gebruikers",
+    "noData": "Niets in deze periode.",
+    "statsUnavailable": "Statistieken niet beschikbaar: {{error}}"
   },
   "serverPrefs": {
     "saved": "Serverinstellingen opgeslagen",
@@ -835,7 +868,8 @@
     "discover": "Ontdekken",
     "stats": "Mijn statistieken",
     "settings": "Instellingen",
-    "switchUser": "Gebruiker wisselen"
+    "switchUser": "Gebruiker wisselen",
+    "admin": "Admin"
   },
   "trackGrid": {
     "previous": "Vorige",
@@ -1071,5 +1105,9 @@
     "eyebrow": "Mix · 2 dagen bewaard",
     "openTitle": "Nummers van de mix {{names}} bekijken",
     "gone": "Deze mix bestaat niet meer: hij verdwijnt twee dagen na de laatste keer afspelen."
+  },
+  "admin": {
+    "dashboard": "Dashboard",
+    "serverSettings": "Serverinstellingen"
   }
 }

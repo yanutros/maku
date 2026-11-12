@@ -805,7 +805,40 @@
     "scan": "Rechercher les nouveaux fichiers",
     "trashEmptied": "Corbeille de « {{title}} » vidée",
     "emptyTrashHint": "Retire les éléments dont le fichier a disparu",
-    "emptyTrash": "Vider la corbeille"
+    "emptyTrash": "Vider la corbeille",
+    "stop": "Arrêter la lecture",
+    "stopTitle": "Arrêter « {{title}} »",
+    "stopQuestion": "Arrêter la lecture de {{user}} ?",
+    "stopMessage": "Message pour {{user}}",
+    "stopPlaceholder": "Ex. : le serveur redémarre dans 5 minutes",
+    "stopConfirm": "Arrêter",
+    "stopped": "Lecture de {{user}} arrêtée",
+    "bandwidthTitle": "Débit",
+    "remoteSeries": "Distant",
+    "localSeries": "Local",
+    "allUsers": "Tous les utilisateurs",
+    "unknownUser": "Utilisateur",
+    "period": "Période",
+    "live": "Temps réel",
+    "last24h": "Dernières 24 heures",
+    "last7d": "7 derniers jours",
+    "last30d": "30 derniers jours",
+    "last12m": "12 derniers mois",
+    "average": "Moyennes : distant {{remote}} · local {{local}}",
+    "topUsers": "Top des utilisateurs",
+    "plays_one": "{{count}} lecture",
+    "plays_other": "{{count}} lectures",
+    "movies": "Films",
+    "tv": "TV",
+    "music": "Musique",
+    "photos": "Photos",
+    "history": "Historique de lecture",
+    "mostPlayed": "Les plus lus",
+    "artists": "Artistes",
+    "users_one": "{{count}} utilisateur",
+    "users_other": "{{count}} utilisateurs",
+    "noData": "Rien sur cette période.",
+    "statsUnavailable": "Statistiques indisponibles : {{error}}"
   },
   "serverPrefs": {
     "saved": "Réglages du serveur enregistrés",
@@ -835,7 +868,8 @@
     "discover": "Découvrir",
     "stats": "Mes statistiques",
     "settings": "Réglages",
-    "switchUser": "Changer d'utilisateur"
+    "switchUser": "Changer d'utilisateur",
+    "admin": "Admin"
   },
   "trackGrid": {
     "previous": "Précédent",
@@ -1071,5 +1105,9 @@
     "eyebrow": "Mix · gardé 2 jours",
     "openTitle": "Voir les titres du mix {{names}}",
     "gone": "Ce mix n'existe plus : il disparaît deux jours après sa dernière écoute."
+  },
+  "admin": {
+    "dashboard": "Dashboard",
+    "serverSettings": "Réglages serveur"
   }
 }

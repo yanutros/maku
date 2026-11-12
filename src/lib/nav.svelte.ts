@@ -30,7 +30,9 @@ export type View =
   | { name: "downloads" }
   /** `seerr` : acteur connu par Seerr (TMDB) : ses films et séries, à demander, plutôt que ceux du serveur. */
   | { name: "person"; id: string; personName: string; photo: string | null; seerr?: boolean }
-  | { name: "settings"; page?: string };
+  | { name: "settings"; page?: string }
+  /** Catégorie Admin (administrateur, sur ordinateur) : Dashboard ou Réglages du serveur, et leur section. */
+  | { name: "admin"; page: "dashboard" | "settings"; tab?: string };
 
 export const nav = $state({
   view: { name: "home" } as View,

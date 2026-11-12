@@ -1,0 +1,49 @@
+// Catégorie Admin du menu : Dashboard (tableau de bord, utilisateurs) et Réglages serveur, sur ordinateur et pour
+// l'administrateur seulement, avec la barre de sections des bibliothèques.
+import { expect, test } from "@playwright/test";
+import { appareil, ouvrir } from "./outils";
+
+test("admin : Dashboard et Réglages serveur dans le menu, avec leurs sections (ordinateur, administrateur)", async ({ page }, info) => {
+  await ouvrir(page, info, "vide&admin");
+  const dashboard = page.locator("button.item", { hasText: "Dashboard" });
+  if (appareil(info) !== "pc" && appareil(info) !== "safari") {
+    await expect(page.locator("main")).toBeAttached();
+    await expect(dashboard).toHaveCount(0);
+    return;
+  }
+  await dashboard.click();
+  await expect(page.locator("h1")).toHaveText("Dashboard");
+  await expect(page.getByRole("tab", { name: "Tableau de bord" })).toHaveAttribute("aria-selected", "true");
+  await page.getByRole("tab", { name: "Utilisateurs" }).click();
+  await expect(page.getByRole("tab", { name: "Utilisateurs" })).toHaveAttribute("aria-selected", "true");
+
+  await page.locator("button.item", { hasText: "Réglages serveur" }).click();
+  await expect(page.locator("h1")).toHaveText("Réglages serveur");
+});
+
+test("admin : absent pour un utilisateur qui n'est pas administrateur, et plus dans les Réglages", async ({ page }, info) => {
+  await ouvrir(page, info, "reglages");
+  await expect(page.locator(".settings .menu")).toBeVisible();
+  await expect(page.locator("button.item", { hasText: "Dashboard" })).toHaveCount(0);
+  await expect(page.locator(".settings .menu button", { hasText: "Réglages du serveur" })).toHaveCount(0);
+});
+
+test("admin : tableau de bord — arrêter une lecture avec un message, débit, top des utilisateurs, historique, les plus lus", async ({ page }, info) => {
+  test.skip(appareil(info) !== "pc", "réservé à l'ordinateur");
+  await page.setViewportSize({ width: 1400, height: 2600 });
+  await ouvrir(page, info, "vide&admin");
+  await page.locator("button.item", { hasText: "Dashboard" }).click();
+  await page.getByRole("button", { name: "Arrêter la lecture" }).click();
+  const fenetre = page.getByRole("dialog");
+  await expect(fenetre).toContainText("Arrêter la lecture de Hugo ?");
+  await fenetre.locator("textarea").fill("Le serveur redémarre");
+  await fenetre.getByRole("button", { name: "Arrêter", exact: true }).click();
+  await expect(page.getByText("Lecture de Hugo arrêtée")).toBeVisible();
+
+  await expect(page.getByRole("heading", { name: "Débit" })).toBeVisible();
+  await expect(page.locator(".legend").first()).toContainText("Distant");
+  await expect(page.locator(".user").first()).toContainText("Camille");
+  await expect(page.getByRole("heading", { name: "Historique de lecture" })).toBeVisible();
+  await expect(page.locator(".most-col")).toHaveCount(3);
+  await page.screenshot({ path: "test-results/dashboard-admin.png", fullPage: true });
+});

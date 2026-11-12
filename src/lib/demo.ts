@@ -444,6 +444,12 @@ const dashboard: TracearrDashboard = {
   firstPlayArt: { ratingKey: movies[3].ratingKey, poster: movies[3].poster, backdrop: movies[3].backdrop },
 };
 
+// Comptes du serveur dans les statistiques de la démo.
+const demoAccounts = [
+  { id: 1, name: "Camille", thumb: avatar("Camille") },
+  { id: 2, name: "Hugo", thumb: avatar("Hugo") },
+];
+
 // ---------- Commandes simulées ----------
 
 type Args = Record<string, any>;
@@ -497,6 +503,38 @@ function handle(cmd: string, a: Args): unknown {
       });
       const all = [...list, ...list.map((m) => ({ ...m, ratingKey: m.ratingKey + "b" }))];
       return { items: a.start ? [] : all, total: all.length };
+    }
+    // Tableau de bord (administrateur) : une lecture en cours, le débit, les statistiques et l'historique fictifs.
+    case "plex_sessions":
+      return [{ sessionId: "demo1", user: "Hugo", userThumb: avatar("Hugo"), title: movies[3].title, subtitle: String(movies[3].year), poster: movies[3].poster, progressMs: 41 * MIN, durationMs: 112 * MIN, state: "playing", player: "Maku (PC)", local: false, transcode: false, bandwidthKbps: 8200 }];
+    case "plex_stop_session":
+      return null;
+    case "plex_bandwidth": {
+      const end = Math.floor(Date.now() / 1000);
+      const points = Array.from({ length: 20 }, (_, i) => [
+        { at: end - (19 - i) * 6, lan: false, bytes: (4 + Math.sin(i / 2) * 2) * 6e6 / 8, accountId: 2 },
+        { at: end - (19 - i) * 6, lan: true, bytes: (1 + Math.cos(i / 3)) * 6e6 / 8, accountId: 1 },
+      ]).flat();
+      return { points, accounts: demoAccounts };
+    }
+    case "plex_media_stats": {
+      const end = Math.floor(Date.now() / 1000);
+      const entries = Array.from({ length: 4 }, (_, i) => [
+        { at: end - i * 7 * 86400, accountId: 1, kind: 10, count: 40 - i * 5, duration: (30 - i * 4) * 3600 },
+        { at: end - i * 7 * 86400, accountId: 1, kind: 4, count: 6, duration: 5 * 3600 },
+        { at: end - i * 7 * 86400, accountId: 2, kind: 1, count: 3, duration: 6 * 3600 },
+        { at: end - i * 7 * 86400, accountId: 2, kind: 4, count: 9, duration: (8 + i) * 3600 },
+      ]).flat();
+      return { entries, accounts: demoAccounts };
+    }
+    case "plex_history": {
+      const end = Math.floor(Date.now() / 1000);
+      const entries = [
+        ...movies.slice(0, 5).flatMap((m, i) => Array.from({ length: 5 - i }, (_, j) => ({ ratingKey: m.ratingKey, kind: "movie", title: m.title, grandparentKey: null, grandparentTitle: null, poster: m.poster, grandparentPoster: null, accountId: 1 + (j % 2), viewedAt: end - j * 3600 }))),
+        ...shows.slice(0, 4).flatMap((sh, i) => Array.from({ length: 8 - i * 2 }, (_, j) => ({ ratingKey: sh.ratingKey + "e" + j, kind: "episode", title: "Épisode " + (j + 1), grandparentKey: sh.ratingKey, grandparentTitle: sh.title, poster: sh.poster, grandparentPoster: sh.poster, accountId: 2, viewedAt: end - j * 7200 }))),
+        ...artists.slice(0, 3).flatMap((ar, i) => Array.from({ length: 12 - i * 3 }, (_, j) => ({ ratingKey: ar.ratingKey + "t" + j, kind: "track", title: "Titre " + (j + 1), grandparentKey: ar.ratingKey, grandparentTitle: ar.title, poster: ar.poster, grandparentPoster: ar.poster, accountId: 1, viewedAt: end - j * 600 }))),
+      ];
+      return { entries, accounts: demoAccounts };
     }
     case "plex_collection_items":
       return a.ratingKey === collections[0].ratingKey ? movies.filter((m) => m.genres.includes("Science-fiction")) : movies.slice(4, 8);

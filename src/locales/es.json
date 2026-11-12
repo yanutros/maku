@@ -805,7 +805,40 @@
     "scan": "Buscar archivos nuevos",
     "trashEmptied": "Papelera de «{{title}}» vaciada",
     "emptyTrashHint": "Quita los elementos cuyo archivo ha desaparecido",
-    "emptyTrash": "Vaciar la papelera"
+    "emptyTrash": "Vaciar la papelera",
+    "stop": "Detener la reproducción",
+    "stopTitle": "Detener «{{title}}»",
+    "stopQuestion": "¿Detener la reproducción de {{user}}?",
+    "stopMessage": "Mensaje para {{user}}",
+    "stopPlaceholder": "P. ej.: el servidor se reinicia en 5 minutos",
+    "stopConfirm": "Detener",
+    "stopped": "Reproducción de {{user}} detenida",
+    "bandwidthTitle": "Ancho de banda",
+    "remoteSeries": "Remoto",
+    "localSeries": "Local",
+    "allUsers": "Todos los usuarios",
+    "unknownUser": "Usuario",
+    "period": "Periodo",
+    "live": "Tiempo real",
+    "last24h": "Últimas 24 horas",
+    "last7d": "Últimos 7 días",
+    "last30d": "Últimos 30 días",
+    "last12m": "Últimos 12 meses",
+    "average": "Medias: remoto {{remote}} · local {{local}}",
+    "topUsers": "Usuarios principales",
+    "plays_one": "{{count}} reproducción",
+    "plays_other": "{{count}} reproducciones",
+    "movies": "Películas",
+    "tv": "TV",
+    "music": "Música",
+    "photos": "Fotos",
+    "history": "Historial de reproducción",
+    "mostPlayed": "Lo más reproducido",
+    "artists": "Artistas",
+    "users_one": "{{count}} usuario",
+    "users_other": "{{count}} usuarios",
+    "noData": "Nada en este periodo.",
+    "statsUnavailable": "Estadísticas no disponibles: {{error}}"
   },
   "serverPrefs": {
     "saved": "Ajustes del servidor guardados",
@@ -835,7 +868,8 @@
     "discover": "Descubrir",
     "stats": "Mis estadísticas",
     "settings": "Ajustes",
-    "switchUser": "Cambiar de usuario"
+    "switchUser": "Cambiar de usuario",
+    "admin": "Admin"
   },
   "trackGrid": {
     "previous": "Anterior",
@@ -1071,5 +1105,9 @@
     "eyebrow": "Mix · se guarda 2 días",
     "openTitle": "Ver las canciones del mix {{names}}",
     "gone": "Este mix ya no existe: desaparece dos días después de su última escucha."
+  },
+  "admin": {
+    "dashboard": "Panel",
+    "serverSettings": "Ajustes del servidor"
   }
 }

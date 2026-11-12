@@ -805,7 +805,40 @@
     "scan": "Nach neuen Dateien suchen",
     "trashEmptied": "Papierkorb von „{{title}}“ geleert",
     "emptyTrashHint": "Entfernt Elemente, deren Datei nicht mehr existiert",
-    "emptyTrash": "Papierkorb leeren"
+    "emptyTrash": "Papierkorb leeren",
+    "stop": "Wiedergabe beenden",
+    "stopTitle": "„{{title}}“ beenden",
+    "stopQuestion": "Wiedergabe von {{user}} beenden?",
+    "stopMessage": "Nachricht an {{user}}",
+    "stopPlaceholder": "z. B. der Server startet in 5 Minuten neu",
+    "stopConfirm": "Beenden",
+    "stopped": "Wiedergabe von {{user}} beendet",
+    "bandwidthTitle": "Bandbreite",
+    "remoteSeries": "Extern",
+    "localSeries": "Lokal",
+    "allUsers": "Alle Benutzer",
+    "unknownUser": "Benutzer",
+    "period": "Zeitraum",
+    "live": "Echtzeit",
+    "last24h": "Letzte 24 Stunden",
+    "last7d": "Letzte 7 Tage",
+    "last30d": "Letzte 30 Tage",
+    "last12m": "Letzte 12 Monate",
+    "average": "Durchschnitt: extern {{remote}} · lokal {{local}}",
+    "topUsers": "Top-Benutzer",
+    "plays_one": "{{count}} Wiedergabe",
+    "plays_other": "{{count}} Wiedergaben",
+    "movies": "Filme",
+    "tv": "TV",
+    "music": "Musik",
+    "photos": "Fotos",
+    "history": "Wiedergabeverlauf",
+    "mostPlayed": "Am häufigsten abgespielt",
+    "artists": "Künstler",
+    "users_one": "{{count}} Benutzer",
+    "users_other": "{{count}} Benutzer",
+    "noData": "Nichts in diesem Zeitraum.",
+    "statsUnavailable": "Statistiken nicht verfügbar: {{error}}"
   },
   "serverPrefs": {
     "saved": "Servereinstellungen gespeichert",
@@ -835,7 +868,8 @@
     "discover": "Entdecken",
     "stats": "Meine Statistiken",
     "settings": "Einstellungen",
-    "switchUser": "Benutzer wechseln"
+    "switchUser": "Benutzer wechseln",
+    "admin": "Admin"
   },
   "trackGrid": {
     "previous": "Zurück",
@@ -1071,5 +1105,9 @@
     "eyebrow": "Mix · 2 Tage gespeichert",
     "openTitle": "Titel des Mix {{names}} ansehen",
     "gone": "Diesen Mix gibt es nicht mehr: Er verschwindet zwei Tage nach dem letzten Abspielen."
+  },
+  "admin": {
+    "dashboard": "Dashboard",
+    "serverSettings": "Servereinstellungen"
   }
 }

@@ -18,6 +18,7 @@
   import Discover from "./views/Discover.svelte";
   import SeerrDetail from "./views/SeerrDetail.svelte";
   import Settings from "./views/Settings.svelte";
+  import Admin from "./views/Admin.svelte";
   import Stats from "./views/Stats.svelte";
   import Downloads from "./views/Downloads.svelte";
   import { checkOfflineAllowed, loadOffline, offlineAvailable, syncOffline } from "./lib/offline.svelte";
@@ -291,6 +292,8 @@
             <Downloads />
           {:else if nav.view.name === "settings"}
             {#key nav.view.page}<Settings {session} onChange={refresh} initialPage={nav.view.page} />{/key}
+          {:else if nav.view.name === "admin"}
+            {#key nav.view.page}<Admin page={nav.view.page} initialTab={nav.view.tab} />{/key}
           {/if}
         {/key}
       </div>
