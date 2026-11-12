@@ -33,6 +33,7 @@
   import { t, locale } from "../lib/i18n";
   import { device } from "../lib/device";
   import { reveal } from "../lib/spatial";
+  import { menuable } from "../lib/longpress";
   import SiteRatings from "../components/SiteRatings.svelte";
   import Stars from "../components/Stars.svelte";
   import ScrollArrows from "../components/ScrollArrows.svelte";
@@ -796,7 +797,7 @@
         {#each children as ep (ep.ratingKey)}
           <!-- svelte-ignore a11y_no_static_element_interactions -->
           <div class="episode" class:target={ep.ratingKey === target} data-ep={ep.ratingKey} data-nav-row oncontextmenu={(e) => openMenu(e, ep, false)}>
-            <button class="thumb" data-key="ep-{ep.ratingKey}" onclick={() => startEpisode(ep.ratingKey)} aria-label={t("item.playTitle", { title: ep.title })}>
+            <button class="thumb" data-key="ep-{ep.ratingKey}" onclick={() => startEpisode(ep.ratingKey)} use:menuable={ep} aria-label={t("item.playTitle", { title: ep.title })}>
               {#if ep.thumb}<img src={ep.thumb} alt="" loading="lazy" />{/if}
               <span class="ep-badge">
                 {#if ep.watched}<Icon name="check" size={13} />{/if}

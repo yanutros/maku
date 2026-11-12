@@ -121,3 +121,28 @@ test("TV : après la lecture d'un épisode lancé depuis sa vignette, la sélect
   await touche(page, "ArrowDown");
   await expect(page.locator(`.episode:has([data-key="${lance}"]) + .episode .thumb`)).toBeFocused();
 });
+
+test("TV : OK maintenu sur la vignette d'un épisode ouvre son menu (vu / non vu)", async ({ page }, info) => {
+  test.skip(appareil(info) !== "tv", "télécommande : téléviseur");
+  await ouvrir(page, info, "serie");
+  await page.getByRole("button", { name: /Saison 2/ }).first().focus();
+  await touche(page, "Enter");
+  const vignette = page.locator(".episode.target .thumb");
+  await expect(vignette).toBeFocused();
+  const episode = page.locator(".episode.target");
+  await expect(episode.locator(".badge.ok")).toHaveCount(0);
+  // OK maintenu : le menu de l'épisode, sans lancer la lecture.
+  await page.keyboard.down("Enter");
+  await page.waitForTimeout(800);
+  await page.keyboard.up("Enter");
+  const menu = page.getByRole("menu");
+  await expect(menu).toBeVisible();
+  await expect(page.locator(".overlay")).toHaveCount(0);
+  await menu.getByRole("menuitem", { name: "Marquer comme vu" }).click();
+  await expect(menu).toHaveCount(0);
+  await expect(episode.locator(".badge.ok")).toBeVisible();
+  // Un appui bref, lui, lance toujours l'épisode.
+  await vignette.focus();
+  await touche(page, "Enter");
+  await expect(page.locator(".overlay")).toBeVisible();
+});

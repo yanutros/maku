@@ -397,7 +397,7 @@ pour l'instant que Plex.
 > onglet à l'autre, et la sélection reste sur l'onglet choisi. Les nouveautés arrivent d'abord sur
 > l'application de bureau. Un élément est toujours sélectionné (à l'arrivée, après une lecture), et les fiches
 > se parcourent rangée par rangée comme dans Plex et Wholphin : haut / bas d'une rangée à l'autre (boutons,
-> audio, sous-titres, distribution, « Plus de ce genre »), gauche / droite dans la rangée. Comme dans Plex, un **appui long sur OK** (ou la touche Menu) sur une jaquette ouvre
+> audio, sous-titres, distribution, « Plus de ce genre »), gauche / droite dans la rangée. Comme dans Plex, un **appui long sur OK** (ou la touche Menu) sur une jaquette ou la vignette d'un épisode ouvre
 > le menu du titre : reprendre ou recommencer, liste de visionnage, note, retrait de « Continuer à regarder »,
 > vu / non vu, et pour la musique lecture aléatoire, lire ensuite, ajouter à la file d'attente, aller à l'artiste ou à l'album. Après un choix du menu,
 > comme au retour d'une fiche (bouton Retour), la page reste là où vous étiez, sur la même rangée et la même jaquette.
