@@ -64,7 +64,8 @@
     },
     "forbidden": "Solo el administrador del servidor puede hacerlo.",
     "badImage": "Imagen no reconocida: elige un archivo JPEG, PNG o WebP de 25 MB como máximo.",
-    "convertFailed": "No se pudo crear la colección normal: se conserva la colección inteligente."
+    "convertFailed": "No se pudo crear la colección normal: se conserva la colección inteligente.",
+    "sessionGone": "Esta reproducción ya ha terminado."
   },
   "seerr": {
     "plexRequired": "Hay que iniciar sesión en Plex para conectarse a Seerr",

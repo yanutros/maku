@@ -64,7 +64,8 @@
     },
     "forbidden": "Alleen de serverbeheerder kan dit doen.",
     "badImage": "Afbeelding niet herkend: kies een JPEG-, PNG- of WebP-bestand van maximaal 25 MB.",
-    "convertFailed": "De gewone collectie kon niet worden gemaakt: de slimme collectie blijft behouden."
+    "convertFailed": "De gewone collectie kon niet worden gemaakt: de slimme collectie blijft behouden.",
+    "sessionGone": "Dit afspelen is al gestopt."
   },
   "seerr": {
     "plexRequired": "Je moet bij Plex inloggen om verbinding te maken met Seerr",

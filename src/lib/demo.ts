@@ -506,7 +506,9 @@ function handle(cmd: string, a: Args): unknown {
     }
     // Tableau de bord (administrateur) : une lecture en cours, le débit, les statistiques et l'historique fictifs.
     case "plex_sessions":
-      return [{ sessionId: "demo1", user: "Hugo", userThumb: avatar("Hugo"), title: movies[3].title, subtitle: String(movies[3].year), poster: movies[3].poster, progressMs: 41 * MIN, durationMs: 112 * MIN, state: "playing", player: "Maku (PC)", local: false, transcode: false, bandwidthKbps: 8200 }];
+      return [{ sessionId: "demo1", user: "Hugo", userThumb: avatar("Hugo"), title: movies[3].title, subtitle: String(movies[3].year), poster: movies[3].poster, progressMs: 41 * MIN, durationMs: 112 * MIN, state: "playing", player: "TV du salon · Plex for Samsung", local: false, transcode: false, bandwidthKbps: 8200, music: false },
+        { sessionId: "demo2", user: "Camille", userThumb: avatar("Camille"), title: albums[0].title, subtitle: `${albums[0].subtitle ?? ""} — ${albums[0].title}`, poster: albums[0].poster, progressMs: 95_000, durationMs: 214_000, state: "paused", player: "Maku (Android)", local: true, transcode: false, bandwidthKbps: 320, music: true },
+      ];
     case "plex_prefs":
       return [
         { id: "FriendlyName", label: "Nom d'usage", summary: "Le nom du serveur sur les autres appareils du réseau.", kind: "text", value: "", default: "", advanced: false, group: "general", options: [] },

@@ -440,6 +440,8 @@ export interface ServerSession {
   local: boolean;
   transcode: boolean;
   bandwidthKbps: number | null;
+  /** Titre musical : jaquette carrée (pochette). */
+  music: boolean;
 }
 
 export interface Account {

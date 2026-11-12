@@ -174,6 +174,8 @@ pub struct ServerSession {
     pub local: bool,
     pub transcode: bool,
     pub bandwidth_kbps: Option<u64>,
+    /// Titre musical : jaquette carrée (pochette).
+    pub music: bool,
 }
 
 /// Compte du serveur, tel que les statistiques le désignent (`accountID`).
@@ -324,12 +326,13 @@ impl PlexServer {
 
     /// Arrête une lecture en cours, avec un message pour celui qui regarde (Plex Pass).
     pub async fn stop_session(&self, session_id: &str, reason: &str) -> Result<()> {
-        if session_id.is_empty() || !session_id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') {
-            bail!(crate::i18n::tr_with("admin.notFound", &[("id", session_id)]));
+        // L'identifiant tel que Plex le donne (il peut contenir « = » et d'autres signes) : encodé, jamais filtré.
+        if session_id.is_empty() || session_id.len() > 256 {
+            bail!(crate::i18n::tr("admin.sessionGone"));
         }
         self.send(
             Method::GET,
-            &format!("/status/sessions/terminate?sessionId={session_id}&reason={}", urlencoding::encode(reason)),
+            &format!("/status/sessions/terminate?sessionId={}&reason={}", urlencoding::encode(session_id), urlencoding::encode(reason)),
         )
         .await
     }
@@ -665,7 +668,8 @@ impl PlexServer {
                     .filter(|_| kind == "episode")
                     .or(m["parentThumb"].as_str().filter(|_| kind == "track"))
                     .or(m["thumb"].as_str())
-                    .map(|p| self.image(p, 200, 300));
+                    .or(m["grandparentThumb"].as_str().filter(|_| kind == "track"))
+                    .map(|p| if kind == "track" { self.image(p, 300, 300) } else { self.image(p, 200, 300) });
                 let video = m["TranscodeSession"]["videoDecision"].as_str();
                 let audio = m["TranscodeSession"]["audioDecision"].as_str();
                 ServerSession {
@@ -686,6 +690,7 @@ impl PlexServer {
                     local: m["Player"]["local"].as_bool().unwrap_or(false),
                     transcode: video == Some("transcode") || audio == Some("transcode"),
                     bandwidth_kbps: m["Session"]["bandwidth"].as_u64(),
+                    music: kind == "track",
                 }
             })
             .collect())

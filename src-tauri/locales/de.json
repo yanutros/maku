@@ -64,7 +64,8 @@
     },
     "forbidden": "Nur der Server-Administrator kann das tun.",
     "badImage": "Bild nicht erkannt: wähle eine JPEG-, PNG- oder WebP-Datei mit höchstens 25 MB.",
-    "convertFailed": "Die normale Sammlung konnte nicht erstellt werden: die intelligente Sammlung bleibt erhalten."
+    "convertFailed": "Die normale Sammlung konnte nicht erstellt werden: die intelligente Sammlung bleibt erhalten.",
+    "sessionGone": "Diese Wiedergabe ist bereits beendet."
   },
   "seerr": {
     "plexRequired": "Für die Verbindung mit Seerr ist eine Plex-Anmeldung nötig",

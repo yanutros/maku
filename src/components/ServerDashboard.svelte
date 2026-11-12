@@ -11,10 +11,45 @@
   let sections = $state<Section[]>([]);
   let error = $state<string | null>(null);
   let timer: ReturnType<typeof setInterval> | undefined;
+  /** Jaquettes qui n'ont pas pu se charger : on montre une icône à la place. */
+  let broken = $state<Record<string, boolean>>({});
+
+  // En direct, comme Plex Web : les lectures sont relues toutes les 3 s, et la position avance d'elle-même chaque
+  // seconde pour celles en cours de lecture. Le lecteur ne donne sa position au serveur que toutes les ~10 s :
+  // entre deux, le serveur renvoie une position en retard. On garde donc notre propre repère (position, instant)
+  // par lecture, recalé seulement quand le serveur est en avance, ou nettement différent (retour en arrière,
+  // saut dans la lecture), pause ou reprise : le temps affiché ne recule plus de quelques secondes.
+  type Anchor = { pos: number; at: number; state: string };
+  let anchors = new Map<string, Anchor>();
+  let now = $state(Date.now());
+  let clock: ReturnType<typeof setInterval> | undefined;
+  const keyOf = (s: ServerSession, i: number) => s.sessionId || [i, s.user, s.title].join(":");
+  const estimate = (a: Anchor, at: number) => (a.state === "playing" ? a.pos + (at - a.at) : a.pos);
+
+  function reanchor(list: ServerSession[]) {
+    const at = Date.now();
+    const next = new Map<string, Anchor>();
+    list.forEach((s, i) => {
+      const key = keyOf(s, i);
+      const old = anchors.get(key);
+      const guess = old ? estimate(old, at) : NaN;
+      const keep = old && old.state === s.state && s.state === "playing" && s.progressMs <= guess && guess - s.progressMs < 15000;
+      next.set(key, keep ? { pos: guess, at, state: s.state } : { pos: s.progressMs, at, state: s.state });
+    });
+    anchors = next;
+  }
+
+  function progressOf(s: ServerSession, i: number) {
+    const a = anchors.get(keyOf(s, i));
+    const pos = a ? estimate(a, now) : s.progressMs;
+    return Math.max(0, Math.min(s.durationMs || Infinity, pos));
+  }
 
   async function load() {
     try {
-      sessions = await api.sessions();
+      const list = await api.sessions();
+      reanchor(list);
+      sessions = list;
       error = null;
     } catch (e) {
       error = errorText(e);
@@ -55,10 +90,11 @@
   onMount(() => {
     load();
     api.sections().then((s) => (sections = s), () => {});
-    timer = setInterval(load, 10000);
+    timer = setInterval(load, 3000);
+    clock = setInterval(() => (now = Date.now()), 1000);
   });
 
-  onDestroy(() => clearInterval(timer));
+  onDestroy(() => (clearInterval(timer), clearInterval(clock)));
 </script>
 
 <div class="dash">
@@ -74,7 +110,14 @@
   <div class="sessions">
     {#each sessions as s, i (i)}
       <div class="session">
-        <div class="poster">{#if s.poster}<img src={s.poster} alt="" />{/if}</div>
+        <!-- Jaquette à ses vraies proportions : affiche (2:3) pour un film ou une série, carrée pour la musique. -->
+        <div class="poster" class:square={s.music}>
+          {#if s.poster && !broken[s.poster]}
+            <img src={s.poster} alt="" onerror={() => (broken[s.poster ?? ""] = true)} />
+          {:else}
+            <Icon name={s.music ? "music" : "film"} size={28} />
+          {/if}
+        </div>
         <div class="body">
           <div class="who">
             {#if s.userThumb}<img class="avatar" src={s.userThumb} alt="" />{/if}
@@ -83,16 +126,21 @@
           </div>
           <div class="title">{s.title}</div>
           {#if s.subtitle}<div class="muted small">{s.subtitle}</div>{/if}
-          <div class="bar"><div style:width="{s.durationMs ? (s.progressMs / s.durationMs) * 100 : 0}%"></div></div>
+          <div class="bar"><div style:width="{s.durationMs ? (progressOf(s, i) / s.durationMs) * 100 : 0}%"></div></div>
           <div class="meta">
-            <span>{formatClock(s.progressMs / 1000)} / {formatClock(s.durationMs / 1000)}</span>
-            <span>
-              {s.player} · {s.local ? t("dashboard.local") : t("dashboard.remote")} · {s.transcode ? t("dashboard.transcode") : t("dashboard.directPlay")}
-              {#if s.bandwidthKbps}· {t("dashboard.bandwidth", { rate: (s.bandwidthKbps / 1000).toFixed(1) })}{/if}
-            </span>
+            <span>{formatClock(progressOf(s, i) / 1000)} / {formatClock(s.durationMs / 1000)}</span>
+            {#if s.bandwidthKbps}<span>{t("dashboard.bandwidth", { rate: (s.bandwidthKbps / 1000).toFixed(1) })}</span>{/if}
+          </div>
+          <!-- L'appareil et le mode de lecture, en entier ; le bouton d'arrêt en pied de carte, toujours en bas. -->
+          <div class="chips">
+            <span class="chip">{s.player}</span>
+            <span class="chip">{s.local ? t("dashboard.local") : t("dashboard.remote")}</span>
+            <span class="chip">{s.transcode ? t("dashboard.transcode") : t("dashboard.directPlay")}</span>
           </div>
           {#if s.sessionId}
-            <button class="btn stop" onclick={() => ((stopping = s), (reason = ""))}><Icon name="x" size={15} /> {t("dashboard.stop")}</button>
+            <div class="foot">
+              <button class="btn stop" onclick={() => ((stopping = s), (reason = ""))}><Icon name="x" size={15} /> {t("dashboard.stop")}</button>
+            </div>
           {/if}
         </div>
       </div>
@@ -174,8 +222,10 @@
   }
 
   .btn.stop {
-    justify-self: start;
-    margin-top: 8px;
+    flex: none;
+    height: 34px;
+    padding: 0 12px;
+    font-size: 13px;
     background: #c0392b33;
     color: #ff8a80;
   }
@@ -276,13 +326,23 @@
     background: #ffffff06;
   }
 
+  /* align-self : sans lui, la jaquette s'étire sur toute la hauteur de la carte et paraît tassée. */
   .poster {
+    display: grid;
     flex: none;
-    width: 64px;
+    place-items: center;
+    align-self: flex-start;
+    width: 96px;
     aspect-ratio: 2 / 3;
+    color: var(--text-faint);
     overflow: hidden;
     border-radius: 8px;
     background: var(--bg-hover);
+  }
+
+  .poster.square {
+    width: 96px;
+    aspect-ratio: 1;
   }
 
   .poster img {
@@ -291,9 +351,42 @@
     object-fit: cover;
   }
 
+  /* Le texte en colonne, le pied de carte poussé en bas : toutes les cartes d'une rangée ont la même hauteur,
+     leurs boutons tombent donc sur la même ligne. */
   .body {
+    display: flex;
     flex: 1;
+    flex-direction: column;
     min-width: 0;
+  }
+
+  .title,
+  .body > .muted {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .foot {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: auto;
+    padding-top: 14px;
+  }
+
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 10px;
+  }
+
+  .chip {
+    padding: 3px 9px;
+    border-radius: 10px;
+    background: #ffffff0f;
+    color: var(--text-dim);
+    font-size: 12px;
   }
 
   .who {
@@ -338,9 +431,11 @@
     background: #ffffff1a;
   }
 
+  /* La barre avance en continu entre deux secondes. */
   .bar div {
     height: 100%;
     background: var(--accent);
+    transition: width 1s linear;
   }
 
   .meta {
