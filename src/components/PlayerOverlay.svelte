@@ -17,6 +17,7 @@
     setServerStream,
     stop,
     trackLabel,
+    unstall,
   } from "../lib/player.svelte";
   import Icon from "./Icon.svelte";
   import EndScreen from "./EndScreen.svelte";
@@ -91,7 +92,7 @@
   const HIDE_PAUSED_TV = 8000;
 
   function canHide() {
-    return !menu && !dragging && player.embedded;
+    return !menu && !dragging && player.embedded && !player.stalled;
   }
 
   function poke() {
@@ -138,7 +139,7 @@
    * « Passer » (intro, générique), lui, reste à un seul OK.
    */
   function onKeyCapture(e: KeyboardEvent) {
-    if (!device.tv || visible || player.endScreen) return;
+    if (!device.tv || visible || player.endScreen || player.stalled) return;
     if (e.key !== "Enter" && e.key !== " " && !e.key.startsWith("Arrow")) return;
     if (skipEl && document.activeElement === skipEl && e.key === "Enter") return;
     e.preventDefault();
@@ -270,6 +271,14 @@
     }),
   );
   let skipEl = $state<HTMLButtonElement>();
+
+  // Vidéo figée : les commandes restent affichées, et sur téléviseur la sélection va sur « Réessayer ».
+  let stalledEl = $state<HTMLDivElement>();
+  $effect(() => {
+    if (!player.stalled || !stalledEl) return;
+    poke();
+    if (device.tv) stalledEl.querySelector<HTMLButtonElement>("button")?.focus();
+  });
   $effect(() => {
     if (skip && skipEl && document.documentElement.classList.contains("tv")) skipEl.focus();
   });
@@ -531,6 +540,21 @@
   </div>
   {/if}
 
+  <!-- Vidéo figée (Android) : prévenir au lieu de rester bloqué sans rien dire, avec de quoi repartir. -->
+  {#if player.stalled && !player.endScreen}
+    <div class="stalled" role="dialog" aria-label={t("player.stalled", { time: fmt(player.stalled.at) })} bind:this={stalledEl}>
+      <strong>{t("player.stalled", { time: fmt(player.stalled.at) })}</strong>
+      <p>{t("player.stalledHint")}</p>
+      <div class="stalled-actions">
+        <button class="btn primary" onclick={() => unstall("retry")}><Icon name="restart" size={18} /> {t("player.stalledRetry")}</button>
+        <button class="btn" onclick={() => mpv("seek", 10, "relative")}><Icon name="forward10" size={18} /> {t("player.stalledSkip")}</button>
+        {#if player.stalled.passthrough}
+          <button class="btn" onclick={() => unstall("decodeAudio")}><Icon name="audio" size={18} /> {t("player.stalledDecode")}</button>
+        {/if}
+      </div>
+    </div>
+  {/if}
+
   <!-- Repère en cours (intro, générique) : un bouton pour le passer, comme dans Plex et Netflix. -->
   {#if skip && !player.endScreen}
     <button class="btn skip" bind:this={skipEl} onclick={() => (skip.kind === "credits" && hasEndScreen() ? openEndScreen() : mpv("seek", skip.endMs / 1000, "absolute"))}>
@@ -704,6 +728,40 @@
     left: 0;
     right: 0;
     transition: opacity 0.25s ease, transform 0.25s ease;
+  }
+
+  .stalled {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 2;
+    display: grid;
+    gap: 10px;
+    width: min(560px, calc(100% - 48px));
+    padding: 22px 24px;
+    border: 1px solid #ffffff33;
+    border-radius: 18px;
+    background: #000000cc;
+    backdrop-filter: blur(10px);
+    text-align: center;
+    transform: translate(-50%, -50%);
+  }
+
+  .stalled strong {
+    font-size: 19px;
+  }
+
+  .stalled p {
+    margin: 0;
+    color: #ffffffbb;
+  }
+
+  .stalled-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 6px;
   }
 
   .skip {

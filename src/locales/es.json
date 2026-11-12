@@ -779,7 +779,12 @@
     "playNext": "Reproducir",
     "closeEnd": "Cerrar",
     "minutes_one": "{{count}} min",
-    "minutes_other": "{{count}} min"
+    "minutes_other": "{{count}} min",
+    "stalled": "La reproducción está bloqueada en {{time}}",
+    "stalledHint": "La imagen no avanza aunque el vídeo está cargado.",
+    "stalledRetry": "Reintentar",
+    "stalledSkip": "Saltar 10 s",
+    "stalledDecode": "Decodificar el audio en este dispositivo"
   },
   "request": {
     "sent": "Solicitud enviada: {{title}}",

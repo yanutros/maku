@@ -779,7 +779,12 @@
     "playNext": "Lire",
     "closeEnd": "Fermer",
     "minutes_one": "{{count}} min",
-    "minutes_other": "{{count}} min"
+    "minutes_other": "{{count}} min",
+    "stalled": "La lecture est bloquée à {{time}}",
+    "stalledHint": "L'image n'avance plus alors que la vidéo est chargée.",
+    "stalledRetry": "Réessayer",
+    "stalledSkip": "Passer 10 s",
+    "stalledDecode": "Son décodé par l'appareil"
   },
   "request": {
     "sent": "Demande envoyée : {{title}}",

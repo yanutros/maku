@@ -779,7 +779,12 @@
     "playNext": "Abspielen",
     "closeEnd": "Schließen",
     "minutes_one": "{{count}} Min.",
-    "minutes_other": "{{count}} Min."
+    "minutes_other": "{{count}} Min.",
+    "stalled": "Die Wiedergabe hängt bei {{time}}",
+    "stalledHint": "Das Bild bewegt sich nicht, obwohl das Video geladen ist.",
+    "stalledRetry": "Erneut versuchen",
+    "stalledSkip": "10 s überspringen",
+    "stalledDecode": "Ton auf diesem Gerät dekodieren"
   },
   "request": {
     "sent": "Anfrage gesendet: {{title}}",

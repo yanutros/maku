@@ -779,7 +779,12 @@
     "playNext": "Play",
     "closeEnd": "Close",
     "minutes_one": "{{count}} min",
-    "minutes_other": "{{count}} min"
+    "minutes_other": "{{count}} min",
+    "stalled": "Playback is stuck at {{time}}",
+    "stalledHint": "The picture isn't moving even though the video is loaded.",
+    "stalledRetry": "Retry",
+    "stalledSkip": "Skip 10 s",
+    "stalledDecode": "Decode audio on this device"
   },
   "request": {
     "sent": "Request sent: {{title}}",

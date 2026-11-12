@@ -54,6 +54,8 @@ export const player = $state({
   upNext: null as UpNext | null,
   /** Écran de fin affiché : « Passer le générique » ou fin d'un épisode qui a une suite. */
   endScreen: false,
+  /** Android : la vidéo est figée (prête, chargée, mais l'image n'avance plus) ; position en s, et son envoyé à l'ampli. */
+  stalled: null as { at: number; passthrough: boolean } | null,
   title: "",
   subtitle: null as string | null,
   position: 0,
@@ -291,6 +293,7 @@ function reset(video: boolean) {
     nextKey: null,
     upNext: null,
     endScreen: false,
+    stalled: null,
     title: "",
     subtitle: null,
     buffering: true,
@@ -622,6 +625,12 @@ export function mpv(...args: unknown[]) {
   return invoke<void>("player_command", { args }).catch(() => {});
 }
 
+/** Vidéo figée (Android) : relancer au même endroit, ou décoder le son ici plutôt que l'envoyer à l'ampli. */
+export function unstall(how: "retry" | "decodeAudio") {
+  player.stalled = null;
+  if (player.native) bridge?.videoCommand?.(how, "");
+}
+
 export function stop() {
   if (cast.device) {
     invoke("cast_stop").catch(() => {});
@@ -937,10 +946,12 @@ const web = (() => {
     ended?: boolean;
     unsupported?: string;
     error?: string;
+    stalled?: { at: number; passthrough: boolean } | false;
   };
 
   (globalThis as { __plexrVideo?: (e: NativeEvent) => void }).__plexrVideo = (e) => {
     if (!player.native) return;
+    if (e.stalled !== undefined) player.stalled = e.stalled ? { at: e.stalled.at / 1000, passthrough: e.stalled.passthrough } : null;
     if (e.ended) return videoEnded();
     if (e.unsupported !== undefined || e.error !== undefined) {
       // Codec ou format que l'appareil ne lit pas : le serveur convertit. Si seul le son pose problème,

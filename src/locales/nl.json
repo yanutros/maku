@@ -779,7 +779,12 @@
     "playNext": "Afspelen",
     "closeEnd": "Sluiten",
     "minutes_one": "{{count}} min",
-    "minutes_other": "{{count}} min"
+    "minutes_other": "{{count}} min",
+    "stalled": "Afspelen loopt vast op {{time}}",
+    "stalledHint": "Het beeld beweegt niet, hoewel de video geladen is.",
+    "stalledRetry": "Opnieuw proberen",
+    "stalledSkip": "10 s overslaan",
+    "stalledDecode": "Geluid op dit apparaat decoderen"
   },
   "request": {
     "sent": "Verzoek verstuurd: {{title}}",

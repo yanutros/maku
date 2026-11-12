@@ -378,6 +378,12 @@ pour l'instant que Plex.
 > toutes les 30 secondes pendant une vidéo. Chaque ligne est écrite aussitôt, si bien que celles qui précèdent un
 > blocage survivent au redémarrage, et une lecture interrompue est signalée au lancement suivant. Sur téléphone, le
 > journal se partage ; sur TV, un QR code le fait télécharger par le téléphone, sur le réseau local.
+>
+> **Vidéo figée** (Android) : quand l'image n'avance plus alors que la vidéo est chargée (prête, pas en pause,
+> des données d'avance, position immobile depuis 5 s), Maku le dit au lieu de rester bloqué : un message propose
+> **Réessayer** (au même endroit), **Passer 10 s** et, si le son part tel quel vers l'ampli, **Son décodé par
+> l'appareil**. Le journal note le blocage (position, mémoire tampon, format du son, sortie vers l'ampli), chaque
+> geste tenté et l'issue (lecture repartie, saut, ou nouveau blocage).
 
 > [!TIP]
 > **Sur téléviseur**, l'interface est volontairement plus sobre que sur ordinateur (pas de carrousel animé, de

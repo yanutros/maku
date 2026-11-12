@@ -82,3 +82,23 @@ test("TV : Retour ferme le menu des pistes ouvert, sans quitter le film", async 
   await page.goBack();
   await expect(page.locator(".overlay")).toHaveCount(0);
 });
+
+test("vidéo figée : un message propose de réessayer, d'avancer de 10 s ou de décoder le son ici", async ({ page }, info) => {
+  await ouvrir(page, info, "lecteur-fige");
+  const message = page.getByRole("dialog", { name: /La lecture est bloquée à 3:07/ });
+  await expect(message).toBeVisible();
+  await expect(message.getByRole("button")).toHaveText(["Réessayer", "Passer 10 s", "Son décodé par l'appareil"]);
+  // Les commandes restent affichées tant que la vidéo est figée.
+  await page.waitForTimeout(5000);
+  await expect(page.locator(".overlay")).not.toHaveClass(/hidden/);
+  if (appareil(info) === "tv") {
+    // Télécommande : la sélection est sur « Réessayer », et les flèches restent dans le message.
+    await expect(message.getByRole("button", { name: "Réessayer" })).toBeFocused();
+    await page.keyboard.press("ArrowRight");
+    await expect(message.getByRole("button", { name: "Passer 10 s" })).toBeFocused();
+    await page.keyboard.press("ArrowDown");
+    await expect(message.locator(":focus")).toHaveCount(1);
+  }
+  await message.getByRole("button", { name: "Réessayer" }).click();
+  await expect(message).toHaveCount(0);
+});

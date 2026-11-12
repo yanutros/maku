@@ -695,6 +695,12 @@ export async function installDemo(view: string): Promise<() => Promise<void>> {
         await music();
         player.expanded = true;
         break;
+      // Vidéo figée (lecteur Android) : le message et ses boutons.
+      case "lecteur-fige":
+        await play(movies[2].ratingKey);
+        Object.assign(player, { title: movies[2].title, subtitle: "2026", duration: 128 * 60, position: 187, bufferedUntil: 232, buffering: false, paused: false, stalled: { at: 187, passthrough: true } });
+        document.body.style.background = `#000 url("${movies[2].backdrop}") center / cover no-repeat`;
+        break;
       case "lecteur": {
         // La vraie vidéo est dessinée par mpv : en démo, une scène fixe la remplace.
         await play(movies[2].ratingKey);
@@ -706,6 +712,6 @@ export async function installDemo(view: string): Promise<() => Promise<void>> {
         await music();
         break;
     }
-    if (view !== "lecteur") player.position = 74;
+    if (view !== "lecteur" && view !== "lecteur-fige") player.position = 74;
   };
 }

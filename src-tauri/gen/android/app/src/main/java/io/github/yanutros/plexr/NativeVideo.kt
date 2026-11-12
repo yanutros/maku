@@ -63,6 +63,17 @@ class NativeVideo(private val activity: Activity, private val webView: WebView) 
   private var tracksApplied = false
   /** Les pistes du fichier ne sont pas lisibles ici : la page bascule sur la conversion du serveur. */
   private var unsupportedSent = false
+  /** Demande d'ouverture en cours, pour relancer au même endroit avec le son décodé ici. */
+  private var lastOpen: JSONObject? = null
+  private var passthroughOn = false
+  private var audioMime: String? = null
+  /**
+   * Vidéo figée : le lecteur se dit prêt, n'est pas en pause, a des données d'avance, mais la position ne bouge
+   * plus. Position surveillée, depuis quand elle n'a pas bougé (en lecture), et blocage déjà signalé.
+   */
+  private var stallPos = -1L
+  private var stallSince = 0L
+  private var stalled = false
 
   // ---------- Commandes de la page (appelées depuis le fil du WebView) ----------
 
@@ -74,6 +85,10 @@ class NativeVideo(private val activity: Activity, private val webView: WebView) 
     wantedSub = o.optString("sid", "auto")
     tracksApplied = false
     unsupportedSent = false
+    lastOpen = o
+    audioMime = null
+    stallPos = -1L
+    stalled = false
 
     val root = webView.parent as ViewGroup
     val sv = SurfaceView(activity)
@@ -116,6 +131,7 @@ class NativeVideo(private val activity: Activity, private val webView: WebView) 
     // annonce, comme Kodi et Moonfin) ou « off » (tout décodé ici, pour un appareil qui annonce à tort des
     // formats qu'il ne sait pas lire : film muet).
     val passthrough = o.optString("passthrough", "auto") != "off"
+    passthroughOn = passthrough
     DiagLog.hide(Uri.parse(o.getString("url")).host)
     DiagLog.log(
       "▶ Lecture : ${o.getString("url")} · début à ${o.optLong("offsetMs") / 1000} s · piste son ${o.opt("aid")} · sous-titres ${o.optString("sid")}" +
@@ -180,7 +196,27 @@ class NativeVideo(private val activity: Activity, private val webView: WebView) 
   /** Commandes au format mpv : pause, play, toggle, seek (ms, absolu), seekBy (ms), volume (0-100), mute, aid / sid (numéro ou « no »). */
   fun command(name: String, value: String) = handler.post {
     val p = player ?: return@post
+    // Pendant un blocage, chaque geste est noté : le journal dira ce qui a débloqué (ou non) la lecture.
+    if (stalled && name != "retry" && name != "decodeAudio") DiagLog.log("Pendant le blocage : $name $value")
     when (name) {
+      // Réessayer : la lecture repart du même endroit, décodeurs vidés.
+      "retry" -> {
+        DiagLog.log("Relance au même endroit (${p.currentPosition / 1000} s)")
+        clearStall()
+        p.seekTo(p.currentPosition)
+      }
+      // Son décodé ici plutôt qu'envoyé tel quel à l'ampli, pour cette lecture : le lecteur est recréé au
+      // même endroit, avec la même piste son.
+      "decodeAudio" -> {
+        val o = JSONObject((lastOpen ?: return@post).toString())
+        DiagLog.log("Son décodé par l'appareil, relance à ${p.currentPosition / 1000} s")
+        val audio = groups(p.currentTracks, C.TRACK_TYPE_AUDIO).indexOfFirst { it.isSelected }
+        o.put("passthrough", "off").put("offsetMs", p.currentPosition)
+        if (audio >= 0) o.put("aid", audio + 1)
+        emit(JSONObject().put("stalled", false))
+        open(o.toString())
+        return@post
+      }
       "toggle" -> p.playWhenReady = !p.playWhenReady
       "pause" -> p.playWhenReady = false
       "play" -> p.playWhenReady = true
@@ -239,8 +275,10 @@ class NativeVideo(private val activity: Activity, private val webView: WebView) 
       DiagLog.log("Décodeur son : $decoderName (${initializationDurationMs} ms)")
     override fun onVideoInputFormatChanged(t: AnalyticsListener.EventTime, format: Format, decoderReuseEvaluation: DecoderReuseEvaluation?) =
       DiagLog.log("Image : ${Format.toLogString(format)}")
-    override fun onAudioInputFormatChanged(t: AnalyticsListener.EventTime, format: Format, decoderReuseEvaluation: DecoderReuseEvaluation?) =
+    override fun onAudioInputFormatChanged(t: AnalyticsListener.EventTime, format: Format, decoderReuseEvaluation: DecoderReuseEvaluation?) {
+      audioMime = format.sampleMimeType
       DiagLog.log("Son : ${Format.toLogString(format)}")
+    }
     override fun onDroppedVideoFrames(t: AnalyticsListener.EventTime, droppedFrames: Int, elapsedMs: Long) =
       DiagLog.log("Images perdues : $droppedFrames en ${elapsedMs} ms (à ${t.currentPlaybackPositionMs / 1000} s)")
     override fun onAudioUnderrun(t: AnalyticsListener.EventTime, bufferSize: Int, bufferSizeMs: Long, elapsedSinceLastFeedMs: Long) =
@@ -297,8 +335,53 @@ class NativeVideo(private val activity: Activity, private val webView: WebView) 
   // ---------- État vers la page ----------
 
   private fun tick() {
+    player?.let { watch(it) }
     send()
     handler.postDelayed({ if (player != null) tick() }, 500)
+  }
+
+  /**
+   * Vidéo figée (toutes les 500 ms) : prêt, en lecture, au moins 2 s de données d'avance, et la position immobile
+   * depuis 5 s. Une coupure réseau n'en est pas une (le lecteur est alors en chargement, sans avance). Le
+   * blocage est noté au journal et signalé à la page, qui propose de réessayer, d'avancer ou de décoder le son
+   * ici ; la reprise de la lecture aussi.
+   */
+  private fun watch(p: ExoPlayer) {
+    val now = SystemClock.elapsedRealtime()
+    val pos = p.currentPosition
+    if (stallPos < 0 || kotlin.math.abs(pos - stallPos) > 300) {
+      if (stalled) {
+        // Un petit pas en avant : la lecture a vraiment repris. Un grand écart : un saut (Passer 10 s…), qui
+        // sera de nouveau surveillé.
+        val step = pos - stallPos
+        if (step in 1..3000) DiagLog.log("Lecture repartie à ${pos / 1000} s (figée ${(now - stallSince) / 1000} s)")
+        else DiagLog.log("Saut à ${pos / 1000} s pendant le blocage")
+        clearStall()
+      }
+      stallPos = pos
+      stallSince = now
+      return
+    }
+    val moving = p.playbackState == Player.STATE_READY && p.playWhenReady
+    val ahead = p.bufferedPosition - pos
+    // En pause ou en chargement, le temps ne compte pas.
+    if (!moving || ahead < 2000) {
+      if (!stalled) stallSince = now
+      return
+    }
+    if (stalled || now - stallSince < 5000) return
+    stalled = true
+    DiagLog.log(
+      "⚠ Lecture figée à ${pos / 1000} s : prête, en lecture, mémoire tampon jusqu'à ${p.bufferedPosition / 1000} s, mais l'image" +
+        " n'avance plus depuis ${(now - stallSince) / 1000} s · son ${audioMime ?: "?"} · son vers l'ampli : ${if (passthroughOn) "automatique" else "décodé ici"}",
+    )
+    emit(JSONObject().put("stalled", JSONObject().put("at", pos).put("passthrough", passthroughOn)))
+  }
+
+  private fun clearStall() {
+    stalled = false
+    stallPos = -1L
+    emit(JSONObject().put("stalled", false))
   }
 
   private fun send() {
