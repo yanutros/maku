@@ -271,6 +271,22 @@ export interface PlayOptions {
   mediaIndex?: number;
 }
 
+// ---------- Fin d'une lecture vidéo par le lecteur du système (Android, iOS, TV) ----------
+// Sur ordinateur, mpv signale sa fermeture par l'événement `player-stopped`. Le lecteur du système n'en émet pas :
+// sans ce signal, la saison ou l'accueil gardaient l'épisode tout juste terminé « à voir » jusqu'à la réouverture
+// de la page.
+const playbackEndedListeners = new Set<() => void>();
+
+/** Appelle `cb` à la fin d'une vidéo lue par le lecteur du système ; renvoie de quoi se désabonner. */
+export function onPlaybackEnded(cb: () => void): () => void {
+  playbackEndedListeners.add(cb);
+  return () => void playbackEndedListeners.delete(cb);
+}
+
+function notifyPlaybackEnded() {
+  for (const cb of playbackEndedListeners) cb();
+}
+
 /** Libère la conversion du serveur lancée pour mpv (qualité réduite sur ordinateur). */
 function endTranscode() {
   if (!player.web && player.transcoded && player.session) invoke("stop_transcode", { session: player.session }).catch(() => {});
@@ -880,18 +896,17 @@ const web = (() => {
 
   const key = () => (player.video ? player.ratingKey : (player.queue[player.index]?.ratingKey ?? ""));
 
-  function report(state: "playing" | "paused" | "stopped", ratingKey = key()) {
-    if (!ratingKey) return;
+  function report(state: "playing" | "paused" | "stopped", ratingKey = key()): Promise<unknown> {
+    if (!ratingKey) return Promise.resolve();
     // Téléchargement : la progression est gardée sur l'appareil et renvoyée au serveur plus tard (offline.rs).
     // La musique hors ligne ne la note pas.
-    if (player.session === OFFLINE_MUSIC) return;
+    if (player.session === OFFLINE_MUSIC) return Promise.resolve();
     if (player.offline) {
       const ms = Math.round(player.position * 1000);
       const watched = player.duration > 0 && player.position / player.duration > 0.9;
-      invoke("offline_progress", { id: player.offline, positionMs: ms, watched }).catch(() => {});
-      return;
+      return invoke("offline_progress", { id: player.offline, positionMs: ms, watched }).catch(() => {});
     }
-    invoke("report_timeline", {
+    return invoke("report_timeline", {
       ratingKey,
       playback: state,
       timeMs: Math.round(player.position * 1000),
@@ -1151,7 +1166,12 @@ const web = (() => {
 
     /** Arrête tout : dernière progression envoyée, conversion du serveur libérée. */
     teardown() {
-      if (reportedKey) report("stopped", reportedKey);
+      if (reportedKey) {
+        const wasVideo = player.video;
+        const sent = report("stopped", reportedKey);
+        // Une vidéo terminée : les pages relisent l'état « vu » et la reprise, une fois le serveur prévenu.
+        if (wasVideo) sent.finally(notifyPlaybackEnded);
+      }
       reportedKey = "";
       clearInterval(reportTimer);
       unbind?.();

@@ -4,6 +4,7 @@
   import { listen } from "@tauri-apps/api/event";
   import { api, errorText, type Home, type Item, type SeerrMedia, type Section } from "../lib/api";
   import { go } from "../lib/nav.svelte";
+  import { onPlaybackEnded } from "../lib/player.svelte";
   import { arrange, availableRows, shownByDefault } from "../lib/homeRows.svelte";
   import { fromItem, fromSeerr } from "../lib/tvcards";
   import PosterCard from "../components/PosterCard.svelte";
@@ -57,8 +58,13 @@
     api.sections().then((s) => (sections = s ?? []), () => {});
     // Seerr est facultatif : la rangée n'apparaît que s'il répond.
     api.seerrTrending().then((r) => (trending = r.filter((m) => m.status !== 5)), () => {});
+    // Fin d'une lecture : mpv sur ordinateur, lecteur du système sur Android / TV.
     const unlisten = listen("player-stopped", load);
-    return () => unlisten.then((f) => f());
+    const off = onPlaybackEnded(load);
+    return () => {
+      off();
+      unlisten.then((f) => f());
+    };
   });
 
   // Téléviseur : les mêmes rangées, en cartes TV.

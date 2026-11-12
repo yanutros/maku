@@ -22,7 +22,7 @@
   import { api, errorText, formatDuration, isMusic, type Item, type ItemDetail } from "../lib/api";
   import MusicDetail from "./MusicDetail.svelte";
   import { go, nav, replace, toast } from "../lib/nav.svelte";
-  import { play, player, type PlayOptions } from "../lib/player.svelte";
+  import { onPlaybackEnded, play, player, type PlayOptions } from "../lib/player.svelte";
   import PosterCard from "../components/PosterCard.svelte";
   import Row from "../components/Row.svelte";
   import Icon from "../components/Icon.svelte";
@@ -158,7 +158,12 @@
     }
   }
 
-  async function load() {
+  /**
+   * Charge la fiche. `again` : rechargement après une lecture (état « vu », reprise) ; dans une saison ouverte
+   * depuis un épisode, la sélection reste alors sur l'épisode visé (le dernier lu), au lieu de revenir à celui
+   * par lequel la page a été ouverte.
+   */
+  async function load(again = false) {
     try {
       let detail = await api.metadata(ratingKey);
       // Un épisode s'ouvre dans sa saison ; sans saison joignable, il garde sa propre fiche.
@@ -166,7 +171,7 @@
         const episode = detail;
         try {
           const [season, kids] = await Promise.all([api.metadata(episode.seasonKey!), api.children(episode.seasonKey!)]);
-          showSeason(season, kids, episode.ratingKey);
+          showSeason(season, kids, again && target ? target : episode.ratingKey);
           remember();
           return;
         } catch {
@@ -491,8 +496,14 @@
 
   onMount(() => {
     load();
-    const unlisten = listen("player-stopped", load);
-    return () => unlisten.then((f) => f());
+    // Fin d'une lecture : mpv sur ordinateur, lecteur du système sur Android / TV.
+    const reload = () => load(true);
+    const unlisten = listen("player-stopped", reload);
+    const off = onPlaybackEnded(reload);
+    return () => {
+      off();
+      unlisten.then((f) => f());
+    };
   });
 </script>
 
