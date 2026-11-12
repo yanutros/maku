@@ -1,6 +1,6 @@
 [package]
 name = "maku-server"
-version = "0.23.0"
+version = "0.24.0"
 description = "Relais Seerr et Tracearr pour Maku, à côté d'un serveur Plex, Jellyfin ou Emby"
 license = "GPL-3.0-or-later"
 edition = "2021"
