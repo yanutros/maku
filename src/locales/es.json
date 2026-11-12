@@ -201,6 +201,11 @@
       "allocinePress": "Allociné: prensa",
       "allocineUsers": "Allociné: público",
       "allocineHint": "Se busca en Wikidata y Allociné con el identificador IMDb del título."
+    },
+    "banner": {
+      "player": "Reproducción de películas, episodios y música: mpv, siguiente episodio, letras.",
+      "interface": "Colores, idioma, menú, notas mostradas e inicio: Maku a tu gusto.",
+      "services": "Seerr para pedir, Tracearr para seguir, TMDB para los logos e invitaciones."
     }
   },
   "login": {

@@ -201,6 +201,11 @@
       "allocinePress": "Allociné: Presse",
       "allocineUsers": "Allociné: Publikum",
       "allocineHint": "Über Wikidata und Allociné mit der IMDb-ID des Titels gesucht."
+    },
+    "banner": {
+      "player": "Wiedergabe von Filmen, Folgen und Musik: mpv, nächste Folge, Songtexte.",
+      "interface": "Farben, Sprache, Menü, angezeigte Bewertungen und Startseite: Maku nach deinem Geschmack.",
+      "services": "Seerr zum Anfragen, Tracearr zum Verfolgen, TMDB für Logos und Einladungen."
     }
   },
   "login": {

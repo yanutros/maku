@@ -201,6 +201,11 @@
       "allocinePress": "Allociné: pers",
       "allocineUsers": "Allociné: publiek",
       "allocineHint": "Opgezocht op Wikidata en Allociné met de IMDb-ID van de titel."
+    },
+    "banner": {
+      "player": "Afspelen van films, afleveringen en muziek: mpv, volgende aflevering, songteksten.",
+      "interface": "Kleuren, taal, menu, getoonde scores en startpagina: Maku naar jouw smaak.",
+      "services": "Seerr om aan te vragen, Tracearr om te volgen, TMDB voor logo's, en uitnodigingen."
     }
   },
   "login": {

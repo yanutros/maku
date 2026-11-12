@@ -8,7 +8,8 @@ test("aucune case à cocher : des interrupteurs partout", async ({ page }, info)
   test.skip(appareil(info) === "tv", "les rubriques s'ouvrent au clic : ordinateur, téléphone");
   await ouvrir(page, info, "reglages");
   for (const nom of RUBRIQUES) {
-    const lien = page.locator(".settings .menu button", { hasText: nom });
+    // Ordinateur : la barre de sections ; téléphone : la bande des rubriques.
+    const lien = appareil(info) === "telephone" ? page.locator(".settings .menu button", { hasText: nom }) : page.getByRole("tab", { name: nom });
     if (!(await lien.count())) continue;
     await lien.first().click();
     await page.waitForTimeout(200);
@@ -19,7 +20,7 @@ test("aucune case à cocher : des interrupteurs partout", async ({ page }, info)
 
 test("les réglages s'affichent", async ({ page }, info) => {
   await ouvrir(page, info, "reglages-interface");
-  await expect(page.locator(".settings .panel h1")).toBeVisible();
+  await expect(page.locator(".settings h1:visible").first()).toBeVisible();
   await expect(page).toHaveScreenshot("reglages-interface.png");
 });
 

@@ -46,6 +46,15 @@
     if (el) reveal(el);
   }
 
+  // Ordinateur : barre de sections ; téléviseur (rail façon Netflix) et téléphone (bande au doigt) gardent le menu.
+  const desk = !device.tv && !device.phone;
+  const SECTIONS = [
+    { id: "account", label: t("settings.menu.account") },
+    { id: "player", label: t("settings.menu.player") },
+    { id: "interface", label: t("settings.menu.interface") },
+    { id: "services", label: t("settings.menu.services") },
+  ];
+
   function choosePage(id: string) {
     clearTimeout(previewTimer);
     if (id === page) return;
@@ -459,6 +468,17 @@
   </button>
 {/snippet}
 
+<!-- Bandeau d'une rubrique, façon Netflix : grande icône dans la couleur du thème, titre et une phrase. -->
+{#snippet banner(icon: IconName, title: string, text: string)}
+  <header class="banner">
+    <span class="banner-icon"><Icon name={icon} size={30} /></span>
+    <div>
+      <h2>{title}</h2>
+      <p>{text}</p>
+    </div>
+  </header>
+{/snippet}
+
 {#snippet qrToggle(id: string)}
   <button class="btn" onclick={() => toggleQr(id)}>
     <Icon name="image" size={16} />
@@ -466,7 +486,18 @@
   </button>
 {/snippet}
 
-<div class="page settings">
+<div class="page settings" class:desk>
+  <!-- Ordinateur : les rubriques dans la barre de sections des bibliothèques (Recommandé, Bibliothèque…), sous le titre. -->
+  {#if desk}
+    <div class="desk-head">
+      <h1 class="row-title page-title">{t("sidebar.settings")}</h1>
+      <div class="tabs" role="tablist">
+        {#each SECTIONS as sec (sec.id)}
+          <button role="tab" aria-selected={page === sec.id} class:active={page === sec.id} onclick={() => choosePage(sec.id)}>{sec.label}</button>
+        {/each}
+      </div>
+    </div>
+  {/if}
   <!-- Rail des rubriques (Netflix, Wholphin) : sur téléviseur, la rubrique s'affiche au passage des flèches ;
        droite entre dans le panneau, gauche revient au rail, sur la rubrique quittée. -->
   <nav class="menu" data-nav-zone="settings-rail">
@@ -479,7 +510,7 @@
   </nav>
 
   <!-- `data-nav-lines` : haut / bas passent par chaque ligne, dans l'ordre (télécommande). -->
-  <div class="panel" data-nav-zone="settings-panel" data-nav-lines>
+  <div class="panel" class:solo={page === "account" || page === "player"} data-nav-zone="settings-panel" data-nav-lines>
     {#if page === "account"}
       <h1 class="title">{t("settings.menu.account")}</h1>
       <!-- En-tête du profil, aux couleurs du thème : photo, nom, badges, et le serveur en cours. -->
@@ -570,6 +601,7 @@
       </section>
     {:else if page === "player"}
       <h1 class="title">{t("settings.menu.player")}</h1>
+      {#if desk}{@render banner("play", t("settings.menu.player"), t("settings.banner.player"))}{/if}
       <section class="card list">
         {#if passthroughAvailable}
           <!-- Android : son envoyé tel quel à l'ampli, ou décodé sur l'appareil. -->
@@ -648,6 +680,7 @@
       </section>
     {:else if page === "interface"}
       <h1 class="title">{t("settings.menu.interface")}</h1>
+      {#if desk}{@render banner("menu", t("settings.menu.interface"), t("settings.banner.interface"))}{/if}
       <section class="card list">
         <div class="line">
           <div class="line-text"><strong>{t("settings.interface.color")}</strong></div>
@@ -724,6 +757,7 @@
       </section>
 
       <!-- Notes des sites sur les fiches des films et des séries : celles que le serveur connaît, et Allociné. -->
+      <div class="tile">
       <h2 class="group-title">{t("settings.ratings.title")}</h2>
       <section class="card list">
         {#each (nav.serverKind === "plex" ? ["imdb", "rtCritic", "rtAudience", "tmdb", "allocinePress", "allocineUsers"] : ["community", "rtCritic", "allocinePress", "allocineUsers"]) as RatingSite[] as site (site)}
@@ -737,14 +771,18 @@
           </label>
         {/each}
       </section>
+      </div>
 
+      <div class="tile">
       <h2 class="group-title">{t("settings.interface.home")}</h2>
       <section class="card">
         <p class="muted">{t("settings.interface.homeHint")}</p>
         <HomeEditor />
       </section>
+      </div>
 
       {#if device.tv}
+        <div class="tile">
         <h2 class="group-title">{t("settings.interface.libraries")}</h2>
         <section class="card">
           <div class="libs">
@@ -767,9 +805,11 @@
           </div>
           <div><button class="btn" onclick={resetSidebar}>{t("settings.interface.resetMenu")}</button></div>
         </section>
+        </div>
       {/if}
     {:else if page === "services"}
       <h1 class="title">{t("settings.menu.services")}</h1>
+      {#if desk}{@render banner("compass", t("settings.menu.services"), t("settings.banner.services"))}{/if}
       <section class="card list">
         <div class="line">
           <div class="line-text">
@@ -828,6 +868,7 @@
         <p class="relay-note"><Icon name="lock" size={16} /> {t("settings.services.relayFound", { url: relayFound })}</p>
       {/if}
 
+      <div class="tile">
       <h2 class="group-title">Seerr {#if session.seerrUrl}<span class="ok">● {t("settings.services.connected")}</span>{/if}</h2>
       <section class="card">
         <p class="muted">
@@ -849,7 +890,9 @@
         </div>
         {#if seerrError}<p class="error">{seerrError}</p>{/if}
       </section>
+      </div>
 
+      <div class="tile">
       <h2 class="group-title">Tracearr {#if session.tracearrConnected}<span class="ok">● {t("settings.services.connected")}</span>{/if}</h2>
       <section class="card">
         <p class="muted">{t("settings.services.tracearrIntro")}</p>
@@ -864,7 +907,9 @@
         </div>
         {#if tracearrError}<p class="error">{tracearrError}</p>{/if}
       </section>
+      </div>
 
+      <div class="tile">
       <h2 class="group-title">{t("settings.tmdb.title")} {#if session.tmdb}<span class="ok">● {t("settings.tmdb.active")}</span>{/if}</h2>
       <section class="card">
         <p class="muted">
@@ -898,8 +943,10 @@
         </div>
         {#if tmdbError}<p class="error">{tmdbError}</p>{/if}
       </section>
+      </div>
 
       {#if nav.admin}
+        <div class="tile">
         <h2 class="group-title">{t("settings.invite.title")}</h2>
         <section class="card">
           <p class="muted">{t("settings.invite.intro")}</p>
@@ -925,6 +972,7 @@
             </div>
           {/if}
         </section>
+        </div>
       {/if}
     {/if}
   </div>
@@ -1088,6 +1136,170 @@
     grid-template-columns: 240px minmax(0, 1fr);
     gap: 32px;
     align-items: start;
+  }
+
+  /* Ordinateur : plus de rail, le titre et la barre de sections au-dessus du panneau. */
+  .settings.desk {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+
+  .settings.desk .menu,
+  .settings.desk .title {
+    display: none;
+  }
+
+  /* Comme les pages Admin : le titre, et la barre de sections à côté (ou dessous si la fenêtre est étroite). */
+  .desk-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px 24px;
+    margin-bottom: 24px;
+  }
+
+  .desk-head .page-title {
+    margin-bottom: 0;
+  }
+
+  /* Les tuiles se répartissent sur deux colonnes (une seule si la fenêtre est étroite), sans trous : chacune
+     reste entière, et le bandeau ou le profil prend toute la largeur au-dessus. */
+  .settings.desk .panel {
+    columns: 2 440px;
+    column-gap: 20px;
+  }
+
+  .settings.desk .panel > :global(*) {
+    break-inside: avoid;
+  }
+
+  .settings.desk .panel > .banner,
+  .settings.desk .panel > .hero {
+    column-span: all;
+  }
+
+  .settings.desk .card,
+  .settings.desk .group-title {
+    max-width: none;
+  }
+
+  .settings.desk .card {
+    margin-bottom: 20px;
+  }
+
+  /* Le titre d'un groupe (Seerr, Accueil, Notes…) entre dans son panneau : la tuile devient le panneau. */
+  .settings.desk .tile {
+    display: flow-root;
+    margin-bottom: 20px;
+    padding-top: 20px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: #ffffff05;
+  }
+
+  .settings.desk .tile .group-title {
+    margin: 0 20px;
+  }
+
+  .settings.desk .tile > .card {
+    margin-bottom: 0;
+    padding-top: 12px;
+    border: none;
+    background: none;
+  }
+
+  .settings.desk .tile > .card.list {
+    padding-top: 0;
+  }
+
+  /* Compte et Lecteur n'ont qu'une liste : chacune de ses lignes devient une tuile, deux par rangée. */
+  .settings.desk .panel.solo {
+    columns: auto;
+  }
+
+  .settings.desk .panel.solo > .card.list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(440px, 1fr));
+    gap: 20px;
+    padding: 0;
+    border: none;
+    background: none;
+  }
+
+  .settings.desk .panel.solo > .card.list > :global(.line) {
+    align-content: center;
+    padding: 20px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: #ffffff05;
+  }
+
+  .banner {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 24px;
+    padding: 28px 30px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    background:
+      radial-gradient(60% 160% at 0% 0%, color-mix(in srgb, var(--accent) 32%, transparent), transparent 70%),
+      linear-gradient(120deg, color-mix(in srgb, var(--accent) 14%, transparent), transparent 60%),
+      #ffffff05;
+  }
+
+  .banner-icon {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 64px;
+    height: 64px;
+    border-radius: 18px;
+    background: var(--accent);
+    color: var(--accent-text);
+    box-shadow: 0 10px 30px color-mix(in srgb, var(--accent) 35%, transparent);
+  }
+
+  .banner h2 {
+    margin: 0 0 4px;
+    font-size: 26px;
+    font-weight: 800;
+  }
+
+  .banner p {
+    margin: 0;
+    color: var(--text-dim);
+  }
+
+  .tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 4px;
+    border-radius: 22px;
+    background: #ffffff0d;
+  }
+
+  .tabs button {
+    padding: 7px 16px;
+    border: none;
+    border-radius: 18px;
+    background: none;
+    color: var(--text-dim);
+    font-weight: 600;
+    transition: background 0.15s, color 0.15s;
+  }
+
+  .tabs button:hover {
+    color: var(--text);
+  }
+
+  .tabs button.active {
+    background: var(--accent);
+    color: var(--accent-text);
   }
 
   .menu {

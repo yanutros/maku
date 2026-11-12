@@ -23,7 +23,7 @@ test("admin : Dashboard et Réglages serveur dans le menu, avec leurs sections (
 
 test("admin : absent pour un utilisateur qui n'est pas administrateur, et plus dans les Réglages", async ({ page }, info) => {
   await ouvrir(page, info, "reglages");
-  await expect(page.locator(".settings .menu")).toBeVisible();
+  await expect(page.locator(".settings")).toBeVisible();
   await expect(page.locator("button.item", { hasText: "Dashboard" })).toHaveCount(0);
   await expect(page.locator(".settings .menu button", { hasText: "Réglages du serveur" })).toHaveCount(0);
 });

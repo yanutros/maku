@@ -201,6 +201,11 @@
       "allocinePress": "Allociné: critics",
       "allocineUsers": "Allociné: audience",
       "allocineHint": "Looked up on Wikidata and Allociné with the title’s IMDb ID."
+    },
+    "banner": {
+      "player": "Playback of movies, episodes and music: mpv, next episode, lyrics.",
+      "interface": "Colors, language, menu, ratings shown and home: Maku your way.",
+      "services": "Seerr to request, Tracearr to track, TMDB for logos, and invitations."
     }
   },
   "login": {

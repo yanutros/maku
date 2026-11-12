@@ -632,9 +632,10 @@ la fiche et de marquer un titre comme vu ou non vu (« non vu » remet aussi à 
 
 ### 🖥️ Réglages du serveur Plex
 
-**Réglages** se présente en rail et panneau, comme Netflix et Wholphin : à gauche les rubriques de Maku (Compte,
-avec son en-tête de profil aux couleurs du thème ; Lecteur ; Interface ; Services : Seerr, Tracearr et TMDB) ; à
-droite, une ligne par réglage (son nom, une phrase d'explication, sa commande : interrupteur, choix ou bouton). Sur
+**Réglages** a ses rubriques (Compte, avec son en-tête de profil aux couleurs du thème ; Lecteur ; Interface ;
+Services : Seerr, Tracearr et TMDB) dans la barre de sections des bibliothèques sur ordinateur, avec un bandeau de
+rubrique façon Netflix et les réglages en tuiles sur deux colonnes, et en rail à gauche sur téléviseur, comme Netflix
+et Wholphin ; dans chaque rubrique, une ligne par réglage (son nom, une phrase d'explication, sa commande : interrupteur, choix ou bouton). Sur
 téléviseur, la rubrique s'ouvre au passage des flèches, droite entre dans le panneau, gauche revient au rail ; les QR
 codes (journal, clé TMDB, configuration rapide, Ko-fi) s'affichent à la demande.
 
