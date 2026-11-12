@@ -1,6 +1,7 @@
 <script lang="ts">
-  // Écran de fin d'un épisode qui a une suite, comme la « Lecture du suivant » de Plex : la vignette de l'épisode
-  // suivant avec le compte à rebours (Réglages → Lecteur), son titre et son résumé, « Lire » ou « Fermer ».
+  // Écran de fin d'un épisode qui a une suite, comme la « Lecture du suivant » de Plex : la jaquette de la saison
+  // (à défaut l'image de l'épisode) avec le compte à rebours (Réglages → Lecteur), le titre et le résumé de
+  // l'épisode suivant, « Lire » ou « Fermer ».
   // Il s'ouvre avec « Passer le générique » ou à la fin de l'épisode (player.svelte.ts).
   import { onDestroy, onMount } from "svelte";
   import Icon from "./Icon.svelte";
@@ -43,12 +44,12 @@
 </script>
 
 <div class="end" role="dialog" aria-label={t("player.nextEpisode")}>
-  {#if next.thumb}<div class="backdrop" style:background-image="url({next.thumb})"></div>{/if}
-  <div class="content">
+  {#if next.backdrop}<div class="backdrop" style:background-image="url({next.backdrop})"></div>{/if}
+  <div class="content" class:with-poster={!!next.poster}>
     <div class="left">
       <span class="eyebrow">{t("player.nextEpisode")}</span>
-      <button class="thumb" onclick={go} tabindex="-1" aria-label={t("player.playNext")}>
-        {#if next.thumb}<img src={next.thumb} alt="" />{/if}
+      <button class="thumb" class:poster={!!next.poster} onclick={go} tabindex="-1" aria-label={t("player.playNext")}>
+        {#if next.poster ?? next.thumb}<img src={next.poster ?? next.thumb} alt="" />{/if}
         {#if delay}
           <span class="ring">
             <svg viewBox="0 0 100 100" aria-hidden="true">
@@ -104,6 +105,12 @@
     width: min(1200px, calc(100% - 96px));
   }
 
+  /* Avec une jaquette en hauteur : le texte vient juste à côté, sans grand vide entre les deux. */
+  .content.with-poster {
+    grid-template-columns: auto minmax(0, 1fr);
+    width: min(1100px, calc(100% - 96px));
+  }
+
   .left {
     display: grid;
     gap: 14px;
@@ -128,6 +135,14 @@
     border-radius: 16px;
     background: #ffffff14;
     cursor: pointer;
+  }
+
+  /* Jaquette de la saison : en hauteur, comme une affiche. */
+  .thumb.poster {
+    justify-self: start;
+    width: min(340px, 32vh);
+    aspect-ratio: 2 / 3;
+    box-shadow: 0 20px 50px #0009;
   }
 
   .thumb img {
@@ -233,7 +248,12 @@
 
   /* Téléphone : la vignette au-dessus, le texte dessous. */
   @media (max-width: 760px) {
-    .content {
+    .thumb.poster {
+      width: min(200px, 28vh);
+    }
+
+    .content,
+    .content.with-poster {
       grid-template-columns: minmax(0, 1fr);
       gap: 18px;
       width: calc(100% - 32px);

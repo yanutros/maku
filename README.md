@@ -558,7 +558,7 @@ règles des magasins n'autorisent pas.
    repères détectés par le serveur : Plex les fournit à tous les comptes (seules ses propres applications
    réservent le bouton au Plex Pass) ; Jellyfin via ses segments (10.10 et plus, plugin Intro Skipper) ; Emby via ses chapitres d'intro et de générique. Sur un épisode qui a une
    suite, **Passer le générique** (ou la fin de l'épisode) ouvre l'écran **Épisode suivant**, comme la « Lecture du
-   suivant » de Plex : sa vignette avec un compte à rebours, son titre et son résumé ; **Lire** le lance tout de
+   suivant » de Plex : la jaquette de sa saison (à défaut son image) avec un compte à rebours, son numéro (« S1 · E4 »), son titre et son résumé ; **Lire** le lance tout de
    suite, **Fermer** (ou Retour) arrête là. Le compte à rebours se règle dans **Réglages → Lecteur** (5 à 30 s, ou
    aucun ; 30 s par défaut). En
    revenant d'une fiche, la bibliothèque rouvre l'onglet où l'on était (Bibliothèque, Collections, ou la

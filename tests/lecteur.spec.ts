@@ -102,3 +102,17 @@ test("vidéo figée : un message propose de réessayer, d'avancer de 10 s ou de 
   await message.getByRole("button", { name: "Réessayer" }).click();
   await expect(message).toHaveCount(0);
 });
+
+test("écran de fin : la jaquette de la saison, et le numéro de l'épisode sans accent (S2 · E4)", async ({ page }, info) => {
+  await ouvrir(page, info, "fin-episode");
+  const fin = page.getByRole("dialog", { name: "Épisode suivant" });
+  await expect(fin).toBeVisible();
+  await expect(fin.locator(".episode")).toHaveText("S2 · E4 — Aurore");
+  // La jaquette de la saison (en hauteur, comme une affiche), et non une image de l'épisode.
+  const jaquette = fin.locator(".thumb.poster img");
+  await expect(jaquette).toBeVisible();
+  const r = (await fin.locator(".thumb.poster").boundingBox())!;
+  expect(Math.round((r.height / r.width) * 10)).toBe(15);
+  // La jaquette de démo de la saison porte « Saison 2 » ; celle de la série, non.
+  await expect(jaquette).toHaveAttribute("src", /SAISON%202/);
+});

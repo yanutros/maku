@@ -97,11 +97,15 @@ export const NEXT_DELAYS = [0, 5, 10, 15, 30];
 export interface UpNext {
   title: string;
   showTitle: string | null;
-  /** « S1 · É2 ». */
+  /** « S1 · E2 » (sans accent, comme partout). */
   number: string | null;
   summary: string | null;
   durationMs: number | null;
+  /** Jaquette de la saison (sinon de la série), mieux composée qu'une image de l'épisode. */
+  poster: string | null;
+  /** Image de l'épisode : en secours sans jaquette, et en fond flouté. */
   thumb: string | null;
+  backdrop: string | null;
 }
 
 /** Compte à rebours de l'écran de fin, réglé dans Réglages → Lecteur (30 s par défaut ; 0 : pas de compte à rebours). */
@@ -127,12 +131,34 @@ export function setNextDelay(s: number) {
 
 /** Titre, numéro et vignette de l'épisode suivant, pour sa carte. */
 function loadUpNext(current: string, next: string) {
-  type Meta = { title: string; showTitle: string | null; summary: string | null; durationMs: number | null; index: number | null; parentIndex: number | null; thumb: string | null; poster: string | null };
+  type Meta = {
+    title: string;
+    showTitle: string | null;
+    summary: string | null;
+    durationMs: number | null;
+    index: number | null;
+    parentIndex: number | null;
+    thumb: string | null;
+    poster: string | null;
+    backdrop: string | null;
+    seasonKey: string | null;
+  };
+  const fresh = () => player.ratingKey === current && player.nextKey === next;
   invoke<Meta>("plex_metadata", { ratingKey: next }).then(
-    (m) => {
-      if (player.ratingKey !== current || player.nextKey !== next) return;
-      const number = m.parentIndex != null && m.index != null ? `S${m.parentIndex} · É${m.index}` : null;
-      player.upNext = { title: m.title, showTitle: m.showTitle, number, summary: m.summary, durationMs: m.durationMs, thumb: m.thumb ?? m.poster };
+    async (m) => {
+      if (!fresh()) return;
+      const number = m.parentIndex != null && m.index != null ? `S${m.parentIndex} · E${m.index}` : null;
+      // L'affiche d'un épisode est celle de la série : la jaquette de la saison se lit sur sa propre fiche.
+      let poster = m.poster;
+      if (m.seasonKey) {
+        try {
+          poster = (await invoke<Meta>("plex_metadata", { ratingKey: m.seasonKey })).poster ?? poster;
+        } catch {
+          // La jaquette de la série fera l'affaire.
+        }
+      }
+      if (!fresh()) return;
+      player.upNext = { title: m.title, showTitle: m.showTitle, number, summary: m.summary, durationMs: m.durationMs, poster, thumb: m.thumb, backdrop: m.backdrop ?? m.thumb };
     },
     () => {},
   );

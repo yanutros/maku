@@ -150,7 +150,7 @@ const showSeasons = new Map(
   shows.map((s) => [
     s.ratingKey,
     [1, 2].map((n) =>
-      item({ kind: "season", title: `Saison ${n}`, index: n, showTitle: s.title, showKey: s.ratingKey, poster: s.poster, backdrop: s.backdrop, summary: s.summary, unwatchedCount: n === 2 ? 7 : null, watched: n === 1 }),
+      item({ kind: "season", title: `Saison ${n}`, index: n, showTitle: s.title, showKey: s.ratingKey, poster: poster(s.title, `Saison ${n}`), backdrop: s.backdrop, summary: s.summary, unwatchedCount: n === 2 ? 7 : null, watched: n === 1 }),
     ),
   ]),
 );
@@ -402,7 +402,7 @@ const dashboard: TracearrDashboard = {
   nowPlaying: [
     {
       title: shows[0].title,
-      subtitle: "S2 · É4 — Aurore",
+      subtitle: "S2 · E4 — Aurore",
       poster: shows[0].poster,
       progressMs: 23 * MIN,
       durationMs: 52 * MIN,
@@ -605,6 +605,12 @@ function handle(cmd: string, a: Args): unknown {
       return playlists;
     case "plex_metadata":
       return detail(a.ratingKey);
+    // Épisodes voisins dans leur saison (bouton suivant, écran de fin).
+    case "plex_adjacent": {
+      const eps = [...seasonEpisodes.values()].find((l) => l.some((e) => e.ratingKey === a.ratingKey)) ?? [];
+      const i = eps.findIndex((e) => e.ratingKey === a.ratingKey);
+      return { prev: eps[i - 1]?.ratingKey ?? null, next: i >= 0 ? (eps[i + 1]?.ratingKey ?? null) : null };
+    }
     case "plex_children":
       return children(a.ratingKey);
     case "plex_tracks":
@@ -695,6 +701,16 @@ export async function installDemo(view: string): Promise<() => Promise<void>> {
         await music();
         player.expanded = true;
         break;
+      // Fin d'un épisode qui a une suite : l'écran « Épisode suivant ».
+      case "fin-episode": {
+        const eps = seasonEpisodes.get(showSeasons.get(shows[0].ratingKey)![1].ratingKey)!;
+        await play(eps[2].ratingKey);
+        Object.assign(player, { title: shows[0].title, subtitle: eps[2].title, duration: 52 * 60, position: 51 * 60, buffering: false });
+        document.body.style.background = `#000 url("${shows[0].backdrop}") center / cover no-repeat`;
+        for (let i = 0; i < 50 && !player.upNext; i++) await new Promise((r) => setTimeout(r, 50));
+        player.endScreen = true;
+        break;
+      }
       // Vidéo figée (lecteur Android) : le message et ses boutons.
       case "lecteur-fige":
         await play(movies[2].ratingKey);
@@ -712,6 +728,6 @@ export async function installDemo(view: string): Promise<() => Promise<void>> {
         await music();
         break;
     }
-    if (view !== "lecteur" && view !== "lecteur-fige") player.position = 74;
+    if (view !== "lecteur" && view !== "lecteur-fige" && view !== "fin-episode") player.position = 74;
   };
 }
