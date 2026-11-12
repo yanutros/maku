@@ -640,12 +640,12 @@ téléviseur, la rubrique s'ouvre au passage des flèches, droite entre dans le 
 codes (journal, clé TMDB, configuration rapide, Ko-fi) s'affichent à la demande.
 
 L'administrateur du serveur a, sur ordinateur, une catégorie **Admin** dans le menu de gauche, avec la barre de
-sections des bibliothèques : **Dashboard** (**Tableau de bord** comme celui de Plex : lectures en cours de tous les
+sections des bibliothèques et un bandeau par rubrique façon Netflix : **Dashboard** (**Tableau de bord** en tuiles, comme celui de Plex : lectures en cours de tous les
 utilisateurs, que l'on peut **arrêter avec un message** (Plex Pass) ; **débit** en temps réel ou sur 24 heures / 30 jours,
 distant et local ; **top des utilisateurs** ; **historique de lecture** par type ; **les plus lus** (films, séries,
 artistes) ; recherche de nouveaux fichiers et corbeille de chaque bibliothèque — puis **Utilisateurs**) et **Réglages serveur**
-(**Général, Bibliothèque, Réseau, Transcodeur, DLNA, Bonus et Tâches planifiées**, les réglages avancés sur
-demande). Un utilisateur partagé ne la voit pas : Plex la lui refuserait de toute façon.
+(**Général, Bibliothèque, Réseau, Transcodeur, DLNA, Bonus et Tâches planifiées** : un bandeau par rubrique façon
+Netflix, avec les réglages avancés sur demande, puis chaque réglage en tuile sur deux colonnes). Un utilisateur partagé ne la voit pas : Plex la lui refuserait de toute façon.
 
 **Utilisateurs** reprend « Gérer l'accès à la bibliothèque » de Plex : la liste des comptes avec qui le serveur est
 partagé à gauche, la fiche du compte choisi à droite, en trois onglets. **Bibliothèques** : un interrupteur par

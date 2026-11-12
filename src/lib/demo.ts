@@ -507,6 +507,14 @@ function handle(cmd: string, a: Args): unknown {
     // Tableau de bord (administrateur) : une lecture en cours, le débit, les statistiques et l'historique fictifs.
     case "plex_sessions":
       return [{ sessionId: "demo1", user: "Hugo", userThumb: avatar("Hugo"), title: movies[3].title, subtitle: String(movies[3].year), poster: movies[3].poster, progressMs: 41 * MIN, durationMs: 112 * MIN, state: "playing", player: "Maku (PC)", local: false, transcode: false, bandwidthKbps: 8200 }];
+    case "plex_prefs":
+      return [
+        { id: "FriendlyName", label: "Nom d'usage", summary: "Le nom du serveur sur les autres appareils du réseau.", kind: "text", value: "", default: "", advanced: false, group: "general", options: [] },
+        { id: "logDebug", label: "Envoyer les rapports de crash", summary: "Aide à améliorer le serveur.", kind: "bool", value: "false", default: "false", advanced: false, group: "general", options: [] },
+        { id: "PushNotifications", label: "Notifications push", summary: "Autorise le serveur à envoyer des notifications aux appareils mobiles.", kind: "bool", value: "true", default: "false", advanced: false, group: "general", options: [] },
+        { id: "ButlerUpdateChannel", label: "Canal de mise à jour", summary: "", kind: "text", value: "16", default: "16", advanced: false, group: "general", options: [["16", "Public"], ["8", "Beta"]] },
+        { id: "ManualPortMappingPort", label: "Port public", summary: "Port ouvert sur la box pour l'accès à distance.", kind: "int", value: "32400", default: "32400", advanced: false, group: "network", options: [] },
+      ];
     case "plex_stop_session":
       return null;
     case "plex_bandwidth": {

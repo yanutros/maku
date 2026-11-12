@@ -3,6 +3,7 @@
   import { api, errorText, type Pref } from "../lib/api";
   import { nav } from "../lib/nav.svelte";
   import { t } from "../lib/i18n";
+  import Icon, { type IconName } from "../components/Icon.svelte";
   import ServerDashboard from "../components/ServerDashboard.svelte";
   import ServerUsers from "../components/ServerUsers.svelte";
   import ServerPrefs from "../components/ServerPrefs.svelte";
@@ -20,6 +21,17 @@
     dlna: t("settings.groups.dlna"),
     extras: t("settings.groups.extras"),
     butler: t("settings.groups.butler"),
+  };
+
+  /** Icône de chaque rubrique, pour son bandeau. */
+  const ICONS: Record<string, IconName> = {
+    general: "settings",
+    library: "library",
+    network: "compass",
+    transcoder: "play",
+    dlna: "tv",
+    extras: "star",
+    butler: "clock",
   };
 
   let prefs = $state<Pref[] | null>(null);
@@ -71,16 +83,31 @@
   {#if !nav.admin}
     <p class="muted">{t("settings.menu.locked")}</p>
   {:else if page === "dashboard"}
+    <header class="banner">
+      <span class="banner-icon"><Icon name={tab === "users" ? "user" : "stats"} size={30} /></span>
+      <div class="banner-text">
+        <h2>{tabs.find((x) => x.id === tab)?.label ?? ""}</h2>
+        <p>{t(tab === "users" ? "admin.banner.users" : "admin.banner.dashboard")}</p>
+      </div>
+    </header>
     {#if tab === "users"}<ServerUsers />{:else}<ServerDashboard />{/if}
   {:else if prefsError}
     <p class="error">{prefsError}</p>
   {:else if !prefs}
     <div class="skeleton" style:height="300px"></div>
   {:else}
-    <label class="switch-line">
-      <span><strong>{t("settings.menu.advanced")}</strong></span>
-      <input type="checkbox" class="switch" bind:checked={advanced} />
-    </label>
+    <!-- Bandeau de la rubrique, façon Netflix : grande icône, titre, une phrase ; les réglages avancés à droite. -->
+    <header class="banner">
+      <span class="banner-icon"><Icon name={ICONS[tab] ?? "settings"} size={30} /></span>
+      <div class="banner-text">
+        <h2>{GROUPS[tab] ?? ""}</h2>
+        <p>{t(`admin.banner.${tab}`)}</p>
+      </div>
+      <label class="adv-toggle">
+        <span>{t("settings.menu.advanced")}</span>
+        <input type="checkbox" class="switch" bind:checked={advanced} />
+      </label>
+    </header>
     <ServerPrefs prefs={prefs.filter((p) => p.group === tab)} {advanced} onSaved={loadPrefs} />
   {/if}
 </div>
@@ -128,15 +155,59 @@
     color: var(--accent-text);
   }
 
-  .switch-line {
+  .banner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 24px;
+    padding: 28px 30px;
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    background:
+      radial-gradient(60% 160% at 0% 0%, color-mix(in srgb, var(--accent) 32%, transparent), transparent 70%),
+      linear-gradient(120deg, color-mix(in srgb, var(--accent) 14%, transparent), transparent 60%),
+      #ffffff05;
+  }
+
+  .banner-icon {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 64px;
+    height: 64px;
+    border-radius: 18px;
+    background: var(--accent);
+    color: var(--accent-text);
+    box-shadow: 0 10px 30px color-mix(in srgb, var(--accent) 35%, transparent);
+  }
+
+  .banner-text {
+    flex: 1;
+    min-width: 260px;
+  }
+
+  .banner h2 {
+    margin: 0 0 4px;
+    font-size: 26px;
+    font-weight: 800;
+  }
+
+  .banner p {
+    margin: 0;
+    color: var(--text-dim);
+  }
+
+  .adv-toggle {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 20px;
-    max-width: 720px;
-    margin-bottom: 16px;
+    gap: 14px;
+    padding: 10px 14px;
+    border-radius: 14px;
+    background: #0003;
     color: var(--text);
     font-size: 14px;
+    font-weight: 600;
     cursor: pointer;
   }
 </style>

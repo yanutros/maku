@@ -308,45 +308,6 @@
   {/if}
 </div>
 
-<!-- ---------- Top des utilisateurs ---------- -->
-<div class="block">
-  <div class="block-head">
-    <h3 class="sub">{t("dashboard.topUsers")}</h3>
-    <div class="filters">
-      <div class="filter">
-        <TrackSelect value={topRange} label={t("dashboard.period")} options={Object.entries(PERIOD).map(([value, r]) => ({ value, label: r.label }))} onchange={(v) => ((topRange = v as keyof typeof PERIOD), (top = null), loadTop())} />
-      </div>
-    </div>
-  </div>
-  {#if topError}
-    <p class="error">{t("dashboard.statsUnavailable", { error: topError })}</p>
-  {:else if !top}
-    <div class="skeleton" style:height="200px"></div>
-  {:else if !topUsers.length}
-    <p class="muted">{t("dashboard.noData")}</p>
-  {:else}
-    <div class="users">
-      {#each topUsers as u (u.id)}
-        <div class="user">
-          <div class="user-head">
-            {#if thumbOf(u.id)}<img class="avatar" src={thumbOf(u.id)} alt="" />{:else}<span class="avatar ph"></span>{/if}
-            <div>
-              <div class="strong">{nameOf(u.id)}</div>
-              <div class="muted small">{t("dashboard.plays", { count: u.count })} · {fmtHours(u.duration)}</div>
-            </div>
-          </div>
-          {#each KINDS as k (k.id)}
-            <div class="user-row">
-              <span><i style:background={k.color}></i>{k.label}</span>
-              <span class="muted">{fmtHours(u.byKind[k.id] ?? 0)}</span>
-            </div>
-          {/each}
-        </div>
-      {/each}
-    </div>
-  {/if}
-</div>
-
 <!-- ---------- Historique de lecture ---------- -->
 <div class="block">
   <div class="block-head">
@@ -399,8 +360,47 @@
   {/if}
 </div>
 
+<!-- ---------- Top des utilisateurs ---------- -->
+<div class="block wide">
+  <div class="block-head">
+    <h3 class="sub">{t("dashboard.topUsers")}</h3>
+    <div class="filters">
+      <div class="filter">
+        <TrackSelect value={topRange} label={t("dashboard.period")} options={Object.entries(PERIOD).map(([value, r]) => ({ value, label: r.label }))} onchange={(v) => ((topRange = v as keyof typeof PERIOD), (top = null), loadTop())} />
+      </div>
+    </div>
+  </div>
+  {#if topError}
+    <p class="error">{t("dashboard.statsUnavailable", { error: topError })}</p>
+  {:else if !top}
+    <div class="skeleton" style:height="200px"></div>
+  {:else if !topUsers.length}
+    <p class="muted">{t("dashboard.noData")}</p>
+  {:else}
+    <div class="users">
+      {#each topUsers as u (u.id)}
+        <div class="user">
+          <div class="user-head">
+            {#if thumbOf(u.id)}<img class="avatar" src={thumbOf(u.id)} alt="" />{:else}<span class="avatar ph"></span>{/if}
+            <div>
+              <div class="strong">{nameOf(u.id)}</div>
+              <div class="muted small">{t("dashboard.plays", { count: u.count })} · {fmtHours(u.duration)}</div>
+            </div>
+          </div>
+          {#each KINDS as k (k.id)}
+            <div class="user-row">
+              <span><i style:background={k.color}></i>{k.label}</span>
+              <span class="muted">{fmtHours(u.byKind[k.id] ?? 0)}</span>
+            </div>
+          {/each}
+        </div>
+      {/each}
+    </div>
+  {/if}
+</div>
+
 <!-- ---------- Les plus lus ---------- -->
-<div class="block">
+<div class="block wide">
   <div class="block-head">
     <h3 class="sub">{t("dashboard.mostPlayed")}</h3>
     <div class="filters">
@@ -445,8 +445,13 @@
 </div>
 
 <style>
+  /* Chaque bloc est une tuile ; le tableau de bord les range sur deux colonnes (voir ServerDashboard). */
   .block {
-    margin-top: 32px;
+    min-width: 0;
+    padding: 20px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: #ffffff05;
   }
 
   .block-head {

@@ -1113,6 +1113,17 @@
   },
   "admin": {
     "dashboard": "Dashboard",
-    "serverSettings": "Réglages serveur"
+    "serverSettings": "Réglages serveur",
+    "banner": {
+      "general": "Le nom du serveur, les rapports d'erreurs, les notifications et les mises à jour de Plex Media Server.",
+      "library": "L'analyse des fichiers, les métadonnées, les vignettes et l'entretien des bibliothèques.",
+      "network": "L'accès à distance, les adresses autorisées, la sécurité des connexions et le débit.",
+      "transcoder": "La qualité et l'accélération matérielle des conversions vidéo en direct.",
+      "dlna": "Le partage des bibliothèques avec les téléviseurs et lecteurs DLNA du réseau.",
+      "extras": "Les bandes-annonces, bonus et contenus en ligne proposés avec les films.",
+      "butler": "L'entretien nocturne du serveur : sauvegardes, nettoyage et analyses.",
+      "dashboard": "Ce qui se lit en ce moment, le débit, les plus gros consommateurs, l'historique et les titres les plus lus.",
+      "users": "Les amis avec qui le serveur est partagé : leurs bibliothèques, leurs droits et leurs restrictions."
+    }
   }
 }

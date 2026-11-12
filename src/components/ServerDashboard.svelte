@@ -61,6 +61,8 @@
   onDestroy(() => clearInterval(timer));
 </script>
 
+<div class="dash">
+<div class="block wide">
 <h3 class="sub">{t("dashboard.nowPlaying")}</h3>
 {#if error}
   <p class="error">{error}</p>
@@ -98,8 +100,11 @@
   </div>
 {/if}
 
+</div>
+
 <ServerStats />
 
+<div class="block wide">
 <h3 class="sub">{t("dashboard.libraries")}</h3>
 <div class="libs">
   {#each sections as s (s.key)}
@@ -114,6 +119,9 @@
       </button>
     </div>
   {/each}
+</div>
+
+</div>
 </div>
 
 {#if stopping}
@@ -135,6 +143,36 @@
 {/if}
 
 <style>
+  /* Tableau de bord en tuiles, façon Netflix : débit et historique côte à côte, le reste sur toute la largeur. */
+  .dash {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: 20px;
+  }
+
+  .dash > :global(.wide) {
+    grid-column: 1 / -1;
+  }
+
+  @media (max-width: 1280px) {
+    .dash {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  .block {
+    min-width: 0;
+    padding: 20px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: #ffffff05;
+  }
+
+  .block .sub {
+    margin: 0 0 14px;
+  }
+
   .btn.stop {
     justify-self: start;
     margin-top: 8px;

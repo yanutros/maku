@@ -1113,6 +1113,17 @@
   },
   "admin": {
     "dashboard": "Dashboard",
-    "serverSettings": "Serverinstellingen"
+    "serverSettings": "Serverinstellingen",
+    "banner": {
+      "general": "De servernaam, crashrapporten, meldingen en updates van Plex Media Server.",
+      "library": "Het scannen van bestanden, metadata, miniaturen en bibliotheekonderhoud.",
+      "network": "Externe toegang, toegestane adressen, verbindingsbeveiliging en bandbreedte.",
+      "transcoder": "Kwaliteit en hardwareversnelling van live transcoderen.",
+      "dlna": "Bibliotheken delen met DLNA-tv's en -spelers in het netwerk.",
+      "extras": "Trailers, extra's en online inhoud bij films.",
+      "butler": "Nachtelijk serveronderhoud: back-ups, opschonen en analyses.",
+      "dashboard": "Wat er nu speelt, bandbreedte, topgebruikers, geschiedenis en de meest afgespeelde titels.",
+      "users": "De vrienden met wie de server gedeeld wordt: hun bibliotheken, rechten en beperkingen."
+    }
   }
 }

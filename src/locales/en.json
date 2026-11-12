@@ -1113,6 +1113,17 @@
   },
   "admin": {
     "dashboard": "Dashboard",
-    "serverSettings": "Server settings"
+    "serverSettings": "Server settings",
+    "banner": {
+      "general": "The server name, crash reports, notifications and Plex Media Server updates.",
+      "library": "File scanning, metadata, thumbnails and library maintenance.",
+      "network": "Remote access, allowed addresses, connection security and bandwidth.",
+      "transcoder": "Quality and hardware acceleration of live video transcoding.",
+      "dlna": "Sharing libraries with DLNA TVs and players on the network.",
+      "extras": "Trailers, extras and online content offered with movies.",
+      "butler": "Nightly server maintenance: backups, cleanup and analysis.",
+      "dashboard": "What's playing right now, bandwidth, top users, history and the most played titles.",
+      "users": "The friends the server is shared with: their libraries, permissions and restrictions."
+    }
   }
 }

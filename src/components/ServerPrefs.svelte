@@ -86,26 +86,36 @@
 {/if}
 
 <style>
+  /* Une tuile par réglage, sur deux colonnes qui remplissent la largeur (une seule si la fenêtre est étroite). */
   .prefs {
-    display: grid;
-    gap: 2px;
+    columns: 2 420px;
+    column-gap: 20px;
+  }
+
+  .prefs > .muted {
+    column-span: all;
   }
 
   .pref {
     display: grid;
-    gap: 8px;
-    padding: 14px 16px;
-    border-radius: 12px;
-    transition: background 0.15s;
+    gap: 10px;
+    margin-bottom: 20px;
+    padding: 20px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: #ffffff05;
+    break-inside: avoid;
+    transition: background 0.15s, border-color 0.15s;
   }
 
   .pref:hover {
     background: #ffffff08;
   }
 
+  /* Réglage modifié, pas encore enregistré : liseré dans la couleur du thème. */
   .pref.changed {
+    border-color: var(--accent);
     background: color-mix(in srgb, var(--accent) 8%, transparent);
-    box-shadow: inset 3px 0 0 var(--accent);
   }
 
   .switch-row {
@@ -145,7 +155,7 @@
 
   .pref select,
   .pref input:not(.switch) {
-    max-width: 460px;
+    width: 100%;
   }
 
   .savebar {
