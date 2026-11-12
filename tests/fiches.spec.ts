@@ -98,3 +98,26 @@ test("TV : un seul cadre de sélection, de la couleur du thème", async ({ page 
   });
   expect(cadre, "cadre de sélection blanc au lieu de la couleur du thème").toBe(accent);
 });
+
+test("TV : après la lecture d'un épisode lancé depuis sa vignette, la sélection revient sur cette vignette", async ({ page }, info) => {
+  test.skip(appareil(info) !== "tv", "télécommande : téléviseur");
+  await ouvrir(page, info, "serie");
+  await page.getByRole("button", { name: /Saison 2/ }).first().focus();
+  await touche(page, "Enter");
+  await expect(page.locator(".episode.target .thumb")).toBeFocused();
+  // L'épisode suivant, lancé depuis sa vignette.
+  await touche(page, "ArrowDown");
+  const vignette = page.locator(".episode.target + .episode .thumb");
+  await expect(vignette).toBeFocused();
+  const lance = await vignette.getAttribute("data-key");
+  await touche(page, "Enter");
+  await expect(page.locator(".overlay")).toBeVisible();
+  // Arrêt de la lecture (bouton ■) : retour sur la fiche, sur la même vignette, à l'écran.
+  await page.locator(".overlay").getByRole("button", { name: "Arrêter", exact: true }).first().click({ force: true });
+  await expect(page.locator(".overlay")).toHaveCount(0);
+  await expect(page.locator(`[data-key="${lance}"]`)).toBeFocused();
+  await selectionVisible(page);
+  // Et les flèches repartent de là, sans remonter au bouton « Lire ».
+  await touche(page, "ArrowDown");
+  await expect(page.locator(`.episode:has([data-key="${lance}"]) + .episode .thumb`)).toBeFocused();
+});

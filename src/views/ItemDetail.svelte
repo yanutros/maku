@@ -22,7 +22,7 @@
   import { api, errorText, formatDuration, isMusic, type Item, type ItemDetail } from "../lib/api";
   import MusicDetail from "./MusicDetail.svelte";
   import { go, nav, replace, toast } from "../lib/nav.svelte";
-  import { play, type PlayOptions } from "../lib/player.svelte";
+  import { play, player, type PlayOptions } from "../lib/player.svelte";
   import PosterCard from "../components/PosterCard.svelte";
   import Row from "../components/Row.svelte";
   import Icon from "../components/Icon.svelte";
@@ -205,6 +205,39 @@
   function start(key: string, opts: PlayOptions = {}) {
     play(key, opts).catch((e) => toast(errorText(e), true));
   }
+
+  // Télécommande : un épisode lancé depuis sa jaquette. Au retour du lecteur, la sélection revient sur sa
+  // jaquette (celle du dernier épisode lu, si la lecture a enchaîné les suivants), au lieu de se perdre et
+  // de repartir au bouton « Lire » tout en haut.
+  let fromEpisode = false;
+  let lastPlayed: string | null = null;
+
+  function startEpisode(key: string) {
+    fromEpisode = device.tv;
+    start(key);
+  }
+
+  function focusEpisode(key: string, tries = 20) {
+    const el = listEl?.querySelector<HTMLElement>(`[data-ep="${key}"] .thumb`);
+    // La page réapparaît un peu après la fermeture du lecteur : on attend qu'elle soit affichée.
+    if (!el || !el.getClientRects().length) {
+      if (tries > 0) setTimeout(() => focusEpisode(key, tries - 1), 75);
+      return;
+    }
+    target = key;
+    el.focus({ preventScroll: true });
+    reveal(el, { center: true });
+  }
+
+  $effect(() => {
+    if (player.active) {
+      if (player.ratingKey && children.some((c) => c.ratingKey === player.ratingKey)) lastPlayed = player.ratingKey;
+      return;
+    }
+    if (!fromEpisode || !lastPlayed) return;
+    fromEpisode = false;
+    focusEpisode(lastPlayed);
+  });
 
   // Bande-annonce : un titre du serveur à lire, ou une vidéo YouTube par-dessus la page.
   let trailerBusy = $state(false);
@@ -752,7 +785,7 @@
         {#each children as ep (ep.ratingKey)}
           <!-- svelte-ignore a11y_no_static_element_interactions -->
           <div class="episode" class:target={ep.ratingKey === target} data-ep={ep.ratingKey} data-nav-row oncontextmenu={(e) => openMenu(e, ep, false)}>
-            <button class="thumb" data-key="ep-{ep.ratingKey}" onclick={() => start(ep.ratingKey)} aria-label={t("item.playTitle", { title: ep.title })}>
+            <button class="thumb" data-key="ep-{ep.ratingKey}" onclick={() => startEpisode(ep.ratingKey)} aria-label={t("item.playTitle", { title: ep.title })}>
               {#if ep.thumb}<img src={ep.thumb} alt="" loading="lazy" />{/if}
               <span class="ep-badge">
                 {#if ep.watched}<Icon name="check" size={13} />{/if}
