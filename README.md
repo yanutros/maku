@@ -18,6 +18,7 @@
 </p>
 
 <p align="center">
+  <a href="https://yanutros.github.io/maku/">Site</a> ·
   <a href="#-ce-que-fait-maku">Fonctionnalités</a> ·
   <a href="#-aperçu">Aperçu</a> ·
   <a href="#-installer">Installer</a> ·
