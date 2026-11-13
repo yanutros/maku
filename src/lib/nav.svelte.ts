@@ -198,9 +198,16 @@ export function back() {
 
 const backHandlers: (() => boolean)[] = [];
 
-/** Le gestionnaire renvoie true quand il a fermé quelque chose (lecteur, menu…) : on reste sur la page. */
+/**
+ * Le gestionnaire renvoie true quand il a fermé quelque chose (lecteur, menu…) : on reste sur la page.
+ * Renvoie de quoi le retirer.
+ */
 export function onBack(handler: () => boolean) {
   backHandlers.push(handler);
+  return () => {
+    const i = backHandlers.indexOf(handler);
+    if (i >= 0) backHandlers.splice(i, 1);
+  };
 }
 
 /** Page précédente, à l'endroit quitté (jaquette sélectionnée, défilement). False : pas de page avant. */

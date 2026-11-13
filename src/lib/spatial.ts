@@ -253,8 +253,12 @@ function moveInRows(current: HTMLElement, dir: Dir): boolean {
   const rows = [...page.querySelectorAll("[data-nav-row]")].filter((r) => focusables(r).length);
   const i = rows.indexOf(row);
   const next = rows[i + (dir === "ArrowDown" ? 1 : -1)];
-  // Tout en haut ou tout en bas : on reste où l'on est (jamais vers le menu ni la recherche).
-  if (!next) return true;
+  // Tout en haut ou tout en bas : on reste où l'on est (jamais vers le menu ni la recherche), sauf, en bas,
+  // vers le petit lecteur de la musique en cours.
+  if (!next) {
+    if (dir === "ArrowDown") focusMiniPlayer();
+    return true;
+  }
   rowLast.set(row, current);
   const candidates = focusables(next);
   // L'élément quitté dans cette rangée, sinon celui qu'elle désigne (`data-nav-current` : l'épisode choisi
@@ -266,6 +270,14 @@ function moveInRows(current: HTMLElement, dir: Dir): boolean {
     candidates.find(onScreenX) ||
     candidates[0];
   show(target, rows.indexOf(next) === 0);
+  return true;
+}
+
+/** Bas tout en bas d'une page : le petit lecteur de la musique en cours (TvMiniPlayer), sur lecture / pause. */
+export function focusMiniPlayer(): boolean {
+  const el = document.querySelector<HTMLElement>(".tv-mini [data-mini-default]");
+  if (!el || !visible(el)) return false;
+  el.focus({ preventScroll: true });
   return true;
 }
 
@@ -364,6 +376,8 @@ export function moveFocus(dir: Dir): boolean {
     glideTo(content, { top: 0 });
     return true;
   }
+  // Rien plus bas dans la page (ou seulement le menu de gauche) : le petit lecteur de la musique en cours.
+  if (dir === "ArrowDown" && current && !current.closest("aside") && (!target || zone(target) !== zone(current)) && focusMiniPlayer()) return true;
   if (!target) return false;
   // En changeant de zone, on retrouve l'élément quitté s'il est encore à l'écran.
   const into = zone(target);

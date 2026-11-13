@@ -1,7 +1,7 @@
 <script lang="ts">
   import { menuable } from "../lib/longpress";
   import type { Snippet } from "svelte";
-  import { focusTabs, moveFocus } from "../lib/spatial";
+  import { focusMiniPlayer, focusTabs, moveFocus } from "../lib/spatial";
   import TitleLogo from "./TitleLogo.svelte";
   import Icon from "./Icon.svelte";
   import TvArt from "./TvArt.svelte";
@@ -71,8 +71,15 @@
         return;
       }
       c2 = c - 1;
-    } else if (e.key === "ArrowDown") r2 = Math.min(row + 1, rows.length - 1);
-    else if (e.key === "ArrowUp") {
+    } else if (e.key === "ArrowDown") {
+      // Dernière rangée : le petit lecteur de la musique en cours, s'il y en a une.
+      if (row === rows.length - 1) {
+        e.preventDefault();
+        focusMiniPlayer();
+        return;
+      }
+      r2 = row + 1;
+    } else if (e.key === "ArrowUp") {
       // Tout en haut, on rejoint les onglets.
       if (row === 0) {
         e.preventDefault();

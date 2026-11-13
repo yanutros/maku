@@ -420,8 +420,10 @@ pour l'instant que Plex.
 > Jellyfin et Emby).
 > La musique a son lecteur plein écran, comme dans Plex : la pochette en grand, les commandes qui s'effacent au
 > repos, la file d'attente en rangée de pochettes (flèche bas), un bouton **Paroles** qui les affiche en grand à côté
-> de la pochette, et un bouton pour tout arrêter. Pendant qu'on parcourt les pages, une petite
-> vignette rappelle le titre en cours, et « En cours de lecture », en tête du menu, rouvre le lecteur.
+> de la pochette, et un bouton pour tout arrêter. Pendant qu'on parcourt les pages, un petit lecteur en bas à
+> droite montre le titre en cours, sa progression et son temps. La flèche bas, tout en bas d'une page, y entre :
+> gauche / droite passent de **Pause** à **Suivant**, à **Arrêter** et au titre (OK rouvre le lecteur plein écran),
+> haut ou Retour rendent la sélection là où elle était. « En cours de lecture », en tête du menu, rouvre aussi le lecteur.
 > **Découvrir** reprend les rangées de l'accueil, et la flèche haut remonte toujours une page jusqu'à son
 > bandeau (celui des statistiques, par exemple) avant de rejoindre le menu.
 
