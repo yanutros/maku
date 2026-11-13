@@ -277,6 +277,9 @@ visionnage. Tout se fait avec son compte Plex (ou Jellyfin) : aucune clé d'API 
 
 Les paquets de chaque version sont publiés dans les [Releases](../../releases) du dépôt.
 
+Maku est aussi sur le [Microsoft Store](https://apps.microsoft.com/detail/9MZSQFBJL1X5) (Windows) et l'[Amazon Appstore](https://www.amazon.com/gp/product/B0HQWWD4DL) (Fire TV) :
+c'est alors le magasin qui l'installe et le met à jour.
+
 | Système | Fichier | Installation |
 | --- | --- | --- |
 | 🪟 **Windows** | `Maku_<version>_x64-setup.exe` (ou `.msi`) | lancez l'installeur : mpv est inclus, rien d'autre à installer (voir aussi [Signature du code](#-signature-du-code)) |
@@ -847,8 +850,8 @@ Les installeurs Windows publiés sur GitHub ne sont pas signés : SignPath Found
 projets libres, a jugé Maku encore trop jeune. Windows et son antivirus peuvent donc traiter une nouvelle version
 comme un programme inconnu, parfois à tort comme un logiciel malveillant (Microsoft Defender l'a déjà fait).
 
-Une version pour le **Microsoft Store**, « Maku Player », est en préparation : le Store vérifie le paquet puis le signe
-avec le certificat de Microsoft, ce qui règle la question. Le paquet (MSIX) est construit à partir du même code, par
+La version du **Microsoft Store**, [« Maku Player »](https://apps.microsoft.com/detail/9MZSQFBJL1X5), règle la question : le Store vérifie le paquet puis le signe
+avec le certificat de Microsoft. Le paquet (MSIX) est construit à partir du même code, par
 GitHub Actions ; sa fiche est décrite dans [docs/store.md](docs/store.md). mpv, inclus dans les deux, est un
 programme tiers qui n'est pas signé par Maku.
 
