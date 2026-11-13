@@ -140,12 +140,15 @@ class NativeVideo(private val activity: Activity, private val webView: WebView) 
     DiagLog.playbackStarted()
     val renderers = object : DefaultRenderersFactory(activity) {
       override fun buildAudioSink(context: Context, enableFloatOutput: Boolean, enableAudioOutputPlaybackParams: Boolean): AudioSink {
-        val builder = DefaultAudioSink.Builder(context)
+        // Formats imposés : son décodé ici (PCM seulement), ou ceux retenus juste après le démarrage. Le
+        // constructeur avec contexte les ignorerait (media3 lit alors lui-même ceux de la sortie audio, et
+        // « décodé ici » envoyait quand même le Dolby tel quel) : sans contexte, ils sont bien appliqués.
+        @Suppress("DEPRECATION")
+        val forced = if (!passthrough) AudioCapabilities.DEFAULT_AUDIO_CAPABILITIES else rememberedCapabilities(context)
+        @Suppress("DEPRECATION")
+        val builder = (if (forced != null) DefaultAudioSink.Builder().setAudioCapabilities(forced) else DefaultAudioSink.Builder(context))
           .setEnableFloatOutput(enableFloatOutput)
           .setEnableAudioTrackPlaybackParams(enableAudioOutputPlaybackParams)
-        @Suppress("DEPRECATION")
-        if (!passthrough) builder.setAudioCapabilities(AudioCapabilities.DEFAULT_AUDIO_CAPABILITIES)
-        else rememberedCapabilities(context)?.let { builder.setAudioCapabilities(it) }
         return builder.build()
       }
     }

@@ -357,7 +357,7 @@ pour l'instant que Plex.
 > et les sous-titres (intégrés ou externes) se choisissent pendant la lecture. Comme Moonfin, Maku convertit le
 > moins possible : les sons que l'appareil ne décode pas (DTS, DTS-HD, TrueHD) le sont par FFmpeg, et le son
 > Dolby, DTS ou Atmos part tel quel vers l'ampli ou la barre de son qui l'accepte (**Réglages → Lecteur** :
-> Automatique, ou « Décodé ici » si un film reste muet ; la page montre les formats acceptés). La dernière
+> Automatique, ou « Décodé ici » si un film reste muet ou se fige : le son est alors vraiment décodé par l'appareil, même s'il annonce accepter le Dolby ; la page montre les formats acceptés). La dernière
 > détection valable de la sortie audio est gardée pour le démarrage à froid, quand la liaison HDMI n'est pas encore
 > établie. Si seul le son reste illisible, le serveur (Plex, Jellyfin ou Emby) copie la vidéo d'origine et ne
 > convertit que le son ; sinon, il convertit tout à la volée (HLS, 1080p). La musique est lue directement. La reprise,
