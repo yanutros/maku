@@ -784,7 +784,8 @@
     "stalledHint": "Het beeld beweegt niet, hoewel de video geladen is.",
     "stalledRetry": "Opnieuw proberen",
     "stalledSkip": "10 s overslaan",
-    "stalledDecode": "Geluid op dit apparaat decoderen"
+    "stalledDecode": "Geluid op dit apparaat decoderen",
+    "decodeRemembered": "Het afspelen liep vast: het geluid wordt nu door het apparaat gedecodeerd (Instellingen → Speler → “Hier gedecodeerd”)."
   },
   "request": {
     "sent": "Verzoek verstuurd: {{title}}",

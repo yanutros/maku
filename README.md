@@ -386,8 +386,11 @@ pour l'instant que Plex.
 > **Vidéo figée** (Android) : quand l'image n'avance plus alors que la vidéo est chargée (prête, pas en pause,
 > des données d'avance, position immobile depuis 5 s), Maku le dit au lieu de rester bloqué : un message propose
 > **Réessayer** (au même endroit), **Passer 10 s** et, si le son part tel quel vers l'ampli, **Son décodé par
-> l'appareil**. Le journal note le blocage (position, mémoire tampon, format du son, sortie vers l'ampli), chaque
-> geste tenté et l'issue (lecture repartie, saut, ou nouveau blocage).
+> l'appareil**. Si le son (Dolby…) partait réellement tel quel avec le réglage automatique, certaines TV calent
+> justement dessus après un saut : Maku passe alors de lui-même en « Décodé ici » pour cet appareil, relance au même
+> endroit et le signale par un court message (le réglage reste modifiable dans **Réglages → Lecteur**). Le journal note
+> le blocage (position, mémoire tampon, format du son, sortie vers l'ampli), chaque geste tenté et l'issue (lecture
+> repartie, saut, ou nouveau blocage).
 
 > [!TIP]
 > **Sur téléviseur**, l'interface est volontairement plus sobre que sur ordinateur (pas de carrousel animé, de

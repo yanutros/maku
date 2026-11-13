@@ -784,7 +784,8 @@
     "stalledHint": "L'image n'avance plus alors que la vidéo est chargée.",
     "stalledRetry": "Réessayer",
     "stalledSkip": "Passer 10 s",
-    "stalledDecode": "Son décodé par l'appareil"
+    "stalledDecode": "Son décodé par l'appareil",
+    "decodeRemembered": "La lecture était bloquée : le son est désormais décodé par l'appareil (Réglages → Lecteur → « Décodé ici »)."
   },
   "request": {
     "sent": "Demande envoyée : {{title}}",

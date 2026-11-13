@@ -784,7 +784,8 @@
     "stalledHint": "The picture isn't moving even though the video is loaded.",
     "stalledRetry": "Retry",
     "stalledSkip": "Skip 10 s",
-    "stalledDecode": "Decode audio on this device"
+    "stalledDecode": "Decode audio on this device",
+    "decodeRemembered": "Playback was stuck: sound is now decoded by this device (Settings → Player → “Decoded here”)."
   },
   "request": {
     "sent": "Request sent: {{title}}",

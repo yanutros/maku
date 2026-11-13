@@ -667,6 +667,23 @@ export function mpv(...args: unknown[]) {
   return invoke<void>("player_command", { args }).catch(() => {});
 }
 
+/**
+ * Vidéo figée (Android). Si le son partait tel quel vers la sortie audio avec le réglage automatique, c'est lui
+ * qui bloque sur certaines TV : Maku retient « Décodé ici » pour cet appareil et relance aussitôt, avec un court
+ * message à la place de celui du blocage.
+ * Sinon, le message propose de réessayer, de passer 10 s ou de décoder le son.
+ */
+export function onStalled(s: { at: number; passthrough: boolean; bitstream?: boolean } | false) {
+  if (s && s.bitstream && passthroughMode() === "auto") {
+    setPassthroughMode("off");
+    diag("Maku : lecture figée avec le son envoyé tel quel, « Décodé ici » est retenu sur cet appareil");
+    toast(t("player.decodeRemembered"));
+    unstall("decodeAudio");
+    return;
+  }
+  player.stalled = s ? { at: s.at / 1000, passthrough: s.passthrough } : null;
+}
+
 /** Vidéo figée (Android) : relancer au même endroit, ou décoder le son ici plutôt que l'envoyer à l'ampli. */
 export function unstall(how: "retry" | "decodeAudio") {
   player.stalled = null;
@@ -987,12 +1004,12 @@ const web = (() => {
     ended?: boolean;
     unsupported?: string;
     error?: string;
-    stalled?: { at: number; passthrough: boolean } | false;
+    stalled?: { at: number; passthrough: boolean; bitstream?: boolean } | false;
   };
 
   (globalThis as { __plexrVideo?: (e: NativeEvent) => void }).__plexrVideo = (e) => {
     if (!player.native) return;
-    if (e.stalled !== undefined) player.stalled = e.stalled ? { at: e.stalled.at / 1000, passthrough: e.stalled.passthrough } : null;
+    if (e.stalled !== undefined) onStalled(e.stalled);
     if (e.ended) return videoEnded();
     if (e.unsupported !== undefined || e.error !== undefined) {
       // Codec ou format que l'appareil ne lit pas : le serveur convertit. Si seul le son pose problème,

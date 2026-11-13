@@ -656,7 +656,7 @@ export async function installDemo(view: string): Promise<() => Promise<void>> {
 
   return async () => {
     const { go } = await import("./nav.svelte");
-    const { player, playMusic, play } = await import("./player.svelte");
+    const { player, playMusic, play, onStalled } = await import("./player.svelte");
     const music = () => playMusic(albums[0].ratingKey);
     switch (view) {
       // Accueil sans musique en cours (tests de l'interface).
@@ -717,6 +717,13 @@ export async function installDemo(view: string): Promise<() => Promise<void>> {
         Object.assign(player, { title: movies[2].title, subtitle: "2026", duration: 128 * 60, position: 187, bufferedUntil: 232, buffering: false, paused: false, stalled: { at: 187, passthrough: true } });
         document.body.style.background = `#000 url("${movies[2].backdrop}") center / cover no-repeat`;
         break;
+      // Même blocage, mais le son partait tel quel : Maku passe seul en « Décodé ici ».
+      case "lecteur-fige-son":
+        await play(movies[2].ratingKey);
+        Object.assign(player, { title: movies[2].title, subtitle: "2026", duration: 128 * 60, position: 187, bufferedUntil: 232, buffering: false, paused: false });
+        document.body.style.background = `#000 url("${movies[2].backdrop}") center / cover no-repeat`;
+        onStalled({ at: 187000, passthrough: true, bitstream: true });
+        break;
       case "lecteur": {
         // La vraie vidéo est dessinée par mpv : en démo, une scène fixe la remplace.
         await play(movies[2].ratingKey);
@@ -728,6 +735,6 @@ export async function installDemo(view: string): Promise<() => Promise<void>> {
         await music();
         break;
     }
-    if (view !== "lecteur" && view !== "lecteur-fige" && view !== "fin-episode") player.position = 74;
+    if (!["lecteur", "lecteur-fige", "lecteur-fige-son", "fin-episode"].includes(view)) player.position = 74;
   };
 }

@@ -103,6 +103,13 @@ test("vidéo figée : un message propose de réessayer, d'avancer de 10 s ou de 
   await expect(message).toHaveCount(0);
 });
 
+test("vidéo figée avec le son envoyé tel quel : Maku retient « Décodé ici » et relance sans message", async ({ page }, info) => {
+  await ouvrir(page, info, "lecteur-fige-son");
+  await expect(page.locator(".toast")).toHaveText(/le son est désormais décodé par l'appareil/);
+  await expect(page.getByRole("dialog", { name: /La lecture est bloquée/ })).toHaveCount(0);
+  expect(await page.evaluate(() => localStorage.getItem("maku.passthrough"))).toBe("off");
+});
+
 test("écran de fin : la jaquette de la saison, et le numéro de l'épisode sans accent (S2 · E4)", async ({ page }, info) => {
   await ouvrir(page, info, "fin-episode");
   const fin = page.getByRole("dialog", { name: "Épisode suivant" });

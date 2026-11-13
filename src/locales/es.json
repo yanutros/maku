@@ -784,7 +784,8 @@
     "stalledHint": "La imagen no avanza aunque el vídeo está cargado.",
     "stalledRetry": "Reintentar",
     "stalledSkip": "Saltar 10 s",
-    "stalledDecode": "Decodificar el audio en este dispositivo"
+    "stalledDecode": "Decodificar el audio en este dispositivo",
+    "decodeRemembered": "La reproducción se bloqueó: ahora el audio lo decodifica el dispositivo (Ajustes → Reproductor → «Decodificado aquí»)."
   },
   "request": {
     "sent": "Solicitud enviada: {{title}}",

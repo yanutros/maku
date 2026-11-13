@@ -784,7 +784,8 @@
     "stalledHint": "Das Bild bewegt sich nicht, obwohl das Video geladen ist.",
     "stalledRetry": "Erneut versuchen",
     "stalledSkip": "10 s überspringen",
-    "stalledDecode": "Ton auf diesem Gerät dekodieren"
+    "stalledDecode": "Ton auf diesem Gerät dekodieren",
+    "decodeRemembered": "Die Wiedergabe hing: Der Ton wird jetzt vom Gerät dekodiert (Einstellungen → Player → „Hier dekodiert“)."
   },
   "request": {
     "sent": "Anfrage gesendet: {{title}}",

@@ -67,6 +67,8 @@ class NativeVideo(private val activity: Activity, private val webView: WebView) 
   private var lastOpen: JSONObject? = null
   private var passthroughOn = false
   private var audioMime: String? = null
+  /** Le son passe par un décodeur ici : sinon, avec le réglage automatique, il part tel quel vers la sortie audio. */
+  private var audioDecoded = false
   /**
    * Vidéo figée : le lecteur se dit prêt, n'est pas en pause, a des données d'avance, mais la position ne bouge
    * plus. Position surveillée, depuis quand elle n'a pas bougé (en lecture), et blocage déjà signalé.
@@ -87,6 +89,7 @@ class NativeVideo(private val activity: Activity, private val webView: WebView) 
     unsupportedSent = false
     lastOpen = o
     audioMime = null
+    audioDecoded = false
     stallPos = -1L
     stalled = false
 
@@ -274,8 +277,10 @@ class NativeVideo(private val activity: Activity, private val webView: WebView) 
   private val diagnostics = object : AnalyticsListener {
     override fun onVideoDecoderInitialized(t: AnalyticsListener.EventTime, decoderName: String, initializedTimestampMs: Long, initializationDurationMs: Long) =
       DiagLog.log("Décodeur vidéo : $decoderName (${initializationDurationMs} ms)")
-    override fun onAudioDecoderInitialized(t: AnalyticsListener.EventTime, decoderName: String, initializedTimestampMs: Long, initializationDurationMs: Long) =
+    override fun onAudioDecoderInitialized(t: AnalyticsListener.EventTime, decoderName: String, initializedTimestampMs: Long, initializationDurationMs: Long) {
+      audioDecoded = true
       DiagLog.log("Décodeur son : $decoderName (${initializationDurationMs} ms)")
+    }
     override fun onVideoInputFormatChanged(t: AnalyticsListener.EventTime, format: Format, decoderReuseEvaluation: DecoderReuseEvaluation?) =
       DiagLog.log("Image : ${Format.toLogString(format)}")
     override fun onAudioInputFormatChanged(t: AnalyticsListener.EventTime, format: Format, decoderReuseEvaluation: DecoderReuseEvaluation?) {
@@ -374,11 +379,13 @@ class NativeVideo(private val activity: Activity, private val webView: WebView) 
     }
     if (stalled || now - stallSince < 5000) return
     stalled = true
+    // Son envoyé tel quel (Dolby…) : certaines TV calent dessus après un saut, la page passe alors en « Décodé ici ».
+    val bitstream = passthroughOn && !audioDecoded && audioMime != null
     DiagLog.log(
       "⚠ Lecture figée à ${pos / 1000} s : prête, en lecture, mémoire tampon jusqu'à ${p.bufferedPosition / 1000} s, mais l'image" +
-        " n'avance plus depuis ${(now - stallSince) / 1000} s · son ${audioMime ?: "?"} · son vers l'ampli : ${if (passthroughOn) "automatique" else "décodé ici"}",
+        " n'avance plus depuis ${(now - stallSince) / 1000} s · son ${audioMime ?: "?"} · son vers l'ampli : ${if (passthroughOn) "automatique" else "décodé ici"}${if (bitstream) ", envoyé tel quel" else ""}",
     )
-    emit(JSONObject().put("stalled", JSONObject().put("at", pos).put("passthrough", passthroughOn)))
+    emit(JSONObject().put("stalled", JSONObject().put("at", pos).put("passthrough", passthroughOn).put("bitstream", bitstream)))
   }
 
   private fun clearStall() {
