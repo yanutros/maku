@@ -419,6 +419,8 @@ export function enableSpatialNavigation(skip: () => boolean) {
       e.preventDefault();
       el.readOnly = false;
       typing.add(el);
+      // La page peut réagir à l'ouverture du champ par OK (la recherche se vide pour une nouvelle saisie).
+      el.dispatchEvent(new Event("tvedit"));
       // Android a déjà retiré la sélection du champ : on la lui rend, puis il ouvre le clavier.
       el.focus({ preventScroll: true });
       setTimeout(() => (window as { PlexrDevice?: { showKeyboard?: () => void } }).PlexrDevice?.showKeyboard?.(), 0);

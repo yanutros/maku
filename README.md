@@ -585,7 +585,9 @@ puis revient à la page précédente, sur la jaquette ou la saison quittée. Com
 vidéo, les commandes s'effacent après 4 s (8 s en pause) ; comme dans Plex, le premier OK (ou la première flèche) ne fait
 que les réafficher, sans mettre en pause : on voit le temps restant sans arrêter le film. Les touches lecture / pause et
 suivant / précédent de la télécommande fonctionnent. Les champs de saisie
-(connexion, réglages, recherche) se traversent aux flèches sans ouvrir le clavier : **OK** l'ouvre.
+(connexion, réglages, recherche) se traversent aux flèches sans ouvrir le clavier : **OK** l'ouvre. La recherche reste
+inscrite le temps de consulter ses résultats ou de faire une demande ; **OK** sur son champ le vide pour en taper une
+nouvelle (les résultats précédents restent affichés jusque-là).
 Les onglets du haut des bibliothèques (films, séries, musique) s'ouvrent dès qu'on y arrive avec les flèches,
 sans appuyer sur OK.
 

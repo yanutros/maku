@@ -172,6 +172,18 @@
     else content.scrollTo({ top: 0 });
   });
 
+  // Téléviseur : OK sur le champ de recherche l'ouvre vide, prêt pour une nouvelle recherche. Jusque-là, la
+  // recherche précédente reste (en revenant d'une fiche ou d'une demande) ; ses résultats restent affichés
+  // jusqu'à ce que la nouvelle soit tapée.
+  function clearOnTvEdit(input: HTMLInputElement) {
+    const clear = () => {
+      clearTimeout(searchTimer);
+      query = "";
+    };
+    input.addEventListener("tvedit", clear);
+    return { destroy: () => input.removeEventListener("tvedit", clear) };
+  }
+
   // Sur téléviseur et téléphone, la page de recherche s'ouvre sur le champ de saisie.
   function tvAutofocus(input: HTMLInputElement) {
     if ((device.tv || device.phone) && !query) input.focus();
@@ -232,7 +244,7 @@
           {#if nav.view.name === "search"}
             <label class="search">
               <Icon name="search" size={18} />
-              <input type="search" placeholder={t("app.searchPlaceholder")} bind:value={query} oninput={onSearchInput} use:tvAutofocus />
+              <input type="search" placeholder={t("app.searchPlaceholder")} bind:value={query} oninput={onSearchInput} use:tvAutofocus use:clearOnTvEdit />
             </label>
           {:else}
             <span class="brand"><Logo size={30} bare /><Wordmark size={30} /></span>
@@ -250,7 +262,7 @@
         </button>
         <label class="search">
           <Icon name="search" size={18} />
-          <input type="search" placeholder={t("app.searchPlaceholder")} bind:value={query} oninput={onSearchInput} use:tvAutofocus />
+          <input type="search" placeholder={t("app.searchPlaceholder")} bind:value={query} oninput={onSearchInput} use:tvAutofocus use:clearOnTvEdit />
         </label>
       </header>
       {/if}
