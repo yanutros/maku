@@ -1,5 +1,6 @@
 import type { Genre, Item, SeerrMedia } from "./api";
 import { reveal } from "./spatial";
+import { device } from "./device";
 
 export type View =
   | { name: "home" }
@@ -84,6 +85,12 @@ const SELECTABLE = "button:not(:disabled), a[href], [tabindex]:not([tabindex=\"-
 // En parallèle de `nav.history` : l'endroit quitté sur chaque page de l'historique.
 const spots: Spot[] = [];
 let pendingSpot: Spot | null = null;
+/**
+ * Arrête la remise en place en cours (restoreSpot). Une touche du clavier le fait déjà ; la touche Retour
+ * d'Android n'en est pas une pour la page : sans cela, une page qui finit de charger pourrait rendre la
+ * sélection à la jaquette quittée juste après qu'un second Retour l'a passée au menu.
+ */
+let cancelRestore: (() => void) | null = null;
 
 function spot(): Spot {
   const el = document.activeElement as HTMLElement | null;
@@ -111,11 +118,14 @@ export function takeSpot(): Spot | null {
 export function restoreSpot(content: HTMLElement, s: Spot) {
   const started = Date.now();
   let timer: ReturnType<typeof setTimeout>;
+  cancelRestore?.();
   const stop = () => {
     clearTimeout(timer);
     removeEventListener("keydown", stop, true);
     removeEventListener("pointerdown", stop, true);
+    if (cancelRestore === stop) cancelRestore = null;
   };
+  cancelRestore = stop;
   addEventListener("keydown", stop, true);
   addEventListener("pointerdown", stop, true);
   const target = (): HTMLElement | null => {
@@ -155,6 +165,18 @@ export function go(view: View) {
   history.pushState({ plexr: nav.history.length }, "");
 }
 
+/**
+ * Destination du menu latéral (ou des onglets du téléphone) sur téléviseur et mobile : comme dans Plex, c'est une
+ * page de premier niveau, qui n'empile pas la précédente. Retour y ramène au menu, puis à l'accueil.
+ */
+export function goTop(view: View) {
+  if (!device.mobile && !device.tv) return go(view);
+  nav.history = [];
+  spots.length = 0;
+  pendingSpot = null;
+  nav.view = view;
+}
+
 /** Remplace la vue affichée sans l'ajouter à l'historique (la page quittée n'existe plus : collection convertie…). */
 export function replace(view: View) {
   nav.view = view;
@@ -166,8 +188,12 @@ export function reload() {
   nav.view = { ...nav.view };
 }
 
+/** Touche Retour d'Android prise en charge par la page (et non par l'historique du WebView). */
+let androidBack = false;
+
 export function back() {
-  if (nav.history.length) history.back();
+  if (androidBack) popView();
+  else if (nav.history.length) history.back();
 }
 
 const backHandlers: (() => boolean)[] = [];
@@ -177,20 +203,104 @@ export function onBack(handler: () => boolean) {
   backHandlers.push(handler);
 }
 
+/** Page précédente, à l'endroit quitté (jaquette sélectionnée, défilement). False : pas de page avant. */
+function popView(): boolean {
+  const previous = nav.history.pop();
+  if (!previous) return false;
+  pendingSpot = spots.pop() ?? null;
+  nav.view = previous;
+  return true;
+}
+
+const sidebarItem = (home = false) =>
+  document.querySelector<HTMLElement>(home ? "aside [data-nav-home]" : 'aside [aria-current="page"]') ??
+  document.querySelector<HTMLElement>("aside [data-nav-home]");
+
+/**
+ * Retour sur une page de premier niveau (accueil, bibliothèque ouverte depuis le menu…), comme dans Plex :
+ * sur téléviseur, la sélection passe d'abord au menu de gauche ; depuis le menu (ou sur mobile), on revient à
+ * l'accueil ; depuis l'accueil, on quitte. Renvoie ce qui a été fait, ou null : il faut quitter l'application.
+ */
+function rootBack(): string | null {
+  const inMenu = !!document.activeElement?.closest("aside");
+  if (device.tv && !inMenu) {
+    const item = sidebarItem();
+    if (item) {
+      item.focus({ preventScroll: true });
+      return "menu de gauche";
+    }
+  }
+  if (nav.view.name !== "home") {
+    goTop({ name: "home" });
+    if (device.tv) setTimeout(() => sidebarItem(true)?.focus({ preventScroll: true }));
+    return "accueil";
+  }
+  return null;
+}
+
+/**
+ * Ce que fait Retour : fermer ce qui est ouvert, sinon la page précédente, sinon le menu puis l'accueil.
+ * Renvoie ce qui a été fait (pour le journal), ou null quand il faut quitter.
+ */
+function handleBack(): string | null {
+  cancelRestore?.();
+  if (backHandlers.some((h) => h())) return "fermeture de ce qui était ouvert";
+  if (popView()) return "page précédente";
+  return rootBack();
+}
+
+/** Journal de diagnostic (Android) : l'élément sélectionné, en quelques mots. */
+const diagLog = (message: string) => (globalThis as { PlexrDevice?: { diagLog?(m: string): void } }).PlexrDevice?.diagLog?.(message);
+function describe(el: Element | null): string {
+  if (!el || el === document.body) return "rien";
+  const label = (el.getAttribute("aria-label") ?? el.getAttribute("title") ?? el.textContent ?? "").trim().replace(/\s+/g, " ").slice(0, 40);
+  return `${el.closest("aside") ? "menu" : el.closest("main") ? "page" : "autre"} : ${el.tagName.toLowerCase()} « ${label} »`;
+}
+
+/** Après un Retour, note dans le journal ce qui reprend la sélection pendant 1,5 s (et d'où, s'il ne s'agit pas de nous). */
+let watching: (() => void) | null = null;
+function watchFocus() {
+  watching?.();
+  const onFocus = (e: FocusEvent) => diagLog(`Sélection après Retour : ${describe(e.target as Element)}`);
+  addEventListener("focusin", onFocus, true);
+  const timer = setTimeout(() => watching?.(), 1500);
+  watching = () => {
+    removeEventListener("focusin", onFocus, true);
+    clearTimeout(timer);
+    watching = null;
+  };
+}
+
 export function setupBackButton() {
-  // Une entrée de garde : le premier Retour ferme ce qui est ouvert au lieu de quitter l'application.
+  // Android : la page traite elle-même la touche Retour. Sans cela, Tauri recule dans l'historique du WebView,
+  // qui peut sauter les entrées ajoutées sans geste de l'utilisateur et, à court d'entrées, ferme l'application
+  // en pleine navigation. Ici, l'application n'est quittée (mise en arrière-plan) que depuis l'accueil.
+  if (device.os === "android") {
+    androidBack = true;
+    import("@tauri-apps/api/app")
+      .then(({ onBackButtonPress }) =>
+        onBackButtonPress(() => {
+          const before = describe(document.activeElement);
+          watchFocus();
+          const done = handleBack();
+          diagLog(`Retour (${nav.view.name}, sélection ${before}) : ${done ?? "Maku passe en arrière-plan"}`);
+          if (!done) (globalThis as { PlexrDevice?: { leave?(): void } }).PlexrDevice?.leave?.();
+        }),
+      )
+      .catch(() => (androidBack = false));
+  }
+  // Ailleurs (bouton précédent de la souris, essais dans un navigateur) : une entrée de garde, pour que le
+  // premier Retour ferme ce qui est ouvert au lieu de quitter la page.
   history.replaceState({ plexr: 0 }, "");
   history.pushState({ plexr: 0 }, "");
   window.addEventListener("popstate", () => {
+    cancelRestore?.();
     if (backHandlers.some((h) => h())) {
       history.pushState({ plexr: nav.history.length }, "");
       return;
     }
-    const previous = nav.history.pop();
-    if (previous) {
-      pendingSpot = spots.pop() ?? null;
-      nav.view = previous;
-    }
+    if (popView()) return;
+    if (rootBack()) history.pushState({ plexr: 0 }, "");
   });
 }
 

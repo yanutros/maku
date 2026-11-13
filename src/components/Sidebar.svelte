@@ -1,6 +1,6 @@
 <script lang="ts">
   import { api, type Account, type Section } from "../lib/api";
-  import { go, nav, type View } from "../lib/nav.svelte";
+  import { goTop, nav, type View } from "../lib/nav.svelte";
   import { ordered, saveSidebar, sidebar } from "../lib/sidebar.svelte";
   import Icon, { type IconName } from "./Icon.svelte";
   import Logo from "./Logo.svelte";
@@ -41,7 +41,7 @@
   }
 
   function open(view: View) {
-    go(view);
+    goTop(view);
   }
 
   function toggleCollapsed() {
@@ -115,7 +115,7 @@
       </button>
     {/if}
     <button class="item" class:active={isActive("home")}
-            aria-current={isActive("home") ? "page" : undefined} onclick={() => open({ name: "home" })} title={t("sidebar.home")}>
+            aria-current={isActive("home") ? "page" : undefined} data-nav-home onclick={() => open({ name: "home" })} title={t("sidebar.home")}>
       <Icon name="home" /> <span class="label">{t("sidebar.home")}</span>
     </button>
     <!-- Tablette Android : les téléchargements, lisibles hors ligne. -->

@@ -128,6 +128,12 @@ class MainActivity : TauriActivity() {
       @JavascriptInterface
       fun isTv(): Boolean = tv
 
+      // Retour depuis l'accueil : l'application passe en arrière-plan, comme le fait Android sur sa première page.
+      @JavascriptInterface
+      fun leave() {
+        runOnUiThread { moveTaskToBack(true) }
+      }
+
       /** Réglages : formats audio que l'ampli, la barre de son ou la TV acceptent tels quels (JSON). */
       @JavascriptInterface
       fun audioPassthrough(): String = NativeVideo.passthroughFormats(this@MainActivity)
