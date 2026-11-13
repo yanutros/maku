@@ -1,6 +1,6 @@
 [package]
 name = "plexr"
-version = "0.26.1"
+version = "0.26.2"
 description = "Client Plex de bureau en Rust, avec demandes Seerr intégrées"
 license = "GPL-3.0-or-later"
 edition = "2021"
