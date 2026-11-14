@@ -1,7 +1,7 @@
 <script lang="ts">
   import { showDownloads } from "../lib/offline.svelte";
   import type { Section } from "../lib/api";
-  import { go } from "../lib/nav.svelte";
+  import { go, nav } from "../lib/nav.svelte";
   import { ordered, sidebar } from "../lib/sidebar.svelte";
   import { t } from "../lib/i18n";
   import Icon, { type IconName } from "../components/Icon.svelte";
@@ -38,9 +38,34 @@
       </button>
     {/each}
   </div>
+  <!-- Admin : l'administrateur du serveur, comme dans le menu de l'ordinateur et de la tablette. -->
+  {#if nav.admin}
+    <h2 class="group">{t("sidebar.admin")}</h2>
+    <div class="list">
+      <button class="library" onclick={() => go({ name: "admin", page: "dashboard" })}>
+        <span class="icon"><Icon name="server" size={22} /></span>
+        <span class="name">{t("admin.dashboard")}</span>
+        <Icon name="chevronRight" size={18} />
+      </button>
+      <button class="library" onclick={() => go({ name: "admin", page: "settings" })}>
+        <span class="icon"><Icon name="sliders" size={22} /></span>
+        <span class="name">{t("admin.serverSettings")}</span>
+        <Icon name="chevronRight" size={18} />
+      </button>
+    </div>
+  {/if}
 </div>
 
 <style>
+  .group {
+    margin: 24px 2px 10px;
+    color: var(--text-faint);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
   .list {
     display: grid;
     gap: 8px;

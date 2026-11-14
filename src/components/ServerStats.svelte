@@ -468,14 +468,18 @@
     font-size: 17px;
   }
 
+  /* Sur un écran étroit (téléphone), les deux menus se partagent la largeur au lieu de déborder. */
   .filters {
     display: flex;
+    min-width: 0;
+    max-width: 100%;
     gap: 10px;
   }
 
   .filter {
     display: flex;
-    width: 210px;
+    flex: 0 1 210px;
+    min-width: 0;
   }
 
   .chart {

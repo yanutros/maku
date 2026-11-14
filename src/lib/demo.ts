@@ -501,6 +501,18 @@ function handle(cmd: string, a: Args): unknown {
     case "plex_person_items":
       // Démo : chaque personne joue dans une partie du catalogue fictif.
       return [...movies, ...shows].filter((_, i) => i % 3 === Number(a.id) % 3);
+    // Utilisateurs du serveur (Dashboard › Utilisateurs) : deux amis fictifs, l'un avec toutes les bibliothèques.
+    case "plex_server_libraries":
+      return SECTIONS.map((x, i) => ({ id: i + 1, key: x.key, title: x.title, kind: x.kind, shared: true }));
+    case "plex_users": {
+      const libs = (shared: boolean[]) => SECTIONS.map((x, i) => ({ id: i + 1, key: x.key, title: x.title, kind: x.kind, shared: shared[i] }));
+      const user = (n: number, name: string, all: boolean, shared: boolean[]) => ({
+        shareId: n, userId: 100 + n, name, username: name.toLowerCase(), email: `${name.toLowerCase()}@exemple.fr`, thumb: null,
+        home: false, pending: false, allLibraries: all, libraries: libs(shared), allowSync: all, allowCameraUpload: false,
+        allowChannels: false, allowSubtitleAdmin: false, filterMovies: "", filterTelevision: "", filterMusic: "",
+      });
+      return [user(1, "Camille", true, [true, true, true]), user(2, "Hugo", false, [true, true, false])];
+    }
     // `?demo=…&admin` : la démo en administrateur (collections intelligentes…).
     case "plex_is_admin":
       return new URLSearchParams(location.search).has("admin");

@@ -214,8 +214,8 @@
             aria-current={isActive("stats") ? "page" : undefined} onclick={() => open({ name: "stats" })} title={t("sidebar.stats")}>
       <Icon name="stats" /> <span class="label">{t("sidebar.stats")}</span>
     </button>
-    <!-- Admin : l'administrateur du serveur, sur ordinateur seulement. -->
-    {#if nav.admin && !device.tv && !device.phone && !device.mobile}
+    <!-- Admin : l'administrateur du serveur, partout sauf au téléviseur (le téléphone l'a dans l'onglet Bibliothèques). -->
+    {#if nav.admin && !device.tv}
       <div class="group"><span>{t("sidebar.admin")}</span></div>
       <button class="item" class:active={nav.view.name === "admin" && nav.view.page === "dashboard"}
               aria-current={nav.view.name === "admin" && nav.view.page === "dashboard" ? "page" : undefined} onclick={() => open({ name: "admin", page: "dashboard" })} title={t("admin.dashboard")}>

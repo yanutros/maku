@@ -1,14 +1,31 @@
-// Catégorie Admin du menu : Dashboard (tableau de bord, utilisateurs) et Réglages serveur, sur ordinateur et pour
-// l'administrateur seulement, avec la barre de sections des bibliothèques.
+// Catégorie Admin : Dashboard (tableau de bord, utilisateurs) et Réglages serveur, pour l'administrateur seulement,
+// partout sauf au téléviseur (menu de gauche ; onglet Bibliothèques au téléphone), avec la barre de sections.
 import { expect, test } from "@playwright/test";
 import { appareil, ouvrir } from "./outils";
 
-test("admin : Dashboard et Réglages serveur dans le menu, avec leurs sections (ordinateur, administrateur)", async ({ page }, info) => {
+test("admin : Dashboard et Réglages serveur dans le menu, avec leurs sections (administrateur, sauf au téléviseur)", async ({ page }, info) => {
   await ouvrir(page, info, "vide&admin");
   const dashboard = page.locator("button.item", { hasText: "Dashboard" });
-  if (appareil(info) !== "pc" && appareil(info) !== "safari") {
+  if (appareil(info) === "tv") {
     await expect(page.locator("main")).toBeAttached();
+    await page.waitForTimeout(500);
     await expect(dashboard).toHaveCount(0);
+    return;
+  }
+  if (appareil(info) === "telephone") {
+    // Pas de menu de gauche au téléphone : l'Admin est sous les bibliothèques.
+    await page.locator("nav.tabs button", { hasText: "Bibliothèques" }).click();
+    await page.locator("button.library", { hasText: "Dashboard" }).click();
+    await expect(page.locator("h1")).toHaveText("Dashboard");
+    // Rien ne déborde de l'écran (cartes des lectures en cours, menus des graphiques).
+    await expect(page.locator(".session").first()).toBeVisible();
+    const deborde = () => page.locator(".content").evaluate((el) => el.scrollWidth - el.clientWidth);
+    expect(await deborde()).toBeLessThanOrEqual(0);
+    await page.getByRole("tab", { name: "Utilisateurs" }).click();
+    await expect(page.getByText("Camille", { exact: true })).toBeVisible();
+    await page.goBack();
+    await page.locator("button.library", { hasText: "Réglages serveur" }).click();
+    await expect(page.locator("h1")).toHaveText("Réglages serveur");
     return;
   }
   await dashboard.click();
@@ -26,6 +43,11 @@ test("admin : absent pour un utilisateur qui n'est pas administrateur, et plus d
   await expect(page.locator(".settings")).toBeVisible();
   await expect(page.locator("button.item", { hasText: "Dashboard" })).toHaveCount(0);
   await expect(page.locator(".settings .menu button", { hasText: "Réglages du serveur" })).toHaveCount(0);
+  if (appareil(info) === "telephone") {
+    await page.locator("nav.tabs button", { hasText: "Bibliothèques" }).click();
+    await expect(page.locator("button.library").first()).toBeVisible();
+    await expect(page.locator("button.library", { hasText: "Dashboard" })).toHaveCount(0);
+  }
 });
 
 test("admin : tableau de bord — arrêter une lecture avec un message, débit, top des utilisateurs, historique, les plus lus", async ({ page }, info) => {

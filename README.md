@@ -667,7 +667,8 @@ et Wholphin ; dans chaque rubrique, une ligne par réglage (son nom, une phrase 
 téléviseur, la rubrique s'ouvre au passage des flèches, droite entre dans le panneau, gauche revient au rail ; les QR
 codes (journal, clé TMDB, configuration rapide, Ko-fi) s'affichent à la demande.
 
-L'administrateur du serveur a, sur ordinateur, une catégorie **Admin** dans le menu de gauche, avec la barre de
+L'administrateur du serveur a, partout sauf au téléviseur, une catégorie **Admin** : dans le menu de gauche sur
+ordinateur et tablette (iPad compris), sous les bibliothèques de l'onglet **Bibliothèques** au téléphone. Elle a la barre de
 sections des bibliothèques et un bandeau par rubrique façon Netflix : **Dashboard** (**Tableau de bord** en tuiles, comme celui de Plex : lectures en cours de tous les
 utilisateurs, **en direct** (position mise à jour chaque seconde, jaquette, appareil et mode de lecture), que l'on peut **arrêter avec un message** (Plex Pass) ; **débit** en temps réel ou sur 24 heures / 30 jours,
 distant et local ; **top des utilisateurs** ; **historique de lecture** par type ; **les plus lus** (films, séries,

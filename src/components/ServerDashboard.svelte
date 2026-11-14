@@ -313,7 +313,8 @@
 
   .sessions {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+    /* min() : sur un écran plus étroit que 420 px (téléphone), une carte prend toute la largeur. */
+    grid-template-columns: repeat(auto-fill, minmax(min(420px, 100%), 1fr));
     gap: 14px;
   }
 
