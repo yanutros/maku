@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onDestroy, onMount } from "svelte";
+  import { onDestroy, untrack } from "svelte";
   import { api, errorText, formatClock, formatLongDuration, tracearrLogin, type Session, type TracearrDashboard } from "../lib/api";
   import { genreLabel } from "../lib/genres";
   import { go } from "../lib/nav.svelte";
@@ -108,14 +108,24 @@
   const genres = $derived(data?.allTime.topGenres?.slice(0, 5) ?? []);
   const maxGenre = $derived(Math.max(1, ...genres.map((g) => g.plays)));
 
-  onMount(() => {
-    if (session.tracearrUrl && session.tracearrConnected) {
+  // Le tableau se charge dès que la session dit Tracearr connecté, même si elle n'arrive qu'après l'ouverture de la
+  // page (connexion faite juste avant, depuis les Réglages) : sinon la page redemandait une connexion déjà faite.
+  let started = false;
+  $effect(() => {
+    const ready = !!session.tracearrUrl && session.tracearrConnected;
+    const hasUrl = !!session.tracearrUrl;
+    untrack(() => {
+      if (started) return;
+      if (!ready) {
+        needsLogin = hasUrl;
+        return;
+      }
+      started = true;
+      needsLogin = false;
       load();
       // La lecture en cours se rafraîchit toutes les 15 s.
       timer = setInterval(load, 15000);
-    } else {
-      needsLogin = !!session.tracearrUrl;
-    }
+    });
   });
 
   onDestroy(() => clearInterval(timer));

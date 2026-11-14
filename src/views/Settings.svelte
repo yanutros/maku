@@ -10,7 +10,7 @@
   import { device } from "../lib/device";
   import { t } from "../lib/i18n";
 
-  let { session, onChange, initialPage }: { session: Session; onChange: () => void; initialPage?: string } = $props();
+  let { session, onChange, initialPage }: { session: Session; onChange: () => unknown; initialPage?: string } = $props();
 
   // Rubriques de Maku. Les réglages du serveur Plex sont dans la catégorie Admin du menu (ordinateur).
   // Les anciennes adresses de leurs rubriques ouvrent le compte.

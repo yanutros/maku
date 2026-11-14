@@ -17,7 +17,7 @@
   import { t } from "../../lib/i18n";
 
   /** `relay` : le Maku Server trouvé sur le réseau à l'ouverture des réglages (voir Settings.svelte). */
-  let { session, onChange, desk, relay }: { session: Session; onChange: () => void; desk: boolean; relay: RelayFound | null } = $props();
+  let { session, onChange, desk, relay }: { session: Session; onChange: () => unknown; desk: boolean; relay: RelayFound | null } = $props();
 
   /** QR code déplié sous sa ligne : un seul à la fois. */
   let qr = $state<string | null>(null);
@@ -103,10 +103,14 @@
         toast(t("settings.services.tracearrDisabled"));
       } else {
         await tracearrLogin();
+        // La session relue d'abord : Mes statistiques s'ouvrirait sinon sur l'ancienne (« pas connecté ») et
+        // redemanderait la connexion qui vient d'être faite.
+        await onChange();
         toast(t("settings.services.tracearrConnected"));
         go({ name: "stats" });
+        return;
       }
-      onChange();
+      await onChange();
     } catch (e) {
       tracearrError = errorText(e);
     } finally {

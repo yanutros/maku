@@ -487,6 +487,9 @@ function sectionList(a: Args): Item[] {
   return by === "titleSort" ? all.sort(compare) : all;
 }
 
+/** Connexion à Tracearr faite pendant la démo (voir `?tracearrlogin`). */
+let tracearrLoggedIn = false;
+
 function handle(cmd: string, a: Args): unknown {
   switch (cmd) {
     case "get_session":
@@ -496,8 +499,16 @@ function handle(cmd: string, a: Args): unknown {
         seerrUrl: "https://seerr.exemple.fr",
         mpvPath: null,
         tracearrUrl: "https://tracearr.exemple.fr",
-        tracearrConnected: true,
+        tracearrConnected: !new URLSearchParams(location.search).has("tracearrlogin") || tracearrLoggedIn,
       };
+    // `?demo=…&tracearrlogin` : Tracearr pas encore connecté ; la connexion Plex aboutit au premier relevé.
+    case "tracearr_start_login":
+      return { handle: "demo", authUrl: "https://app.plex.tv/auth" };
+    case "tracearr_poll_login":
+      tracearrLoggedIn = true;
+      return "done";
+    case "tracearr_configure":
+      return null;
     case "plex_person_items":
       // Démo : chaque personne joue dans une partie du catalogue fictif.
       return [...movies, ...shows].filter((_, i) => i % 3 === Number(a.id) % 3);
