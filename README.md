@@ -504,7 +504,7 @@ placez un fichier `src-tauri/gen/android/keystore.properties` (ignoré par git) 
 `password` et `keyAlias` ; sans lui, l'APK n'est pas signé et Android refuse de l'installer.
 
 Sur GitHub, [`.github/workflows/android.yml`](.github/workflows/android.yml) construit le même APK à chaque envoi
-sur `main` (et pour chaque demande de fusion) : un problème de compilation Android (Rust, Kotlin, SDK, licences)
+sur `main` (et pour chaque demande de fusion), sauf quand seuls le README ou le site (`docs/`) changent : un problème de compilation Android (Rust, Kotlin, SDK, licences)
 se voit tout de suite, et non le jour d'une version. Faute de clé, cet APK n'est pas signé : il est joint à
 l'exécution pour vérification, pas pour être installé. Les tests du lecteur natif y passent ensuite (voir
 « Tests du lecteur Android » plus bas).
