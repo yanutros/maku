@@ -9,7 +9,7 @@ use reqwest::header::{HeaderMap, HeaderValue};
 use reqwest::{Client, RequestBuilder};
 use serde::Deserialize;
 
-use crate::plex::{FilterField, FilterValue, Marker, PRODUCT, Section, SectionFilters, SortField, TrailerSource};
+use crate::plex::{FilterField, FilterValue, LetterCount, Marker, PRODUCT, Section, SectionFilters, SortField, TrailerSource};
 
 /// En-tête d'authentification de Jellyfin : l'application, l'appareil et, une fois connecté, le jeton.
 fn authorization(client_id: &str, token: Option<&str>) -> String {
@@ -455,6 +455,11 @@ impl JellyfinServer {
             .await?;
         let items = v["Items"].as_array().cloned().unwrap_or_default().iter().map(|i| self.to_item(i)).collect();
         Ok(Page { items, total: v["TotalRecordCount"].as_u64().unwrap_or(0) as u32 })
+    }
+
+    /// Titres par première lettre : Jellyfin et Emby n'en donnent pas la liste ; sans elle, pas de bandeau des lettres.
+    pub async fn first_characters(&self, _key: &str, _genre: Option<&str>, _filters: &[(String, String)]) -> Result<Vec<LetterCount>> {
+        Ok(Vec::new())
     }
 
     /// Filtres et tris d'une bibliothèque, avec les noms de ceux de Plex (l'interface les traduit).

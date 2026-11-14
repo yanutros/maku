@@ -247,6 +247,7 @@ pub fn run() {
             plex_select_server,
             plex_sections,
             plex_section_items,
+            plex_first_characters,
             plex_section_filters,
             plex_filter_values,
             plex_create_smart_collection,

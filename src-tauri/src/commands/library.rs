@@ -24,6 +24,17 @@ pub async fn plex_section_items(
         .await?)
 }
 
+/// Titres d'une bibliothèque par première lettre (bandeau des lettres de l'onglet Bibliothèque).
+#[tauri::command]
+pub async fn plex_first_characters(
+    state: State<'_, AppState>,
+    key: String,
+    genre: Option<String>,
+    filters: Option<Vec<(String, String)>>,
+) -> CmdResult<Vec<plex::LetterCount>> {
+    Ok(state.server()?.first_characters(&key, genre.as_deref(), &filters.unwrap_or_default()).await?)
+}
+
 /// Filtres et tris proposés pour une bibliothèque de films ou de séries.
 #[tauri::command]
 pub async fn plex_section_filters(state: State<'_, AppState>, key: String, kind: String) -> CmdResult<plex::SectionFilters> {

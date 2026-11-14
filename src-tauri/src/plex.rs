@@ -489,6 +489,8 @@ struct RawDirectory {
     title: String,
     #[serde(rename = "type")]
     kind: String,
+    /// Nombre de titres (liste des premières lettres d'une bibliothèque).
+    size: u32,
 }
 
 #[derive(Deserialize, Default)]
@@ -745,6 +747,13 @@ pub struct Item {
 pub struct Page {
     pub items: Vec<Item>,
     pub total: u32,
+}
+
+/// Nombre de titres d'une bibliothèque qui commencent par une lettre (« # » pour les chiffres et symboles).
+#[derive(Serialize)]
+pub struct LetterCount {
+    pub letter: String,
+    pub size: u32,
 }
 
 /// Fiche complète : l'élément et ses informations détaillées.
@@ -1355,6 +1364,23 @@ impl PlexServer {
             .await?;
         let total = c.total_size.unwrap_or(c.metadata.len() as u32);
         Ok(Page { items: self.to_items(c.metadata), total })
+    }
+
+    /// Titres d'une bibliothèque par première lettre de leur titre de tri, dans l'ordre alphabétique, avec le même
+    /// genre et les mêmes filtres que `section_items` : le bandeau des lettres en tire la place de chaque lettre
+    /// dans la liste, comme dans Plex Web.
+    pub async fn first_characters(&self, key: &str, genre: Option<&str>, filters: &[(String, String)]) -> Result<Vec<LetterCount>> {
+        let mut filter = String::new();
+        if let Some(g) = genre {
+            filter.push_str(&format!("&genre={}", urlencoding::encode(g)));
+        }
+        filter.push_str(&filter_query(filters));
+        let c = self.container(&format!("/library/sections/{key}/firstCharacter?{}", filter.trim_start_matches('&'))).await?;
+        Ok(c.directory
+            .into_iter()
+            .filter(|d| d.size > 0)
+            .map(|d| LetterCount { letter: if d.title.is_empty() { d.key } else { d.title }, size: d.size })
+            .collect())
     }
 
     /// Filtres et tris d'une bibliothèque de films ou de séries, tels que le serveur les propose

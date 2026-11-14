@@ -159,6 +159,39 @@ test("collection : ordre personnalisé en glissant les jaquettes, conversion d'u
   await expect(page.getByRole("tab", { name: "Collections" })).toHaveAttribute("aria-selected", "true");
 });
 
+test("bibliothèque : bandeau des lettres par ordre de titre (ordinateur), absent sur TV et téléphone", async ({ page }, info) => {
+  await ouvrir(page, info, "films");
+  await page.getByRole("tab", { name: "Bibliothèque" }).first().click();
+  const lettres = page.locator(".letters button");
+  if (appareil(info) === "tv" || appareil(info) === "telephone") {
+    await expect(page.locator(".grid, [data-key]").first()).toBeVisible();
+    await page.waitForTimeout(500);
+    await expect(lettres).toHaveCount(0);
+    return;
+  }
+  await expect(lettres).toHaveCount(27);
+  // Les lettres allumées sont celles des titres de la bibliothèque, et seulement elles.
+  const titres = await page.locator(".grid .title").allTextContents();
+  const lettre = (t: string) => {
+    const c = t.normalize("NFD").replace(/[̀-ͯ]/g, "").charAt(0).toUpperCase();
+    return c >= "A" && c <= "Z" ? c : "#";
+  };
+  const attendues = [...new Set(titres.map(lettre))].sort((x, y) => (x === "#" ? -1 : y === "#" ? 1 : x.localeCompare(y)));
+  await expect(page.locator(".letters button:not(:disabled)")).toHaveText(attendues);
+  // Une lettre amène son premier titre en haut de la page (une lettre du milieu : la démo est courte, la page ne
+  // défile pas assez pour remonter les dernières).
+  const milieu = attendues[Math.floor(attendues.length / 2)];
+  await expect(page.locator(".content")).toHaveJSProperty("scrollTop", 0);
+  await page.locator(".letters").getByRole("button", { name: milieu, exact: true }).click();
+  const premier = page.locator(".grid .card").filter({ has: page.locator(".title", { hasText: new RegExp(`^${milieu}`, "i") }) }).first();
+  await expect.poll(async () => (await premier.boundingBox())?.y ?? -1, { timeout: 3000 }).toBeLessThan(200);
+  await expect.poll(async () => (await premier.boundingBox())?.y ?? -1).toBeGreaterThan(0);
+  // Par année, pas de bandeau : les lettres ne suivent plus l'ordre de la liste.
+  await page.getByRole("button", { name: "Par Titre" }).click();
+  await page.getByRole("menuitemradio", { name: "Année" }).click();
+  await expect(lettres).toHaveCount(0);
+});
+
 test("collections : l'onglet n'apparaît que si la bibliothèque en a", async ({ page }, info) => {
   await ouvrir(page, info, "films");
   await expect(page.getByRole("tab", { name: "Collections" }).first()).toBeVisible();

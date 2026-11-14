@@ -492,6 +492,9 @@ export const api = {
     sort: string | null = null,
     filters: [string, string][] | null = null,
   ) => invoke<Page>("plex_section_items", { key, start, size, kind, genre, sort, filters }),
+  /** Titres par première lettre (« # », A…Z), avec le même genre et les mêmes filtres que `sectionItems` ; vide avec Jellyfin. */
+  firstCharacters: (key: string, genre: string | null = null, filters: [string, string][] | null = null) =>
+    invoke<{ letter: string; size: number }[]>("plex_first_characters", { key, genre, filters }),
   /** Filtres et tris d'une bibliothèque de films (`kind` « movie ») ou de séries (« show »). */
   sectionFilters: (key: string, kind: string) => invoke<SectionFilters>("plex_section_filters", { key, kind }),
   filterValues: (key: string, kind: string, filter: string) => invoke<FilterValue[]>("plex_filter_values", { key, kind, filter }),

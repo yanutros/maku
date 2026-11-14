@@ -116,6 +116,9 @@ visionnage. Tout se fait avec son compte Plex (ou Jellyfin) : aucune clé d'API 
       Les bibliothèques de films ont aussi leurs **collections** (sagas, univers…), avec sur ordinateur le bandeau des
       lettres de Plex pour y sauter : chacune ouvre sa page, avec
       ses films dans l'ordre de sortie et un bouton qui lance le premier pas encore vu.
+      Le même bandeau des lettres accompagne sur ordinateur l'onglet **Bibliothèque** des films et des séries quand
+      la liste est rangée par titre : une lettre y mène directement, même au-delà des titres déjà chargés (Plex dit
+      combien de titres commencent par chaque lettre, filtres compris ; pas de bandeau avec Jellyfin ou Emby).
     </td>
     <td valign="top">
       <h4>🎵 Il joue votre musique</h4>

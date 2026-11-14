@@ -5,7 +5,7 @@
 use anyhow::{anyhow, Result};
 
 use crate::jellyfin::JellyfinServer;
-use crate::plex::{Adjacent, FilterValue, Genre, SectionFilters, SmartCollection, Hub, Item, ItemDetail, Marker, MediaInfo, Page, PlayInfo, PlexServer, Previews, QueueTrack, Section, TrailerSource, WebStream};
+use crate::plex::{Adjacent, FilterValue, Genre, LetterCount, SectionFilters, SmartCollection, Hub, Item, ItemDetail, Marker, MediaInfo, Page, PlayInfo, PlexServer, Previews, QueueTrack, Section, TrailerSource, WebStream};
 
 #[derive(Clone)]
 pub enum MediaServer {
@@ -48,6 +48,7 @@ common! {
     both {
         fn section_items(&self, key: &str, start: u32, size: u32, kind: Option<u32>, genre: Option<&str>, sort: Option<&str>, filters: &[(String, String)]) -> Page;
         fn section_filters(&self, key: &str, kind: &str) -> SectionFilters;
+        fn first_characters(&self, key: &str, genre: Option<&str>, filters: &[(String, String)]) -> Vec<LetterCount>;
         fn filter_values(&self, key: &str, kind: &str, filter: &str) -> Vec<FilterValue>;
         fn on_deck(&self) -> Vec<Item>;
         fn recently_added(&self) -> Vec<Item>;

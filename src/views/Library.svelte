@@ -168,15 +168,64 @@
     }
     return map;
   });
-  const showLetters = $derived(!device.tv && !device.mobile && !device.phone && (collections?.length ?? 0) > 0);
+  // Le bandeau des lettres est réservé à l'ordinateur : ni au téléviseur, ni au téléphone ou à la tablette.
+  const lettersHere = !device.tv && !device.mobile && !device.phone;
+  const showLetters = $derived(lettersHere && (collections?.length ?? 0) > 0);
 
-  function jumpTo(letter: string) {
-    const key = firstByLetter.get(letter);
+  /** Amène la jaquette `key` en haut de la page. */
+  function scrollToCard(key: string | undefined) {
     const card = key ? [...document.querySelectorAll<HTMLElement>("[data-key]")].find((el) => el.dataset.key === key) : null;
     const page = document.querySelector<HTMLElement>(".content");
     if (!card || !page) return;
     // La rangée vient en haut, sous l'en-tête qui flotte au-dessus du contenu.
     glideTo(page, { top: page.scrollTop + card.getBoundingClientRect().top - page.getBoundingClientRect().top - 84 });
+  }
+
+  function jumpTo(letter: string) {
+    scrollToCard(firstByLetter.get(letter));
+  }
+
+  // --- Bandeau des lettres de l'onglet Bibliothèque (ordinateur) ---
+  // La liste arrive par pages : le serveur dit combien de titres commencent par chaque lettre (avec le genre et les
+  // filtres choisis), d'où la place de chaque lettre dans la liste. Seulement par ordre de titre, comme dans Plex.
+  let titleLetters = $state<{ letter: string; size: number }[] | null>(null);
+  const byTitle = $derived(!filterable || !view.sort || view.sort === "titleSort");
+  /** Place dans la liste de la première entrée de chaque lettre, dans l'ordre affiché (décroissant compris). */
+  const letterOffsets = $derived.by(() => {
+    const map = new Map<string, number>();
+    const list = [...(titleLetters ?? [])];
+    if (filterable && view.sort && view.desc) list.reverse();
+    let at = 0;
+    for (const { letter, size } of list) {
+      const l = letterOf(letter);
+      if (!map.has(l)) map.set(l, at);
+      at += size;
+    }
+    return map;
+  });
+  const showTitleLetters = $derived(lettersHere && byTitle && letterOffsets.size > 0);
+
+  function loadLetters() {
+    titleLetters = null;
+    if (!lettersHere) return;
+    const forGeneration = generation;
+    api.firstCharacters(sectionKey, genre?.id ?? null, filterable ? viewFilters(view) : []).then(
+      (l) => {
+        if (forGeneration === generation) titleLetters = l;
+      },
+      // Sans la liste, pas de bandeau : la page reste utilisable.
+      () => {},
+    );
+  }
+
+  /** Saute à la première entrée d'une lettre, en chargeant d'un coup la liste jusque-là si besoin. */
+  async function jumpToTitle(letter: string) {
+    const offset = letterOffsets.get(letter);
+    if (offset === undefined) return;
+    for (let guard = 0; loading && guard < 200; guard++) await new Promise((r) => setTimeout(r, 50));
+    if (items.length <= offset) await loadMore(offset - items.length + PAGE_SIZE);
+    await tick();
+    scrollToCard(items[offset]?.ratingKey);
   }
 
   // --- Catégories ---
@@ -210,13 +259,14 @@
     })),
   );
 
-  async function loadMore() {
+  /** Page suivante de la liste (`size` titres : davantage pour sauter à une lettre). */
+  async function loadMore(size = PAGE_SIZE) {
     if (tab !== "library" || loading || (total && items.length >= total)) return;
     loading = true;
     const forGeneration = generation;
     const filters = filterable ? viewFilters(view) : [];
     try {
-      const page = await api.sectionItems(sectionKey, items.length, PAGE_SIZE, null, genre?.id ?? null, filterable ? viewSort(view) : null, filters);
+      const page = await api.sectionItems(sectionKey, items.length, size, null, genre?.id ?? null, filterable ? viewSort(view) : null, filters);
       if (forGeneration !== generation) return;
       items.push(...page.items);
       total = page.total;
@@ -232,6 +282,7 @@
     items = [];
     total = 0;
     loading = false;
+    titleLetters = null;
   }
 
   /** « Ajouter à une collection » : tous les titres affichés (filtre compris), rassemblés au moment d'ajouter. */
@@ -263,6 +314,7 @@
     if (memo) memo.loaded = 0;
     document.querySelector(".content")?.scrollTo({ top: 0 });
     loadMore();
+    loadLetters();
   }
 
   // Téléviseur : l'onglet s'ouvre dès qu'on y arrive avec les flèches, sans appuyer sur OK. Un court
@@ -284,6 +336,7 @@
       if (next !== "library") memo.genre = null;
     }
     if (next === "library" && !items.length) loadMore();
+    if (next === "library" && !titleLetters) loadLetters();
     if (next === "collections" && !collections) loadCollections();
     if (next === "categories" && !genres) {
       api.genres(sectionKey).then(
@@ -386,6 +439,14 @@
   });
 </script>
 
+{#snippet letterBar(has: (l: string) => boolean, jump: (l: string) => void)}
+  <nav class="letters" aria-label={t("library.letters")}>
+    {#each LETTERS as l (l)}
+      <button disabled={!has(l)} onclick={() => jump(l)}>{l}</button>
+    {/each}
+  </nav>
+{/snippet}
+
 {#snippet tvHead()}
   <div class="tv-head">
     <h1>{title}</h1>
@@ -476,9 +537,10 @@
         <button class="chip-x" onclick={() => showGenre(null)} aria-label={t("library.removeFilter")}><Icon name="x" size={14} /></button>
       </div>
     {/if}
-    <div class="grid">
+    <div class="grid" class:lettered={showTitleLetters}>
       {#each items as item (item.ratingKey)}<PosterCard {item} />{/each}
     </div>
+    {#if showTitleLetters}{@render letterBar((l) => letterOffsets.has(l), jumpToTitle)}{/if}
   {:else if tab === "collections"}
     {#if !collections}
       <div class="grid">{#each Array(12) as _, i (i)}<div class="skeleton poster-skeleton"></div>{/each}</div>
@@ -488,13 +550,7 @@
       <div class="grid" class:lettered={showLetters}>
         {#each collections as item (item.ratingKey)}<PosterCard {item} />{/each}
       </div>
-      {#if showLetters}
-        <nav class="letters" aria-label={t("library.letters")}>
-          {#each LETTERS as l (l)}
-            <button disabled={!firstByLetter.has(l)} onclick={() => jumpTo(l)}>{l}</button>
-          {/each}
-        </nav>
-      {/if}
+      {#if showLetters}{@render letterBar((l) => firstByLetter.has(l), jumpTo)}{/if}
     {/if}
   {:else if !genres}
     <div class="categories">

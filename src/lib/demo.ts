@@ -454,6 +454,39 @@ const demoAccounts = [
 
 type Args = Record<string, any>;
 
+/** Contenu d'une bibliothèque de la démo : genre, filtres et tri de l'onglet Bibliothèque. */
+function sectionList(a: Args): Item[] {
+  const s = SECTIONS.find((x) => x.key === a.key)!;
+  let list = a.kind === 9 ? albums : a.kind === 10 ? albums.flatMap(tracksOf).slice(0, 16) : s.items;
+  if (a.genre !== null && a.genre !== undefined) {
+    const g = genres(a.key).find((x) => x.id === a.genre);
+    list = list.filter((m) => g && m.genres.includes(g.title));
+  }
+  // Filtres et tri de l'onglet Bibliothèque (une partie de ceux de Plex, pour les captures et les tests).
+  for (const [name, value] of (a.filters ?? []) as [string, string][]) {
+    if (name === "unwatched") list = list.filter((m) => !m.watched);
+    else if (name === "inProgress") list = list.filter((m) => m.viewOffsetMs);
+    else if (name === "genre") list = list.filter((m) => m.genres.includes(value));
+    else if (name === "year") list = list.filter((m) => String(m.year) === value);
+    else if (name === "title") list = list.filter((m) => m.title.toLowerCase().includes(value.toLowerCase()));
+    else if (name === "year>>") list = list.filter((m) => (m.year ?? 0) > Number(value));
+  }
+  // Sans ordre choisi, celui de Plex : par titre.
+  const [by, dir] = String(a.sort || "titleSort").split(":");
+  const sortValue = (m: Item) => (by === "year" ? (m.year ?? 0) : by === "audienceRating" ? (m.rating ?? 0) : m.title);
+  const compare = (x: Item, y: Item) => {
+    const p = sortValue(x);
+    const q = sortValue(y);
+    const c = typeof p === "number" && typeof q === "number" ? p - q : String(p).localeCompare(String(q));
+    return dir === "desc" ? -c : c;
+  };
+  if (["titleSort", "year", "audienceRating"].includes(by)) list = [...list].sort(compare);
+  // La liste deux fois, pour une grille plus remplie ; par titre, les doubles se suivent (les lettres restent groupées,
+  // comme sur un vrai serveur).
+  const all = [...list, ...list.map((m) => ({ ...m, ratingKey: m.ratingKey + "b" }))];
+  return by === "titleSort" ? all.sort(compare) : all;
+}
+
 function handle(cmd: string, a: Args): unknown {
   switch (cmd) {
     case "get_session":
@@ -478,31 +511,18 @@ function handle(cmd: string, a: Args): unknown {
     case "plex_section_hubs":
       return hubs(a.key);
     case "plex_section_items": {
-      const s = SECTIONS.find((x) => x.key === a.key)!;
-      let list = a.kind === 9 ? albums : a.kind === 10 ? albums.flatMap(tracksOf).slice(0, 16) : s.items;
-      if (a.genre !== null && a.genre !== undefined) {
-        const g = genres(a.key).find((x) => x.id === a.genre);
-        list = list.filter((m) => g && m.genres.includes(g.title));
+      const all = sectionList(a);
+      return { items: all.slice(Number(a.start ?? 0), Number(a.start ?? 0) + Number(a.size ?? all.length)), total: all.length };
+    }
+    // Comme Plex : les titres comptés par première lettre (chiffres et symboles sous « # »), dans l'ordre alphabétique.
+    case "plex_first_characters": {
+      const counts = new Map<string, number>();
+      for (const m of sectionList({ ...a, sort: null })) {
+        const c = m.title.normalize("NFD").replace(/[̀-ͯ]/g, "").charAt(0).toUpperCase();
+        const l = c >= "A" && c <= "Z" ? c : "#";
+        counts.set(l, (counts.get(l) ?? 0) + 1);
       }
-      // Filtres et tri de l'onglet Bibliothèque (une partie de ceux de Plex, pour les captures et les tests).
-      for (const [name, value] of (a.filters ?? []) as [string, string][]) {
-        if (name === "unwatched") list = list.filter((m) => !m.watched);
-        else if (name === "inProgress") list = list.filter((m) => m.viewOffsetMs);
-        else if (name === "genre") list = list.filter((m) => m.genres.includes(value));
-        else if (name === "year") list = list.filter((m) => String(m.year) === value);
-        else if (name === "title") list = list.filter((m) => m.title.toLowerCase().includes(value.toLowerCase()));
-        else if (name === "year>>") list = list.filter((m) => (m.year ?? 0) > Number(value));
-      }
-      const [by, dir] = String(a.sort ?? "").split(":");
-      const sortValue = (m: Item) => (by === "year" ? (m.year ?? 0) : by === "audienceRating" ? (m.rating ?? 0) : m.title);
-      if (["titleSort", "year", "audienceRating"].includes(by)) list = [...list].sort((x, y) => {
-        const p = sortValue(x);
-        const q = sortValue(y);
-        const c = typeof p === "number" && typeof q === "number" ? p - q : String(p).localeCompare(String(q));
-        return dir === "desc" ? -c : c;
-      });
-      const all = [...list, ...list.map((m) => ({ ...m, ratingKey: m.ratingKey + "b" }))];
-      return { items: a.start ? [] : all, total: all.length };
+      return [...counts].sort(([x], [y]) => (x === "#" ? -1 : y === "#" ? 1 : x.localeCompare(y))).map(([letter, size]) => ({ letter, size }));
     }
     // Tableau de bord (administrateur) : une lecture en cours, le débit, les statistiques et l'historique fictifs.
     case "plex_sessions":
