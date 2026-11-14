@@ -499,6 +499,11 @@ L'APK universel est créé dans `src-tauri/gen/android/app/build/outputs/apk/uni
 placez un fichier `src-tauri/gen/android/keystore.properties` (ignoré par git) contenant `storeFile`,
 `password` et `keyAlias` ; sans lui, l'APK n'est pas signé et Android refuse de l'installer.
 
+Sur GitHub, [`.github/workflows/android.yml`](.github/workflows/android.yml) construit le même APK à chaque envoi
+sur `main` (et pour chaque demande de fusion) : un problème de compilation Android (Rust, Kotlin, SDK, licences)
+se voit tout de suite, et non le jour d'une version. Faute de clé, cet APK n'est pas signé : il est joint à
+l'exécution pour vérification, pas pour être installé.
+
 ### Publier une version
 
 Le workflow [`.github/workflows/paquets.yml`](.github/workflows/paquets.yml) construit les paquets des trois
@@ -816,7 +821,7 @@ traduisez les valeurs sans toucher aux clés ni aux `{{variables}}`, puis décla
 | `src-tauri/gen/android/` | projet Android : manifeste (Android TV, bannière, icônes par couleur), signature, détection du téléviseur et du téléphone, barres système, vidéo en paysage (`MainActivity.kt`), lecteur vidéo natif sous la page (`NativeVideo.kt`), journal de diagnostic (`DiagLog.kt`), musique en arrière-plan, notification et Android Auto (`MediaService.kt`, bibliothèque lue auprès de Plex dans `PlexLibrary.kt`, pochettes servies à la voiture par `ArtProvider.kt`) |
 | `src/components/PhoneTabs.svelte`, `src/views/Libraries.svelte` | téléphone : barre d'onglets et liste des bibliothèques |
 | `src-tauri/tauri.conf.json`, `tauri.windows.conf.json` | configuration et paquets ; la fenêtre transparente n'est activée que sous Windows |
-| `.github/workflows/paquets.yml`, `.signpath/` | construction des paquets Windows, Linux et macOS, signature des paquets Windows par SignPath (l'APK est construit à part) |
+| `.github/workflows/paquets.yml`, `.signpath/` | construction des paquets Windows, Linux et macOS, signature des paquets Windows par SignPath (l'APK est construit à part ; `android.yml` vérifie qu'il se construit à chaque envoi) |
 
 Sous Windows, pendant une vidéo, la fenêtre Tauri devient transparente et mpv dessine l'image dessous : l'interface
 web n'affiche plus que la barre de contrôle par-dessus. Ailleurs, mpv ouvre sa propre fenêtre et Maku devient une

@@ -1,0 +1,66 @@
+# Construit l'APK Android (téléphone, tablette, TV) à chaque envoi sur main : un souci de compilation (Rust pour
+# Android, Kotlin, SDK, licences) se voit tout de suite, et non le jour d'une version, où l'APK est construite sur
+# le poste du développeur. Elle n'est pas signée ici (la clé de production n'est pas sur GitHub), donc Android ne
+# l'installerait pas : elle est jointe à l'exécution 14 jours, pour vérification (contenu, taille).
+name: Android
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Un nouvel envoi remplace la construction en cours du précédent.
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    name: APK (ARM 64 et 32 bits)
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      # Le SDK Android est déjà sur la machine de GitHub (ANDROID_HOME) ; on y ajoute ce que le projet demande.
+      - name: SDK et NDK (ceux du projet)
+        run: |
+          sdkmanager=$(ls "$ANDROID_HOME"/cmdline-tools/*/bin/sdkmanager | sort -V | tail -n 1)
+          # Nouvelle version de la licence du SDK : sans elle, Gradle refuse la plateforme 37 et les build-tools 36.
+          mkdir -p "$ANDROID_HOME/licenses"
+          printf '\n9002c006f4b8d9a16e715a9fa4df30ddb8abf9d9\n' >> "$ANDROID_HOME/licenses/android-sdk-license"
+          "$sdkmanager" --install "platforms;android-37.0" "build-tools;36.0.0" "ndk;29.0.14206865"
+          echo "NDK_HOME=$ANDROID_HOME/ndk/29.0.14206865" >> "$GITHUB_ENV"
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - run: npm ci
+
+      - name: APK
+        run: npx tauri android build --apk --target aarch64 --target armv7
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: maku-android-apk
+          path: src-tauri/gen/android/app/build/outputs/apk/universal/release/*.apk
+          retention-days: 14
+          if-no-files-found: error
