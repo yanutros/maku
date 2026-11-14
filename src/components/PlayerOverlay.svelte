@@ -551,6 +551,10 @@
         {#if player.stalled.passthrough}
           <button class="btn" onclick={() => unstall("decodeAudio")}><Icon name="audio" size={18} /> {t("player.stalledDecode")}</button>
         {/if}
+        <!-- Le fichier d'origine : le serveur peut le convertir (pas pour un téléchargement, ni déjà converti). -->
+        {#if !player.transcoded && !player.offline}
+          <button class="btn" onclick={() => unstall("transcode")}><Icon name="server" size={18} /> {t("player.stalledTranscode")}</button>
+        {/if}
       </div>
     </div>
   {/if}

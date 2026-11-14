@@ -83,11 +83,11 @@ test("TV : Retour ferme le menu des pistes ouvert, sans quitter le film", async 
   await expect(page.locator(".overlay")).toHaveCount(0);
 });
 
-test("vidéo figée : un message propose de réessayer, d'avancer de 10 s ou de décoder le son ici", async ({ page }, info) => {
+test("vidéo figée : un message propose de réessayer, d'avancer de 10 s, de décoder le son ici ou de faire convertir par le serveur", async ({ page }, info) => {
   await ouvrir(page, info, "lecteur-fige");
   const message = page.getByRole("dialog", { name: /La lecture est bloquée à 3:07/ });
   await expect(message).toBeVisible();
-  await expect(message.getByRole("button")).toHaveText(["Réessayer", "Passer 10 s", "Son décodé par l'appareil"]);
+  await expect(message.getByRole("button")).toHaveText(["Réessayer", "Passer 10 s", "Son décodé par l'appareil", "Conversion par le serveur"]);
   // Les commandes restent affichées tant que la vidéo est figée.
   await page.waitForTimeout(5000);
   await expect(page.locator(".overlay")).not.toHaveClass(/hidden/);
@@ -100,6 +100,13 @@ test("vidéo figée : un message propose de réessayer, d'avancer de 10 s ou de 
     await expect(message.locator(":focus")).toHaveCount(1);
   }
   await message.getByRole("button", { name: "Réessayer" }).click();
+  await expect(message).toHaveCount(0);
+});
+
+test("vidéo figée : « Conversion par le serveur » ferme le message", async ({ page }, info) => {
+  await ouvrir(page, info, "lecteur-fige");
+  const message = page.getByRole("dialog", { name: /La lecture est bloquée/ });
+  await message.getByRole("button", { name: "Conversion par le serveur" }).click();
   await expect(message).toHaveCount(0);
 });
 

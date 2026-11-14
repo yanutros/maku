@@ -785,6 +785,7 @@
     "stalledRetry": "Reintentar",
     "stalledSkip": "Saltar 10 s",
     "stalledDecode": "Decodificar el audio en este dispositivo",
+    "stalledTranscode": "Convertir en el servidor",
     "decodeRemembered": "La reproducción se bloqueó: ahora el audio lo decodifica el dispositivo (Ajustes → Reproductor → «Decodificado aquí»)."
   },
   "request": {

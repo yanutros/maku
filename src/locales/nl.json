@@ -785,6 +785,7 @@
     "stalledRetry": "Opnieuw proberen",
     "stalledSkip": "10 s overslaan",
     "stalledDecode": "Geluid op dit apparaat decoderen",
+    "stalledTranscode": "Laten omzetten door de server",
     "decodeRemembered": "Het afspelen liep vast: het geluid wordt nu door het apparaat gedecodeerd (Instellingen → Speler → “Hier gedecodeerd”)."
   },
   "request": {

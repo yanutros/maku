@@ -785,6 +785,7 @@
     "stalledRetry": "Retry",
     "stalledSkip": "Skip 10 s",
     "stalledDecode": "Decode audio on this device",
+    "stalledTranscode": "Convert on the server",
     "decodeRemembered": "Playback was stuck: sound is now decoded by this device (Settings → Player → “Decoded here”)."
   },
   "request": {

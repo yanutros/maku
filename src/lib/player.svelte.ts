@@ -684,9 +684,20 @@ export function onStalled(s: { at: number; passthrough: boolean; bitstream?: boo
   player.stalled = s ? { at: s.at / 1000, passthrough: s.passthrough } : null;
 }
 
-/** Vidéo figée (Android) : relancer au même endroit, ou décoder le son ici plutôt que l'envoyer à l'ampli. */
-export function unstall(how: "retry" | "decodeAudio") {
+/** Lecteur natif : passe la vidéo en cours à la conversion du serveur, au même endroit (voir `fallback`). */
+let transcodeNow: (() => void) | null = null;
+
+/**
+ * Vidéo figée (Android) : relancer au même endroit, décoder le son ici plutôt que l'envoyer à l'ampli, ou faire
+ * convertir l'image et le son par le serveur (le fichier d'origine que l'appareil n'arrive pas à lire).
+ */
+export function unstall(how: "retry" | "decodeAudio" | "transcode") {
   player.stalled = null;
+  if (how === "transcode") {
+    diag(`Maku : conversion par le serveur demandée pendant le blocage (à ${Math.round(player.position)} s)`);
+    transcodeNow?.();
+    return;
+  }
   if (player.native) bridge?.videoCommand?.(how, "");
 }
 
@@ -1035,6 +1046,8 @@ const web = (() => {
     if (e.aid !== undefined) player.aid = e.aid;
     if (e.sid !== undefined) player.sid = e.sid;
   };
+
+  transcodeNow = () => void fallback(false);
 
   async function fallback(copyVideo: boolean) {
     // Une conversion « son seulement » qui a échoué : on l'arrête avant la conversion complète.

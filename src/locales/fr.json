@@ -785,6 +785,7 @@
     "stalledRetry": "Réessayer",
     "stalledSkip": "Passer 10 s",
     "stalledDecode": "Son décodé par l'appareil",
+    "stalledTranscode": "Conversion par le serveur",
     "decodeRemembered": "La lecture était bloquée : le son est désormais décodé par l'appareil (Réglages → Lecteur → « Décodé ici »)."
   },
   "request": {
