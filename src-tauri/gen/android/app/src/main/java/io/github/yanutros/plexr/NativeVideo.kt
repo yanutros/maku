@@ -19,7 +19,6 @@ import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.Format
 import androidx.media3.common.MediaItem
-import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.TrackSelectionOverride
@@ -69,13 +68,8 @@ class NativeVideo(private val activity: Activity, private val webView: WebView) 
   private var audioMime: String? = null
   /** Le son passe par un décodeur ici : sinon, avec le réglage automatique, il part tel quel vers la sortie audio. */
   private var audioDecoded = false
-  /**
-   * Vidéo figée : le lecteur se dit prêt, n'est pas en pause, a des données d'avance, mais la position ne bouge
-   * plus. Position surveillée, depuis quand elle n'a pas bougé (en lecture), et blocage déjà signalé.
-   */
-  private var stallPos = -1L
-  private var stallSince = 0L
-  private var stalled = false
+  /** Vidéo figée (PlaybackRules.kt). */
+  private val stall = StallWatch()
 
   // ---------- Commandes de la page (appelées depuis le fil du WebView) ----------
 
@@ -90,8 +84,7 @@ class NativeVideo(private val activity: Activity, private val webView: WebView) 
     lastOpen = o
     audioMime = null
     audioDecoded = false
-    stallPos = -1L
-    stalled = false
+    stall.reset()
 
     val root = webView.parent as ViewGroup
     val sv = SurfaceView(activity)
@@ -186,7 +179,7 @@ class NativeVideo(private val activity: Activity, private val webView: WebView) 
       }
       override fun onPlayerError(error: PlaybackException) {
         // Format ou codec que l'appareil ne sait pas lire : la page demande alors la conversion.
-        val decoding = error.errorCode in 4000..4999 || error.errorCode == PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED
+        val decoding = isDecodingError(error.errorCode)
         DiagLog.log("✖ Erreur du lecteur ${error.errorCodeName} à ${p.currentPosition / 1000} s : ${error.message} · cause : ${error.cause}")
         emit(JSONObject().put(if (decoding) "unsupported" else "error", error.message ?: error.errorCodeName))
       }
@@ -203,7 +196,7 @@ class NativeVideo(private val activity: Activity, private val webView: WebView) 
   fun command(name: String, value: String) = handler.post {
     val p = player ?: return@post
     // Pendant un blocage, chaque geste est noté : le journal dira ce qui a débloqué (ou non) la lecture.
-    if (stalled && name != "retry" && name != "decodeAudio") DiagLog.log("Pendant le blocage : $name $value")
+    if (stall.stalled && name != "retry" && name != "decodeAudio") DiagLog.log("Pendant le blocage : $name $value")
     when (name) {
       // Réessayer : la lecture repart du même endroit, décodeurs vidés.
       "retry" -> {
@@ -243,13 +236,7 @@ class NativeVideo(private val activity: Activity, private val webView: WebView) 
   private fun fit(size: VideoSize) {
     val sv = surface ?: return
     val root = sv.parent as? ViewGroup ?: return
-    if (size.width == 0 || size.height == 0 || root.width == 0 || root.height == 0) return
-    val ratio = size.width * size.pixelWidthHeightRatio / size.height
-    val (w, h) = if (root.width.toFloat() / root.height > ratio) {
-      (root.height * ratio).toInt() to root.height
-    } else {
-      root.width to (root.width / ratio).toInt()
-    }
+    val (w, h) = fitVideo(size.width, size.height, size.pixelWidthHeightRatio, root.width, root.height) ?: return
     sv.layoutParams = FrameLayout.LayoutParams(w, h, Gravity.CENTER)
   }
 
@@ -318,11 +305,12 @@ class NativeVideo(private val activity: Activity, private val webView: WebView) 
 
   private fun select(p: ExoPlayer, type: Int, value: String) {
     val params = p.trackSelectionParameters.buildUpon()
-    if (value == "no") {
-      params.setTrackTypeDisabled(type, true)
-    } else {
-      val group = groups(p.currentTracks, type).getOrNull((value.toIntOrNull() ?: return) - 1) ?: return
-      params.setTrackTypeDisabled(type, false).setOverrideForType(TrackSelectionOverride(group.mediaTrackGroup, 0))
+    when (val choice = TrackChoice.parse(value) ?: return) {
+      TrackChoice.Off -> params.setTrackTypeDisabled(type, true)
+      is TrackChoice.At -> {
+        val group = groups(p.currentTracks, type).getOrNull(choice.index) ?: return
+        params.setTrackTypeDisabled(type, false).setOverrideForType(TrackSelectionOverride(group.mediaTrackGroup, 0))
+      }
     }
     p.trackSelectionParameters = params.build()
   }
@@ -349,48 +337,34 @@ class NativeVideo(private val activity: Activity, private val webView: WebView) 
   }
 
   /**
-   * Vidéo figée (toutes les 500 ms) : prêt, en lecture, au moins 2 s de données d'avance, et la position immobile
-   * depuis 5 s. Une coupure réseau n'en est pas une (le lecteur est alors en chargement, sans avance). Le
-   * blocage est noté au journal et signalé à la page, qui propose de réessayer, d'avancer ou de décoder le son
-   * ici ; la reprise de la lecture aussi.
+   * Vidéo figée (toutes les 500 ms, règles dans StallWatch) : le blocage est noté au journal et signalé à la page,
+   * qui propose de réessayer, d'avancer ou de décoder le son ici ; la reprise de la lecture aussi.
    */
   private fun watch(p: ExoPlayer) {
-    val now = SystemClock.elapsedRealtime()
-    val pos = p.currentPosition
-    if (stallPos < 0 || kotlin.math.abs(pos - stallPos) > 300) {
-      if (stalled) {
-        // Un petit pas en avant : la lecture a vraiment repris. Un grand écart : un saut (Passer 10 s…), qui
-        // sera de nouveau surveillé.
-        val step = pos - stallPos
-        if (step in 1..3000) DiagLog.log("Lecture repartie à ${pos / 1000} s (figée ${(now - stallSince) / 1000} s)")
-        else DiagLog.log("Saut à ${pos / 1000} s pendant le blocage")
-        clearStall()
+    val playing = p.playbackState == Player.STATE_READY && p.playWhenReady
+    when (val e = stall.update(SystemClock.elapsedRealtime(), p.currentPosition, playing, p.bufferedPosition)) {
+      is StallWatch.Resumed -> {
+        DiagLog.log("Lecture repartie à ${e.at / 1000} s (figée ${e.frozenMs / 1000} s)")
+        emit(JSONObject().put("stalled", false))
       }
-      stallPos = pos
-      stallSince = now
-      return
+      is StallWatch.Jumped -> {
+        DiagLog.log("Saut à ${e.at / 1000} s pendant le blocage")
+        emit(JSONObject().put("stalled", false))
+      }
+      is StallWatch.Stalled -> {
+        val bitstream = soundSentAsIs(passthroughOn, audioDecoded, audioMime)
+        DiagLog.log(
+          "⚠ Lecture figée à ${e.at / 1000} s : prête, en lecture, mémoire tampon jusqu'à ${p.bufferedPosition / 1000} s, mais l'image" +
+            " n'avance plus depuis ${e.frozenMs / 1000} s · son ${audioMime ?: "?"} · son vers l'ampli : ${if (passthroughOn) "automatique" else "décodé ici"}${if (bitstream) ", envoyé tel quel" else ""}",
+        )
+        emit(JSONObject().put("stalled", JSONObject().put("at", e.at).put("passthrough", passthroughOn).put("bitstream", bitstream)))
+      }
+      null -> Unit
     }
-    val moving = p.playbackState == Player.STATE_READY && p.playWhenReady
-    val ahead = p.bufferedPosition - pos
-    // En pause ou en chargement, le temps ne compte pas.
-    if (!moving || ahead < 2000) {
-      if (!stalled) stallSince = now
-      return
-    }
-    if (stalled || now - stallSince < 5000) return
-    stalled = true
-    // Son envoyé tel quel (Dolby…) : certaines TV calent dessus après un saut, la page passe alors en « Décodé ici ».
-    val bitstream = passthroughOn && !audioDecoded && audioMime != null
-    DiagLog.log(
-      "⚠ Lecture figée à ${pos / 1000} s : prête, en lecture, mémoire tampon jusqu'à ${p.bufferedPosition / 1000} s, mais l'image" +
-        " n'avance plus depuis ${(now - stallSince) / 1000} s · son ${audioMime ?: "?"} · son vers l'ampli : ${if (passthroughOn) "automatique" else "décodé ici"}${if (bitstream) ", envoyé tel quel" else ""}",
-    )
-    emit(JSONObject().put("stalled", JSONObject().put("at", pos).put("passthrough", passthroughOn).put("bitstream", bitstream)))
   }
 
   private fun clearStall() {
-    stalled = false
-    stallPos = -1L
+    stall.reset()
     emit(JSONObject().put("stalled", false))
   }
 
@@ -431,13 +405,6 @@ class NativeVideo(private val activity: Activity, private val webView: WebView) 
     webView.evaluateJavascript("window.__plexrVideo && window.__plexrVideo($o)", null)
   }
 
-  private fun subtitleMime(codec: String) = when (codec.lowercase()) {
-    "ass", "ssa" -> MimeTypes.TEXT_SSA
-    "vtt", "webvtt" -> MimeTypes.TEXT_VTT
-    "ttml", "dfxp" -> MimeTypes.APPLICATION_TTML
-    else -> MimeTypes.APPLICATION_SUBRIP
-  }
-
   companion object {
     private val PASSTHROUGH = listOf(
       "AC3" to C.ENCODING_AC3,
@@ -448,36 +415,34 @@ class NativeVideo(private val activity: Activity, private val webView: WebView) 
       "TrueHD" to C.ENCODING_DOLBY_TRUEHD,
     )
     private const val PREFS = "maku.audio"
-    /** Après le démarrage de l'appareil, la liaison HDMI peut ne pas être encore établie. */
-    private const val BOOT_WINDOW_MS = 10 * 60 * 1000L
 
-    /**
-     * Comme Moonfin : au démarrage à froid, la sortie audio peut répondre qu'elle n'accepte rien tel quel,
-     * le temps que la liaison HDMI avec l'ampli s'établisse — le son serait alors décodé ici, sans Dolby
-     * ni DTS. La dernière réponse valable est gardée (pour ce système : une mise à jour l'efface) et reprise
-     * dans les minutes qui suivent le démarrage, si la réponse du moment est vide. Une vraie réponse, même
-     * différente (barre de son débranchée), la remplace : elle n'est jamais écrasée par une réponse vide.
-     */
+    /** Formats imposés à la sortie audio, d'après la dernière réponse valable (règles dans AudioMemory). */
+    @Suppress("DEPRECATION")
     fun rememberedCapabilities(context: Context): AudioCapabilities? {
-      @Suppress("DEPRECATION")
       val live = AudioCapabilities.getCapabilities(context)
       val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
       val build = Build.FINGERPRINT
-      if (PASSTHROUGH.any { live.supportsEncoding(it.second) }) {
-        val encodings = PASSTHROUGH.map { it.second }.filter { live.supportsEncoding(it) }
-        prefs.edit()
-          .putString("build", build)
-          .putString("encodings", encodings.joinToString(","))
-          .putInt("channels", live.maxChannelCount)
-          .apply()
-        return null
+      val choice = AudioMemory.choose(
+        liveEncodings = PASSTHROUGH.map { it.second }.filter { live.supportsEncoding(it) },
+        liveChannels = live.maxChannelCount,
+        sinceBootMs = SystemClock.elapsedRealtime(),
+        build = build,
+        savedBuild = prefs.getString("build", null),
+        savedEncodings = prefs.getString("encodings", null),
+        savedChannels = prefs.getInt("channels", 2),
+      )
+      return when (choice) {
+        is AudioMemory.Remember -> {
+          prefs.edit()
+            .putString("build", build)
+            .putString("encodings", choice.encodings.joinToString(","))
+            .putInt("channels", choice.channels)
+            .apply()
+          null
+        }
+        AudioMemory.Live -> null
+        is AudioMemory.Saved -> AudioCapabilities(choice.encodings, choice.channels)
       }
-      if (SystemClock.elapsedRealtime() > BOOT_WINDOW_MS || prefs.getString("build", null) != build) return null
-      val saved = prefs.getString("encodings", null)?.split(",")?.mapNotNull { it.toIntOrNull() } ?: return null
-      if (saved.isEmpty()) return null
-      val encodings = (listOf(C.ENCODING_PCM_16BIT) + saved).toIntArray()
-      @Suppress("DEPRECATION")
-      return AudioCapabilities(encodings, prefs.getInt("channels", 2))
     }
 
     /** Formats que la sortie audio accepte tels quels (JSON), et son nombre de canaux. */

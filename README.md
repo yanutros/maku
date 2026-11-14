@@ -502,7 +502,8 @@ placez un fichier `src-tauri/gen/android/keystore.properties` (ignoré par git) 
 Sur GitHub, [`.github/workflows/android.yml`](.github/workflows/android.yml) construit le même APK à chaque envoi
 sur `main` (et pour chaque demande de fusion) : un problème de compilation Android (Rust, Kotlin, SDK, licences)
 se voit tout de suite, et non le jour d'une version. Faute de clé, cet APK n'est pas signé : il est joint à
-l'exécution pour vérification, pas pour être installé.
+l'exécution pour vérification, pas pour être installé. Les tests du lecteur natif y passent ensuite (voir
+« Tests du lecteur Android » plus bas).
 
 ### Publier une version
 
@@ -764,6 +765,14 @@ comparent des captures à des images de référence (`tests/images/`). Après un
 `npx playwright install chromium webkit`. Sur GitHub, les tests passent à chaque envoi sur `main` et avant la
 construction des paquets d'une version (les images de référence, prises sous Windows, n'y sont pas comparées).
 
+**Tests du lecteur Android.** Les règles du lecteur vidéo natif sont à part, dans `PlaybackRules.kt` : vidéo
+figée (prête, en lecture, avec de l'avance, mais immobile 5 s ; reprise ou saut ensuite), son envoyé tel quel à
+l'ampli, format de l'image à l'écran, type des sous-titres externes, erreurs qui demandent la conversion,
+numérotation des pistes et mémoire des formats de l'ampli au démarrage de la TV. Des tests ordinaires
+(`src-tauri/gen/android/app/src/test/`) les vérifient sans appareil : dans `src-tauri/gen/android`,
+`./gradlew :app:testUniversalDebugUnitTest`, après une première construction de l'APK (Tauri y génère des
+fichiers du projet). Sur GitHub, ils passent à chaque envoi sur `main`, après la construction de l'APK.
+
 **iPad (essai).** Une app iPad se compile seulement sur un Mac : la construction « iPad (essai) » de l'onglet
 Actions la produit sur un Mac de GitHub, sans signature (`Maku-ipad.ipa`, joint à l'exécution). Un outil comme
 Sideloadly la signe avec un compte Apple en l'installant ; avec un compte gratuit, elle est à réinstaller tous les
@@ -818,7 +827,7 @@ traduisez les valeurs sans toucher aux clés ni aux `{{variables}}`, puis décla
 | `src-tauri/src/plex_users.rs`, `src/components/ServerUsers.svelte` | utilisateurs du serveur Plex (administrateur) : comptes partagés, bibliothèques, autorisations et restrictions, invitation et retrait, via plex.tv |
 | `src-tauri/src/cast.rs`, `src/components/CastButton.svelte` | Chromecast : appareils trouvés par mDNS, protocole Cast v2 (TLS, messages protobuf), file confiée au lecteur de Google et pilotée ; AirPlay sur iOS |
 | `src/lib/player.svelte.ts`, `src/lib/player/` | lecture : mpv sur ordinateur, ExoPlayer natif sur Android (décodeur audio FFmpeg, son transmis à l'ampli ; en secours, flux du serveur qui ne convertit que le son, puis tout). L'état du lecteur (`state.svelte.ts`), le pont Android (`bridge.ts`), Chromecast (`cast.svelte.ts`) et la notification (`notification.svelte.ts`) sont à part ; `player.svelte.ts` les réexporte |
-| `src-tauri/gen/android/` | projet Android : manifeste (Android TV, bannière, icônes par couleur), signature, détection du téléviseur et du téléphone, barres système, vidéo en paysage (`MainActivity.kt`), lecteur vidéo natif sous la page (`NativeVideo.kt`), journal de diagnostic (`DiagLog.kt`), musique en arrière-plan, notification et Android Auto (`MediaService.kt`, bibliothèque lue auprès de Plex dans `PlexLibrary.kt`, pochettes servies à la voiture par `ArtProvider.kt`) |
+| `src-tauri/gen/android/` | projet Android : manifeste (Android TV, bannière, icônes par couleur), signature, détection du téléviseur et du téléphone, barres système, vidéo en paysage (`MainActivity.kt`), lecteur vidéo natif sous la page (`NativeVideo.kt`, ses règles testées dans `PlaybackRules.kt`), journal de diagnostic (`DiagLog.kt`), musique en arrière-plan, notification et Android Auto (`MediaService.kt`, bibliothèque lue auprès de Plex dans `PlexLibrary.kt`, pochettes servies à la voiture par `ArtProvider.kt`) |
 | `src/components/PhoneTabs.svelte`, `src/views/Libraries.svelte` | téléphone : barre d'onglets et liste des bibliothèques |
 | `src-tauri/tauri.conf.json`, `tauri.windows.conf.json` | configuration et paquets ; la fenêtre transparente n'est activée que sous Windows |
 | `.github/workflows/paquets.yml`, `.signpath/` | construction des paquets Windows, Linux et macOS, signature des paquets Windows par SignPath (l'APK est construit à part ; `android.yml` vérifie qu'il se construit à chaque envoi) |

@@ -58,6 +58,12 @@ jobs:
       - name: APK
         run: npx tauri android build --apk --target aarch64 --target armv7
 
+      # Règles du lecteur vidéo natif (PlaybackRules.kt) : tests ordinaires, sans appareil. Après la construction,
+      # qui prépare les fichiers que Tauri génère pour le projet Android.
+      - name: Tests du lecteur natif
+        working-directory: src-tauri/gen/android
+        run: ./gradlew :app:testUniversalDebugUnitTest --console=plain
+
       - uses: actions/upload-artifact@v7
         with:
           name: maku-android-apk
