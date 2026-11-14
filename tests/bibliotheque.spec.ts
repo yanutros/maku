@@ -159,6 +159,16 @@ test("collection : ordre personnalisé en glissant les jaquettes, conversion d'u
   await expect(page.getByRole("tab", { name: "Collections" })).toHaveAttribute("aria-selected", "true");
 });
 
+test("collections : l'onglet n'apparaît que si la bibliothèque en a", async ({ page }, info) => {
+  await ouvrir(page, info, "films");
+  await expect(page.getByRole("tab", { name: "Collections" }).first()).toBeVisible();
+  await ouvrir(page, info, "films&nocollections");
+  // Les autres onglets sont là ; Collections ne vient pas, même une fois la liste reçue.
+  await expect(page.getByRole("tab", { name: "Catégories" }).first()).toBeVisible();
+  await page.waitForTimeout(500);
+  await expect(page.getByRole("tab", { name: "Collections" })).toHaveCount(0);
+});
+
 test("collections : bandeau des lettres sur ordinateur (lettres sans collection éteintes), absent sur TV et téléphone", async ({ page }, info) => {
   await ouvrir(page, info, "films");
   await page.getByRole("tab", { name: "Collections" }).first().click();

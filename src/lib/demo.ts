@@ -548,8 +548,9 @@ function handle(cmd: string, a: Args): unknown {
     }
     case "plex_collection_items":
       return a.ratingKey === collections[0].ratingKey ? movies.filter((m) => m.genres.includes("Science-fiction")) : movies.slice(4, 8);
+    // `?demo=…&nocollections` : une bibliothèque de films sans collection (l'onglet disparaît).
     case "plex_collections":
-      return a.key === "1" ? collections : [];
+      return a.key === "1" && !new URLSearchParams(location.search).has("nocollections") ? collections : [];
     case "plex_genres":
       return genres(a.key);
     case "plex_section_filters":

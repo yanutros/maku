@@ -1,3 +1,8 @@
+<script lang="ts" module>
+  /** Bibliothèques dont on sait déjà si elles ont des collections : l'onglet est là dès l'arrivée à la visite suivante. */
+  const hasCollectionsKnown = new Map<string, boolean>();
+</script>
+
 <script lang="ts">
   import { onMount, tick } from "svelte";
   import { api, errorText, type Genre, type Hub, type Item } from "../lib/api";
@@ -50,13 +55,6 @@
   const memo = nav.view.name === "section" && nav.view.key === sectionKey ? nav.view : null;
 
   type Tab = "recommended" | "library" | "collections" | "categories";
-  // Collections : seulement dans les bibliothèques de films, comme dans Plex.
-  const TABS = $derived<{ id: Tab; label: string }[]>([
-    { id: "recommended", label: t("library.tabs.recommended") },
-    { id: "library", label: t("library.tabs.library") },
-    ...(kind === "movie" ? [{ id: "collections" as Tab, label: t("library.tabs.collections") }] : []),
-    { id: "categories", label: t("library.tabs.categories") },
-  ]);
   const PAGE_SIZE = 120;
 
   let tab = $state<Tab>("recommended");
@@ -128,6 +126,32 @@
 
   // --- Collections ---
   let collections = $state<Item[] | null>(null);
+
+  /** Chargées dès l'arrivée (films) : il faut les connaître pour afficher l'onglet ou non. */
+  function loadCollections() {
+    api.collections(sectionKey).then(
+      (c) => {
+        collections = c;
+        hasCollectionsKnown.set(sectionKey, c.length > 0);
+      },
+      // Une erreur ne s'affiche que dans l'onglet Collections (pas sur « Recommandé », où elle n'a rien à faire).
+      (e) => {
+        if (tab === "collections") error = errorText(e);
+      },
+    );
+  }
+
+  // Collections : seulement dans les bibliothèques de films, comme dans Plex, et seulement s'il y en a. L'onglet
+  // apparaît une fois la liste reçue (ou tout de suite si on le sait d'une visite précédente, ou si on y revient).
+  const showCollections = $derived(
+    kind === "movie" && (tab === "collections" || (collections ? collections.length > 0 : hasCollectionsKnown.get(sectionKey) === true)),
+  );
+  const TABS = $derived<{ id: Tab; label: string }[]>([
+    { id: "recommended", label: t("library.tabs.recommended") },
+    { id: "library", label: t("library.tabs.library") },
+    ...(showCollections ? [{ id: "collections" as Tab, label: t("library.tabs.collections") }] : []),
+    { id: "categories", label: t("library.tabs.categories") },
+  ]);
 
   // Bandeau des lettres (ordinateur), comme dans Plex : « # » puis A à Z ; une lettre sans collection est éteinte,
   // les autres mènent à la première collection qui commence par elle (accents et chiffres compris).
@@ -260,12 +284,7 @@
       if (next !== "library") memo.genre = null;
     }
     if (next === "library" && !items.length) loadMore();
-    if (next === "collections" && !collections) {
-      api.collections(sectionKey).then(
-        (c) => (collections = c),
-        (e) => (error = errorText(e)),
-      );
-    }
+    if (next === "collections" && !collections) loadCollections();
     if (next === "categories" && !genres) {
       api.genres(sectionKey).then(
         (g) => (genres = g),
@@ -352,6 +371,7 @@
       (h) => (hubs = h),
       (e) => (error = errorText(e)),
     );
+    if (kind === "movie" && !collections && tab !== "collections") loadCollections();
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries.some((e) => e.isIntersecting)) loadMore();
