@@ -1,171 +1,20 @@
 import { invoke } from "@tauri-apps/api/core";
 import { notePlay } from "./playlistPlays";
 import { listen } from "@tauri-apps/api/event";
-import { untrack } from "svelte";
 import type { QueueTrack, Track } from "./api";
 import { t } from "./i18n";
 import { device } from "./device";
 import { toast } from "./nav.svelte";
+import { hasEndScreen, loadUpNext, player, type MpvTrack, type NativeInfo, type PlayOptions, type Previews } from "./player/state.svelte";
+import { bridge, diag, nativeVideo, passthroughMode, setPassthroughMode } from "./player/bridge";
+import { cast, castCommand, sendToCast, type CastDevice } from "./player/cast.svelte";
+import "./player/notification.svelte";
 
-export interface MpvTrack {
-  id: number;
-  type: "video" | "audio" | "sub";
-  title?: string;
-  lang?: string;
-  codec?: string;
-  "demux-channel-count"?: number;
-  external?: boolean;
-  forced?: boolean;
-}
-
-/**
- * État du lecteur. Sur ordinateur, il est alimenté par les propriétés que mpv publie ;
- * sur mobile et TV (`web`), par le lecteur vidéo / audio du système, piloté ici même.
- */
-export const player = $state({
-  /** Une lecture est en cours (vidéo ou musique). */
-  active: false,
-  /** Vidéo plein cadre, sinon musique avec la barre du bas. */
-  video: false,
-  /** Vidéo dessinée dans la fenêtre de Maku (Windows) ; sinon dans une fenêtre mpv séparée. */
-  embedded: true,
-  /** Lecture par le lecteur intégré du système (Android, iOS) plutôt que par mpv. */
-  web: false,
-  /** Vidéo lue par le lecteur natif d'Android (ExoPlayer, sous la page) plutôt que par <video>. */
-  native: false,
-  /** Identifiant de la lecture : les événements d'une lecture remplacée sont ignorés. */
-  session: "",
-  /** Qualité choisie dans le lecteur, en kb/s ; 0 : le fichier d'origine, sans conversion. */
-  quality: loadQuality(),
-  /** La vidéo en cours est convertie par le serveur (qualité réduite, ou format non lu). */
-  transcoded: false,
-  /** Pistes du serveur demandées pour la vidéo en cours (identifiants Plex ou Jellyfin). */
-  streams: { audioStream: null as number | null, subtitleStream: null as number | null },
-  /** Version lue (voir `ItemDetail.versions`) ; 0 : la première. */
-  mediaIndex: 0,
-  /** Pistes du serveur, proposées quand la vidéo est convertie (mpv n'y voit qu'une piste). */
-  serverAudio: [] as Track[],
-  serverSubs: [] as Track[],
-  /** Vidéo en cours et épisodes voisins (pour les boutons précédent / suivant). */
-  ratingKey: "",
-  prevKey: null as string | null,
-  nextKey: null as string | null,
-  /** Épisode suivant, pour l'écran de fin (EndScreen.svelte). */
-  upNext: null as UpNext | null,
-  /** Écran de fin affiché : « Passer le générique » ou fin d'un épisode qui a une suite. */
-  endScreen: false,
-  /** Android : la vidéo est figée (prête, chargée, mais l'image n'avance plus) ; position en s, et son envoyé à l'ampli. */
-  stalled: null as { at: number; passthrough: boolean } | null,
-  title: "",
-  subtitle: null as string | null,
-  position: 0,
-  duration: 0,
-  /** Repères de l'épisode (intro, générique), pour le bouton « Passer ». */
-  markers: [] as { kind: string; startMs: number; endMs: number }[],
-  /** Miniatures d'aperçu, si le serveur en a pour cette vidéo. */
-  previews: null as Previews | null,
-  bufferedUntil: 0,
-  /** Ordinateur : mpv affiche déjà l'image sous la page (sinon, la page reste opaque). */
-  videoReady: false,
-  paused: false,
-  buffering: true,
-  volume: 100,
-  muted: false,
-  tracks: [] as MpvTrack[],
-  aid: null as number | null,
-  sid: null as number | null,
-  /** File de lecture musicale et titre en cours. */
-  queue: [] as QueueTrack[],
-  index: 0,
-  /** Répéter la file (mpv : loop-playlist). */
-  repeat: false,
-  /** Répéter le titre en cours (mpv : loop-file). */
-  repeatOne: false,
-  /** Ordre aléatoire activé sur la file en cours (bouton Aléatoire du lecteur). */
-  shuffled: false,
-  /** Vue « En cours de lecture » ouverte. */
-  expanded: false,
-  /** Incrémenté à chaque saut dans le morceau (pour la notification Android). */
-  seeks: 0,
-  /** Lecture d'un téléchargement (lib/offline.svelte.ts) : son identifiant ; la progression reste sur l'appareil. */
-  offline: "",
-});
-
-/** Durées proposées pour le compte à rebours de l'épisode suivant (secondes ; 0 : désactivé). */
-export const NEXT_DELAYS = [0, 5, 10, 15, 30];
-
-export interface UpNext {
-  title: string;
-  showTitle: string | null;
-  /** « S1 · E2 » (sans accent, comme partout). */
-  number: string | null;
-  summary: string | null;
-  durationMs: number | null;
-  /** Jaquette de la saison (sinon de la série), mieux composée qu'une image de l'épisode. */
-  poster: string | null;
-  /** Image de l'épisode : en secours sans jaquette, et en fond flouté. */
-  thumb: string | null;
-  backdrop: string | null;
-}
-
-/** Compte à rebours de l'écran de fin, réglé dans Réglages → Lecteur (30 s par défaut ; 0 : pas de compte à rebours). */
-export const autoNext = $state({ delay: loadNextDelay() });
-
-function loadNextDelay(): number {
-  try {
-    const v = localStorage.getItem("maku.nextDelay");
-    return v !== null && NEXT_DELAYS.includes(Number(v)) ? Number(v) : 30;
-  } catch {
-    return 30;
-  }
-}
-
-export function setNextDelay(s: number) {
-  autoNext.delay = s;
-  try {
-    localStorage.setItem("maku.nextDelay", String(s));
-  } catch {
-    // Stockage indisponible : réglage gardé jusqu'à la fermeture.
-  }
-}
-
-/** Titre, numéro et vignette de l'épisode suivant, pour sa carte. */
-function loadUpNext(current: string, next: string) {
-  type Meta = {
-    title: string;
-    showTitle: string | null;
-    summary: string | null;
-    durationMs: number | null;
-    index: number | null;
-    parentIndex: number | null;
-    thumb: string | null;
-    poster: string | null;
-    backdrop: string | null;
-    seasonKey: string | null;
-  };
-  const fresh = () => player.ratingKey === current && player.nextKey === next;
-  invoke<Meta>("plex_metadata", { ratingKey: next }).then(
-    async (m) => {
-      if (!fresh()) return;
-      const number = m.parentIndex != null && m.index != null ? `S${m.parentIndex} · E${m.index}` : null;
-      // L'affiche d'un épisode est celle de la série : la jaquette de la saison se lit sur sa propre fiche.
-      let poster = m.poster;
-      if (m.seasonKey) {
-        try {
-          poster = (await invoke<Meta>("plex_metadata", { ratingKey: m.seasonKey })).poster ?? poster;
-        } catch {
-          // La jaquette de la série fera l'affaire.
-        }
-      }
-      if (!fresh()) return;
-      player.upNext = { title: m.title, showTitle: m.showTitle, number, summary: m.summary, durationMs: m.durationMs, poster, thumb: m.thumb, backdrop: m.backdrop ?? m.thumb };
-    },
-    () => {},
-  );
-}
-
-/** Écran de fin possible : un épisode qui a une suite. */
-export const hasEndScreen = () => player.video && !!player.nextKey && !!player.upNext;
+// L'état, le pont Android et Chromecast vivent dans player/ ; on les réexporte pour que l'interface continue
+// de tout importer d'ici.
+export * from "./player/state.svelte";
+export * from "./player/bridge";
+export * from "./player/cast.svelte";
 
 /** « Passer le générique » d'un épisode qui a une suite : la lecture s'interrompt sur l'écran de fin. */
 export function openEndScreen() {
@@ -177,124 +26,6 @@ export function openEndScreen() {
 function videoEnded() {
   if (hasEndScreen()) player.endScreen = true;
   else stop();
-}
-
-/** Qualités proposées, comme dans les applications Plex (kb/s ; 0 : originale). */
-export const QUALITIES = [0, 20000, 12000, 8000, 4000, 2000, 1500];
-
-function loadQuality(): number {
-  try {
-    const q = Number(localStorage.getItem("maku.quality"));
-    return QUALITIES.includes(q) ? q : 0;
-  } catch {
-    return 0;
-  }
-}
-
-/** « 8 Mb/s · 1080p », d'après le débit (même règle que le serveur, voir plex::resolution_for). */
-export function qualityLabel(kbps: number): string {
-  if (!kbps) return t("player.qualityOriginal");
-  const rate = kbps >= 1000 ? `${(kbps / 1000).toLocaleString()} Mb/s` : `${kbps} kb/s`;
-  return `${rate} · ${kbps >= 8000 ? "1080p" : kbps >= 2000 ? "720p" : "480p"}`;
-}
-
-// Rien après un arrêt : la file reste en mémoire, mais plus aucun titre n'est « en cours ».
-export const current = () => (player.video || !player.active ? null : (player.queue[player.index] ?? null));
-
-// Sur Android et iOS, mpv n'existe pas : le lecteur du système prend le relais.
-invoke<string | null>("platform").then(
-  (os) => (player.web = os === "android" || os === "ios"),
-  () => {},
-);
-
-/** Lecteur vidéo natif d'Android (NativeVideo.kt), quand l'application le fournit. */
-type VideoBridge = {
-  videoOpen?(json: string): void;
-  videoCommand?(name: string, value: string): void;
-  videoClose?(): void;
-  audioPassthrough?(): string;
-  diagLog?(message: string): void;
-  diagText?(): string;
-  diagShare?(): void;
-};
-const bridge = (globalThis as { PlexrDevice?: VideoBridge }).PlexrDevice;
-const nativeVideo = !!bridge?.videoOpen;
-
-/** Journal de diagnostic d'Android (DiagLog.kt) : lignes de la page, à transmettre en cas de blocage. */
-export const diagAvailable = !!bridge?.diagText;
-export function diag(message: string) {
-  try {
-    bridge?.diagLog?.(message);
-  } catch {
-    // Journal indisponible : la lecture continue.
-  }
-}
-export const diagText = () => bridge?.diagText?.() ?? "";
-export const diagShare = () => bridge?.diagShare?.();
-if (diagAvailable) {
-  addEventListener("error", (e) => diag(`Erreur de la page : ${e.message} (${e.filename?.split("/").pop()}:${e.lineno})`));
-  addEventListener("unhandledrejection", (e) => diag(`Erreur de la page : ${String(e.reason).slice(0, 300)}`));
-}
-
-/** Lecteur natif d'Android : le son peut être envoyé tel quel à l'ampli (réglage de l'appareil). */
-export const passthroughAvailable = nativeVideo && !!bridge?.audioPassthrough;
-const PASSTHROUGH_KEY = "maku.passthrough";
-export function passthroughMode(): "auto" | "off" {
-  try {
-    return localStorage.getItem(PASSTHROUGH_KEY) === "off" ? "off" : "auto";
-  } catch {
-    return "auto";
-  }
-}
-export function setPassthroughMode(mode: "auto" | "off") {
-  try {
-    localStorage.setItem(PASSTHROUGH_KEY, mode);
-  } catch {
-    // Stockage indisponible : le mode automatique reste.
-  }
-}
-/** Formats que la sortie audio accepte tels quels, et son nombre de canaux. */
-export function passthroughFormats(): { formats: string[]; channels: number } | null {
-  try {
-    return bridge?.audioPassthrough ? JSON.parse(bridge.audioPassthrough()) : null;
-  } catch {
-    return null;
-  }
-}
-
-interface NativeInfo {
-  session: string;
-  url: string;
-  title: string;
-  subtitle: string | null;
-  offsetMs: number;
-  durationMs: number;
-  aid: number | null;
-  sid: string;
-  subFiles: { url: string; codec: string; language: string | null; title: string | null }[];
-}
-
-/** Miniatures d'aperçu de la barre de progression (voir `plex::Previews`). */
-export interface Previews {
-  kind: "frame" | "tiles";
-  url: string;
-  intervalMs: number;
-  width: number;
-  height: number;
-  columns: number;
-  rows: number;
-  count: number;
-}
-
-export interface PlayOptions {
-  /** Identifiants de pistes Plex ; `subtitleStream: 0` désactive les sous-titres. */
-  audioStream?: number | null;
-  subtitleStream?: number | null;
-  fromStart?: boolean;
-  /** Position de départ imposée (ms), pour reprendre au même endroit après un changement de qualité. */
-  startMs?: number;
-  /** Version à lire (4K, 1080p…), la première par défaut. */
-  mediaIndex?: number;
 }
 
 // ---------- Fin d'une lecture vidéo par le lecteur du système (Android, iOS, TV) ----------
@@ -714,51 +445,10 @@ export function stop() {
 }
 
 // ---------- Chromecast (cast.rs) et AirPlay ----------
-
-export interface CastDevice {
-  id: string;
-  name: string;
-  host: string;
-  port: number;
-}
-
-/** Appareils trouvés sur le réseau, et celui qui joue la musique en ce moment (null : cet appareil). */
-export const cast = $state({ devices: [] as CastDevice[], searching: false, device: null as CastDevice | null, connecting: false });
-
-/** Chromecast : ordinateur, téléphone et tablette Android (pas le téléviseur, ni iOS qui a AirPlay). */
-export const castAvailable = () => !device.tv && device.os !== "ios";
-
-/** AirPlay : iPad et iPhone, par le sélecteur du système (le Mac suit la sortie son de macOS). */
-export const airPlayAvailable = () => device.os === "ios" && player.web;
+// L'état et les commandes de l'appareil sont dans player/cast.svelte.ts ; ici, ce qui touche la lecture locale.
 
 export function showAirPlay() {
   web.airPlay();
-}
-
-export async function findCastDevices() {
-  if (cast.searching) return;
-  cast.searching = true;
-  try {
-    cast.devices = await invoke<CastDevice[]>("cast_devices");
-  } finally {
-    cast.searching = false;
-  }
-}
-
-async function sendToCast(target: CastDevice, index: number, position: number) {
-  cast.connecting = true;
-  try {
-    await invoke("cast_start", {
-      device: target,
-      tracks: player.queue.map((q) => ({ url: q.url, title: q.title, artist: q.artist, album: q.album, cover: q.cover })),
-      index,
-      position,
-    });
-    cast.device = target;
-    Object.assign(player, { index, position, buffering: true });
-  } finally {
-    cast.connecting = false;
-  }
 }
 
 /**
@@ -806,78 +496,6 @@ function stopLocal() {
   }
 }
 
-/** Répétition de la file ou du titre, appliquée par l'appareil Chromecast lui-même. */
-function castRepeat() {
-  const mode = player.repeatOne ? "REPEAT_SINGLE" : player.repeat ? "REPEAT_ALL" : "REPEAT_OFF";
-  invoke("cast_repeat", { mode }).catch(() => {});
-}
-
-/** Les commandes au format mpv, traduites pour l'appareil. */
-function castCommand(args: unknown[]) {
-  const send = (action: string, value?: number) => invoke("cast_command", { action, value: value ?? null }).catch(() => {});
-  const [cmd, a, b] = args as [string, unknown, unknown];
-  switch (cmd) {
-    case "cycle":
-      if (a === "pause") {
-        player.paused = !player.paused;
-        send("toggle");
-      } else if (a === "mute") send("mute", (player.muted = !player.muted) ? 1 : 0);
-      break;
-    case "seek": {
-      const to = Math.max(0, b === "absolute" ? Number(a) : player.position + Number(a));
-      player.position = to;
-      send("seek", to);
-      break;
-    }
-    case "add":
-      if (a === "volume") send("volume", (player.volume = Math.min(100, Math.max(0, player.volume + Number(b)))));
-      break;
-    case "set_property":
-      if (a === "volume") send("volume", (player.volume = Math.min(100, Number(b))));
-      else if (a === "mute") send("mute", (player.muted = !!b) ? 1 : 0);
-      else if (a === "playlist-pos") send("jump", Number(b));
-      else if (a === "loop-playlist") {
-        player.repeat = b !== "no";
-        castRepeat();
-      } else if (a === "loop-file") {
-        player.repeatOne = b !== "no";
-        castRepeat();
-      }
-      break;
-    case "playlist-next":
-      send("next");
-      break;
-    case "playlist-prev":
-      send("previous");
-      break;
-  }
-}
-
-listen<{ state: string; position: number; duration: number; index: number | null; volume: number | null; muted: boolean | null }>("cast-status", ({ payload: s }) => {
-  if (!cast.device || player.video) return;
-  if (s.state) {
-    player.paused = s.state === "PAUSED";
-    player.buffering = s.state === "BUFFERING";
-  }
-  if (s.index !== null && s.index >= 0 && s.index < player.queue.length && s.index !== player.index) player.index = s.index;
-  if (s.state && s.state !== "IDLE") player.position = s.position;
-  if (s.duration > 0) player.duration = s.duration;
-  if (s.volume !== null) player.volume = Math.round(s.volume * 100);
-  if (s.muted !== null) player.muted = s.muted;
-}).catch(() => {});
-
-/** Fin de la diffusion : file terminée, appareil repris par une autre application, ou connexion perdue. */
-listen<string>("cast-ended", ({ payload: reason }) => {
-  if (!cast.device) return;
-  cast.device = null;
-  if (player.video) return;
-  player.active = false;
-  player.expanded = false;
-  if (reason === "disconnected" || reason === "closed") toast(t("cast.ended"), true);
-}).catch(() => {});
-
-listen<string>("cast-error", ({ payload }) => toast(payload, true)).catch(() => {});
-
 /** Titre précédent, ou retour au début du titre s'il joue depuis plus de 3 s. */
 export function previous() {
   if (player.position > 3 || player.index === 0) mpv("seek", 0, "absolute");
@@ -886,14 +504,6 @@ export function previous() {
 
 export function next() {
   mpv("playlist-next");
-}
-
-export function trackLabel(track: MpvTrack): string {
-  const parts = [track.title, track.lang?.toUpperCase()].filter(Boolean);
-  if (track.type === "audio" && track["demux-channel-count"])
-    parts.push(t("player.channels", { channels: track["demux-channel-count"] }));
-  if (track.forced) parts.push(t("player.forced"));
-  return parts.length ? parts.join(" · ") : t("player.trackNumber", { id: track.id });
 }
 
 // ---------- Lecteur intégré du système (mobile, TV) ----------
@@ -1370,37 +980,7 @@ export function mediaCommand(action: string) {
 
 listen<string>("media-command", (e) => mediaCommand(e.payload)).catch(() => {});
 
-/**
- * Ce qui joue, pour les commandes extérieures : sur Android, la notification (pochette, titre,
- * précédent / lecture / suivant) qui garde aussi la musique en vie en arrière-plan ; sous Linux, le
- * lecteur MPRIS du bureau. Les commandes reviennent par `mediaCommand`.
- */
 const android = (globalThis as { PlexrDevice?: { mediaUpdate?(json: string): void; mediaStop?(): void } }).PlexrDevice;
-$effect.root(() => {
-  $effect(() => {
-    void player.seeks;
-    const track = current();
-    // Android : la musique jouée dans la page seulement ; ailleurs, aussi la vidéo.
-    const nothing = !player.active || (android ? !player.web || !track : !track && !player.title);
-    if (nothing) {
-      if (android) android.mediaStop?.();
-      else invoke("media_update", { json: null }).catch(() => {});
-      return;
-    }
-    const json = JSON.stringify({
-      title: track?.title ?? player.title,
-      artist: track?.artist ?? player.subtitle ?? "",
-      album: track?.album ?? "",
-      art: track?.cover ?? "",
-      playing: !player.paused,
-      position: Math.round(untrack(() => player.position) * 1000),
-      duration: Math.round(player.duration * 1000),
-    });
-    if (android?.mediaUpdate) android.mediaUpdate(json);
-    else invoke("media_update", { json }).catch(() => {});
-  });
-});
-
 if (android?.mediaUpdate) {
   (globalThis as { __plexrMedia?: (action: string) => void }).__plexrMedia = (action) => {
     mediaCommand(action);

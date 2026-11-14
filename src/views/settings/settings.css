@@ -1,0 +1,753 @@
+/* Réglages : styles communs aux rubriques (src/views/settings/*Page.svelte), qui sont des composants à part.
+   Tout est limité à .settings ; .list et label visent plus précisément (:where garde leur spécificité
+   d'origine), pour ne pas toucher les composants imbriqués (liste déroulante, éditeur de l'accueil). */
+
+.settings .qr-wait {
+  flex: none;
+  width: 190px;
+  height: 190px;
+}
+
+.settings .grow {
+  flex: 1;
+  min-width: 220px;
+}
+
+.settings .steps {
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.settings .steps li {
+  position: relative;
+  padding: 3px 0 3px 18px;
+}
+
+.settings .steps li::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 9px;
+  height: 9px;
+  margin-top: -4px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.settings .steps li.ok::before {
+  background: var(--ok);
+}
+
+.settings .steps li.err::before {
+  background: var(--danger);
+}
+
+.settings .invite-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.settings .invite {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.settings .invite-qr {
+  flex: none;
+  border-radius: 12px;
+}
+
+.settings .invite-qr:focus {
+  outline: 3px solid var(--accent);
+  outline-offset: 6px;
+}
+
+.settings .invite-side {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.settings .invite-code {
+  display: block;
+  padding: 10px 12px;
+  overflow: hidden;
+  border-radius: var(--radius);
+  background: #00000040;
+  color: var(--text-dim);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings .themes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.settings .theme {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 4px;
+  border: none;
+  border-radius: 12px;
+  background: none;
+  color: var(--text-dim);
+  font-weight: 600;
+}
+
+.settings .theme.on {
+  color: var(--text);
+}
+
+.settings .swatch {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--swatch);
+  color: #fff;
+  box-shadow:
+    0 0 0 3px var(--bg-elev),
+    0 0 0 5px transparent;
+  transition: box-shadow 0.15s, transform 0.15s;
+}
+
+.settings .theme:hover .swatch {
+  transform: scale(1.06);
+}
+
+.settings .theme.on .swatch {
+  box-shadow:
+    0 0 0 3px var(--bg-elev),
+    0 0 0 5px var(--swatch);
+}
+
+.settings .libs {
+  display: grid;
+  gap: 6px;
+}
+
+.settings .lib {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 6px 6px 14px;
+  border-radius: var(--radius);
+  background: #ffffff08;
+}
+
+.settings .lib-name {
+  flex: 1;
+  font-weight: 600;
+}
+
+.settings .lib.off .lib-name,
+.settings .lib.off > svg {
+  opacity: 0.4;
+}
+
+.settings {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 32px;
+  align-items: start;
+}
+
+/* Ordinateur : plus de rail, le titre et la barre de sections au-dessus du panneau. */
+.settings.desk {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+}
+
+.settings.desk .menu,
+.settings.desk .title {
+  display: none;
+}
+
+/* Comme les pages Admin : le titre, et la barre de sections à côté (ou dessous si la fenêtre est étroite). */
+.settings .desk-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 24px;
+  margin-bottom: 24px;
+}
+
+.settings .desk-head .page-title {
+  margin-bottom: 0;
+}
+
+/* Les tuiles se répartissent sur deux colonnes (une seule si la fenêtre est étroite), sans trous : chacune
+   reste entière, et le bandeau ou le profil prend toute la largeur au-dessus. */
+.settings.desk .panel {
+  columns: 2 440px;
+  column-gap: 20px;
+}
+
+.settings.desk .panel > * {
+  break-inside: avoid;
+}
+
+.settings.desk .panel > .banner,
+.settings.desk .panel > .hero {
+  column-span: all;
+}
+
+.settings.desk .card,
+.settings.desk .group-title {
+  max-width: none;
+}
+
+.settings.desk .card {
+  margin-bottom: 20px;
+}
+
+/* Le titre d'un groupe (Seerr, Accueil, Notes…) entre dans son panneau : la tuile devient le panneau. */
+.settings.desk .tile {
+  display: flow-root;
+  margin-bottom: 20px;
+  padding-top: 20px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: #ffffff05;
+}
+
+.settings.desk .tile .group-title {
+  margin: 0 20px;
+}
+
+.settings.desk .tile > .card {
+  margin-bottom: 0;
+  padding-top: 12px;
+  border: none;
+  background: none;
+}
+
+.settings.desk .tile > .card.list {
+  padding-top: 0;
+}
+
+/* Compte et Lecteur n'ont qu'une liste : chacune de ses lignes devient une tuile, deux par rangée. */
+.settings.desk .panel.solo {
+  columns: auto;
+}
+
+.settings.desk .panel.solo > .card.list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(440px, 1fr));
+  gap: 20px;
+  padding: 0;
+  border: none;
+  background: none;
+}
+
+.settings.desk .panel.solo > .card.list > .line {
+  align-content: center;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: #ffffff05;
+}
+
+.settings .banner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 24px;
+  padding: 28px 30px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background:
+    radial-gradient(60% 160% at 0% 0%, color-mix(in srgb, var(--accent) 32%, transparent), transparent 70%),
+    linear-gradient(120deg, color-mix(in srgb, var(--accent) 14%, transparent), transparent 60%),
+    #ffffff05;
+}
+
+.settings .banner-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+  background: var(--accent);
+  color: var(--accent-text);
+  box-shadow: 0 10px 30px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+.settings .banner h2 {
+  margin: 0 0 4px;
+  font-size: 26px;
+  font-weight: 800;
+}
+
+.settings .banner p {
+  margin: 0;
+  color: var(--text-dim);
+}
+
+.settings .tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 22px;
+  background: #ffffff0d;
+}
+
+.settings .tabs button {
+  padding: 7px 16px;
+  border: none;
+  border-radius: 18px;
+  background: none;
+  color: var(--text-dim);
+  font-weight: 600;
+  transition: background 0.15s, color 0.15s;
+}
+
+.settings .tabs button:hover {
+  color: var(--text);
+}
+
+.settings .tabs button.active {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+.settings .menu {
+  position: sticky;
+  top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.settings .menu-group {
+  padding: 18px 12px 6px;
+  overflow: hidden;
+  color: var(--text-faint);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings .menu-group:first-child {
+  padding-top: 4px;
+}
+
+.settings .menu button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border: none;
+  border-radius: 10px;
+  background: none;
+  color: var(--text-dim);
+  font-weight: 500;
+  text-align: left;
+}
+
+.settings .menu button:hover {
+  background: #ffffff0d;
+  color: var(--text);
+}
+
+.settings .menu button.active {
+  background: #ffffff14;
+  color: var(--text);
+}
+
+.settings .menu button.active svg {
+  color: var(--accent);
+}
+
+.settings .locked {
+  display: flex;
+  gap: 8px;
+  margin: 4px 12px;
+  color: var(--text-faint);
+  font-size: 13px;
+}
+
+.settings .title {
+  margin: 4px 0 18px;
+  font-size: 30px;
+}
+
+.settings .card {
+  display: grid;
+  gap: 12px;
+  max-width: 720px;
+  margin-bottom: 16px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: #ffffff05;
+}
+
+
+.settings .card p {
+  margin: 0;
+}
+
+.settings label:where(.card > *, .invite-fields > *) {
+  display: grid;
+  gap: 4px;
+  color: var(--text-dim);
+  font-size: 13px;
+}
+
+/* Un label qui sert de bouton (choix de fichier) garde l'aspect du bouton : icône et texte sur une ligne. */
+.settings label.btn {
+  display: inline-flex;
+  gap: 8px;
+  color: var(--text);
+  font-size: inherit;
+}
+
+.settings .row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.settings .relay-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--ok);
+  font-size: 14px;
+}
+
+.settings .ok {
+  margin-left: 4px;
+  color: var(--ok);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* ---------- Lignes et groupes, les mêmes sur toutes les rubriques ---------- */
+
+.settings .group-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 720px;
+  margin: 26px 0 10px;
+  font-size: 17px;
+}
+
+/* Contenu sous une ligne (champ, étapes, erreur) : aligné sur les lignes de la carte. */
+.settings .line-body {
+  padding-bottom: 16px;
+}
+
+.settings .grow-row {
+  flex: 1;
+  min-width: 260px;
+}
+
+.settings .field-slot {
+  display: flex;
+  width: 280px;
+  max-width: 100%;
+}
+
+/* QR code déplié sous sa ligne. */
+.settings .qr-open {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin: 0 0 16px;
+  border-radius: 14px;
+}
+
+.settings .qr-open p {
+  max-width: 320px;
+  margin: 0;
+}
+
+.settings .qr-open:focus {
+  outline: 3px solid var(--accent);
+  outline-offset: 8px;
+}
+
+.settings .kofi-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ---------- Téléviseur : rail plus grand, la rubrique ouverte bien marquée ---------- */
+
+html.tv .settings {
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 40px;
+}
+
+html.tv .settings .menu {
+  padding: 8px;
+  border-radius: 18px;
+  background: #ffffff08;
+}
+
+html.tv .settings .menu button {
+  gap: 14px;
+  padding: 13px 16px;
+  border-radius: 12px;
+  font-size: 16px;
+}
+
+html.tv .settings .menu button.active {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--text);
+}
+
+html.tv .settings .menu button:focus {
+  outline: 3px solid var(--accent);
+  outline-offset: 0;
+}
+
+html.tv .settings .card {
+  max-width: none;
+}
+
+/* ---------- Page Compte ---------- */
+
+.settings .hero {
+  position: relative;
+  gap: 18px;
+  overflow: hidden;
+}
+
+.settings .hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(70% 140% at 8% 10%, color-mix(in srgb, var(--accent) 30%, transparent), transparent 65%),
+    linear-gradient(135deg, color-mix(in srgb, var(--accent) 12%, transparent), transparent 55%);
+  pointer-events: none;
+}
+
+.settings .hero > * {
+  position: relative;
+}
+
+.settings .hero-row {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.settings .hero-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.settings .hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.settings .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 40px;
+  padding: 0 14px;
+  border-radius: var(--radius);
+  background: #00000033;
+  color: var(--text-dim);
+}
+
+.settings .chip strong {
+  color: var(--text);
+}
+
+.settings .avatar {
+  width: 80px;
+  height: 80px;
+  flex: none;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 60%, transparent), 0 10px 30px #0008;
+}
+
+.settings .list:where(.card) {
+  gap: 0;
+  padding: 4px 20px;
+}
+
+.settings .line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 20px;
+  padding: 16px 0;
+  border-top: 1px solid var(--border);
+}
+
+.settings .line:first-child {
+  border-top: none;
+}
+
+/* Pastille du site devant son nom (Notes des films et séries), sur une même largeur pour aligner les noms. */
+.settings .rating-logo {
+  display: flex;
+  flex: none;
+  justify-content: center;
+  width: 40px;
+  margin-right: -8px;
+}
+
+.settings .line-text {
+  display: grid;
+  flex: 1;
+  gap: 3px;
+  min-width: 200px;
+}
+
+.settings .line-stack {
+  display: grid;
+}
+
+/* Choix à plusieurs positions (Plex / Jellyfin / Les deux). */
+.settings .seg {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #00000040;
+}
+
+.settings .seg button {
+  height: 34px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 9px;
+  background: none;
+  color: var(--text-dim);
+  font-weight: 600;
+  transition: background 0.15s, color 0.15s;
+}
+
+.settings .seg button:hover {
+  color: var(--text);
+}
+
+.settings .seg button.on {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+.settings .kofi-btn {
+  border-color: transparent;
+  background: #ff5e5b;
+  color: #fff;
+  font-weight: 600;
+}
+
+.settings .kofi-btn:hover {
+  background: #ff7572;
+}
+
+.settings .avatar.ph {
+  display: grid;
+  place-items: center;
+  background: var(--bg-hover);
+  color: var(--text-faint);
+}
+
+.settings .big {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.settings .badges {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.settings .badge.pass {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+/* ---------- Téléphone : rubriques en bande défilante, contenu en pleine largeur ---------- */
+
+html.phone .settings {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+
+html.phone .settings .menu {
+  position: static;
+  flex-direction: row;
+  gap: 6px;
+  margin: 0 -16px;
+  padding: 4px 16px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+html.phone .settings .menu button {
+  flex: none;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  white-space: nowrap;
+}
+
+html.phone .settings .menu-group,
+html.phone .settings .locked {
+  display: none;
+}
+
+
+html.phone .settings .invite,
+.settings .link {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  text-decoration: underline;
+}
+
+.settings label.btn.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+html.phone .settings .qr-open {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+html.phone .settings .invite-fields {
+  grid-template-columns: minmax(0, 1fr);
+}

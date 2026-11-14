@@ -796,9 +796,9 @@ traduisez les valeurs sans toucher aux clés ni aux `{{variables}}`, puis décla
 | `src-tauri/src/net.rs` | règles de redirection des clients HTTP : même machine pour les serveurs, domaines GitHub pour les mises à jour |
 | `src-tauri/src/update.rs` | dernière version sur GitHub, paquet adapté à l'appareil, téléchargement et installation |
 | `src-tauri/src/relay.rs`, `relay.html`, `relay-login.html`, `relay-tmdb.html` | relais du téléphone : petite page servie sur le réseau local, pour l'invitation (lecture du QR code avec jsQR), la clé TMDB ou la connexion Jellyfin / Emby d'un téléviseur |
-| `src-tauri/src/lib.rs` | état de l'application et commandes Tauri |
+| `src-tauri/src/lib.rs`, `src-tauri/src/commands/` | état de l'application et démarrage (`lib.rs`) ; commandes Tauri rangées par domaine : comptes, bibliothèques, actions sur un titre, lecture, Chromecast, téléchargements, Seerr, Tracearr, administration… |
 | `src-tauri/src/media.rs` | couche commune aux serveurs : Plex (`plex.rs`) ou Jellyfin et Emby (`jellyfin.rs`), vus de la même façon par l'interface |
-| `src/views/` | pages : accueil, bibliothèques, fiches, musique, découverte, statistiques, réglages |
+| `src/views/` | pages : accueil, bibliothèques, fiches, musique, découverte, statistiques, réglages ; les rubriques des réglages sont dans `src/views/settings/` (styles communs dans `settings.css`), les panneaux, épisodes et distribution d'une fiche dans `src/views/item/` |
 | `src/components/` | bandeau, cartes, lecteur vidéo, barre de musique… |
 | `src/lib/demo.ts` | mode démo (bibliothèque fictive) |
 | `src/components/TitleLogo.svelte`, `src/lib/logos.ts` | logos des titres : serveur, service en ligne de Plex, sinon titre stylisé selon le genre |
@@ -812,7 +812,7 @@ traduisez les valeurs sans toucher aux clés ni aux `{{variables}}`, puis décla
 | `src-tauri/src/offline.rs`, `src/lib/offline.svelte.ts`, `src/views/Downloads.svelte` | lecture hors ligne : file de téléchargements (fichier d'origine repris par `Range`, ou version convertie récupérée morceau par morceau en HLS et mise bout à bout), page Téléchargements, progression renvoyée au serveur |
 | `src-tauri/src/plex_users.rs`, `src/components/ServerUsers.svelte` | utilisateurs du serveur Plex (administrateur) : comptes partagés, bibliothèques, autorisations et restrictions, invitation et retrait, via plex.tv |
 | `src-tauri/src/cast.rs`, `src/components/CastButton.svelte` | Chromecast : appareils trouvés par mDNS, protocole Cast v2 (TLS, messages protobuf), file confiée au lecteur de Google et pilotée ; AirPlay sur iOS |
-| `src/lib/player.svelte.ts` | lecture : mpv sur ordinateur, ExoPlayer natif sur Android (décodeur audio FFmpeg, son transmis à l'ampli ; en secours, flux du serveur qui ne convertit que le son, puis tout) |
+| `src/lib/player.svelte.ts`, `src/lib/player/` | lecture : mpv sur ordinateur, ExoPlayer natif sur Android (décodeur audio FFmpeg, son transmis à l'ampli ; en secours, flux du serveur qui ne convertit que le son, puis tout). L'état du lecteur (`state.svelte.ts`), le pont Android (`bridge.ts`), Chromecast (`cast.svelte.ts`) et la notification (`notification.svelte.ts`) sont à part ; `player.svelte.ts` les réexporte |
 | `src-tauri/gen/android/` | projet Android : manifeste (Android TV, bannière, icônes par couleur), signature, détection du téléviseur et du téléphone, barres système, vidéo en paysage (`MainActivity.kt`), lecteur vidéo natif sous la page (`NativeVideo.kt`), journal de diagnostic (`DiagLog.kt`), musique en arrière-plan, notification et Android Auto (`MediaService.kt`, bibliothèque lue auprès de Plex dans `PlexLibrary.kt`, pochettes servies à la voiture par `ArtProvider.kt`) |
 | `src/components/PhoneTabs.svelte`, `src/views/Libraries.svelte` | téléphone : barre d'onglets et liste des bibliothèques |
 | `src-tauri/tauri.conf.json`, `tauri.windows.conf.json` | configuration et paquets ; la fenêtre transparente n'est activée que sous Windows |

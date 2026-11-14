@@ -33,10 +33,11 @@
   import { t, locale } from "../lib/i18n";
   import { device } from "../lib/device";
   import { reveal } from "../lib/spatial";
-  import { menuable } from "../lib/longpress";
+  import DetailPanels from "./item/DetailPanels.svelte";
+  import SeasonEpisodes from "./item/SeasonEpisodes.svelte";
+  import CastRow from "./item/CastRow.svelte";
   import SiteRatings from "../components/SiteRatings.svelte";
   import Stars from "../components/Stars.svelte";
-  import ScrollArrows from "../components/ScrollArrows.svelte";
 
   let { ratingKey }: { ratingKey: string } = $props();
 
@@ -410,9 +411,6 @@
     }
   }
 
-  /** Rangée de la distribution, que ses flèches font défiler (ordinateur). */
-  let castRow = $state<HTMLElement>();
-
   // Pour une collection : premier film non vu (ordre de sortie).
   const nextUp = $derived(item?.kind === "collection" ? (children.find((c) => !c.watched) ?? children[0]) : undefined);
   const collection = $derived(item?.kind === "collection");
@@ -441,9 +439,6 @@
     const end = new Date(Date.now() + (view.durationMs - (view.viewOffsetMs ?? 0)));
     return end.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
   });
-  const hasCredits = $derived(!!view && (view.directors.length + view.writers.length + view.genres.length > 0 || !!view.studio));
-  const hasMedia = $derived(!!view && (!!view.video || view.audioTracks.length > 0 || view.playable));
-
 
   /*
    * Saisons d'une série : sur une ligne pleine, la grille habituelle ; moins nombreuses que les places d'une
@@ -481,9 +476,6 @@
       destroy: () => el.removeEventListener("wheel", wheel),
     };
   }
-
-  /** Temps restant d'un épisode commencé. */
-  const left = (ep: Item) => (ep.viewOffsetMs && ep.durationMs ? ep.durationMs - ep.viewOffsetMs : null);
 
   // Le fond s'assombrit à mesure que la page défile sur lui.
   $effect(() => {
@@ -712,59 +704,7 @@
       </section>
     {/if}
 
-    <!-- Deux panneaux, comme Jellyfin : l'équipe à gauche, les pistes à lire à droite. -->
-    {#if hasCredits || hasMedia}
-      <div class="panels" class:single={!hasMedia || !hasCredits}>
-        {#if hasCredits}
-          <dl class="panel credits">
-            {#if view.directors.length}<div><dt>{t("item.facts.director")}</dt><dd>{view.directors.join(", ")}</dd></div>{/if}
-            {#if view.writers.length}<div><dt>{t("item.facts.writer")}</dt><dd>{view.writers.slice(0, 3).join(", ")}</dd></div>{/if}
-            {#if view.studio}<div><dt>{t("item.facts.studio")}</dt><dd>{view.studio}</dd></div>{/if}
-            {#if view.genres.length}
-              <div><dt>{t("item.facts.genres")}</dt><dd class="genres">{#each view.genres as g}<span>{g}</span>{/each}</dd></div>
-            {/if}
-          </dl>
-        {/if}
-        {#if hasMedia}
-          <div class="panel media">
-            <!-- Plusieurs versions (4K, 1080p…) : la ligne vidéo devient un choix, comme dans Plex. -->
-            {#if view.versions?.length > 1}
-              <label class="track" data-nav-row>
-                <span class="ico" title={t("item.facts.version")}><Icon name="film" size={18} /></span>
-                <TrackSelect
-                  value={version}
-                  options={view.versions.map((v, i) => ({ value: i, label: v.label }))}
-                  label={t("item.facts.version")}
-                  onchange={(v) => chooseVersion(Number(v))}
-                />
-              </label>
-            {:else if media?.video}
-              <div class="track"><span class="ico" title={t("item.facts.video")}><Icon name="film" size={18} /></span><span class="video">{media.video}</span></div>
-            {/if}
-            {#if media?.audioTracks.length}
-              <label class="track" data-nav-row>
-                <span class="ico" title={t("item.facts.audio")}><Icon name="audio" size={18} /></span>
-                <TrackSelect
-                  bind:value={audioStream}
-                  options={media.audioTracks.map((tr) => ({ value: tr.id, label: tr.label }))}
-                  label={t("item.facts.audio")}
-                />
-              </label>
-            {/if}
-            {#if view.playable}
-              <label class="track" data-nav-row>
-                <span class="ico" title={t("item.facts.subtitles")}><Icon name="subtitles" size={18} /></span>
-                <TrackSelect
-                  bind:value={subtitleStream}
-                  options={[{ value: 0, label: t("item.facts.none") }, ...(media?.subtitleTracks ?? []).map((tr) => ({ value: tr.id, label: tr.label }))]}
-                  label={t("item.facts.subtitles")}
-                />
-              </label>
-            {/if}
-          </div>
-        {/if}
-      </div>
-    {/if}
+    <DetailPanels {view} {media} {version} {chooseVersion} bind:audioStream bind:subtitleStream />
 
     {#if collection && children.length}
       <h2 class="row-title">{t("item.collectionMovies")}</h2>
@@ -790,69 +730,10 @@
         </div>
       </div>
     {:else if item.kind === "season"}
-      <!-- Les épisodes de haut en bas, chacun avec ses informations à droite. La vignette (ou OK) le lance ;
-           l'épisode ouvert est mis en avant. -->
-      <h2 class="row-title">{t("item.episodes")}</h2>
-      <div class="episodes" bind:this={listEl}>
-        {#each children as ep (ep.ratingKey)}
-          <!-- svelte-ignore a11y_no_static_element_interactions -->
-          <div class="episode" class:target={ep.ratingKey === target} data-ep={ep.ratingKey} data-nav-row oncontextmenu={(e) => openMenu(e, ep, false)}>
-            <button class="thumb" data-key="ep-{ep.ratingKey}" onclick={() => startEpisode(ep.ratingKey)} use:menuable={ep} aria-label={t("item.playTitle", { title: ep.title })}>
-              {#if ep.thumb}<img src={ep.thumb} alt="" loading="lazy" />{/if}
-              <span class="ep-badge">
-                {#if ep.watched}<Icon name="check" size={13} />{/if}
-                {t("item.episodeShort", { number: ep.index ?? "" })}
-              </span>
-              <span class="play"><Icon name="play" size={22} filled /></span>
-              {#if ep.viewOffsetMs && ep.durationMs}
-                <div class="progress"><div style:width="{(ep.viewOffsetMs / ep.durationMs) * 100}%"></div></div>
-              {/if}
-            </button>
-            <div class="ep-body">
-              <div class="ep-title">
-                <span class="ep-num">{ep.index}</span>
-                {ep.title}
-                {#if ep.watched}<span class="badge ok">{t("item.watched")}</span>{/if}
-              </div>
-              <div class="ep-meta">
-                {#if ep.durationMs}<span>{formatDuration(ep.durationMs)}</span>{/if}
-                {#if left(ep)}<span class="left">{t("item.remaining", { time: formatDuration(left(ep)) })}</span>{/if}
-                {#if ep.contentRating}<span class="badge outline">{ep.contentRating}</span>{/if}
-                {#if ep.rating}<span class="rating"><Icon name="star" size={13} filled /> {ep.rating.toFixed(1)}</span>{/if}
-                {#if nav.serverKind === "plex" && !device.tv}<Stars item={ep} size={14} />{/if}
-              </div>
-              {#if ep.summary}<p class="ep-summary">{ep.summary}</p>{/if}
-            </div>
-            {#if !device.tv}
-              <button class="btn round ep-more" onclick={(e) => openMenu(e, ep, false)} title={t("trackGrid.moreActions")} aria-label={t("trackGrid.moreActions")}>
-                <Icon name="more" size={18} />
-              </button>
-            {/if}
-          </div>
-        {/each}
-      </div>
+      <SeasonEpisodes episodes={children} {target} onplay={startEpisode} onmenu={(e, ep) => openMenu(e, ep, false)} bind:list={listEl} />
     {/if}
 
-    {#if item.cast.length}
-      <h2 class="row-title">{t("item.cast")}<ScrollArrows target={castRow} /></h2>
-      <div class="cast" data-nav-row bind:this={castRow}>
-        {#each item.cast as person (person.name + person.role)}
-          <!-- Comme dans Plex : un acteur ouvre la liste de ses films et séries du serveur. -->
-          <button
-            class="person"
-            data-key="person-{person.id ?? person.name}"
-            disabled={person.id === null}
-            onclick={() => person.id !== null && go({ name: "person", id: person.id, personName: person.name, photo: person.photo })}
-          >
-            <div class="avatar">
-              {#if person.photo}<img src={person.photo} alt="" loading="lazy" />{:else}{person.name[0]}{/if}
-            </div>
-            <div class="name">{person.name}</div>
-            {#if person.role}<div class="role">{person.role}</div>{/if}
-          </button>
-        {/each}
-      </div>
-    {/if}
+    <CastRow cast={item.cast} />
 
     {#if related.length}
       <Row title={t("item.related")}>
@@ -969,12 +850,6 @@
     text-align: justify;
     /* La dernière ligne (ou un résumé d'une seule ligne) au milieu, comme le reste de la fiche. */
     text-align-last: center;
-  }
-
-  /* Un seul panneau (série, saison : pas de pistes à choisir) : à la même largeur, centré. */
-  .panels.single {
-    grid-template-columns: minmax(0, calc((100% - 20px) / 2));
-    justify-content: center;
   }
 
   .seasons-in {
@@ -1145,92 +1020,6 @@
     line-clamp: unset;
   }
 
-  /* ---------- Panneaux : équipe et pistes ---------- */
-
-  .panels {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 20px;
-    margin-bottom: 8px;
-  }
-
-  .panel {
-    margin: 0;
-    padding: 6px 20px;
-    border: 1px solid #ffffff14;
-    border-radius: var(--radius-lg);
-    background: #16171bcc;
-    backdrop-filter: blur(16px);
-  }
-
-  .credits > div {
-    display: grid;
-    grid-template-columns: 130px minmax(0, 1fr);
-    gap: 16px;
-    padding: 12px 0;
-  }
-
-  .credits > div + div {
-    border-top: 1px solid #ffffff10;
-  }
-
-  dt {
-    color: var(--text-dim);
-    font-size: 13px;
-    font-weight: 700;
-  }
-
-  dd {
-    margin: 0;
-    font-size: 14px;
-    text-align: right;
-  }
-
-  .genres {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-    gap: 6px;
-  }
-
-  .genres span {
-    padding: 2px 10px;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    color: var(--text-dim);
-    font-size: 12px;
-  }
-
-  .media {
-    display: grid;
-    align-content: start;
-    gap: 10px;
-    padding: 16px 20px;
-  }
-
-  .track {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    min-width: 0;
-  }
-
-  .ico {
-    flex: none;
-    display: grid;
-    place-items: center;
-    width: 34px;
-    height: 34px;
-    border-radius: 10px;
-    background: #ffffff0f;
-    color: var(--accent);
-  }
-
-  .video {
-    font-size: 14px;
-    font-weight: 600;
-  }
-
   /* ---------- Collection : roue dentée (ordre, conversion) et jaquettes à glisser (ordre personnalisé) ---------- */
 
   .coll-settings {
@@ -1358,235 +1147,6 @@
     color: var(--accent-text);
   }
 
-  .episodes {
-    display: grid;
-    gap: 6px;
-  }
-
-  .episode {
-    position: relative;
-    display: grid;
-    grid-template-columns: 280px minmax(0, 1fr) auto;
-    align-items: start;
-    gap: 20px;
-    padding: 10px;
-    border: 1px solid transparent;
-    border-radius: var(--radius-lg);
-    transition: background 0.15s, border-color 0.15s;
-  }
-
-  .episode:hover {
-    background: #ffffff0a;
-  }
-
-  /* L'épisode ouvert (Continuer à regarder…) ou celui à reprendre : mis en avant dans la liste. */
-  .episode.target {
-    border-color: #ffffff1f;
-    background: #ffffff0d;
-  }
-
-  /* Télécommande : toute la ligne de l'épisode sélectionné s'éclaire, cadre doré autour de la vignette. */
-  :global(html.tv) .episode:focus-within {
-    background: #ffffff17;
-  }
-
-  .thumb {
-    position: relative;
-    aspect-ratio: 16 / 9;
-    padding: 0;
-    overflow: hidden;
-    border: none;
-    border-radius: var(--radius);
-    background: var(--bg-elev);
-  }
-
-  .thumb img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-
-  .ep-badge {
-    position: absolute;
-    top: 6px;
-    right: 6px;
-    display: inline-flex;
-    align-items: center;
-    gap: 3px;
-    padding: 1px 7px;
-    border-radius: 6px;
-    background: #000000b0;
-    color: #fff;
-    font-size: 12px;
-    font-weight: 700;
-  }
-
-  .progress {
-    height: 4px;
-    background: #000a;
-  }
-
-  .progress div {
-    height: 100%;
-    background: var(--accent);
-  }
-
-  .thumb .progress {
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-  }
-
-  /* Souris : ▶ au survol de la vignette. */
-  .play {
-    position: absolute;
-    inset: 0;
-    display: grid;
-    place-items: center;
-    background: #0007;
-    color: var(--accent);
-    opacity: 0;
-    transition: opacity 0.15s;
-  }
-
-  :global(html:not(.tv)) .thumb:hover .play {
-    opacity: 1;
-  }
-
-  .ep-body {
-    min-width: 0;
-    padding-top: 4px;
-  }
-
-  .ep-title {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 10px;
-    font-size: 17px;
-    font-weight: 600;
-  }
-
-  .ep-num {
-    color: var(--text-faint);
-  }
-
-  .ep-meta {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 6px 14px;
-    margin-top: 4px;
-    color: var(--text-dim);
-    font-size: 13px;
-  }
-
-  .ep-meta .left {
-    color: var(--accent);
-    font-weight: 600;
-  }
-
-  .ep-summary {
-    display: -webkit-box;
-    margin: 10px 0 0;
-    overflow: hidden;
-    color: var(--text-dim);
-    line-height: 1.55;
-    -webkit-line-clamp: 3;
-    line-clamp: 3;
-    -webkit-box-orient: vertical;
-  }
-
-  /* ⋯ d'un épisode : visible au survol (et sur l'épisode mis en avant). */
-  .ep-more {
-    width: 36px;
-    height: 36px;
-    opacity: 0;
-    transition: opacity 0.15s;
-  }
-
-  .episode:hover .ep-more,
-  .episode.target .ep-more,
-  .ep-more:focus-visible {
-    opacity: 1;
-  }
-
-  .cast {
-    display: grid;
-    grid-auto-flow: column;
-    grid-auto-columns: 164px;
-    gap: 16px;
-    overflow-x: auto;
-    padding: 10px 10px 8px;
-    margin: -10px -10px 0;
-  }
-
-  .person {
-    padding: 0;
-    border: none;
-    background: none;
-    color: inherit;
-    font: inherit;
-    text-align: center;
-  }
-
-  .person:not(:disabled) .avatar {
-    transition: transform 0.2s var(--ease), box-shadow 0.2s;
-  }
-
-  /* Souris seulement : sur téléviseur, Android laisse l'acteur ouvert « survolé » au retour, et son
-     cercle doré s'ajoutait à la sélection (deux acteurs ciblés). */
-  :global(html:not(.tv)) .person:not(:disabled):hover .avatar {
-    transform: scale(1.05);
-    box-shadow: 0 0 0 3px var(--accent);
-  }
-
-  /* Télécommande : la sélection entoure la photo (cercle doré), comme dans Plex, plutôt qu'un carré
-     autour de la photo et du nom. */
-  :global(html.tv) .person:focus {
-    outline: none;
-  }
-
-  :global(html.tv) .person:focus .avatar {
-    transform: scale(1.06);
-    box-shadow: 0 0 0 4px var(--accent);
-  }
-
-  :global(html.tv) .person:focus .name {
-    color: var(--accent);
-  }
-
-  .avatar {
-    display: grid;
-    place-items: center;
-    width: 148px;
-    height: 148px;
-    margin: 0 auto 10px;
-    overflow: hidden;
-    border-radius: 50%;
-    background: var(--bg-elev);
-    color: var(--text-faint);
-    font-size: 36px;
-    font-weight: 600;
-  }
-
-  .avatar img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-
-  .name {
-    font-weight: 600;
-    font-size: 14px;
-  }
-
-  .role {
-    color: var(--text-dim);
-    font-size: 12px;
-  }
-
   /* ---------- Téléphone : tout s'empile, en pleine largeur ---------- */
 
   :global(html.phone) .backdrop {
@@ -1622,46 +1182,6 @@
 
   :global(html.phone) .summary {
     font-size: 14px;
-  }
-
-  :global(html.phone) .panels {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 12px;
-  }
-
-  :global(html.phone) .credits > div {
-    grid-template-columns: 96px minmax(0, 1fr);
-  }
-
-  :global(html.phone) .episode {
-    grid-template-columns: 132px minmax(0, 1fr);
-    gap: 12px;
-    padding: 6px;
-  }
-
-  :global(html.phone) .ep-more {
-    display: none;
-  }
-
-  :global(html.phone) .ep-title {
-    font-size: 15px;
-  }
-
-  :global(html.phone) .ep-summary {
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    font-size: 13px;
-  }
-
-  :global(html.phone) .cast {
-    grid-auto-columns: 100px;
-    gap: 12px;
-  }
-
-  :global(html.phone) .avatar {
-    width: 88px;
-    height: 88px;
-    font-size: 26px;
   }
 
   /* Logo du titre sur la fiche. */
