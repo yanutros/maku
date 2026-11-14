@@ -57,6 +57,7 @@
       "connected": "Conectado",
       "seerrIntroJellyfin": "Las solicitudes se hacen a tu nombre, con tu cuenta de Jellyfin (o tu correo de Seerr si Seerr está vinculado a Plex). La contraseña se usa una sola vez: solo se guarda la sesión.",
       "connectWithJellyfin": "Iniciar sesión con Jellyfin",
+      "relayTitle": "Maku Server local detectado",
       "relayFound": "Maku Server encontrado en {{url}}: Seerr y Tracearr pasan por él, sin quedar expuestos en Internet."
     },
     "invite": {

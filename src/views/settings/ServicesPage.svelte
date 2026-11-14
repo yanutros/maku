@@ -312,8 +312,14 @@
   {#if inviteError}<p class="error line-body">{inviteError}</p>{/if}
 </section>
 
+<!-- Relais Maku Server trouvé : un panneau comme ceux de Seerr et Tracearr, qui passent par lui. -->
 {#if relayFound}
-  <p class="relay-note"><Icon name="lock" size={16} /> {t("settings.services.relayFound", { url: relayFound })}</p>
+  <div class="tile">
+    <h2 class="group-title">{t("settings.services.relayTitle")} <span class="ok">● {t("settings.services.connected")}</span></h2>
+    <section class="card">
+      <p class="muted">{t("settings.services.relayFound", { url: relayFound })}</p>
+    </section>
+  </div>
 {/if}
 
 <div class="tile">

@@ -57,6 +57,7 @@
       "connected": "Verbonden",
       "seerrIntroJellyfin": "Verzoeken gaan op jouw naam via je Jellyfin-account (of je Seerr-e-mail als Seerr aan Plex gekoppeld is). Het wachtwoord wordt één keer gebruikt: alleen de sessie wordt bewaard.",
       "connectWithJellyfin": "Aanmelden met Jellyfin",
+      "relayTitle": "Lokale Maku Server gevonden",
       "relayFound": "Maku Server gevonden op {{url}}: Seerr en Tracearr lopen erdoorheen, zonder op internet bereikbaar te zijn."
     },
     "invite": {

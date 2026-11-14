@@ -509,6 +509,11 @@ function handle(cmd: string, a: Args): unknown {
       return "done";
     case "tracearr_configure":
       return null;
+    // `?demo=…&relay` : un relais Maku Server trouvé à côté du serveur (Réglages › Services).
+    case "relay_discover":
+      return new URLSearchParams(location.search).has("relay")
+        ? { url: "http://serveur.local:32700", seerr: true, tracearr: true, applied: false }
+        : null;
     case "plex_person_items":
       // Démo : chaque personne joue dans une partie du catalogue fictif.
       return [...movies, ...shows].filter((_, i) => i % 3 === Number(a.id) % 3);

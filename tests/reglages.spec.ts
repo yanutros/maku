@@ -58,3 +58,13 @@ test("TV : pas de barres de défilement", async ({ page }, info) => {
   const largeur = await page.evaluate(() => getComputedStyle(document.querySelector(".content")!).scrollbarWidth);
   expect(largeur).toBe("none");
 });
+
+test("services : le relais Maku Server trouvé a son panneau, comme Seerr et Tracearr", async ({ page }, info) => {
+  test.skip(appareil(info) !== "pc" && appareil(info) !== "telephone", "même page sur les autres appareils");
+  await ouvrir(page, info, "reglages&relay");
+  if (appareil(info) === "telephone") await page.locator(".settings .menu button", { hasText: "Services" }).click();
+  else await page.getByRole("tab", { name: "Services" }).click();
+  const titre = page.locator("h2.group-title", { hasText: "Maku Server local détecté" });
+  await expect(titre).toContainText("Connecté");
+  await expect(titre.locator("xpath=following-sibling::section[1]")).toContainText("Maku Server trouvé sur http://serveur.local:32700");
+});
