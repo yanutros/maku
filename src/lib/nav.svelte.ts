@@ -65,6 +65,8 @@ export const nav = $state({
   tvMenu: null as { item: Item } | null,
   /** Élément Plex dont la fenêtre de modification est ouverte. */
   editing: null as Item | null,
+  /** Film ou série dont la fenêtre « Corriger l'association » est ouverte (administrateur du serveur Plex). */
+  matching: null as Item | null,
   /** Le compte connecté administre le serveur (édition, réglages). */
   admin: false,
   /** Le compte Seerr connecté gère les demandes de tout le monde (Admin › Demandes). */

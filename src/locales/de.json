@@ -1204,5 +1204,21 @@
       "noRadarr": "In Seerr ist kein Radarr-Server eingerichtet.",
       "noSonarr": "In Seerr ist kein Sonarr-Server eingerichtet."
     }
+  },
+  "fixMatch": {
+    "open": "Zuordnung korrigieren…",
+    "unmatch": "Zuordnung aufheben",
+    "title": "Zuordnung von „{{title}}“ korrigieren",
+    "searchTitle": "Titel",
+    "year": "Jahr",
+    "search": "Suchen",
+    "none": "Keine Titel gefunden. Versuche einen anderen Titel oder ein anderes Jahr.",
+    "pick": "Wähle den richtigen Titel: Plex lädt seine Informationen und Bilder herunter.",
+    "results": "Vorgeschlagene Titel",
+    "score": "Ähnlichkeit mit der Datei",
+    "apply": "Zuordnen",
+    "applying": "Wird zugeordnet…",
+    "done": "„{{title}}“ zugeordnet: Plex aktualisiert die Informationen",
+    "unmatched": "Zuordnung von „{{title}}“ aufgehoben: korrigiere die Zuordnung, um die Informationen wiederherzustellen"
   }
 }

@@ -727,6 +727,26 @@ function handle(cmd: string, a: Args): unknown {
     }
     case "plex_playlists":
       return playlists;
+    // Corriger l'association : quelques titres proches, le premier presque sûr ; « Associer » renomme le titre.
+    case "plex_matches": {
+      const it = findItem(a.ratingKey);
+      const name = (a.title as string | null)?.trim() || it?.title || "";
+      const year = (a.year as number | null) ?? it?.year ?? 2024;
+      const kind = it?.kind === "show" ? "Série" : "Film";
+      return [
+        [name, year, 98, "La version exacte du fichier, d'après son nom et son année."],
+        [`${name} : Le Retour`, year + 3, 71, "La suite, sortie trois ans plus tard."],
+        [`${name} (version restaurée)`, year - 20, 54, "Le premier film du même nom, restauré en 4K."],
+        [`Les Héritiers de ${name}`, year + 1, 38, "Une histoire voisine, dans le même univers."],
+      ].map(([n, y, score, summary], i) => ({ guid: `plex://demo/${a.ratingKey}/${i}`, name: n, year: y, score, thumb: poster(String(n), kind), summary }));
+    }
+    case "plex_fix_match": {
+      const it = findItem(a.ratingKey);
+      if (it) Object.assign(it, { title: a.name, year: a.year ?? it.year });
+      return null;
+    }
+    case "plex_unmatch":
+      return null;
     case "plex_metadata":
       return detail(a.ratingKey);
     // Épisodes voisins dans leur saison (bouton suivant, écran de fin).

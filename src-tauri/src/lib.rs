@@ -25,7 +25,7 @@ use config::{Config, SavedServer};
 use error::CmdResult;
 use player::{Entry, PlayerControl, Source};
 use plex::{Adjacent, Genre, Hub, Item, WebStream, ItemDetail, LoginPin, Page, PlexServer, QueueTrack, Section};
-use plex_admin::{Account, EditInfo, FieldChange, ImageChoice, Pref, ServerSession};
+use plex_admin::{Account, EditInfo, FieldChange, ImageChoice, MatchResult, Pref, ServerSession};
 use std::collections::HashMap;
 use seerr::{ArrOptions, ArrServer, RequestChanges, RequestCounts, RequestPage, Seerr, SeerrDetail, SeerrMedia, SeerrSeason, Slider};
 use serde::Serialize;
@@ -301,6 +301,9 @@ pub fn run() {
             plex_upload_image,
             plex_refresh_metadata,
             plex_analyze,
+            plex_matches,
+            plex_fix_match,
+            plex_unmatch,
             plex_prefs,
             plex_set_prefs,
             plex_sessions,

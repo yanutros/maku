@@ -331,6 +331,17 @@ export interface SeerrRequest {
   tags: unknown;
 }
 
+/** Titre proposé par l'agent de Plex pour « Corriger l'association ». */
+export interface MatchResult {
+  guid: string;
+  name: string;
+  year: number | null;
+  /** Ressemblance avec le fichier, sur 100. */
+  score: number | null;
+  thumb: string | null;
+  summary: string | null;
+}
+
 export type RequestFilter = "pending" | "processing" | "available" | "failed" | "all";
 
 export interface RequestCounts {
@@ -623,6 +634,9 @@ export const api = {
     invoke<void>("plex_set_image", { ratingKey, kind, url }),
   refreshMetadata: (ratingKey: string) => invoke<void>("plex_refresh_metadata", { ratingKey }),
   analyze: (ratingKey: string) => invoke<void>("plex_analyze", { ratingKey }),
+  plexMatches: (ratingKey: string, title: string | null, year: number | null) => invoke<MatchResult[]>("plex_matches", { ratingKey, title, year }),
+  plexFixMatch: (ratingKey: string, guid: string, name: string, year: number | null) => invoke<void>("plex_fix_match", { ratingKey, guid, name, year }),
+  plexUnmatch: (ratingKey: string) => invoke<void>("plex_unmatch", { ratingKey }),
   prefs: () => invoke<Pref[]>("plex_prefs"),
   setPrefs: (changes: Record<string, string>) => invoke<void>("plex_set_prefs", { changes }),
   sessions: () => invoke<ServerSession[]>("plex_sessions"),

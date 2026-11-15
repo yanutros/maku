@@ -1204,5 +1204,21 @@
       "noRadarr": "Er is geen Radarr-server ingesteld in Seerr.",
       "noSonarr": "Er is geen Sonarr-server ingesteld in Seerr."
     }
+  },
+  "fixMatch": {
+    "open": "Koppeling corrigeren…",
+    "unmatch": "Ontkoppelen",
+    "title": "Koppeling van ‘{{title}}’ corrigeren",
+    "searchTitle": "Titel",
+    "year": "Jaar",
+    "search": "Zoeken",
+    "none": "Geen titels gevonden. Probeer een andere titel of een ander jaar.",
+    "pick": "Kies de juiste titel: Plex downloadt de informatie en afbeeldingen.",
+    "results": "Voorgestelde titels",
+    "score": "Overeenkomst met het bestand",
+    "apply": "Koppelen",
+    "applying": "Bezig met koppelen…",
+    "done": "Gekoppeld aan ‘{{title}}’: Plex werkt de informatie bij",
+    "unmatched": "‘{{title}}’ ontkoppeld: corrigeer de koppeling om de informatie terug te krijgen"
   }
 }

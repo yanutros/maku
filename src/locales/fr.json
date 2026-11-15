@@ -1204,5 +1204,21 @@
       "noRadarr": "Aucun serveur Radarr n'est configuré dans Seerr.",
       "noSonarr": "Aucun serveur Sonarr n'est configuré dans Seerr."
     }
+  },
+  "fixMatch": {
+    "open": "Corriger l’association…",
+    "unmatch": "Dissocier",
+    "title": "Corriger l’association de « {{title}} »",
+    "searchTitle": "Titre",
+    "year": "Année",
+    "search": "Rechercher",
+    "none": "Aucun titre trouvé. Essayez un autre titre ou une autre année.",
+    "pick": "Choisissez le bon titre : Plex en téléchargera les informations et les images.",
+    "results": "Titres proposés",
+    "score": "Ressemblance avec le fichier",
+    "apply": "Associer",
+    "applying": "Association…",
+    "done": "Associé à « {{title}} » : Plex met à jour ses informations",
+    "unmatched": "« {{title}} » dissocié : corrigez l’association pour lui rendre ses informations"
   }
 }

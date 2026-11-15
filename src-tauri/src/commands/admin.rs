@@ -128,3 +128,19 @@ pub async fn plex_history(state: State<'_, AppState>, since: i64) -> CmdResult<p
 pub async fn plex_stop_session(state: State<'_, AppState>, session_id: String, reason: String) -> CmdResult<()> {
     Ok(state.admin_plex().await?.stop_session(&session_id, &reason).await?)
 }
+
+/// « Corriger l'association » : titres proposés par l'agent de Plex (film ou série).
+#[tauri::command]
+pub async fn plex_matches(state: State<'_, AppState>, rating_key: String, title: Option<String>, year: Option<u32>) -> CmdResult<Vec<MatchResult>> {
+    Ok(state.admin_plex().await?.matches(&rating_key, title.as_deref(), year).await?)
+}
+
+#[tauri::command]
+pub async fn plex_fix_match(state: State<'_, AppState>, rating_key: String, guid: String, name: String, year: Option<u32>) -> CmdResult<()> {
+    Ok(state.admin_plex().await?.fix_match(&rating_key, &guid, &name, year).await?)
+}
+
+#[tauri::command]
+pub async fn plex_unmatch(state: State<'_, AppState>, rating_key: String) -> CmdResult<()> {
+    Ok(state.admin_plex().await?.unmatch(&rating_key).await?)
+}

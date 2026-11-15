@@ -65,7 +65,8 @@
     "forbidden": "Réservé à l'administrateur du serveur.",
     "badImage": "Image non reconnue : choisis un fichier JPEG, PNG ou WebP de 25 Mo au plus.",
     "convertFailed": "La collection ordinaire n'a pas pu être créée : la collection intelligente est conservée.",
-    "sessionGone": "Cette lecture est déjà terminée."
+    "sessionGone": "Cette lecture est déjà terminée.",
+    "matchOnlyMovieShow": "Seuls un film ou une série s’associent"
   },
   "seerr": {
     "plexRequired": "Connexion Plex requise pour se connecter à Seerr",

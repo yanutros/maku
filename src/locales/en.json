@@ -1204,5 +1204,21 @@
       "noRadarr": "No Radarr server is set up in Seerr.",
       "noSonarr": "No Sonarr server is set up in Seerr."
     }
+  },
+  "fixMatch": {
+    "open": "Fix match…",
+    "unmatch": "Unmatch",
+    "title": "Fix match for “{{title}}”",
+    "searchTitle": "Title",
+    "year": "Year",
+    "search": "Search",
+    "none": "No titles found. Try another title or year.",
+    "pick": "Pick the right title: Plex will download its details and artwork.",
+    "results": "Suggested titles",
+    "score": "Similarity to the file",
+    "apply": "Match",
+    "applying": "Matching…",
+    "done": "Matched to “{{title}}”: Plex is updating its details",
+    "unmatched": "“{{title}}” unmatched: fix the match to restore its details"
   }
 }

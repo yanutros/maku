@@ -749,3 +749,97 @@ pub async fn account(http: &reqwest::Client, client_id: &str, token: &str) -> Re
         admin: None,
     })
 }
+
+// ---------- Corriger l'association, dissocier (films et séries) ----------
+
+/// Titre proposé par l'agent de Plex pour « Corriger l'association ».
+#[derive(Serialize)]
+pub struct MatchResult {
+    /// Identifiant du titre chez l'agent (« plex://movie/… »), à renvoyer pour l'association.
+    pub guid: String,
+    pub name: String,
+    pub year: Option<u32>,
+    /// Ressemblance avec le fichier, sur 100.
+    pub score: Option<u32>,
+    pub thumb: Option<String>,
+    pub summary: Option<String>,
+}
+
+fn number(v: &Value) -> Option<u64> {
+    v.as_u64().or_else(|| v.as_str()?.parse().ok())
+}
+
+impl PlexServer {
+    /// Titres qui pourraient correspondre à un film ou une série. Sans titre : ceux que Plex propose d'après le
+    /// titre actuel ; avec un titre (et une année), une recherche avec l'agent et la langue de la bibliothèque.
+    pub async fn matches(&self, rating_key: &str, title: Option<&str>, year: Option<u32>) -> Result<Vec<MatchResult>> {
+        let (container, item) = self.metadata_value(rating_key).await?;
+        let kind = item["type"].as_str().unwrap_or_default();
+        if kind != "movie" && kind != "show" {
+            bail!(crate::i18n::tr("admin.matchOnlyMovieShow"));
+        }
+        let mut query = String::from("manual=1");
+        if let Some(title) = title.map(str::trim).filter(|t| !t.is_empty()) {
+            query.push_str(&format!("&title={}", urlencoding::encode(title)));
+            if let Some(year) = year {
+                query.push_str(&format!("&year={year}"));
+            }
+            // L'agent et la langue de la bibliothèque, comme Plex Web.
+            let section = number(&item["librarySectionID"]).or_else(|| number(&container["librarySectionID"]));
+            if let Some(section) = section {
+                let sections = self.json(Method::GET, "/library/sections").await.unwrap_or_default();
+                let dir = sections["MediaContainer"]["Directory"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .find(|d| number(&d["key"]) == Some(section));
+                if let Some(dir) = dir {
+                    if let Some(agent) = dir["agent"].as_str() {
+                        query.push_str(&format!("&agent={}", urlencoding::encode(agent)));
+                    }
+                    if let Some(language) = dir["language"].as_str() {
+                        query.push_str(&format!("&language={}", urlencoding::encode(language)));
+                    }
+                }
+            }
+        }
+        let c = self.json(Method::GET, &format!("/library/metadata/{rating_key}/matches?{query}")).await?;
+        Ok(c["MediaContainer"]["SearchResult"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(|r| {
+                let thumb = r["thumb"].as_str().filter(|t| !t.is_empty()).map(|t| {
+                    if t.starts_with('/') {
+                        self.image(t, 160, 240)
+                    } else {
+                        t.to_owned()
+                    }
+                });
+                Some(MatchResult {
+                    guid: r["guid"].as_str()?.to_owned(),
+                    name: r["name"].as_str().unwrap_or_default().to_owned(),
+                    year: number(&r["year"]).map(|y| y as u32),
+                    score: number(&r["score"]).map(|s| s as u32),
+                    thumb,
+                    summary: r["summary"].as_str().filter(|s| !s.is_empty()).map(str::to_owned),
+                })
+            })
+            .take(30)
+            .collect())
+    }
+
+    /// Associe le film ou la série au titre choisi ; Plex en télécharge ensuite les informations et les images.
+    pub async fn fix_match(&self, rating_key: &str, guid: &str, name: &str, year: Option<u32>) -> Result<()> {
+        let mut query = format!("guid={}&name={}", urlencoding::encode(guid), urlencoding::encode(name));
+        if let Some(year) = year {
+            query.push_str(&format!("&year={year}"));
+        }
+        self.send(Method::PUT, &format!("/library/metadata/{rating_key}/match?{query}")).await
+    }
+
+    /// Retire l'association : le titre garde son fichier mais perd ses informations, jusqu'à une nouvelle association.
+    pub async fn unmatch(&self, rating_key: &str) -> Result<()> {
+        self.send(Method::PUT, &format!("/library/metadata/{rating_key}/unmatch")).await
+    }
+}

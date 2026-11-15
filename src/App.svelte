@@ -38,6 +38,7 @@
   import CardMenu from "./components/CardMenu.svelte";
   import TvMenu from "./components/TvMenu.svelte";
   import EditDialog from "./components/EditDialog.svelte";
+  import FixMatchDialog from "./components/FixMatchDialog.svelte";
   import UpdateDialog from "./components/UpdateDialog.svelte";
   import TrailerOverlay from "./components/TrailerOverlay.svelte";
   import AddToCollection from "./components/AddToCollection.svelte";
@@ -149,6 +150,7 @@
     else if (nav.tvMenu) nav.tvMenu = null;
     else if (nav.menu) nav.menu = null;
     else if (nav.editing) nav.editing = null;
+    else if (nav.matching) nav.matching = null;
     else if (nav.requesting) nav.requesting = null;
     else if (player.active && player.video) stop();
     else if (player.expanded) player.expanded = false;
@@ -346,6 +348,10 @@
 
 {#if nav.editing}
   <EditDialog />
+{/if}
+
+{#if nav.matching}
+  <FixMatchDialog />
 {/if}
 
 {#if nav.collectionFor || nav.collectionBatch}

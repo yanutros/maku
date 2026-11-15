@@ -88,6 +88,17 @@
     }, t("tvMenu.removedContinue"));
   }
 
+  // « Corriger l'association » et « Dissocier » : Plex, film ou série.
+  const matchable = $derived(nav.serverKind !== "jellyfin" && (item.kind === "movie" || item.kind === "show"));
+
+  function unmatch() {
+    const title = item.title;
+    run(async () => {
+      await api.plexUnmatch(item.ratingKey);
+      reload();
+    }, t("fixMatch.unmatched", { title }));
+  }
+
   // Le compte a le droit de télécharger (Android) : un titre, un album ou une playlist, pour l'hors-ligne.
   const downloadable = $derived(music && item.kind !== "artist" && canDownload());
 </script>
@@ -161,6 +172,11 @@
     <button role="menuitem" onclick={() => run(() => api.analyze(item.ratingKey), t("cardMenu.analyzeStarted"))}>
       <Icon name="search" size={16} /> {t("cardMenu.analyze")}
     </button>
+    <!-- Association (Plex) : sur un film ou une série seulement ; saisons et épisodes suivent leur série. -->
+    {#if matchable}
+      <button role="menuitem" onclick={() => ((nav.matching = item), close())}><Icon name="link" size={16} /> {t("fixMatch.open")}</button>
+      <button role="menuitem" onclick={unmatch}><Icon name="unlink" size={16} /> {t("fixMatch.unmatch")}</button>
+    {/if}
   {/if}
 </div>
 
