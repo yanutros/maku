@@ -84,9 +84,11 @@
   white-space: nowrap;
 }
 
+/* Pastilles de la couleur et du fond sur la même grille de cinq colonnes : les deux groupes ont la même largeur,
+   passent sous leur titre au même moment quand la place manque, et leurs pastilles tombent les unes sous les autres. */
 .settings .themes {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(5, 48px);
   gap: 14px;
 }
 
