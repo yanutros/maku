@@ -37,6 +37,22 @@
   --bg-hover: #313131;
 }
 
+[data-background="minuit"] {
+  --bg: #111827;
+  --bg-sidebar: #0b111d;
+  --bg-elev: #1a2334;
+  --bg-hover: #273248;
+  --text-faint: #737c8c;
+}
+
+[data-background="marine"] {
+  --bg: #161e2d;
+  --bg-sidebar: #0f1622;
+  --bg-elev: #1f2839;
+  --bg-hover: #2c374c;
+  --text-faint: #788194;
+}
+
 [data-background="ardoise"] {
   --bg: #2f383e;
   --bg-sidebar: #263035;

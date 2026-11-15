@@ -41,8 +41,9 @@ export function applyTheme(theme: Theme, save = false) {
   else invoke("set_app_icon", { theme }).catch(() => {});
 }
 
-// Fond de l'interface, gardé sur cet appareil : la nuit de Maku (par défaut), un gris neutre, ou un gris bleuté.
-export const BACKGROUNDS = ["nuit", "graphite", "ardoise"] as const;
+// Fond de l'interface, gardé sur cet appareil : la nuit de Maku (par défaut), un gris neutre, un gris bleuté, ou
+// deux bleus nuit.
+export const BACKGROUNDS = ["nuit", "graphite", "ardoise", "minuit", "marine"] as const;
 export type Background = (typeof BACKGROUNDS)[number];
 
 /** Teinte de chaque fond, pour les pastilles du choix (les nuances dérivées sont dans app.css). */
@@ -50,6 +51,8 @@ export const BACKGROUND_COLORS: Record<Background, string> = {
   nuit: "#141518",
   graphite: "#1a1a1a",
   ardoise: "#2f383e",
+  minuit: "#111827",
+  marine: "#161e2d",
 };
 
 const BACKGROUND_KEY = "plexr.background";

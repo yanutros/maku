@@ -69,7 +69,7 @@ test("services : le relais Maku Server trouvé a son panneau, comme Seerr et Tra
   await expect(titre.locator("xpath=following-sibling::section[1]")).toContainText("Maku Server trouvé sur http://serveur.local:32700");
 });
 
-test("interface : le fond se choisit parmi trois teintes, et reste après un redémarrage", async ({ page }, info) => {
+test("interface : le fond se choisit parmi cinq teintes, et reste sur l'appareil", async ({ page }, info) => {
   await ouvrir(page, info, "reglages-interface");
   // Téléviseur : la rubrique suit la sélection du menu des réglages ; on la pose sur Interface.
   if (appareil(info) === "tv") {
@@ -80,19 +80,23 @@ test("interface : le fond se choisit parmi trois teintes, et reste après un red
   const teinte = () => page.evaluate(() => getComputedStyle(document.body).backgroundColor);
   // Télécommande au téléviseur (sélection puis OK), clic ailleurs.
   const choisir = async (nom: string) => {
-    const pastille = fond.getByRole("radio", { name: nom });
+    const pastille = fond.getByRole("radio", { name: nom, exact: true });
     if (appareil(info) === "tv") {
       await pastille.focus();
       await touche(page, "Enter");
     } else await pastille.click();
   };
   // Par défaut : la nuit de Maku.
-  await expect(fond.getByRole("radio", { name: "Nuit" })).toHaveAttribute("aria-checked", "true");
+  await expect(fond.getByRole("radio", { name: "Nuit", exact: true })).toHaveAttribute("aria-checked", "true");
   expect(await teinte()).toBe("rgb(20, 21, 24)");
 
   await choisir("Ardoise");
-  await expect(fond.getByRole("radio", { name: "Ardoise" })).toHaveAttribute("aria-checked", "true");
+  await expect(fond.getByRole("radio", { name: "Ardoise", exact: true })).toHaveAttribute("aria-checked", "true");
   expect(await teinte()).toBe("rgb(47, 56, 62)");
+  await choisir("Minuit");
+  expect(await teinte()).toBe("rgb(17, 24, 39)");
+  await choisir("Marine");
+  expect(await teinte()).toBe("rgb(22, 30, 45)");
   await choisir("Graphite");
   expect(await teinte()).toBe("rgb(26, 26, 26)");
 
