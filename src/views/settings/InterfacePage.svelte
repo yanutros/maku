@@ -72,7 +72,7 @@
   }
 
   onMount(() => {
-    if (device.tv) api.sections().then((s) => (sections = s), () => {});
+    if (device.tv || device.phone) api.sections().then((s) => (sections = s), () => {});
   });
 </script>
 
@@ -155,7 +155,8 @@
       </div>
       <input type="checkbox" class="switch" bind:checked={sidebar.simple} onchange={saveSidebar} />
     </label>
-  {:else}
+  {:else if !device.phone}
+    <!-- Le téléphone n'a pas de menu latéral : rien à replier ni à réinitialiser. -->
     <label class="line">
       <div class="line-text">
         <strong>{t("settings.interface.collapsed")}</strong>
@@ -198,7 +199,8 @@
 </section>
 </div>
 
-{#if device.tv}
+<!-- Téléviseur et téléphone : pas de menu à réordonner à la souris ; l'ordre et la visibilité se règlent ici. -->
+{#if device.tv || device.phone}
   <div class="tile">
   <h2 class="group-title">{t("settings.interface.libraries")}</h2>
   <section class="card">

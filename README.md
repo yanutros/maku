@@ -133,7 +133,7 @@ L'interface se recharge à chaque modification et le backend Rust est recompilé
 **Mode démo.** `npx vite` puis `http://localhost:1420/?demo=accueil` lance l'interface dans un navigateur, sans
 serveur, avec une bibliothèque fictive et des visuels générés. Vues disponibles : `accueil`, `films`,
 `categories`, `series`, `serie`, `fiche`, `lecteur`, `decouvrir`, `seerr`, `musique`, `ecoute`, `stats`, `reglages`,
-`reglages-interface`, `demandes-admin` (avec `&admin` : Admin › Demandes) et `vide` (l'accueil sans musique en cours). C'est ce mode qui produit les captures de cette page et du
+`reglages-interface`, `demandes-admin` (avec `&admin` : Admin › Demandes), `telechargements` (la page Téléchargements d'un téléphone Android, avec une playlist, deux saisons et un film) et `vide` (l'accueil sans musique en cours). C'est ce mode qui produit les captures de cette page et du
 site. `?device=phone` ou `?device=tv` imposent l'interface du téléphone ou du téléviseur dans le navigateur.
 
 **Le site.** Il est dans [`docs/`](docs/) et publié par GitHub Pages : des pages HTML statiques (`index.html`, une page par
@@ -143,7 +143,12 @@ Il se tient à jour avec l'application : chaque nouvelle fonctionnalité y a sa 
 **Tests de l'interface.** `npm test` ouvre Maku en mode démo avec [Playwright](https://playwright.dev) et le pilote
 comme un utilisateur, sur quatre appareils simulés : ordinateur, téléviseur (flèches, OK, Retour), téléphone et
 moteur de Safari (iPad, Mac). Les parcours (`tests/`) couvrent l'accueil, les fiches (série, saison, épisode),
-les acteurs, le lecteur, le journal de diagnostic (un élément y est décrit sans son texte), les réponses qui arrivent dans le désordre (la
+les acteurs, le lecteur, le journal de diagnostic (un élément y est décrit sans son texte), les Réglages du téléviseur (rubriques en onglets au-dessus d'une page en pleine largeur, bas qui entre dans la page
+et haut qui revient à l'onglet), les pages du téléphone (rien ne dépasse de l'écran dans les Réglages, les onglets de l'administration tiennent sur une
+ligne qui défile, « Télécharger » a la taille de ses voisins, les téléchargements sont rangés par dossier), la même
+fonction d'un appareil à l'autre (rien d'invisible mais actif au tactile, Retour et Échap
+qui ferment ce qui est ouvert, menu d'un titre à la TV et ailleurs, touches de lecture des télécommandes, réglages du
+téléphone), les réponses qui arrivent dans le désordre (la
 saison ouverte par son onglet reste celle de la page après une lecture, la bibliothèque musicale ne double pas sa
 liste, la progression hors ligne repart à chaque retour du réseau), la lecture (une lecture arrêtée ou remplacée pendant l'attente du serveur ne démarre pas,
 le plein écran se quitte à la fermeture de la vidéo, une session Tracearr expirée ne recharge pas l'application en
@@ -305,7 +310,7 @@ traduisez les valeurs sans toucher aux clés ni aux `{{variables}}`, puis décla
 | `src/components/UpdateDialog.svelte`, `src/lib/markdown.ts` | fenêtre « Nouvelle version disponible » et mise en forme des nouveautés ; `src/lib/update.svelte.ts` n'en garde que les sections Nouveautés / Corrections (ou What's new en anglais), sans les paquets |
 | `src/lib/invite.ts`, `src/components/QrCode.svelte` | codes d'invitation, QR codes (qrcode-generator) et lecture d'images (jsQR) |
 | `src/lib/device.ts` | type d'appareil (ordinateur, tablette tactile, téléviseur) et échelle de l'interface sur TV |
-| `src/lib/spatial.ts`, `src/lib/nav.svelte.ts` | navigation à la télécommande (flèches) et bouton Retour d'Android |
+| `src/lib/spatial.ts`, `src/lib/nav.svelte.ts` | navigation à la télécommande (flèches) et bouton Retour d'Android ; `closeOnBack` : une fenêtre ou un menu ouvert par un composant se ferme à Retour et à Échap, avant de quitter la page |
 | `src/components/TvRows.svelte`, `TvGrid.svelte`, `src/lib/tvcards.ts` | interface TV : rangées avec fiche en haut, grilles légères ; menu d'un titre à l'appui long (`TvMenu.svelte`, `src/lib/longpress.ts`), choix des pistes sous le champ (`TrackSelect.svelte`) |
 | `src-tauri/src/offline.rs`, `src/lib/offline.svelte.ts`, `src/views/Downloads.svelte` | lecture hors ligne : file de téléchargements (fichier d'origine repris par `Range`, seulement s'il n'a pas changé sur le serveur, `If-Range` ; ou version convertie récupérée morceau par morceau en HLS et mise bout à bout, reprise au dernier morceau enregistré, le surplus d'un arrêt brutal étant coupé), page Téléchargements, progression renvoyée au serveur à chaque retour du réseau |
 | `src-tauri/src/plex_users.rs`, `src/components/ServerUsers.svelte` | utilisateurs du serveur Plex (administrateur) : comptes partagés, bibliothèques, autorisations et restrictions, invitation et retrait, via plex.tv |

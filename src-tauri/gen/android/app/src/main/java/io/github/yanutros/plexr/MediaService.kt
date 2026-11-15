@@ -336,6 +336,7 @@ class MediaService : MediaBrowserServiceCompat() {
       is PlexLibrary.NotSignedIn -> PlaybackStateCompat.ERROR_CODE_AUTHENTICATION_EXPIRED to when (error.reason) {
         "server" -> R.string.auto_no_server
         "config" -> R.string.auto_locked
+        "jellyfin" -> R.string.auto_plex_only
         else -> R.string.auto_sign_in
       }
       else -> {

@@ -194,7 +194,7 @@ export function go(view: View) {
  * page de premier niveau, qui n'empile pas la précédente. Retour y ramène au menu, puis à l'accueil.
  */
 export function goTop(view: View) {
-  if (!device.mobile && !device.tv) return go(view);
+  if (!device.mobile && !device.tv && !device.phone) return go(view);
   nav.history = [];
   spots.length = 0;
   pendingSpot = null;
@@ -231,6 +231,28 @@ export function onBack(handler: () => boolean) {
   return () => {
     const i = backHandlers.indexOf(handler);
     if (i >= 0) backHandlers.splice(i, 1);
+  };
+}
+
+/**
+ * Fenêtre ou menu ouvert par un composant : Retour (Android, bouton précédent de la souris) et Échap le ferment,
+ * au lieu de quitter la page en le laissant ouvert. À appeler tant qu'il est ouvert, dans un `$effect` :
+ * `$effect(() => (ouvert ? closeOnBack(() => (ouvert = false)) : undefined))`. Renvoie de quoi s'en défaire.
+ */
+export function closeOnBack(close: () => void): () => void {
+  const off = onBack(() => {
+    close();
+    return true;
+  });
+  const key = (e: KeyboardEvent) => {
+    if (e.key !== "Escape") return;
+    e.preventDefault();
+    close();
+  };
+  addEventListener("keydown", key);
+  return () => {
+    off();
+    removeEventListener("keydown", key);
   };
 }
 

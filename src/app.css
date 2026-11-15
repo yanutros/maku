@@ -397,6 +397,19 @@ html.touch .request {
   opacity: 1;
 }
 
+/*
+ * Écrans tactiles : le bouton de lecture au centre d'une jaquette n'apparaît qu'au survol, mais restait actif sans se
+ * voir. Toucher le milieu d'une affiche lançait la lecture au lieu d'ouvrir la fiche : il s'efface. La croix qui
+ * oublie un mix, elle, n'a pas d'autre chemin : elle reste, mais visible.
+ */
+html.touch .img > .play {
+  display: none;
+}
+
+html.touch .img > .forget {
+  opacity: 1;
+}
+
 /* Téléviseur : les flous d'arrière-plan coûtent cher aux puces des TV, on s'en passe. */
 /* Bibliothèques hors « Recommandé » : la barre d'onglets au même endroit que sur les rangées TV (TvRows,
    en-tête à 28 px du haut et 48 px du bord), pour qu'elle ne saute pas d'un onglet à l'autre. */

@@ -8,7 +8,7 @@
   import Icon from "./Icon.svelte";
   import { errorText } from "../lib/api";
   import { t } from "../lib/i18n";
-  import { toast } from "../lib/nav.svelte";
+  import { closeOnBack, toast } from "../lib/nav.svelte";
   import { device } from "../lib/device";
 
   type Library = { id: number; key: string; title: string; kind: string; shared: boolean };
@@ -35,6 +35,8 @@
   let users = $state<User[] | null>(null);
   let error = $state<string | null>(null);
   let selected = $state<number | null>(null);
+  // Téléphone : la fiche d'un utilisateur remplace la liste ; Retour y ramène.
+  $effect(() => (device.phone && selected !== null ? closeOnBack(() => (selected = null)) : undefined));
   let tab = $state<"libraries" | "permissions" | "restrictions">("libraries");
   let busy = $state(false);
   let confirmRemove = $state(false);

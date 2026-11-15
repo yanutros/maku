@@ -11,4 +11,5 @@
     <string name="auto_nothing">"Niets om hier af te spelen."</string>
     <string name="auto_no_server">"Kies een server in Maku op je telefoon."</string>
     <string name="auto_locked">"Ontgrendel je telefoon één keer en probeer het opnieuw."</string>
+    <string name="auto_plex_only">"Muziek in de auto werkt alleen met een Plex-server."</string>
 </resources>

@@ -55,6 +55,8 @@ class PlexLibrary(private val context: Context) {
     server?.let { return it }
     val cfg = config()
     val saved = cfg.optJSONObject("server") ?: throw NotSignedIn("server")
+    // La voiture ne sait parcourir qu'un serveur Plex : avec Jellyfin ou Emby, on le dit, plutôt que « Connecte-toi à Plex ».
+    if (saved.optString("kind") in listOf("jellyfin", "emby")) throw NotSignedIn("jellyfin")
     val clientId = cfg.optString("client_id")
     val token = saved.getString("token")
     val candidates = mutableListOf(saved.getString("uri"))

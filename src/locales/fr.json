@@ -1050,6 +1050,9 @@
     "used": "{{size}} utilisés sur l'appareil. Lisibles sans réseau.",
     "empty": "Rien de téléchargé pour l'instant. Sur la fiche d'un film, d'une saison, d'un album ou d'une playlist, « Télécharger » le garde sur l'appareil, pour le regarder ou l'écouter sans réseau.",
     "movies": "Films",
+    "season": "Saison {{season}}",
+    "groupProgress": "{{done}} sur {{total}} téléchargés",
+    "removeAll": "Tout supprimer",
     "episodeCode": "S{{season}} · E{{episode}}"
   },
   "lyrics": {

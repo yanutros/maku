@@ -3,7 +3,7 @@
   // un album ou une playlist. Il montre ensuite l'avancement, puis « Téléchargé ».
   import type { Item } from "../lib/api";
   import { t } from "../lib/i18n";
-  import { toast } from "../lib/nav.svelte";
+  import { closeOnBack, toast } from "../lib/nav.svelte";
   import { errorText } from "../lib/api";
   import {
     downloadEpisodes,
@@ -20,6 +20,8 @@
   let { item, episodes = null, music = false }: { item: Item; episodes?: Item[] | null; music?: boolean } = $props();
 
   let open = $state(false);
+  // Retour et Échap ferment le choix de la qualité.
+  $effect(() => (open ? closeOnBack(() => (open = false)) : undefined));
   let busy = $state(false);
 
   // Téléchargements concernés : le titre lui-même, ou tous ceux de la saison, de l'album, de la playlist.
@@ -120,6 +122,16 @@
 <style>
   .download {
     position: relative;
+    display: flex;
+  }
+
+  /* La taille des boutons voisins (« Lire », « Aléatoire »…) : chaque fiche donne la sienne, 44 px à défaut. */
+  .download > .btn {
+    flex: 1;
+    justify-content: center;
+    height: var(--action-height, 44px);
+    padding: 0 22px;
+    white-space: nowrap;
   }
 
   .btn.on :global(svg) {

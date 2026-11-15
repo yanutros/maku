@@ -567,8 +567,14 @@
     flex-wrap: wrap;
   }
 
-  :global(html.phone) .actions > :global(.btn) {
+  :global(html.phone) .actions > :global(.btn),
+  :global(html.phone) .actions > :global(.download) {
     flex: 1 1 auto;
+  }
+
+  /* Le bouton « ⋮ » garde sa largeur : c'est « Télécharger » qui prend la place restante. */
+  :global(html.phone) .actions > :global(.btn.round-more) {
+    flex: none;
   }
 
   .cover.mosaic {

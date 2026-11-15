@@ -24,21 +24,47 @@
   });
 
   const movies = $derived(offline.items.filter((d) => d.kind === "movie").sort((a, b) => b.added - a.added));
-  // Séries et musique, regroupées par série, album ou playlist.
-  function groups(kind: Download["kind"]) {
+  /**
+   * Séries et musique, rangées dans un dossier par saison, par album ou par playlist : la page liste les dossiers, et
+   * chacun s'ouvre sur son contenu. Sans cela, une playlist de cent titres ou trois saisons donnaient une liste sans fin.
+   */
+  type Group = { key: string; groupKey: string; title: string; season: number | null; music: boolean; items: Download[] };
+  function groups(kind: "episode" | "track"): Group[] {
     const map = new Map<string, Download[]>();
     for (const d of offline.items.filter((x) => x.kind === kind)) {
-      const key = d.groupKey ?? d.ratingKey;
+      const of = d.groupKey ?? d.showTitle ?? d.ratingKey;
+      // Une série : un dossier par saison.
+      const key = kind === "episode" ? `${of}|s${d.parentIndex ?? 0}` : of;
       map.set(key, [...(map.get(key) ?? []), d]);
     }
-    return [...map.entries()].map(([key, items]) => ({
-      key,
-      title: items[0].groupTitle ?? items[0].showTitle ?? items[0].title,
-      items: items.sort((a, b) => (a.parentIndex ?? 0) - (b.parentIndex ?? 0) || (a.index ?? 0) - (b.index ?? 0)),
-    }));
+    return [...map.entries()]
+      .map(([key, items]) => ({
+        key,
+        groupKey: items[0].groupKey ?? items[0].ratingKey,
+        title: (kind === "episode" ? items[0].showTitle : null) ?? items[0].groupTitle ?? items[0].showTitle ?? items[0].title,
+        season: kind === "episode" ? (items[0].parentIndex ?? 0) : null,
+        music: kind === "track",
+        items: items.sort((a, b) => (a.parentIndex ?? 0) - (b.parentIndex ?? 0) || (a.index ?? 0) - (b.index ?? 0)),
+      }))
+      .sort((a, b) => a.title.localeCompare(b.title) || (a.season ?? 0) - (b.season ?? 0));
   }
   const shows = $derived(groups("episode"));
   const albums = $derived(groups("track"));
+
+  /** Dossiers ouverts (tous fermés à l'arrivée sur la page). */
+  let opened = $state<Record<string, boolean>>({});
+
+  /** Sous le nom du dossier : ce qu'il contient et sa place, ou l'avancement tant que tout n'est pas arrivé. */
+  function summary(g: Group): string {
+    const ready = g.items.filter((d) => d.status === "done").length;
+    const count = g.music ? t("music.detail.trackCount", { count: g.items.length }) : t("item.episodeCount", { count: g.items.length });
+    if (ready < g.items.length) return `${count} · ${t("offline.groupProgress", { done: ready, total: g.items.length })}`;
+    return `${count} · ${formatSize(g.items.reduce((s, d) => s + d.size, 0))}`;
+  }
+
+  async function removeGroup(g: Group) {
+    for (const d of g.items) await act(() => removeDownload(d.id));
+  }
   const used = $derived(offline.items.reduce((s, d) => s + d.done, 0));
 
   function play(d: Download) {
@@ -115,24 +141,40 @@
       </div>
     {/if}
 
-    {#each shows as g (g.key)}
-      <h2 class="section">{g.title}</h2>
-      <div class="list">
-        {#each g.items as d (d.id)}{@render row(d, true, () => play(d))}{/each}
+    {#if shows.length || albums.length}
+      <div class="groups">
+        {#each [...shows, ...albums] as g (g.key)}
+          {@const open = !!opened[g.key]}
+          {@const cover = g.items.map(posterUrl).find((p) => p)}
+          <section class="group" class:open data-group={g.key}>
+            <div class="group-head">
+              <!-- Le dossier : un appui l'ouvre sur son contenu, un autre le referme. -->
+              <button class="group-toggle" aria-expanded={open} onclick={() => (opened[g.key] = !open)}>
+                <span class="group-art" class:square={g.music}>{#if cover}<img src={cover} alt="" />{/if}</span>
+                <span class="text">
+                  <strong>{g.season !== null ? `${g.title} · ${t("offline.season", { season: g.season })}` : g.title}</strong>
+                  <span class="muted small">{summary(g)}</span>
+                </span>
+                <Icon name={open ? "chevronUp" : "chevronDown"} size={20} />
+              </button>
+              {#if g.music}
+                <button class="btn round primary" disabled={!g.items.some((d) => d.status === "done")} onclick={() => playAlbum(g.groupKey)} aria-label={t("item.playTitle", { title: g.title })}>
+                  <Icon name="play" size={16} filled />
+                </button>
+              {/if}
+            </div>
+            {#if open}
+              <div class="list">
+                {#each g.items as d (d.id)}{@render row(d, !g.music, () => (g.music ? playAlbum(g.groupKey, d) : play(d)))}{/each}
+              </div>
+              <div class="group-foot">
+                <button class="btn" onclick={() => removeGroup(g)}><Icon name="x" size={16} /> {t("offline.removeAll")}</button>
+              </div>
+            {/if}
+          </section>
+        {/each}
       </div>
-    {/each}
-
-    {#each albums as g (g.key)}
-      <div class="album-head">
-        <h2 class="section">{g.title}</h2>
-        <button class="btn primary" disabled={!g.items.some((d) => d.status === "done")} onclick={() => playAlbum(g.key)}>
-          <Icon name="play" size={16} filled /> {t("item.play")}
-        </button>
-      </div>
-      <div class="list">
-        {#each g.items as d (d.id)}{@render row(d, false, () => playAlbum(g.key, d))}{/each}
-      </div>
-    {/each}
+    {/if}
   {/if}
 </div>
 
@@ -147,11 +189,71 @@
     font-size: 18px;
   }
 
-  .album-head {
+  /* Dossiers : une saison, un album ou une playlist, ouverts d'un appui. */
+  .groups {
+    display: grid;
+    gap: 10px;
+    margin-top: 26px;
+  }
+
+  .group {
+    border-radius: 16px;
+    background: #ffffff06;
+  }
+
+  .group.open {
+    padding-bottom: 10px;
+  }
+
+  .group-head {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 12px;
+    gap: 10px;
+    padding-right: 10px;
+  }
+
+  .group-toggle {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+    padding: 10px;
+    border: none;
+    border-radius: 16px;
+    background: none;
+    color: var(--text);
+    font: inherit;
+    text-align: left;
+  }
+
+  .group-art {
+    flex: none;
+    width: 56px;
+    aspect-ratio: 2 / 3;
+    overflow: hidden;
+    border-radius: 8px;
+    background: var(--bg-elev);
+  }
+
+  .group-art.square {
+    aspect-ratio: 1;
+  }
+
+  .group-art img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .group .list {
+    margin: 4px 10px 0;
+  }
+
+  .group-foot {
+    display: flex;
+    justify-content: flex-end;
+    margin: 10px 10px 0;
   }
 
   .list {

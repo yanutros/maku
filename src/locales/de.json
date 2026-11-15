@@ -1050,6 +1050,9 @@
     "used": "{{size}} auf dem Gerät belegt. Ohne Netz abspielbar.",
     "empty": "Noch nichts heruntergeladen. Auf der Seite eines Films, einer Staffel, eines Albums oder einer Playlist behält „Herunterladen“ es auf dem Gerät, um es ohne Netz anzusehen oder anzuhören.",
     "movies": "Filme",
+    "season": "Staffel {{season}}",
+    "groupProgress": "{{done}} von {{total}} heruntergeladen",
+    "removeAll": "Alle entfernen",
     "episodeCode": "S{{season}} · E{{episode}}"
   },
   "lyrics": {

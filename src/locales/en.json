@@ -1050,6 +1050,9 @@
     "used": "{{size}} used on the device. Playable without a network.",
     "empty": "Nothing downloaded yet. On a movie, season, album or playlist page, \"Download\" keeps it on the device, to watch or listen without a network.",
     "movies": "Movies",
+    "season": "Season {{season}}",
+    "groupProgress": "{{done}} of {{total}} downloaded",
+    "removeAll": "Remove all",
     "episodeCode": "S{{season}} · E{{episode}}"
   },
   "lyrics": {

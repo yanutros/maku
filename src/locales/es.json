@@ -1050,6 +1050,9 @@
     "used": "{{size}} usados en el dispositivo. Reproducibles sin red.",
     "empty": "Nada descargado por ahora. En la ficha de una película, temporada, álbum o lista, «Descargar» lo guarda en el dispositivo, para verlo o escucharlo sin red.",
     "movies": "Películas",
+    "season": "Temporada {{season}}",
+    "groupProgress": "{{done}} de {{total}} descargados",
+    "removeAll": "Eliminar todo",
     "episodeCode": "T{{season}} · E{{episode}}"
   },
   "lyrics": {

@@ -27,10 +27,11 @@ test("les réglages s'affichent", async ({ page }, info) => {
 test("TV : haut / bas passent par chaque ligne des Réglages, sans en sauter", async ({ page }, info) => {
   test.skip(appareil(info) !== "tv", "télécommande : téléviseur");
   await ouvrir(page, info, "reglages-interface");
-  // Entrer dans le panneau depuis le rail (la rubrique Interface reste ouverte).
-  await page.locator(".settings .menu button", { hasText: "Interface" }).focus();
+  // Entrer dans la page depuis son onglet (la rubrique Interface reste ouverte).
+  await page.getByRole("tab", { name: "Interface" }).focus();
   await page.waitForTimeout(400);
-  await touche(page, "ArrowRight");
+  await touche(page, "ArrowDown");
+  expect(await page.evaluate(() => !!document.activeElement?.closest(".settings .panel")), "bas n'entre pas dans la page").toBe(true);
   for (let i = 0; i < 10; i++) {
     const avant = await page.evaluate(() => (document.activeElement as HTMLElement).getBoundingClientRect().bottom);
     await touche(page, "ArrowDown");
@@ -50,6 +51,39 @@ test("TV : haut / bas passent par chaque ligne des Réglages, sans en sauter", a
     expect(saut, "ligne sautée à la flèche bas").toBe("");
     await selectionVisible(page);
   }
+});
+
+test("TV : les rubriques des Réglages sont des onglets sur une ligne, au-dessus d'une page en pleine largeur", async ({ page }, info) => {
+  test.skip(appareil(info) !== "tv", "télécommande : téléviseur");
+  await ouvrir(page, info, "reglages");
+  const onglets = page.locator(".settings .tabs [role=tab]");
+  await expect(onglets).toHaveText(["Compte", "Lecteur", "Interface", "Services"]);
+  // Plus de colonne de rubriques à côté du menu de Maku.
+  await expect(page.locator(".settings .menu")).toHaveCount(0);
+  // Une ligne, au-dessus de la page, qui prend toute la largeur à droite du menu.
+  const hauts = await onglets.evaluateAll((els) => els.map((el) => Math.round(el.getBoundingClientRect().top)));
+  expect(new Set(hauts).size).toBe(1);
+  const bande = (await page.locator(".settings .tabs").boundingBox())!;
+  const panneau = (await page.locator(".settings .panel").boundingBox())!;
+  const tete = (await page.locator(".settings .desk-head").boundingBox())!;
+  expect(panneau.y).toBeGreaterThan(bande.y + bande.height);
+  expect(panneau.width).toBeGreaterThan(tete.width - 2);
+  // Toute la largeur à droite du menu de Maku : plus de la moitié de l'écran, là où la colonne en prenait un quart.
+  expect(panneau.width).toBeGreaterThan(page.viewportSize()!.width * 0.85);
+  // Le nom de la rubrique n'est écrit qu'une fois : dans son onglet.
+  await expect(page.locator(".settings .panel h1.title")).toBeHidden();
+
+  // Droite passe à la rubrique suivante, qui s'affiche au passage.
+  await onglets.nth(0).focus();
+  await touche(page, "ArrowRight");
+  await expect(onglets.nth(1)).toBeFocused();
+  await expect(onglets.nth(1)).toHaveAttribute("aria-selected", "true");
+  // Bas entre dans la page ; haut revient à l'onglet de la rubrique ouverte.
+  await touche(page, "ArrowDown");
+  expect(await page.evaluate(() => !!document.activeElement?.closest(".settings .panel"))).toBe(true);
+  await selectionVisible(page);
+  for (let i = 0; i < 12 && !(await page.evaluate(() => !!document.activeElement?.closest(".settings .tabs"))); i++) await touche(page, "ArrowUp");
+  await expect(onglets.nth(1)).toBeFocused();
 });
 
 test("TV : pas de barres de défilement", async ({ page }, info) => {
@@ -87,9 +121,9 @@ test("services : le plugin Maku de Jellyfin a son panneau, et Seerr s'y connecte
 
 test("interface : le fond se choisit parmi cinq teintes, et reste sur l'appareil", async ({ page }, info) => {
   await ouvrir(page, info, "reglages-interface");
-  // Téléviseur : la rubrique suit la sélection du menu des réglages ; on la pose sur Interface.
+  // Téléviseur : la rubrique suit la sélection de ses onglets ; on la pose sur Interface.
   if (appareil(info) === "tv") {
-    await page.locator(".settings .menu button", { hasText: "Interface" }).focus();
+    await page.getByRole("tab", { name: "Interface" }).focus();
     await page.waitForTimeout(400);
   }
   const fond = page.getByRole("radiogroup", { name: "Fond" });

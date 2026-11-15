@@ -17,8 +17,13 @@
   const music = isMusic(item.kind);
   const started = !!item.viewOffsetMs && !item.watched;
   const remaining = item.viewOffsetMs && item.durationMs ? formatDuration(item.durationMs - item.viewOffsetMs) : null;
-  // Liste de visionnage du compte : films et séries seulement (identifiant plex:// du titre).
-  const watchGuid = item.kind === "movie" || item.kind === "show" ? item.logoGuid : null;
+  // Liste de visionnage du compte Plex : films et séries seulement (identifiant plex:// du titre).
+  const watchGuid = nav.serverKind === "plex" && (item.kind === "movie" || item.kind === "show") ? item.logoGuid : null;
+  // Plex : la note de l'utilisateur, pour ce qui se note (pas les collections ni les playlists). Jellyfin et Emby n'ont
+  // qu'un « J'aime » : y proposer des étoiles enregistrait « je n'aime pas » pour deux étoiles.
+  const rateable = nav.serverKind === "plex" && ["movie", "show", "season", "episode", "artist", "album", "track"].includes(item.kind);
+  // Un fichier à décrire dans « Voir les informations ».
+  const hasFile = item.kind === "track" || item.kind === "movie" || item.kind === "episode";
 
   let panel = $state<HTMLElement>();
   let rating = $state(false);
@@ -65,6 +70,7 @@
       if (item.kind !== "track") a.push({ icon: "shuffle", label: t("tvMenu.shuffle"), run: () => run(() => playMusic(item.ratingKey, { shuffle: true })) });
       a.push({ icon: "playNext", label: t("queue.playNext"), run: () => run(() => addToQueue(item.ratingKey, true)) });
       a.push({ icon: "queue", label: t("queue.add"), run: () => run(() => addToQueue(item.ratingKey, false)) });
+      if (item.kind !== "playlist") a.push({ icon: "playlistAdd", label: t("playlist.addTo"), run: () => ((nav.tvMenu = null), (nav.playlistFor = item)) });
       if (item.kind === "artist") a.push({ icon: "radio", label: t("music.detail.radio"), run: () => run(() => playMusic(item.ratingKey, { radio: true })) });
       if (item.kind === "track" && item.albumKey) a.push({ icon: "music", label: t("tvMenu.goToAlbum"), run: () => run(() => go({ name: "item", ratingKey: item.albumKey! })) });
       if (item.kind === "track" && item.showKey) a.push({ icon: "user", label: t("tvMenu.goTo", { name: artist ?? "" }), run: () => run(() => go({ name: "item", ratingKey: item.showKey! })) });
@@ -90,7 +96,8 @@
     if (nav.admin && (item.kind === "movie" || item.kind === "show")) {
       a.push({ icon: "library", label: t("collection.addTo"), run: () => ((nav.tvMenu = null), (nav.collectionFor = item)) });
     }
-    a.push({ icon: "star", label: item.userRating ? t("tvMenu.rated", { stars: Math.round(item.userRating / 2) }) : t("tvMenu.rate"), run: () => (rating = true) });
+    if (rateable) a.push({ icon: "star", label: item.userRating ? t("tvMenu.rated", { stars: Math.round(item.userRating / 2) }) : t("tvMenu.rate"), run: () => (rating = true) });
+    if (hasFile) a.push({ icon: "info", label: t("trackInfo.open"), run: () => ((nav.tvMenu = null), (nav.infoFor = item)) });
     if (!music) {
       if (started) a.push({ icon: "x", label: t("tvMenu.removeContinue"), run: () => run(() => api.removeFromContinue(item.ratingKey), t("tvMenu.removedContinue"), true) });
       if (!item.watched) a.push({ icon: "checkCircle", label: t("cardMenu.markWatched"), run: () => run(() => api.setWatched(item.ratingKey, true), t("cardMenu.markedWatched"), () => setWatched(true)) });

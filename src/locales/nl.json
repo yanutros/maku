@@ -1050,6 +1050,9 @@
     "used": "{{size}} gebruikt op het apparaat. Afspeelbaar zonder netwerk.",
     "empty": "Nog niets gedownload. Op de pagina van een film, seizoen, album of afspeellijst houdt „Downloaden” het op het apparaat, om zonder netwerk te kijken of te luisteren.",
     "movies": "Films",
+    "season": "Seizoen {{season}}",
+    "groupProgress": "{{done}} van {{total}} gedownload",
+    "removeAll": "Alles verwijderen",
     "episodeCode": "S{{season}} · A{{episode}}"
   },
   "lyrics": {

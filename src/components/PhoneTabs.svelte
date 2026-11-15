@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { go, nav, type View } from "../lib/nav.svelte";
+  import { goTop, nav, type View } from "../lib/nav.svelte";
   import { t } from "../lib/i18n";
   import Icon, { type IconName } from "./Icon.svelte";
 
@@ -15,8 +15,9 @@
   const active = (names: string[]) => names.includes(nav.view.name);
 
   function open(view: View) {
-    // Un onglet déjà ouvert ramène à son début plutôt que d'empiler la même page.
-    if (nav.view.name !== view.name) go(view);
+    // Un onglet est une page de premier niveau : il n'empile pas les pages visitées avant lui (Retour ramène à
+    // l'accueil, puis quitte), et un onglet déjà ouvert n'est pas rouvert.
+    if (nav.view.name !== view.name) goTop(view);
   }
 </script>
 

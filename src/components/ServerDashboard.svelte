@@ -2,7 +2,7 @@
   import ErrorCard from "./ErrorCard.svelte";
   import { onDestroy, onMount } from "svelte";
   import { api, errorText, formatClock, type Section, type ServerSession } from "../lib/api";
-  import { toast } from "../lib/nav.svelte";
+  import { closeOnBack, toast } from "../lib/nav.svelte";
   import Icon from "./Icon.svelte";
   import ServerStats from "./ServerStats.svelte";
   import { t } from "../lib/i18n";
@@ -68,6 +68,8 @@
 
   // « Arrêter la lecture », comme dans Plex : un message s'affiche chez celui qui regarde (Plex Pass).
   let stopping = $state<ServerSession | null>(null);
+  // Retour et Échap ferment la confirmation d'arrêt d'une lecture.
+  $effect(() => (stopping ? closeOnBack(() => (stopping = null)) : undefined));
   let reason = $state("");
   let stopBusy = $state(false);
 

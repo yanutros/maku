@@ -18,13 +18,14 @@
   // svelte-ignore state_referenced_locally
   let page = $state(initialPage && !SERVER_PAGES.includes(initialPage) ? initialPage : "account");
 
-  // Ordinateur : barre de sections ; téléviseur (rail façon Netflix) et téléphone (bande au doigt) gardent le menu.
+  // Ordinateur et téléviseur : les rubriques en onglets sous le titre, le contenu sur toute la largeur. Téléphone : une
+  // bande de rubriques qui défile au doigt.
   const desk = !device.tv && !device.phone;
-  const SECTIONS = [
-    { id: "account", label: t("settings.menu.account") },
-    { id: "player", label: t("settings.menu.player") },
-    { id: "interface", label: t("settings.menu.interface") },
-    { id: "services", label: t("settings.menu.services") },
+  const SECTIONS: { id: string; label: string; icon: IconName }[] = [
+    { id: "account", label: t("settings.menu.account"), icon: "user" },
+    { id: "player", label: t("settings.menu.player"), icon: "play" },
+    { id: "interface", label: t("settings.menu.interface"), icon: "menu" },
+    { id: "services", label: t("settings.menu.services"), icon: "compass" },
   ];
 
   function choosePage(id: string) {
@@ -34,7 +35,7 @@
     document.querySelector(".content")?.scrollTo({ top: 0 });
   }
 
-  // Téléviseur : la rubrique s'ouvre au passage des flèches sur le rail (comme les onglets des bibliothèques).
+  // Téléviseur : la rubrique s'ouvre au passage des flèches sur ses onglets (comme ceux des bibliothèques).
   let previewTimer: ReturnType<typeof setTimeout> | undefined;
   function previewPage(id: string) {
     clearTimeout(previewTimer);
@@ -54,34 +55,42 @@
 </script>
 
 {#snippet link(id: string, label: string, icon: IconName)}
-  <button class:active={page === id} aria-current={page === id ? "page" : undefined} onclick={() => choosePage(id)} onfocus={() => device.tv && previewPage(id)}>
-    <Icon name={icon} size={device.tv ? 20 : 17} />
+  <button class:active={page === id} aria-current={page === id ? "page" : undefined} onclick={() => choosePage(id)}>
+    <Icon name={icon} size={17} />
     <span>{label}</span>
   </button>
 {/snippet}
 
 <div class="page settings" class:desk>
-  <!-- Ordinateur : les rubriques dans la barre de sections des bibliothèques (Recommandé, Bibliothèque…), sous le titre. -->
-  {#if desk}
+  <!-- Ordinateur et téléviseur : les rubriques dans la barre de sections des bibliothèques (Recommandé, Bibliothèque…),
+       sous le titre. Sur téléviseur, gauche et droite passent d'une rubrique à l'autre, qui s'affiche au passage ;
+       bas entre dans la page, haut revient à l'onglet de la rubrique ouverte. -->
+  {#if desk || device.tv}
     <div class="desk-head">
       <h1 class="row-title page-title">{t("sidebar.settings")}</h1>
-      <div class="tabs" role="tablist">
+      <div class="tabs" role="tablist" data-nav-zone={device.tv ? "settings-rail" : undefined}>
         {#each SECTIONS as sec (sec.id)}
-          <button role="tab" aria-selected={page === sec.id} class:active={page === sec.id} onclick={() => choosePage(sec.id)}>{sec.label}</button>
+          <button
+            role="tab"
+            aria-selected={page === sec.id}
+            class:active={page === sec.id}
+            data-nav-current={device.tv && page === sec.id ? "" : undefined}
+            data-nav-default={device.tv && page === sec.id ? "" : undefined}
+            onclick={() => choosePage(sec.id)}
+            onfocus={() => device.tv && previewPage(sec.id)}
+          >
+            {#if device.tv}<Icon name={sec.icon} size={20} />{/if}
+            {sec.label}
+          </button>
         {/each}
       </div>
     </div>
+  {:else}
+    <!-- Téléphone : la bande des rubriques. -->
+    <nav class="menu">
+      {#each SECTIONS as sec (sec.id)}{@render link(sec.id, sec.label, sec.icon)}{/each}
+    </nav>
   {/if}
-  <!-- Rail des rubriques (Netflix, Wholphin) : sur téléviseur, la rubrique s'affiche au passage des flèches ;
-       droite entre dans le panneau, gauche revient au rail, sur la rubrique quittée. -->
-  <nav class="menu" data-nav-zone="settings-rail">
-    <div class="menu-group">Maku</div>
-    {@render link("account", t("settings.menu.account"), "user")}
-    {@render link("player", t("settings.menu.player"), "play")}
-    {@render link("interface", t("settings.menu.interface"), "menu")}
-    {@render link("services", t("settings.menu.services"), "compass")}
-
-  </nav>
 
   <!-- `data-nav-lines` : haut / bas passent par chaque ligne, dans l'ordre (télécommande). -->
   <div class="panel" class:solo={page === "account" || page === "player"} data-nav-zone="settings-panel" data-nav-lines>

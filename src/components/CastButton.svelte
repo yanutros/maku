@@ -4,12 +4,14 @@
   import Icon from "./Icon.svelte";
   import { errorText } from "../lib/api";
   import { t } from "../lib/i18n";
-  import { toast } from "../lib/nav.svelte";
+  import { closeOnBack, toast } from "../lib/nav.svelte";
   import { airPlayAvailable, cast, castAvailable, castTo, findCastDevices, showAirPlay, type CastDevice } from "../lib/player.svelte";
 
   let { size = 19, up = true, big = false }: { size?: number; up?: boolean; big?: boolean } = $props();
 
   let open = $state(false);
+  // Retour et Échap ferment la liste des appareils.
+  $effect(() => (open ? closeOnBack(() => (open = false)) : undefined));
   let root = $state<HTMLElement>();
   let menu = $state<HTMLElement>();
   // Position du menu à l'écran : la barre coupe ce qui la dépasse, le menu est donc rattaché à la page.

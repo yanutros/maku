@@ -565,6 +565,56 @@ function sectionList(a: Args): Item[] {
 /** Connexion à Tracearr faite pendant la démo (voir `?tracearrlogin`). */
 let tracearrLoggedIn = false;
 
+/** Téléchargements fictifs : 24 titres d'une playlist, deux saisons d'une série (l'une en cours) et un film. */
+const offlineItem = (o: Record<string, unknown>) => ({
+  server: "plex:demo",
+  subtitle: null,
+  showTitle: null,
+  groupKey: null,
+  groupTitle: null,
+  index: null,
+  parentIndex: null,
+  quality: "original",
+  file: "",
+  poster: null,
+  size: 12_000_000,
+  done: 12_000_000,
+  status: "done",
+  error: null,
+  durationMs: 240_000,
+  positionMs: 0,
+  watched: false,
+  pending: false,
+  added: 0,
+  ...o,
+});
+let offlineItems = [
+  ...Array.from({ length: 24 }, (_, i) => offlineItem({ id: `pl-${i}`, ratingKey: `pl-${i}`, kind: "track", title: `Titre ${i + 1}`, showTitle: "Artiste", groupKey: "playlist-1", groupTitle: "Sur la route", index: i + 1 })),
+  ...[1, 2].flatMap((season) =>
+    Array.from({ length: 6 }, (_, i) =>
+      offlineItem({
+        id: `ep-${season}-${i}`,
+        ratingKey: `ep-${season}-${i}`,
+        kind: "episode",
+        title: `Épisode ${i + 1}`,
+        showTitle: "Les Marées",
+        groupKey: "show-1",
+        groupTitle: "Les Marées",
+        index: i + 1,
+        parentIndex: season,
+        quality: "720",
+        size: 400_000_000,
+        // Deuxième saison : encore en cours de téléchargement.
+        ...(season === 2 && i > 1 ? { status: "queued", done: 0 } : { done: 400_000_000 }),
+      }),
+    ),
+  ),
+  offlineItem({ id: "film-1", ratingKey: "film-1", kind: "movie", title: "Le Phare", size: 2_100_000_000, done: 2_100_000_000, durationMs: 6_000_000 }),
+];
+
+/** Titres de la liste de visionnage (identifiants plex://). */
+const watchlist = new Set<string>();
+
 function handle(cmd: string, a: Args): unknown {
   switch (cmd) {
     // `?demo=…&plugin` : un serveur Jellyfin avec le plugin Maku, par lequel passe Seerr.
@@ -608,6 +658,21 @@ function handle(cmd: string, a: Args): unknown {
       tracearrLoggedIn = true;
       return null;
     case "tracearr_configure":
+      return null;
+    // Téléchargements de l'appareil (`?demo=telechargements`) : une playlist, deux saisons d'une série et un film.
+    case "offline_list":
+      return { dir: "/demo", items: offlineItems };
+    case "offline_remove":
+      offlineItems = offlineItems.filter((d) => d.id !== a.id);
+      return null;
+    case "offline_allowed":
+      return true;
+    // Liste de visionnage du compte Plex (menu d'un film ou d'une série).
+    case "plex_watchlisted":
+      return watchlist.has(a.guid);
+    case "plex_set_watchlist":
+      if (a.on) watchlist.add(a.guid);
+      else watchlist.delete(a.guid);
       return null;
     // `?demo=…&relay` : un relais Maku Server trouvé à côté du serveur (Réglages › Services).
     case "relay_discover":
@@ -896,6 +961,13 @@ export async function installDemo(view: string): Promise<() => Promise<void>> {
       case "reglages":
         go({ name: "settings" });
         return;
+      // Téléchargements (Android seulement) : la démo se présente comme un téléphone Android.
+      case "telechargements": {
+        const { device } = await import("./device");
+        device.os = "android";
+        go({ name: "downloads" });
+        return;
+      }
       case "reglages-interface":
         go({ name: "settings", page: "interface" });
         return;

@@ -69,6 +69,8 @@
   }
 </script>
 
+<svelte:window onkeydown={(e) => e.key === "Escape" && close()} />
+
 <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
 <div class="backdrop" onclick={close}>
   <div class="dialog" onclick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1">

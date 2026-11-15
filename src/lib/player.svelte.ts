@@ -1020,6 +1020,39 @@ export function mediaCommand(action: string) {
 
 listen<string>("media-command", (e) => mediaCommand(e.payload)).catch(() => {});
 
+/**
+ * Télécommandes à touches séparées (lecture, pause, arrêt, retour et avance rapides) : elles n'avaient aucun effet,
+ * seule la touche lecture / pause étant gérée. Vaut pour la vidéo comme pour la musique. Renvoie vrai si la touche
+ * a été prise en compte.
+ */
+export function mediaKey(key: string): boolean {
+  if (!player.active) return false;
+  switch (key) {
+    case "MediaPlay":
+      if (player.paused) mpv("cycle", "pause");
+      return true;
+    case "MediaPause":
+      if (!player.paused) mpv("cycle", "pause");
+      return true;
+    case "MediaStop":
+      stop();
+      return true;
+    case "MediaRewind":
+      mpv("seek", -10, "relative");
+      return true;
+    case "MediaFastForward":
+      mpv("seek", 30, "relative");
+      return true;
+  }
+  return false;
+}
+
+if (typeof window !== "undefined") {
+  window.addEventListener("keydown", (e) => {
+    if (mediaKey(e.key)) e.preventDefault();
+  });
+}
+
 const android = (globalThis as { PlexrDevice?: { mediaUpdate?(json: string): void; mediaStop?(): void } }).PlexrDevice;
 if (android?.mediaUpdate) {
   (globalThis as { __plexrMedia?: (action: string) => void }).__plexrMedia = (action) => {

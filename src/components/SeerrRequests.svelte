@@ -6,7 +6,7 @@
   import Icon from "./Icon.svelte";
   import { onMount } from "svelte";
   import { api, errorText, type RequestFilter, type SeerrRequest } from "../lib/api";
-  import { go, toast } from "../lib/nav.svelte";
+  import { closeOnBack, go, toast } from "../lib/nav.svelte";
   import { ago, refreshPending, requestState } from "../lib/seerrAdmin.svelte";
   import { t, locale } from "../lib/i18n";
 
@@ -22,6 +22,8 @@
   /** Demande dont la suppression attend sa confirmation. */
   let confirming = $state<number | null>(null);
   let editing = $state<SeerrRequest | null>(null);
+  // Retour et Échap ferment la fenêtre « Modifier la demande », sans quitter la page.
+  $effect(() => (editing ? closeOnBack(() => (editing = null)) : undefined));
 
   /** Recharge la liste ; `count` garde autant de demandes qu'il y en avait d'affichées. */
   async function load(count = PAGE) {

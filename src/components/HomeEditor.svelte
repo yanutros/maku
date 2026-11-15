@@ -61,6 +61,8 @@
     display: flex;
     flex-direction: column;
     gap: 2px;
+    /* Une ligne au texte long ne doit pas élargir la carte au-delà de l'écran (téléphone). */
+    min-width: 0;
     margin-bottom: 12px;
   }
 
@@ -68,6 +70,7 @@
     display: flex;
     align-items: center;
     gap: 4px;
+    min-width: 0;
     padding: 4px 6px;
     border-radius: 10px;
   }
@@ -94,6 +97,23 @@
     white-space: nowrap;
   }
 
+  .check span:not(.muted) {
+    min-width: 0;
+  }
+
+  .check .muted {
+    flex: none;
+  }
+
+  /* Téléphone : le nom de la rangée en entier, sur deux lignes s'il le faut, sans la mention « bibliothèque ». */
+  :global(html.phone) .check span:not(.muted) {
+    white-space: normal;
+  }
+
+  :global(html.phone) .check .muted {
+    display: none;
+  }
+
   .off .check span:not(.muted) {
     color: var(--text-dim);
   }
@@ -104,6 +124,7 @@
 
   .tool {
     display: grid;
+    flex: none;
     place-items: center;
     width: 34px;
     height: 34px;

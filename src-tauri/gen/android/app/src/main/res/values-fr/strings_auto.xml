@@ -11,4 +11,5 @@
     <string name="auto_nothing">"Rien à lire ici."</string>
     <string name="auto_no_server">"Choisis un serveur dans Maku, sur le téléphone."</string>
     <string name="auto_locked">"Déverrouille le téléphone une fois, puis réessaie."</string>
+    <string name="auto_plex_only">"La musique en voiture ne fonctionne qu'avec un serveur Plex."</string>
 </resources>

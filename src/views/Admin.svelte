@@ -75,6 +75,8 @@
 
   function select(id: string) {
     tab = id;
+    // Téléphone : l'onglet choisi reste visible dans la bande.
+    document.querySelector(`.admin-tabs [data-tab="${CSS.escape(id)}"]`)?.scrollIntoView({ inline: "center", block: "nearest" });
     document.querySelector(".content")?.scrollTo({ top: 0 });
     // Retour d'une autre page : on retrouve la même section.
     if (nav.view.name === "admin") nav.view.tab = id;
@@ -84,9 +86,9 @@
 <div class="page">
   <div class="head">
     <h1 class="row-title page-title">{page === "dashboard" ? t("admin.dashboard") : page === "requests" ? t("admin.requests") : t("admin.serverSettings")}</h1>
-    <div class="tabs" role="tablist">
+    <div class="tabs admin-tabs" role="tablist">
       {#each tabs as tb (tb.id)}
-        <button role="tab" aria-selected={tab === tb.id} class:active={tab === tb.id} onclick={() => select(tb.id)}>{tb.label}</button>
+        <button role="tab" data-tab={tb.id} aria-selected={tab === tb.id} class:active={tab === tb.id} onclick={() => select(tb.id)}>{tb.label}</button>
       {/each}
     </div>
   </div>
@@ -177,6 +179,40 @@
   .tabs button.active {
     background: var(--accent);
     color: var(--accent-text);
+  }
+
+  /* Téléphone : une seule ligne qui défile au doigt, jusqu'aux bords de l'écran, au lieu d'onglets qui passent à la ligne. */
+  :global(html.phone) .head {
+    display: block;
+  }
+
+  :global(html.phone) .tabs {
+    flex-wrap: nowrap;
+    gap: 6px;
+    /* Jusqu'aux deux bords de l'écran, par-dessus la marge de la page. */
+    width: calc(100% + 32px);
+    max-width: none;
+    margin: 12px -16px 0;
+    padding: 4px 16px;
+    overflow-x: auto;
+    border-radius: 0;
+    background: none;
+    scrollbar-width: none;
+  }
+
+  :global(html.phone) .tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  :global(html.phone) .tabs button {
+    flex: none;
+    padding: 8px 14px;
+    border: 1px solid var(--border);
+    white-space: nowrap;
+  }
+
+  :global(html.phone) .tabs button.active {
+    border-color: var(--accent);
   }
 
   .banner {

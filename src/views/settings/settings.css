@@ -504,32 +504,51 @@
 
 /* ---------- Téléviseur : rail plus grand, la rubrique ouverte bien marquée ---------- */
 
+/* Téléviseur : le titre, les rubriques en onglets sur une ligne, puis la page sur toute la largeur. Une colonne de
+   rubriques à côté du menu de Maku faisait deux menus côte à côte, et laissait la moitié de l'écran vide. */
 html.tv .settings {
-  grid-template-columns: 280px minmax(0, 1fr);
-  gap: 40px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
 }
 
-html.tv .settings .menu {
-  padding: 8px;
-  border-radius: 18px;
-  background: #ffffff08;
+/* Le nom de la rubrique est déjà dans son onglet. */
+html.tv .settings .title {
+  display: none;
 }
 
-html.tv .settings .menu button {
-  gap: 14px;
-  padding: 13px 16px;
-  border-radius: 12px;
+html.tv .settings .desk-head {
+  justify-content: flex-start;
+  gap: 16px 40px;
+  margin-bottom: 28px;
+}
+
+html.tv .settings .tabs {
+  flex-wrap: nowrap;
+  gap: 6px;
+  padding: 6px;
+  border-radius: 28px;
+}
+
+html.tv .settings .tabs button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 22px;
+  border-radius: 22px;
   font-size: 16px;
+  white-space: nowrap;
 }
 
-html.tv .settings .menu button.active {
-  background: color-mix(in srgb, var(--accent) 16%, transparent);
+/* La rubrique ouverte, quand la sélection est dans la page : teintée, sans passer pour la sélection. */
+html.tv .settings .tabs button.active {
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
   color: var(--text);
 }
 
-html.tv .settings .menu button:focus {
-  outline: 3px solid var(--accent);
-  outline-offset: 0;
+html.tv .settings .tabs button:focus {
+  outline: none;
+  background: var(--accent);
+  color: var(--accent-text);
 }
 
 html.tv .settings .card {

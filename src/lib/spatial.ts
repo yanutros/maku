@@ -350,6 +350,18 @@ export function moveFocus(dir: Dir): boolean {
     }
     if (dir === "ArrowRight") return true;
   }
+  // Onglets au-dessus d'une page en lignes (Réglages) : bas entre dans la page, sur la ligne quittée ou la première.
+  // Au plus proche, la sélection partait dans le menu de gauche quand la première commande de la page est à droite.
+  if (current && tabs && dir === "ArrowDown") {
+    const page = document.querySelector<HTMLElement>("main [data-nav-lines]");
+    const back = page && last.get(zone(page) ?? page);
+    const entry = back && back.isConnected && page!.contains(back) && visible(back) ? back : page && focusables(page)[0];
+    if (entry) {
+      entry.focus({ preventScroll: true });
+      reveal(entry);
+      return true;
+    }
+  }
   // Rien de sélectionné (premier appui, ou focus posé par le WebView sur un bloc de la page) :
   // on part de l'élément par défaut de la page.
   if (!current || current === document.body || !current.matches(FOCUSABLE)) {
@@ -376,6 +388,8 @@ export function moveFocus(dir: Dir): boolean {
     glideTo(content, { top: 0 });
     return true;
   }
+  // Haut depuis la première ligne d'une page en lignes : l'onglet de la rubrique ouverte, s'il y en a au-dessus.
+  if (dir === "ArrowUp" && lines && !inLines.some((el) => el === target) && focusTabs()) return true;
   // Rien plus bas dans la page (ou seulement le menu de gauche) : le petit lecteur de la musique en cours.
   if (dir === "ArrowDown" && current && !current.closest("aside") && (!target || zone(target) !== zone(current)) && focusMiniPlayer()) return true;
   if (!target) return false;

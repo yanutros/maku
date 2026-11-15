@@ -81,6 +81,16 @@
   // Un fichier à décrire dans « Voir les informations ».
   const hasFile = $derived(item.kind === "track" || item.kind === "movie" || item.kind === "episode");
 
+  // Liste de visionnage du compte Plex : films et séries (identifiant plex:// du titre), comme dans le menu du téléviseur.
+  const watchGuid = nav.serverKind === "plex" && (item.kind === "movie" || item.kind === "show") ? item.logoGuid : null;
+  let watchlisted = $state<boolean | null>(null);
+  if (watchGuid) api.watchlisted(watchGuid).then((w) => (watchlisted = w), () => {});
+
+  function toggleWatchlist() {
+    const on = !watchlisted;
+    run(() => api.setWatchlist(watchGuid!, on), on ? t("tvMenu.watchlistAdded") : t("tvMenu.watchlistRemoved"));
+  }
+
   function removeContinue() {
     run(async () => {
       await api.removeFromContinue(item.ratingKey);
@@ -142,6 +152,9 @@
     {#if downloadable}
       <button role="menuitem" onclick={() => run(() => downloadMusic(item), t("cardMenu.downloadStarted"))}><Icon name="download" size={16} /> {t("cardMenu.download")}</button>
     {/if}
+  {/if}
+  {#if watchGuid && watchlisted !== null}
+    <button role="menuitem" class="watchlist" onclick={toggleWatchlist}><Icon name="pin" size={16} /> {watchlisted ? t("tvMenu.removeWatchlist") : t("tvMenu.addWatchlist")}</button>
   {/if}
   {#if hasFile}
     <button role="menuitem" onclick={() => ((nav.infoFor = item), close())}><Icon name="info" size={16} /> {t("trackInfo.open")}</button>

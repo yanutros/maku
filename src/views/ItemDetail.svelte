@@ -973,6 +973,11 @@
     height: 50px;
   }
 
+  /* Le bouton « Télécharger » (un autre composant) prend la même hauteur. */
+  .actions {
+    --action-height: 50px;
+  }
+
   .btn.primary.big {
     padding: 0 32px;
     font-size: 16px;
@@ -1022,7 +1027,13 @@
     text-shadow: 0 2px 12px #000;
   }
 
-  /* Résumé : quatre lignes, le reste au clic. */
+  /* Téléviseur : pas de clic pour déplier le résumé, il a donc plus de lignes d'emblée. */
+  :global(html.tv) .summary {
+    -webkit-line-clamp: 8;
+    line-clamp: 8;
+  }
+
+  /* Résumé : trois lignes, le reste au clic. */
   .summary {
     display: -webkit-box;
     padding: 0;

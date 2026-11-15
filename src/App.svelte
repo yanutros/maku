@@ -154,6 +154,8 @@
     else if (nav.editing) nav.editing = null;
     else if (nav.matching) nav.matching = null;
     else if (nav.requesting) nav.requesting = null;
+    // Téléviseur : le QR code de la connexion à Tracearr.
+    else if (nav.authUrl) nav.authUrl = null;
     else if (player.active && player.video) stop();
     else if (player.expanded) player.expanded = false;
     else return false;
@@ -373,6 +375,7 @@
 {/if}
 
 <!-- Téléviseur : la validation Tracearr se fait sur le téléphone, depuis ce QR code. -->
+<svelte:window onkeydown={(e) => e.key === "Escape" && nav.authUrl && (nav.authUrl = null)} />
 {#if nav.authUrl}
   <div class="auth-qr" role="dialog" aria-label={t("app.authTracearr")}>
     <div class="auth-card">
