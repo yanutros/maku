@@ -1,3 +1,4 @@
+import { nav } from "./nav.svelte";
 // Filtre et tri choisis dans l'onglet Bibliothèque d'une bibliothèque de films ou de séries, gardés d'une
 // visite à l'autre comme dans Plex (une valeur par bibliothèque, dans le stockage local).
 
@@ -38,15 +39,34 @@ function all(): Record<string, LibraryView> {
   }
 }
 
+/**
+ * Clé d'une bibliothèque : son numéro, rangé sous le serveur en cours. Deux serveurs ont chacun une bibliothèque
+ * « 1 » : sans cela, le filtre choisi sur l'un s'appliquait à l'autre (liste vide, ou le mauvais genre).
+ */
+const scoped = (section: string) => (nav.serverId ? `${nav.serverId}/${section}` : section);
+
 export function loadView(section: string): LibraryView {
   const empty: LibraryView = { flag: null, value: null, sort: null, desc: false };
+  const saved = all();
+  const key = scoped(section);
+  // Choix gardé avant ce rangement (sous le seul numéro) : il revient au premier serveur qui ouvre la bibliothèque,
+  // et à lui seul.
+  if (key !== section && !saved[key] && saved[section]) {
+    saved[key] = saved[section];
+    delete saved[section];
+    try {
+      localStorage.setItem(KEY, JSON.stringify(saved));
+    } catch {
+      // Stockage indisponible : le choix vaut pour cette visite seulement.
+    }
+  }
   // L'aperçu d'une collection intelligente ne se garde pas d'une visite à l'autre.
-  return { ...empty, ...all()[section], advanced: null };
+  return { ...empty, ...saved[key], advanced: null };
 }
 
 export function saveView(section: string, view: LibraryView) {
   try {
-    localStorage.setItem(KEY, JSON.stringify({ ...all(), [section]: { ...view, advanced: null } }));
+    localStorage.setItem(KEY, JSON.stringify({ ...all(), [scoped(section)]: { ...view, advanced: null } }));
   } catch {
     // Stockage indisponible : le choix vaut pour cette visite seulement.
   }

@@ -559,6 +559,8 @@ const web = (() => {
   // puis lancé juste avant la dernière milliseconde (le passage d'un élément à l'autre ne laisse pas de trou).
   let nextEl: HTMLAudioElement | null = null;
   let nextIndex = -1;
+  /** Adresse chargée dans `nextEl`, telle que demandée : `nextEl.src` la rend normalisée, donc différente. */
+  let nextUrl = "";
   let handoff: ReturnType<typeof setTimeout> | undefined;
 
   const followingIndex = () =>
@@ -572,10 +574,11 @@ const web = (() => {
     const ni = followingIndex();
     if (ni < 0) return;
     // La file a pu changer (titre ajouté ou déplacé) : le suivant préparé doit être le bon.
-    if (nextIndex !== ni || !nextEl || nextEl.src !== player.queue[ni].url) {
+    if (nextIndex !== ni || !nextEl || nextUrl !== player.queue[ni].url) {
       nextEl ??= new Audio();
       nextEl.preload = "auto";
-      nextEl.src = player.queue[ni].url;
+      nextUrl = player.queue[ni].url;
+      nextEl.src = nextUrl;
       nextEl.load();
       nextIndex = ni;
     }
@@ -619,7 +622,7 @@ const web = (() => {
   function bind(el: HTMLMediaElement) {
     unbind?.();
     const on: [string, () => void][] = [
-      ["timeupdate", () => ((player.position = el.currentTime), (player.buffering = false), prepareNext(el))],
+      ["timeupdate", () => (player.scrubbing || (player.position = el.currentTime), (player.buffering = false), prepareNext(el))],
       ["durationchange", () => Number.isFinite(el.duration) && el.duration > 0 && (player.duration = el.duration)],
       ["play", () => (player.paused = false)],
       ["pause", () => ((player.paused = true), report("paused"))],
@@ -680,7 +683,7 @@ const web = (() => {
       else stop();
       return;
     }
-    if (e.position !== undefined) player.position = e.position / 1000;
+    if (e.position !== undefined && !player.scrubbing) player.position = e.position / 1000;
     if (e.duration) player.duration = e.duration / 1000;
     if (e.buffered !== undefined) player.bufferedUntil = e.buffered / 1000;
     if (e.paused !== undefined && e.paused !== player.paused) {
@@ -894,6 +897,7 @@ const web = (() => {
       clearTimeout(handoff);
       handoff = undefined;
       nextIndex = -1;
+      nextUrl = "";
       for (const el of [videoEl, audioEl, nextEl]) {
         if (!el) continue;
         el.pause();
@@ -933,7 +937,7 @@ listen<{ name: string; data: unknown }>("player-prop", ({ payload: { name, data 
   switch (name) {
     case "time-pos":
       if (typeof data === "number") {
-        player.position = data;
+        if (!player.scrubbing) player.position = data;
         player.buffering = false;
       }
       break;
@@ -1014,11 +1018,11 @@ export function mediaCommand(action: string) {
     if (player.paused === (action === "play")) mpv("cycle", "pause");
   } else if (action === "next") {
     if (player.video) {
-      if (player.nextKey) play(player.nextKey);
+      if (player.nextKey) play(player.nextKey).catch((e) => toast(String(e), true));
     } else next();
   } else if (action === "previous") {
     if (player.video) {
-      if (player.prevKey) play(player.prevKey);
+      if (player.prevKey) play(player.prevKey).catch((e) => toast(String(e), true));
     } else previous();
   } else if (action === "stop") stop();
   else if (action.startsWith("seek:")) mpv("seek", Number(action.slice(5)) / 1000, "absolute");

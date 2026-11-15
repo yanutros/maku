@@ -1566,7 +1566,7 @@ impl PlexServer {
         )
         .await;
         let mut items: Vec<Item> = lists.into_iter().filter_map(Result::ok).flat_map(|c| self.to_items(c.metadata)).collect();
-        items.sort_by(|a, b| b.year.cmp(&a.year));
+        items.sort_by_key(|i| std::cmp::Reverse(i.year));
         Ok(items)
     }
 

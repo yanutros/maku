@@ -1216,6 +1216,23 @@ fn chapter_markers(item: &Value) -> Vec<Marker> {
     out
 }
 
+/// Un filtre de l'onglet Bibliothèque (noms de Plex) traduit en paramètre de Jellyfin.
+fn jellyfin_filter(name: &str, value: &str) -> String {
+    let v = urlencoding::encode(value);
+    match name {
+        "unwatched" => "&IsPlayed=false".into(),
+        "inProgress" => "&Filters=IsResumable".into(),
+        "favorite" => "&Filters=IsFavorite".into(),
+        "genre" => format!("&Genres={v}"),
+        "year" => format!("&Years={v}"),
+        "decade" => value.parse::<u32>().map(|d| format!("&Years={}", (d..d + 10).map(|y| y.to_string()).collect::<Vec<_>>().join(","))).unwrap_or_default(),
+        "contentRating" => format!("&OfficialRatings={v}"),
+        "studio" => format!("&StudioIds={v}"),
+        "label" => format!("&Tags={v}"),
+        _ => String::new(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1277,22 +1294,5 @@ mod tests {
         assert!(h.contains_key("Authorization"));
         assert!(h.contains_key("X-Emby-Authorization"));
         assert_eq!(h["X-Emby-Token"], "tok");
-    }
-}
-
-/// Un filtre de l'onglet Bibliothèque (noms de Plex) traduit en paramètre de Jellyfin.
-fn jellyfin_filter(name: &str, value: &str) -> String {
-    let v = urlencoding::encode(value);
-    match name {
-        "unwatched" => "&IsPlayed=false".into(),
-        "inProgress" => "&Filters=IsResumable".into(),
-        "favorite" => "&Filters=IsFavorite".into(),
-        "genre" => format!("&Genres={v}"),
-        "year" => format!("&Years={v}"),
-        "decade" => value.parse::<u32>().map(|d| format!("&Years={}", (d..d + 10).map(|y| y.to_string()).collect::<Vec<_>>().join(","))).unwrap_or_default(),
-        "contentRating" => format!("&OfficialRatings={v}"),
-        "studio" => format!("&StudioIds={v}"),
-        "label" => format!("&Tags={v}"),
-        _ => String::new(),
     }
 }

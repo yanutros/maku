@@ -89,6 +89,8 @@ export const nav = $state({
   infoFor: null as Item | null,
   /** Serveur connecté : Plex note de 1 à 5 étoiles, Jellyfin et Emby seulement « J'aime ». */
   serverKind: "plex" as "plex" | "jellyfin",
+  /** Identité du serveur en cours (vide tant qu'elle n'est pas connue). */
+  serverId: "",
   /** Écran « Qui regarde ? » ouvert depuis la carte du profil (Plex Home). */
   profiles: false,
   /** Le Plex Home du compte a plusieurs profils : la carte du profil ouvre leur choix. */
@@ -232,6 +234,23 @@ export function onBack(handler: () => boolean) {
     const i = backHandlers.indexOf(handler);
     if (i >= 0) backHandlers.splice(i, 1);
   };
+}
+
+const scopeListeners = new Set<() => void>();
+
+/**
+ * `cb` est appelé quand le serveur ou le profil change : ce qui est gardé en mémoire pour aller vite (fiches déjà
+ * ouvertes…) appartient à l'ancien, et s'afficherait un instant chez le nouveau, les numéros des titres et des
+ * bibliothèques se répétant d'un serveur à l'autre.
+ */
+export function onScopeChange(cb: () => void): () => void {
+  scopeListeners.add(cb);
+  return () => void scopeListeners.delete(cb);
+}
+
+/** Le serveur ou le profil vient de changer. */
+export function scopeChanged() {
+  for (const cb of scopeListeners) cb();
 }
 
 /**

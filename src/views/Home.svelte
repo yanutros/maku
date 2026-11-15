@@ -5,7 +5,7 @@
   import { onMount } from "svelte";
   import { listen } from "@tauri-apps/api/event";
   import { api, errorText, type Home, type Item, type SeerrMedia, type Section } from "../lib/api";
-  import { go } from "../lib/nav.svelte";
+  import { go, toast } from "../lib/nav.svelte";
   import { onPlaybackEnded } from "../lib/player.svelte";
   import { arrange, availableRows, shownByDefault } from "../lib/homeRows.svelte";
   import { fromItem, fromSeerr } from "../lib/tvcards";
@@ -39,8 +39,12 @@
   async function load() {
     try {
       home = await api.home();
+      error = null;
     } catch (e) {
-      error = errorText(e);
+      // Un rechargement raté (fin d'une lecture, serveur qui tarde) ne remplace pas l'accueil déjà affiché par une
+      // erreur : un message suffit.
+      if (home) toast(errorText(e), true);
+      else error = errorText(e);
     }
   }
 

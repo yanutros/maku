@@ -46,10 +46,9 @@ fn error(status: StatusCode, message: &str) -> Response {
 pub fn target<'a>(app: &'a crate::App, path: &'a str) -> Option<(&'a str, &'a str)> {
     let (base, rest) = if let Some(rest) = path.strip_prefix("/seerr") {
         (app.cfg.seerr.as_deref()?, rest)
-    } else if let Some(rest) = path.strip_prefix("/tracearr") {
-        (app.cfg.tracearr.as_deref()?, rest)
     } else {
-        return None;
+        let rest = path.strip_prefix("/tracearr")?;
+        (app.cfg.tracearr.as_deref()?, rest)
     };
     let api = rest == "/api/v1" || rest.starts_with("/api/v1/");
     let lower = rest.to_ascii_lowercase();

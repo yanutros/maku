@@ -28,7 +28,7 @@ test("bibliothèque : filtrer les non vus, choisir un genre, trier par année", 
   expect(nombres).toEqual([...nombres].sort((a, b) => b - a));
 
   // Le choix est gardé pour la visite suivante (le rechargement des tests efface le stockage : on le lit).
-  const gardé = await page.evaluate(() => JSON.parse(localStorage.getItem("maku.libraryView") ?? "{}")["1"]);
+  const gardé = await page.evaluate(() => JSON.parse(localStorage.getItem("maku.libraryView") ?? "{}")["plex:demo/1"]);
   expect(gardé).toMatchObject({ flag: "unwatched", sort: "year", desc: true, value: { field: "genre", id: "Drame" } });
 });
 

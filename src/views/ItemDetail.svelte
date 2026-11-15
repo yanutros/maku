@@ -1,5 +1,6 @@
 <script lang="ts" module>
   import type { Item as CachedItem, ItemDetail as CachedDetail } from "../lib/api";
+  import { onScopeChange } from "../lib/nav.svelte";
 
   /**
    * Dernières fiches ouvertes : au retour d'une autre page (fiche d'un acteur…), la fiche s'affiche aussitôt
@@ -14,6 +15,12 @@
 
   /** Saison de chaque épisode déjà vu dans une saison : son retour s'affiche aussitôt depuis `cache`. */
   const episodeSeason = new Map<string, string>();
+
+  // Autre serveur ou autre profil : ces fiches ne sont plus les siennes (même numéro, autre titre ou autre état « vu »).
+  onScopeChange(() => {
+    cache.clear();
+    episodeSeason.clear();
+  });
 </script>
 
 <script lang="ts">
@@ -229,8 +236,11 @@
             : [];
       if (detail.kind === "show") findShowNext(children);
       remember();
+      error = null;
     } catch (e) {
-      error = errorText(e);
+      // Un rechargement raté ne remplace pas la fiche déjà affichée par une erreur : un message suffit.
+      if (item) toast(errorText(e), true);
+      else error = errorText(e);
     }
   }
 

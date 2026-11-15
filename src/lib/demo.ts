@@ -623,6 +623,7 @@ function handle(cmd: string, a: Args): unknown {
       return {
         loggedIn: true,
         serverName: "Maison",
+        serverId: plugin ? "jellyfin:demo" : "plex:demo",
         ...(plugin ? { serverKind: "jellyfin" } : {}),
         seerrUrl: plugin ? "http://jellyfin.local:8096/Maku/seerr" : "https://seerr.exemple.fr",
         mpvPath: null,

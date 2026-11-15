@@ -85,6 +85,8 @@ export const player = $state({
   expanded: false,
   /** Incrémenté à chaque saut dans le morceau (pour la notification Android). */
   seeks: 0,
+  /** La tête de lecture est tenue (glisser) : la position affichée suit le doigt ou la souris, pas la lecture. */
+  scrubbing: false,
   /** Lecture d'un téléchargement (lib/offline.svelte.ts) : son identifiant ; la progression reste sur l'appareil. */
   offline: "",
 });

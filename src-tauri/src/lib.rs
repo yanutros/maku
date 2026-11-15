@@ -1,3 +1,6 @@
+// Une commande Tauri a un paramètre par valeur que la page lui passe : certaines en ont huit ou neuf.
+#![allow(clippy::too_many_arguments)]
+
 mod cast;
 mod config;
 mod error;

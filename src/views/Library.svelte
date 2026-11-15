@@ -1,6 +1,10 @@
 <script lang="ts" module>
+  import { onScopeChange } from "../lib/nav.svelte";
+
   /** Bibliothèques dont on sait déjà si elles ont des collections : l'onglet est là dès l'arrivée à la visite suivante. */
   const hasCollectionsKnown = new Map<string, boolean>();
+  // Autre serveur : ses bibliothèques portent les mêmes numéros, sans avoir les mêmes onglets.
+  onScopeChange(() => hasCollectionsKnown.clear());
 </script>
 
 <script lang="ts">

@@ -601,7 +601,7 @@ pub async fn start(app: AppHandle, device: Device, tracks: Vec<Track>, start: us
                         }
                         Command::Reorder(..) => Ok(0),
                         Command::Order(order) if order.len() == item_ids.len() && order.iter().all(|&i| i < item_ids.len()) => {
-                            let ids: Vec<_> = order.iter().map(|&i| item_ids[i].clone()).collect();
+                            let ids: Vec<_> = order.iter().map(|&i| item_ids[i]).collect();
                             item_ids = ids;
                             link.send(&transport, NS_MEDIA, json!({ "type": "QUEUE_REORDER", "mediaSessionId": ms, "itemIds": item_ids })).await
                         }

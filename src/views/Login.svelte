@@ -17,7 +17,36 @@
   let pin = $state<LoginPin | null>(null);
   let mode = $state<"browser" | "link">("browser");
   let error = $state<string | null>(null);
-  let timer: ReturnType<typeof setInterval> | undefined;
+  /**
+   * Relevé en cours (toutes les 2 s : le code a-t-il été validé ?). Un seul à la fois, et jamais deux demandes en
+   * même temps : avec un minuteur, une réponse lente laissait deux relevés se chevaucher, qui terminaient chacun la
+   * connexion ; et « Nouveau code » pendant une réponse en vol arrêtait le mauvais minuteur.
+   */
+  let watching = 0;
+  const stopWatching = () => void watching++;
+
+  function watch(check: () => Promise<boolean>) {
+    const mine = ++watching;
+    void (async () => {
+      while (mine === watching) {
+        await new Promise((r) => setTimeout(r, 2000));
+        if (mine !== watching) return;
+        try {
+          if (await check()) {
+            if (mine !== watching) return;
+            watching++;
+            onDone();
+            return;
+          }
+        } catch (e) {
+          if (mine !== watching) return;
+          watching++;
+          error = errorText(e);
+          return;
+        }
+      }
+    })();
+  }
 
   // Deux façons de se connecter : valider dans le navigateur de l'appareil, ou saisir un code
   // sur plex.tv/link depuis un téléphone (indispensable sur téléviseur).
@@ -25,21 +54,11 @@
     server = "plex";
     mode = next;
     error = null;
-    clearInterval(timer);
+    stopWatching();
     try {
       const p = await api.startLogin(next === "link");
       pin = p;
-      timer = setInterval(async () => {
-        try {
-          if (await api.pollLogin(p.pinId)) {
-            clearInterval(timer);
-            onDone();
-          }
-        } catch (e) {
-          clearInterval(timer);
-          error = errorText(e);
-        }
-      }, 2000);
+      watch(() => api.pollLogin(p.pinId));
     } catch (e) {
       error = errorText(e);
     }
@@ -60,8 +79,12 @@
   // Plex : sur téléviseur, pas de navigateur, le code s'affiche tout de suite.
   async function choosePlex() {
     if (remembered?.plexRemembered) {
-      await api.resumePlex();
-      onDone();
+      try {
+        await api.resumePlex();
+        onDone();
+      } catch (e) {
+        error = errorText(e);
+      }
     } else if (device.tv) login("link");
     else server = "plex";
   }
@@ -165,28 +188,18 @@
 
   async function quickConnect() {
     error = null;
-    clearInterval(timer);
+    stopWatching();
     try {
       const qc = await api.jellyfinQuickStart(jfUrl);
       quickCode = qc.code;
-      timer = setInterval(async () => {
-        try {
-          if (await api.jellyfinQuickPoll(jfUrl, qc.secret)) {
-            clearInterval(timer);
-            onDone();
-          }
-        } catch (e) {
-          clearInterval(timer);
-          error = errorText(e);
-        }
-      }, 2000);
+      watch(() => api.jellyfinQuickPoll(jfUrl, qc.secret));
     } catch (e) {
       error = errorText(e);
     }
   }
 
   function back() {
-    clearInterval(timer);
+    stopWatching();
     quickCode = null;
     server = null;
     pin = null;
@@ -194,7 +207,7 @@
   }
 
 
-  onDestroy(() => clearInterval(timer));
+  onDestroy(stopWatching);
 </script>
 
 <div class="center">

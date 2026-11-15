@@ -18,6 +18,8 @@ export interface Session {
   /** Serveurs utilisés : un seul (plus d'écran de choix), ou les deux. */
   serverKinds: ServerKinds;
   serverName: string | null;
+  /** Identité du serveur en cours (type et identifiant) : ce que l'interface garde par bibliothèque y est rangé. */
+  serverId?: string | null;
   seerrUrl: string | null;
   mpvPath: string | null;
   tracearrUrl: string | null;

@@ -17,6 +17,9 @@ pub(crate) struct Session {
     /// Nom affiché du type de serveur : « Plex », « Jellyfin » ou « Emby ».
     server_brand: &'static str,
     server_name: Option<String>,
+    /// Identité du serveur en cours (« plex:… », « jellyfin:… ») : l'interface y range ce qu'elle garde par
+    /// bibliothèque, dont les numéros se répètent d'un serveur à l'autre.
+    server_id: Option<String>,
     seerr_url: Option<String>,
     mpv_path: Option<String>,
     tracearr_url: Option<String>,
@@ -114,6 +117,7 @@ pub fn get_session(state: State<'_, AppState>) -> Session {
             Some(s) if s.is_jellyfin() => "Jellyfin",
             _ => "Plex",
         },
+        server_id: c.server.as_ref().map(config::SavedServer::key),
         server_name: c.server.map(|s| s.name),
         seerr_url: c.seerr_url,
         mpv_path: c.mpv_path,

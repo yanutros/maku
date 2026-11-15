@@ -26,6 +26,7 @@
 
   function onBarDown(e: PointerEvent) {
     dragging = true;
+    player.scrubbing = true;
     bar!.setPointerCapture(e.pointerId);
     player.position = timeAt(e.clientX);
   }
@@ -38,6 +39,7 @@
   function onBarUp(e: PointerEvent) {
     if (!dragging) return;
     dragging = false;
+    player.scrubbing = false;
     mpv("seek", timeAt(e.clientX), "absolute");
   }
 

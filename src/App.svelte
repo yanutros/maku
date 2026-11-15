@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { api, type Section, type Session } from "./lib/api";
-  import { back, go, nav, onBack, reload, restoreSpot, takeSpot } from "./lib/nav.svelte";
+  import { back, go, nav, onBack, reload, restoreSpot, scopeChanged, takeSpot } from "./lib/nav.svelte";
   import { checkSeerrManager } from "./lib/seerrAdmin.svelte";
   import { player, stop } from "./lib/player.svelte";
   import Login from "./views/Login.svelte";
@@ -62,6 +62,13 @@
   async function refresh() {
     session = await api.session();
     nav.serverKind = session.serverKind;
+    // Autre serveur que celui d'avant : ce qui était gardé en mémoire pour l'ancien est oublié.
+    const serverId = session.serverId ?? "";
+    if (serverId !== nav.serverId) {
+      const first = nav.serverId === "";
+      nav.serverId = serverId;
+      if (!first) scopeChanged();
+    }
     // Bibliothèques et droit d'administration : demandés tout de suite, en même temps que les profils du compte, au
     // lieu de l'un après l'autre (le menu attendait deux allers-retours de plus).
     const wanted = session.serverName
@@ -235,6 +242,8 @@
       if (switched) {
         nav.history = [];
         nav.view = { name: "home" };
+        // Autre profil : son état « vu » et ses reprises ne sont pas ceux du précédent.
+        scopeChanged();
       }
       refresh();
     }}

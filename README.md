@@ -143,7 +143,8 @@ Il se tient à jour avec l'application : chaque nouvelle fonctionnalité y a sa 
 **Tests de l'interface.** `npm test` ouvre Maku en mode démo avec [Playwright](https://playwright.dev) et le pilote
 comme un utilisateur, sur quatre appareils simulés : ordinateur, téléviseur (flèches, OK, Retour), téléphone et
 moteur de Safari (iPad, Mac). Les parcours (`tests/`) couvrent l'accueil, les fiches (série, saison, épisode),
-les acteurs, le lecteur, le journal de diagnostic (un élément y est décrit sans son texte), le démarrage et les rafraîchissements (bibliothèques demandées une seule fois, demandes indépendantes lancées
+les acteurs, le lecteur, le journal de diagnostic (un élément y est décrit sans son texte), les petits défauts (un rechargement raté garde la page affichée, la tête de lecture tenue ne saute pas, filtres et
+fiches gardés par serveur et par profil), le démarrage et les rafraîchissements (bibliothèques demandées une seule fois, demandes indépendantes lancées
 ensemble, Statistiques et tableau de bord à l'arrêt quand Maku n'est pas à l'écran), les Réglages du téléviseur (rubriques en onglets au-dessus d'une page en pleine largeur, bas qui entre dans la page
 et haut qui revient à l'onglet), les pages du téléphone (rien ne dépasse de l'écran dans les Réglages, les onglets de l'administration tiennent sur une
 ligne qui défile, « Télécharger » a la taille de ses voisins, les téléchargements sont rangés par dossier), la même
@@ -173,7 +174,7 @@ en même temps, meilleure adresse Plex retenue sans attendre les moins bonnes, d
 intégrant jsQR). Sur GitHub, ils passent à chaque envoi sur `main` et avant la construction des paquets d'une
 version, comme ceux de Maku Server (`cargo test` dans `server` : jeton vérifié auprès de Plex, de Jellyfin et d'Emby,
 chacun à sa façon, gardé ensuite ; serveur ou service injoignable ; envoi trop gros ; chemins hors de l'API ;
-redirection rendue telle quelle).
+redirection rendue telle quelle). `cargo clippy` y passe aussi, dans les deux, sans aucun signalement.
 
 **Contrat entre l'interface et le Rust.** `node --test tests/contrat.test.mjs` vérifie que chaque commande appelée par
 l'interface existe côté Rust, que le mode démo n'en simule aucune qui n'existe pas, et qu'aucune commande du Rust n'est

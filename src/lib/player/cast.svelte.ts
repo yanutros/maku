@@ -104,7 +104,7 @@ listen<{ state: string; position: number; duration: number; index: number | null
     player.buffering = s.state === "BUFFERING";
   }
   if (s.index !== null && s.index >= 0 && s.index < player.queue.length && s.index !== player.index) player.index = s.index;
-  if (s.state && s.state !== "IDLE") player.position = s.position;
+  if (s.state && s.state !== "IDLE" && !player.scrubbing) player.position = s.position;
   if (s.duration > 0) player.duration = s.duration;
   if (s.volume !== null) player.volume = Math.round(s.volume * 100);
   if (s.muted !== null) player.muted = s.muted;
