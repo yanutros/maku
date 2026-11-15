@@ -865,7 +865,22 @@ export async function installDemo(view: string): Promise<() => Promise<void>> {
   const still = document.createElement("style");
   still.textContent = "*,*::before,*::after{transition:none!important;animation-duration:0s!important;animation-delay:0s!important}";
   document.head.append(still);
-  mockIPC((cmd, args) => handle(cmd, (args ?? {}) as Args), { shouldMockEvents: true });
+  // Tests : une commande peut être retardée ou mise en échec, pour jouer un serveur lent ou une session expirée
+  // (`window.__demoHooks = { play: { delay: 600 }, tracearr_dashboard: { error: "SESSION_EXPIRED" } }` ; `delay` et
+  // `error` peuvent être des fonctions des arguments de la commande).
+  type Hook = { delay?: number | ((a: Args) => number); error?: string | ((a: Args) => string | null) };
+  const hooks = () => (window as unknown as { __demoHooks?: Record<string, Hook> }).__demoHooks ?? {};
+  mockIPC(
+    (cmd, args) => {
+      const a = (args ?? {}) as Args;
+      const hook = hooks()[cmd];
+      if (!hook) return handle(cmd, a);
+      const delay = typeof hook.delay === "function" ? hook.delay(a) : (hook.delay ?? 0);
+      const error = typeof hook.error === "function" ? hook.error(a) : (hook.error ?? null);
+      return new Promise((resolve, reject) => setTimeout(() => (error ? reject(error) : resolve(handle(cmd, a))), delay));
+    },
+    { shouldMockEvents: true },
+  );
 
   return async () => {
     const { go } = await import("./nav.svelte");

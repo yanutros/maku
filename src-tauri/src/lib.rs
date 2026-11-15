@@ -47,6 +47,8 @@ struct AppState {
     seerr_stale: std::sync::atomic::AtomicBool,
     tracearr_stale: std::sync::atomic::AtomicBool,
     player: Mutex<Option<PlayerControl>>,
+    /// Lecture en préparation : une lecture arrêtée ou remplacée pendant l'attente du serveur ne démarre pas.
+    play_turn: commands::PlayTurn,
     relay: Mutex<Option<relay::Relay>>,
     /// Logos trouvés (ou non) sur le service en ligne de Plex, par identifiant.
     remote_logos: Mutex<std::collections::HashMap<String, Option<String>>>,
@@ -203,6 +205,7 @@ pub fn run() {
                 seerr_stale: Default::default(),
                 tracearr_stale: Default::default(),
                 player: Mutex::new(None),
+                play_turn: Default::default(),
                 relay: Mutex::new(None),
                 remote_logos: Mutex::new(Default::default()),
                 logo_slots: tokio::sync::Semaphore::new(4),
@@ -406,6 +409,29 @@ pub fn run() {
                 }
             }
         });
+}
+
+#[cfg(test)]
+mod play_turn_tests {
+    use super::commands::PlayTurn;
+
+    #[test]
+    fn une_lecture_remplacee_ou_arretee_ne_demarre_pas() {
+        let turns = PlayTurn::default();
+        // Seule : elle démarre.
+        let a = turns.begin();
+        assert!(turns.is_current(a));
+        // Une autre lecture demandée pendant l'attente : la première ne démarre plus, la seconde oui.
+        let b = turns.begin();
+        assert!(!turns.is_current(a));
+        assert!(turns.is_current(b));
+        // Arrêt pendant l'attente : plus rien ne démarre.
+        turns.cancel();
+        assert!(!turns.is_current(b));
+        // La lecture suivante repart normalement.
+        let c = turns.begin();
+        assert!(turns.is_current(c));
+    }
 }
 
 #[cfg(test)]

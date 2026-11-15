@@ -49,7 +49,19 @@ function endTranscode() {
   if (!player.web && player.transcoded && player.session) invoke("stop_transcode", { session: player.session }).catch(() => {});
 }
 
+/**
+ * Tour de lecture : il avance à chaque lecture lancée et à chaque arrêt. Lancer une lecture attend d'abord le
+ * serveur ; si, pendant cette attente, l'utilisateur arrête ou lance autre chose, la réponse qui arrive enfin n'est
+ * plus celle attendue : elle ne doit ni démarrer (le son jouerait sans rien pour l'arrêter), ni remplacer ce qui a été
+ * choisi depuis, ni refermer son lecteur en échouant.
+ */
+let playTurn = 0;
+
+/** Erreur de mpv pour une lecture arrêtée ou remplacée pendant sa préparation (voir `PlayTurn`, playback.rs). */
+const superseded = (e: unknown) => String(e).includes("PLAYBACK_SUPERSEDED");
+
 function reset(video: boolean) {
+  playTurn++;
   endTranscode();
   web.teardown();
   Object.assign(player, {
@@ -156,10 +168,18 @@ export async function play(ratingKey: string, opts: PlayOptions = {}) {
   );
   const maxKbps = player.quality || null;
   const startMs = opts.startMs ?? null;
+  const turn = playTurn;
+  /** Arrêtée ou remplacée pendant l'attente : la conversion que le serveur vient de lancer pour elle est libérée. */
+  const stale = (session?: string) => {
+    if (turn === playTurn) return false;
+    if (session) invoke("stop_transcode", { session }).catch(() => {});
+    return true;
+  };
   try {
     // Qualité réduite : le serveur convertit, et le lecteur natif d'Android lit son flux.
     if (player.web && nativeVideo && maxKbps) {
       const s = await invoke<WebStreamInfo>("video_stream", { ratingKey, ...streams, maxKbps, mediaIndex });
+      if (stale(s.session)) return;
       Object.assign(player, { session: s.session, title: s.title, subtitle: s.subtitle, duration: s.durationMs / 1000, native: true });
       markTranscoded();
       diag(`Maku : qualité réduite choisie (${maxKbps} kb/s), le serveur convertit`);
@@ -169,12 +189,14 @@ export async function play(ratingKey: string, opts: PlayOptions = {}) {
     // Android : le fichier d'origine, lu par le lecteur natif (le serveur ne convertit qu'en secours).
     if (player.web && nativeVideo) {
       const s = await invoke<NativeInfo>("native_video", { ratingKey, ...streams, fromStart: opts.fromStart ?? false, startMs, mediaIndex });
+      if (stale()) return;
       Object.assign(player, { session: s.session, title: s.title, subtitle: s.subtitle, duration: s.durationMs / 1000, native: true });
       web.startNative(s, streams);
       return;
     }
     if (player.web) {
       const s = await invoke<WebStreamInfo>("video_stream", { ratingKey, ...streams, maxKbps, mediaIndex });
+      if (stale(s.session)) return;
       Object.assign(player, { session: s.session, title: s.title, subtitle: s.subtitle, duration: s.durationMs / 1000 });
       markTranscoded();
       web.startVideo(s.url, (startMs ?? (opts.fromStart ? 0 : s.offsetMs)) / 1000);
@@ -188,10 +210,14 @@ export async function play(ratingKey: string, opts: PlayOptions = {}) {
       startMs,
       mediaIndex,
     });
+    if (stale()) return;
     Object.assign(player, now);
     if (maxKbps) markTranscoded();
   } catch (e) {
+    // L'échec d'une lecture remplacée ne referme pas le lecteur de celle qui l'a remplacée.
+    if (turn !== playTurn) return;
     player.active = false;
+    if (superseded(e)) return;
     throw e;
   }
 }
@@ -270,6 +296,7 @@ export async function playMusic(
   unshuffled = null;
   // Téléviseur : le lecteur plein écran s'ouvre, comme dans Plex.
   player.expanded = wasExpanded || device.tv;
+  const turn = playTurn;
   try {
     const q = await invoke<{ session: string; tracks: QueueTrack[]; index: number }>(
       player.web || cast.device ? "music_queue" : "play_music",
@@ -281,6 +308,8 @@ export async function playMusic(
         radio: opts.radio ?? false,
       },
     );
+    // Arrêtée ou remplacée pendant l'attente du serveur : rien ne démarre.
+    if (turn !== playTurn) return;
     player.session = q.session;
     player.queue = q.tracks;
     player.index = q.index;
@@ -288,7 +317,9 @@ export async function playMusic(
     if (cast.device) await sendToCast(cast.device, q.index, 0);
     else if (player.web) web.playTrack(q.index);
   } catch (e) {
+    if (turn !== playTurn) return;
     player.active = false;
+    if (superseded(e)) return;
     throw e;
   }
 }
@@ -433,13 +464,14 @@ export function unstall(how: "retry" | "decodeAudio" | "transcode") {
 }
 
 export function stop() {
+  playTurn++;
   if (cast.device) {
     invoke("cast_stop").catch(() => {});
     cast.device = null;
   }
   endTranscode();
   if (player.web) web.teardown();
-  else invoke("player_stop");
+  else invoke("player_stop").catch(() => {});
   player.active = false;
   player.expanded = false;
 }
@@ -666,6 +698,7 @@ const web = (() => {
     copyTried = copyVideo;
     diag(copyVideo ? "Maku : secours, le serveur garde l'image et convertit le son" : "Maku : secours, le serveur convertit l'image et le son");
     const key = player.ratingKey;
+    const turn = playTurn;
     try {
       const s = await invoke<{ session: string; url: string }>("video_stream", {
         ratingKey: key,
@@ -674,14 +707,18 @@ const web = (() => {
         mediaIndex: player.mediaIndex,
         copyVideo,
       });
-      if (player.ratingKey !== key || !player.native) return;
+      // Arrêtée ou remplacée entre-temps (même par le même titre) : la conversion tout juste lancée est libérée.
+      if (turn !== playTurn || player.ratingKey !== key || !player.native) {
+        invoke("stop_transcode", { session: s.session }).catch(() => {});
+        return;
+      }
       player.session = s.session;
       transcoding = true;
       markTranscoded();
       bridge!.videoOpen!(JSON.stringify({ passthrough: passthroughMode(),  url: s.url, offsetMs: Math.round(player.position * 1000), aid: null, sid: "auto", subFiles: [] }));
     } catch (e) {
       diag(`Maku : secours impossible (${String(e).slice(0, 300)})`);
-      stop();
+      if (turn === playTurn) stop();
     }
   }
 
@@ -714,7 +751,10 @@ const web = (() => {
     if (el.canPlayType("application/vnd.apple.mpegurl")) {
       el.src = url;
     } else {
+      const turn = playTurn;
       const { default: Hls } = await import("hls.js");
+      // Arrêtée pendant le chargement de hls.js : rien à lire.
+      if (turn !== playTurn) return;
       const h = new Hls();
       h.loadSource(url);
       h.attachMedia(el);

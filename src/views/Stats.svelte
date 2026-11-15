@@ -22,6 +22,12 @@
   let connecting = $state(false);
   let timer: ReturnType<typeof setInterval> | undefined;
 
+  /** La lecture en cours se rafraîchit toutes les 15 s, tant que la session Tracearr est ouverte. */
+  function watch() {
+    clearInterval(timer);
+    timer = setInterval(load, 15000);
+  }
+
   async function load() {
     try {
       data = await api.tracearrDashboard();
@@ -30,8 +36,14 @@
     } catch (e) {
       const message = errorText(e);
       if (message.includes("SESSION_EXPIRED")) {
-        needsLogin = true;
-        onChange();
+        // Session expirée : le rafraîchissement s'arrête jusqu'à la reconnexion, et l'application n'est prévenue
+        // qu'une fois (elle relit alors toute sa session : le refaire toutes les 15 s la rechargeait en boucle).
+        clearInterval(timer);
+        timer = undefined;
+        if (!needsLogin) {
+          needsLogin = true;
+          onChange();
+        }
       } else {
         error = message;
       }
@@ -45,6 +57,7 @@
       await tracearrLogin();
       onChange();
       await load();
+      if (!needsLogin) watch();
     } catch (e) {
       error = errorText(e);
     } finally {
@@ -125,8 +138,7 @@
       started = true;
       needsLogin = false;
       load();
-      // La lecture en cours se rafraîchit toutes les 15 s.
-      timer = setInterval(load, 15000);
+      watch();
     });
   });
 

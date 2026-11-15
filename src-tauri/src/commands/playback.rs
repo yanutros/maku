@@ -26,9 +26,48 @@ pub(crate) fn shuffle<T>(list: &mut [T]) {
     }
 }
 
-/// Arrête la lecture précédente (une seule à la fois, vidéo ou musique).
+/// Arrête la lecture précédente (une seule à la fois, vidéo ou musique), et annule celle qui se prépare.
 pub(crate) fn stop_player(state: &AppState) {
-    drop(state.player.lock().unwrap().take());
+    let mut slot = state.player.lock().unwrap();
+    state.play_turn.cancel();
+    drop(slot.take());
+}
+
+/// Tour de lecture : lancer une vidéo ou une musique demande d'abord le fichier au serveur, ce qui prend du temps.
+/// Si, pendant cette attente, l'utilisateur arrête la lecture ou en lance une autre, la première ne doit plus
+/// démarrer : mpv jouerait sans interface pour l'arrêter, ou à la place de ce qui vient d'être choisi.
+#[derive(Default)]
+pub(crate) struct PlayTurn(std::sync::atomic::AtomicU64);
+
+impl PlayTurn {
+    /// Une lecture se prépare : elle remplace celles qui se préparaient.
+    pub(crate) fn begin(&self) -> u64 {
+        self.0.fetch_add(1, std::sync::atomic::Ordering::SeqCst) + 1
+    }
+
+    /// Arrêt demandé : plus aucune lecture en préparation ne doit démarrer.
+    pub(crate) fn cancel(&self) {
+        self.0.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+    }
+
+    /// La lecture préparée au tour `turn` est-elle toujours celle attendue ?
+    pub(crate) fn is_current(&self, turn: u64) -> bool {
+        self.0.load(std::sync::atomic::Ordering::SeqCst) == turn
+    }
+}
+
+/// Message d'une lecture abandonnée parce qu'une autre l'a remplacée, ou qu'elle a été arrêtée entre-temps.
+pub(crate) const SUPERSEDED: &str = "PLAYBACK_SUPERSEDED";
+
+/// Remplace la lecture en cours par celle que `launch` démarre, si elle est toujours celle attendue.
+fn start_player(state: &AppState, turn: u64, launch: impl FnOnce() -> anyhow::Result<PlayerControl>) -> anyhow::Result<()> {
+    let mut slot = state.player.lock().unwrap();
+    if !state.play_turn.is_current(turn) {
+        return Err(anyhow!(SUPERSEDED));
+    }
+    drop(slot.take());
+    *slot = Some(launch()?);
+    Ok(())
 }
 
 #[tauri::command]
@@ -44,6 +83,7 @@ pub async fn play(
     media_index: Option<usize>,
 ) -> CmdResult<NowPlaying> {
     let server = state.server()?;
+    let turn = state.play_turn.begin();
     let session = uuid::Uuid::new_v4().simple().to_string();
     let mut info = match max_kbps {
         // Qualité réduite : mpv lit le flux converti par le serveur, pistes choisies et sous-titres incrustés.
@@ -70,7 +110,13 @@ pub async fn play(
         info.offset_ms = ms;
     }
     let mpv = player::find_mpv(state.cfg().mpv_path.as_deref())?;
-    stop_player(&state);
+    if !state.play_turn.is_current(turn) {
+        // Arrêtée ou remplacée pendant l'attente du serveur : la conversion demandée pour elle est libérée.
+        if max_kbps.is_some() {
+            let _ = server.stop_transcode(&session).await;
+        }
+        return Err(anyhow!(SUPERSEDED).into());
+    }
 
     #[cfg(windows)]
     let parent = Some(
@@ -89,8 +135,7 @@ pub async fn play(
         embedded: parent.is_some(),
     };
     let entries = vec![Entry { rating_key, duration_ms: info.duration_ms, url: String::new() }];
-    let control = player::launch(app, server, mpv, session, entries, Source::Video { info, parent })?;
-    *state.player.lock().unwrap() = Some(control);
+    start_player(&state, turn, || player::launch(app, server, mpv, session, entries, Source::Video { info, parent }))?;
     Ok(now)
 }
 
@@ -254,9 +299,9 @@ pub async fn play_music(
     radio: Option<bool>,
 ) -> CmdResult<MusicQueue> {
     let server = state.server()?;
+    let turn = state.play_turn.begin();
     let (tracks, index) = build_queue(&server, &rating_key, keys, start, shuffle, radio.unwrap_or(false)).await?;
     let mpv = player::find_mpv(state.cfg().mpv_path.as_deref())?;
-    stop_player(&state);
 
     let session = uuid::Uuid::new_v4().to_string();
     let entries = tracks
@@ -264,8 +309,7 @@ pub async fn play_music(
         .map(|t| Entry { rating_key: t.rating_key.clone(), duration_ms: t.duration_ms, url: t.url.clone() })
         .collect();
     let urls = tracks.iter().map(|t| t.url.clone()).collect();
-    let control = player::launch(app, server, mpv, session.clone(), entries, Source::Music { urls, start: index })?;
-    *state.player.lock().unwrap() = Some(control);
+    start_player(&state, turn, || player::launch(app, server, mpv, session.clone(), entries, Source::Music { urls, start: index }))?;
     Ok(MusicQueue { session, tracks, index })
 }
 

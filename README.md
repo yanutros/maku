@@ -143,7 +143,10 @@ Il se tient à jour avec l'application : chaque nouvelle fonctionnalité y a sa 
 **Tests de l'interface.** `npm test` ouvre Maku en mode démo avec [Playwright](https://playwright.dev) et le pilote
 comme un utilisateur, sur quatre appareils simulés : ordinateur, téléviseur (flèches, OK, Retour), téléphone et
 moteur de Safari (iPad, Mac). Les parcours (`tests/`) couvrent l'accueil, les fiches (série, saison, épisode),
-les acteurs, le lecteur, les Réglages et la barre simplifiée. Ils vérifient des règles tirées des bugs déjà
+les acteurs, le lecteur, la lecture (une lecture arrêtée ou remplacée pendant l'attente du serveur ne démarre pas,
+le plein écran se quitte à la fermeture de la vidéo, une session Tracearr expirée ne recharge pas l'application en
+boucle), les Réglages et la barre simplifiée. Pour jouer un serveur lent ou une erreur, un test retarde ou fait
+échouer une commande de la démo (`window.__demoHooks`, voir `src/lib/demo.ts`). Ils vérifient des règles tirées des bugs déjà
 corrigés (fond jusqu'au bord gauche, sélection entière à l'écran et de la couleur du thème, un seul acteur
 sélectionné, lignes des Réglages sans saut, plus de cases à cocher, pas de barres de défilement sur TV…) et
 comparent des captures à des images de référence (`tests/images/`). Après un changement voulu de l'affichage,
@@ -154,7 +157,8 @@ construction des paquets d'une version (les images de référence, prises sous W
 **Tests du Rust.** Les règles qui ne dépendent ni d'un serveur ni d'un appareil ont leurs tests dans le code
 (`#[cfg(test)]`) : commandes que l'interface peut envoyer à mpv, redirections suivies, jetons retirés des messages
 d'erreur, écriture de la configuration, adresse d'un serveur Plex retenue seulement si c'est lui qui répond, relais
-cherché en `https` d'abord… `cargo test` dans `src-tauri` les lance (après `npm install`, la page du téléphone
+cherché en `https` d'abord, lecture arrêtée ou remplacée pendant sa préparation qui ne lance pas mpv, progression
+abandonnée quand le serveur ne répond pas… `cargo test` dans `src-tauri` les lance (après `npm install`, la page du téléphone
 intégrant jsQR). Sur GitHub, ils passent à chaque envoi sur `main` et avant la construction des paquets d'une
 version, comme ceux de Maku Server (`cargo test` dans `server`).
 
@@ -273,7 +277,7 @@ traduisez les valeurs sans toucher aux clés ni aux `{{variables}}`, puis décla
 | Fichier | Rôle |
 | --- | --- |
 | `src-tauri/src/plex.rs` | plex.tv (PIN, serveurs) et API du serveur Plex : bibliothèques, rangées, genres, musique |
-| `src-tauri/src/player.rs` | mpv incrusté dans la fenêtre (`--wid`, sous la page web transparente) ou en audio seul, piloté par son IPC JSON |
+| `src-tauri/src/player.rs` | mpv incrusté dans la fenêtre (`--wid`, sous la page web transparente) ou en audio seul, piloté par son IPC JSON ; la progression part vers le serveur à côté du suivi de mpv, pour qu'un serveur lent ne gèle ni la barre de lecture ni les commandes |
 | `src-tauri/src/seerr.rs` | Seerr : connexion Plex ou Jellyfin, découverte, fiches détaillées, demandes, et leur gestion par l'administrateur (liste, validation, modification, suppression) |
 | `src-tauri/src/tracearr.rs` | Tracearr : connexion Plex et tableau de bord personnel |
 | `src-tauri/src/maku_server.rs` | relais Maku Server : recherche sur la machine du serveur, vérification (`/maku/info`) et jeton joint aux appels |

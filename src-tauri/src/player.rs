@@ -19,6 +19,24 @@ use tokio::sync::{mpsc, oneshot};
 
 /// Au-delà de cette proportion regardée, l'élément est marqué comme vu.
 const WATCHED_RATIO: f64 = 0.9;
+/// Temps laissé au serveur pour recevoir la progression pendant la lecture. Au-delà, l'envoi est abandonné : le
+/// suivant, dix secondes plus tard, donnera une position plus récente.
+const REPORT_TIMEOUT: Duration = Duration::from_secs(8);
+
+/// Envoi de la progression en cours, mené à côté du suivi de mpv.
+type Report<'a> = std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send + 'a>>;
+
+/// Progression d'un titre envoyée au serveur, sans jamais dépasser `REPORT_TIMEOUT`.
+fn progress<'a>(server: &'a MediaServer, id: &'a str, rating_key: String, state: &'static str, position: f64, duration: f64) -> Report<'a> {
+    let to_ms = |s: f64| (s.max(0.0) * 1000.0) as u64;
+    Box::pin(async move {
+        match tokio::time::timeout(REPORT_TIMEOUT, server.timeline(&rating_key, state, to_ms(position), to_ms(duration), id)).await {
+            Ok(Ok(())) => {}
+            Ok(Err(e)) => eprintln!("Timeline Plex non envoyée : {}", crate::net::redact(&format!("{e:#}"))),
+            Err(_) => eprintln!("Timeline Plex non envoyée : le serveur ne répond pas"),
+        }
+    })
+}
 const MPV_EXE: &str = if cfg!(windows) { "mpv.exe" } else { "mpv" };
 /// Propriétés mpv relayées à l'interface (événement `player-prop`).
 const OBSERVED: &[&str] = &[
@@ -387,7 +405,13 @@ struct Session<'a> {
     id: &'a str,
 }
 
-impl Session<'_> {
+impl<'a> Session<'a> {
+    /// Progression du titre `index`, à envoyer sans bloquer le suivi de mpv (voir `follow`).
+    fn progress(&self, index: usize, state: &'static str, position: f64, duration: f64) -> Option<Report<'a>> {
+        let entry = self.entries.get(index)?;
+        Some(progress(self.server, self.id, entry.rating_key.clone(), state, position, duration))
+    }
+
     async fn follow(
         &mut self,
         mut child: Child,
@@ -429,8 +453,16 @@ impl Session<'_> {
                 let mut paused = false;
                 let mut last_time_event = Instant::now() - Duration::from_secs(1);
                 let mut tick = tokio::time::interval(Duration::from_secs(10));
+                tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+                // La progression part à côté : un serveur lent ou injoignable ne doit geler ni la barre de lecture
+                // ni les commandes (pause, déplacement), qui passent par cette même boucle. Un nouvel envoi
+                // remplace celui qui n'a pas abouti.
+                let mut reporting: Option<Report<'a>> = None;
                 loop {
                     tokio::select! {
+                        _ = async { reporting.as_mut().unwrap().await }, if reporting.is_some() => {
+                            reporting = None;
+                        }
                         line = lines.next_line() => {
                             let Ok(Some(line)) = line else { break };
                             let Ok(msg) = serde_json::from_str::<Value>(&line) else { continue };
@@ -451,13 +483,14 @@ impl Session<'_> {
                                 "duration" => duration = data.as_f64().unwrap_or(duration),
                                 "pause" => {
                                     paused = data.as_bool().unwrap_or(false);
-                                    self.report(current, if paused { "paused" } else { "playing" }, position, duration).await;
+                                    reporting = self.progress(current, if paused { "paused" } else { "playing" }, position, duration);
                                 }
                                 // Passage au titre suivant de la file : on clôt le précédent.
                                 "playlist-pos" => {
                                     if let Some(next) = data.as_u64().map(|n| n as usize) {
                                         if next != current && next < self.entries.len() {
-                                            self.finish(current, position, duration).await;
+                                            // Borné lui aussi : le titre suivant joue déjà.
+                                            let _ = tokio::time::timeout(REPORT_TIMEOUT, self.finish(current, position, duration)).await;
                                             current = next;
                                             position = 0.0;
                                             duration = self.duration_of(current);
@@ -504,7 +537,7 @@ impl Session<'_> {
                             }
                         }
                         _ = tick.tick() => {
-                            self.report(current, if paused { "paused" } else { "playing" }, position, duration).await;
+                            reporting = self.progress(current, if paused { "paused" } else { "playing" }, position, duration);
                         }
                         _ = &mut stop => {
                             let _ = child.kill().await;
@@ -608,6 +641,29 @@ fn moved_index(current: usize, from: usize, to: usize) -> usize {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Serveur qui accepte la connexion et ne répond jamais.
+    async fn silent_server() -> String {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let base = format!("http://{}", listener.local_addr().unwrap());
+        tokio::spawn(async move {
+            let mut held = Vec::new();
+            while let Ok((conn, _)) = listener.accept().await {
+                held.push(conn);
+            }
+        });
+        base
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn progression_abandonnee_si_le_serveur_ne_repond_pas() {
+        // Même client que l'application : sans la limite propre à la progression, l'envoi attendrait 30 s.
+        let http = reqwest::Client::builder().timeout(Duration::from_secs(30)).build().unwrap();
+        let server = MediaServer::Plex(crate::plex::PlexServer { http, base: silent_server().await, token: "t".into(), client_id: "c".into() });
+        let started = tokio::time::Instant::now();
+        progress(&server, "session", "42".into(), "playing", 12.0, 3600.0).await;
+        assert!(started.elapsed() <= REPORT_TIMEOUT, "{:?}", started.elapsed());
+    }
 
     /// Simule la file de mpv pour vérifier les commandes envoyées.
     fn apply(list: &mut Vec<String>, commands: &[Value]) {

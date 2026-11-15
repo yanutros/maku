@@ -347,6 +347,9 @@
   });
 
   onDestroy(() => {
+    // Fin du film, bouton précédent de la souris, touche Stop, « Fermer » de l'écran de fin : la vidéo se ferme sans
+    // passer par `close`. La fenêtre ne reste pas en plein écran, d'où plus rien ne permettrait de sortir.
+    if (fullscreen) appWindow.setFullscreen(false).catch(() => {});
     if (device.phone) android?.setVideoMode?.(false);
     clearTimeout(hideTimer);
     clearTimeout(clickTimer);
