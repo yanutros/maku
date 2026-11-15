@@ -120,7 +120,7 @@
     padding: 22px;
     border: 1px solid #ffffff1a;
     border-radius: 18px;
-    background: #1c1e23f7;
+    background: color-mix(in srgb, var(--bg-elev) 97%, transparent);
     box-shadow: 0 24px 60px #000c;
     transform: translate(-50%, -50%);
   }

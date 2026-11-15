@@ -12,7 +12,7 @@
   import { nav, toast } from "../../lib/nav.svelte";
   import { ordered, saveSidebar, sidebar } from "../../lib/sidebar.svelte";
   import { device } from "../../lib/device";
-  import { applyTheme, savedTheme, THEME_COLORS, THEMES, type Theme } from "../../lib/theme";
+  import { applyBackground, applyTheme, BACKGROUND_COLORS, BACKGROUNDS, savedBackground, savedTheme, THEME_COLORS, THEMES, type Background, type Theme } from "../../lib/theme";
   import { LANGUAGES, savedLanguage, setLanguage, t } from "../../lib/i18n";
 
   let { desk }: { desk: boolean } = $props();
@@ -65,6 +65,12 @@
     applyTheme(th, true);
   }
 
+  let background = $state<Background>(savedBackground());
+  function chooseBackground(b: Background) {
+    background = b;
+    applyBackground(b, true);
+  }
+
   onMount(() => {
     if (device.tv) api.sections().then((s) => (sections = s), () => {});
   });
@@ -88,6 +94,26 @@
           onclick={() => chooseTheme(th)}
         >
           <span class="swatch">{#if theme === th}<Icon name="check" size={18} />{/if}</span>
+        </button>
+      {/each}
+    </div>
+  </div>
+  <!-- Fond de l'interface : trois teintes sombres, la nuit de Maku par défaut. -->
+  <div class="line">
+    <div class="line-text"><strong>{t("settings.interface.background")}</strong></div>
+    <div class="themes" role="radiogroup" aria-label={t("settings.interface.background")}>
+      {#each BACKGROUNDS as b (b)}
+        <button
+          class="theme bg"
+          class:on={background === b}
+          role="radio"
+          aria-checked={background === b}
+          aria-label={t(`settings.interface.backgrounds.${b}`)}
+          title={t(`settings.interface.backgrounds.${b}`)}
+          style:--swatch={BACKGROUND_COLORS[b]}
+          onclick={() => chooseBackground(b)}
+        >
+          <span class="swatch">{#if background === b}<Icon name="check" size={18} />{/if}</span>
         </button>
       {/each}
     </div>

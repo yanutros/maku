@@ -40,3 +40,37 @@ export function applyTheme(theme: Theme, save = false) {
   if (android) android.setIconTheme(theme);
   else invoke("set_app_icon", { theme }).catch(() => {});
 }
+
+// Fond de l'interface, gardé sur cet appareil : la nuit de Maku (par défaut), un gris neutre, ou un gris bleuté.
+export const BACKGROUNDS = ["nuit", "graphite", "ardoise"] as const;
+export type Background = (typeof BACKGROUNDS)[number];
+
+/** Teinte de chaque fond, pour les pastilles du choix (les nuances dérivées sont dans app.css). */
+export const BACKGROUND_COLORS: Record<Background, string> = {
+  nuit: "#141518",
+  graphite: "#1a1a1a",
+  ardoise: "#2f383e",
+};
+
+const BACKGROUND_KEY = "plexr.background";
+
+export function savedBackground(): Background {
+  try {
+    const b = localStorage.getItem(BACKGROUND_KEY) as Background | null;
+    return b && BACKGROUNDS.includes(b) ? b : "nuit";
+  } catch {
+    return "nuit";
+  }
+}
+
+export function applyBackground(background: Background, save = false) {
+  if (background === "nuit") delete document.documentElement.dataset.background;
+  else document.documentElement.dataset.background = background;
+  if (save) {
+    try {
+      localStorage.setItem(BACKGROUND_KEY, background);
+    } catch {
+      // Stockage indisponible : le fond ne vaut que pour cette session.
+    }
+  }
+}

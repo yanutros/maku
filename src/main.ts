@@ -15,9 +15,10 @@ async function start() {
     ]);
   await detectDevice();
   (await import("./lib/i18n")).initLanguage();
-  // Couleur choisie, avant le premier affichage (sinon un éclair de jaune).
-  const { applyTheme, savedTheme } = await import("./lib/theme");
+  // Couleur et fond choisis, avant le premier affichage (sinon un éclair de jaune).
+  const { applyBackground, applyTheme, savedBackground, savedTheme } = await import("./lib/theme");
   applyTheme(savedTheme());
+  applyBackground(savedBackground());
   setupBackButton();
   // Sur téléviseur, les flèches de la télécommande déplacent le focus d'un élément à l'autre.
   if (device.tv) {

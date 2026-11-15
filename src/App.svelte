@@ -540,7 +540,7 @@
     display: flex;
     gap: 12px;
     padding: 14px 40px;
-    background: linear-gradient(var(--bg) 0%, #14151800 100%);
+    background: linear-gradient(var(--bg) 0%, color-mix(in srgb, var(--bg) 0%, transparent) 100%);
     pointer-events: none;
   }
 

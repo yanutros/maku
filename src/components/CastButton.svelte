@@ -149,7 +149,7 @@
     padding: 6px;
     border: 1px solid var(--border);
     border-radius: 14px;
-    background: var(--bg-elev, #16181d);
+    background: var(--bg-elev, var(--bg-mid));
     box-shadow: 0 18px 40px #0009;
   }
 

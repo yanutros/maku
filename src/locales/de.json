@@ -140,7 +140,13 @@
       "playerBar": "Wiedergabeleiste",
       "playerBarHint": "Während eines Films oder einer Folge.",
       "playerBarFull": "Vollständig",
-      "playerBarMinimal": "Minimal"
+      "playerBarMinimal": "Minimal",
+      "background": "Hintergrund",
+      "backgrounds": {
+        "nuit": "Nacht",
+        "graphite": "Graphit",
+        "ardoise": "Schiefer"
+      }
     },
     "tmdb": {
       "title": "Titel-Logos (TMDB)",

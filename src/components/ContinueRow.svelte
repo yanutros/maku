@@ -64,7 +64,7 @@
     </div>
   </div>
 
-  <div class="track" bind:this={scroller} onscroll={update}>
+  <div class="track bleed-fade" bind:this={scroller} onscroll={update}>
     {#each items as item, i (item.ratingKey)}
       {@const open = active === i}
       {@const pct = progress(item)}
@@ -152,8 +152,9 @@
     display: flex;
     gap: 14px;
     overflow-x: auto;
-    padding: 14px 8px 18px;
-    margin: -14px -8px -10px;
+    /* Place pour l'ombre des cartes (celle de la carte ouverte comprise), sans décaler leur alignement. */
+    padding: 24px var(--bleed, 8px) 58px;
+    margin: -24px calc(-1 * var(--bleed, 8px)) -50px;
     scrollbar-width: none;
   }
 
@@ -181,7 +182,7 @@
     width: calc(var(--h) * 16 / 9);
     box-shadow:
       0 0 0 2px #ffffffd0,
-      0 22px 50px #000c;
+      0 18px 38px #000c;
   }
 
   .card:not(.open):hover {

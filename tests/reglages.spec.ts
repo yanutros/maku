@@ -68,3 +68,41 @@ test("services : le relais Maku Server trouvé a son panneau, comme Seerr et Tra
   await expect(titre).toContainText("Connecté");
   await expect(titre.locator("xpath=following-sibling::section[1]")).toContainText("Maku Server trouvé sur http://serveur.local:32700");
 });
+
+test("interface : le fond se choisit parmi trois teintes, et reste après un redémarrage", async ({ page }, info) => {
+  await ouvrir(page, info, "reglages-interface");
+  // Téléviseur : la rubrique suit la sélection du menu des réglages ; on la pose sur Interface.
+  if (appareil(info) === "tv") {
+    await page.locator(".settings .menu button", { hasText: "Interface" }).focus();
+    await page.waitForTimeout(400);
+  }
+  const fond = page.getByRole("radiogroup", { name: "Fond" });
+  const teinte = () => page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+  // Télécommande au téléviseur (sélection puis OK), clic ailleurs.
+  const choisir = async (nom: string) => {
+    const pastille = fond.getByRole("radio", { name: nom });
+    if (appareil(info) === "tv") {
+      await pastille.focus();
+      await touche(page, "Enter");
+    } else await pastille.click();
+  };
+  // Par défaut : la nuit de Maku.
+  await expect(fond.getByRole("radio", { name: "Nuit" })).toHaveAttribute("aria-checked", "true");
+  expect(await teinte()).toBe("rgb(20, 21, 24)");
+
+  await choisir("Ardoise");
+  await expect(fond.getByRole("radio", { name: "Ardoise" })).toHaveAttribute("aria-checked", "true");
+  expect(await teinte()).toBe("rgb(47, 56, 62)");
+  await choisir("Graphite");
+  expect(await teinte()).toBe("rgb(26, 26, 26)");
+
+  // Gardé sur l'appareil (les tests effacent les préférences à chaque chargement : on vérifie ce qui est enregistré,
+  // puis qu'il est appliqué au démarrage).
+  expect(await page.evaluate(() => localStorage.getItem("plexr.background"))).toBe("graphite");
+  await page.evaluate(async () => {
+    delete document.documentElement.dataset.background;
+    const { applyBackground, savedBackground } = await import("/src/lib/theme.ts");
+    applyBackground(savedBackground());
+  });
+  expect(await teinte()).toBe("rgb(26, 26, 26)");
+});

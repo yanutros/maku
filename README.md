@@ -60,7 +60,7 @@ absent, et **Tracearr**, pour suivre ses statistiques. Tout se fait avec son com
 | 📺 **[TV, téléphone et voiture](https://yanutros.github.io/maku/appareils.html)** | une interface pour la télécommande, une autre pour le téléphone, la musique sur Android Auto, des mises à jour intégrées |
 | 🛠️ **[Pour l'administrateur](https://yanutros.github.io/maku/administration.html)** | lectures en cours, débit, utilisateurs, réglages du serveur, demandes Seerr à valider, corriger ou refuser, fiches à modifier, association à corriger, collections intelligentes, invitations en QR code |
 
-Maku parle français, anglais, espagnol, allemand et néerlandais, et prend la couleur de votre choix (jaune, rouge, vert ou violet).
+Maku parle français, anglais, espagnol, allemand et néerlandais, et prend la couleur de votre choix (jaune, rouge, vert ou violet) sur le fond de votre choix (nuit, graphite ou ardoise).
 
 ## 📸 Aperçu
 
@@ -276,7 +276,7 @@ traduisez les valeurs sans toucher aux clés ni aux `{{variables}}`, puis décla
 | `src/lib/demo.ts` | mode démo (bibliothèque fictive) |
 | `src/components/TitleLogo.svelte`, `src/lib/logos.ts` | logos des titres : serveur, service en ligne de Plex, sinon titre stylisé selon le genre |
 | `src/lib/i18n.ts`, `src/locales/`, `src-tauri/src/i18n.rs`, `src-tauri/locales/` | traductions (voir ci-dessus) |
-| `src/lib/theme.ts`, `src-tauri/icons/themes/` | couleurs de l'interface et icônes assorties ; `docs/logo.html?theme=…` et `docs/tv-banner.html?theme=…` les produisent |
+| `src/lib/theme.ts`, `src-tauri/icons/themes/` | couleurs de l'interface et icônes assorties, fonds au choix (`data-background`, nuances dans `src/app.css`) ; `docs/logo.html?theme=…` et `docs/tv-banner.html?theme=…` les produisent |
 | `src/components/UpdateDialog.svelte`, `src/lib/markdown.ts` | fenêtre « Nouvelle version disponible » et mise en forme des nouveautés ; `src/lib/update.svelte.ts` n'en garde que les sections Nouveautés / Corrections (ou What's new en anglais), sans les paquets |
 | `src/lib/invite.ts`, `src/components/QrCode.svelte` | codes d'invitation, QR codes (qrcode-generator) et lecture d'images (jsQR) |
 | `src/lib/device.ts` | type d'appareil (ordinateur, tablette tactile, téléviseur) et échelle de l'interface sur TV |

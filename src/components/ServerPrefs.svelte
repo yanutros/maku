@@ -169,7 +169,7 @@
     padding: 12px 16px;
     border: 1px solid #ffffff1a;
     border-radius: 14px;
-    background: #1d1f23f2;
+    background: color-mix(in srgb, var(--bg-elev) 95%, transparent);
     backdrop-filter: blur(14px);
     box-shadow: 0 14px 34px #000a;
   }

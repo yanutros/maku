@@ -130,6 +130,18 @@
     0 0 0 5px var(--swatch);
 }
 
+/* Pastilles des fonds : sombres sur fond sombre, d'où un liseré clair ; le fond choisi est entouré de la couleur
+   de l'interface. */
+.settings .theme.bg .swatch {
+  border: 1px solid #ffffff3d;
+}
+
+.settings .theme.bg.on .swatch {
+  box-shadow:
+    0 0 0 3px var(--bg-elev),
+    0 0 0 5px var(--accent);
+}
+
 .settings .libs {
   display: grid;
   gap: 6px;

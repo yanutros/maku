@@ -740,7 +740,7 @@
     grid-column: span 2;
     background:
       radial-gradient(120% 140% at 100% 0%, color-mix(in srgb, var(--accent) 33%, transparent) 0%, transparent 55%),
-      linear-gradient(135deg, #2a2216, #1a1b1f);
+      linear-gradient(135deg, #2a2216, var(--bg-elev));
     /* Les dégradés couvrent aussi la bordure : sans cela, ils se répètent dedans et le bord opposé y laisse un liseré. */
     background-origin: border-box;
   }
@@ -755,7 +755,7 @@
   .streak {
     background:
       radial-gradient(120% 120% at 0% 100%, #ff6b3555 0%, transparent 60%),
-      linear-gradient(160deg, #2a1a17, #1a1b1f);
+      linear-gradient(160deg, #2a1a17, var(--bg-elev));
     /* Les dégradés couvrent aussi la bordure : sans cela, ils se répètent dedans et le bord opposé y laisse un liseré. */
     background-origin: border-box;
   }
@@ -768,7 +768,7 @@
     grid-row: span 2;
     justify-content: flex-start;
     gap: 18px;
-    background: linear-gradient(180deg, #1f2230, #1a1b1f);
+    background: linear-gradient(180deg, #1f2230, var(--bg-elev));
   }
 
   .bars {

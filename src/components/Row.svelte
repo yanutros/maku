@@ -42,7 +42,7 @@
       </button>
     </div>
   </div>
-  <div class="scroller" class:wide class:large bind:this={scroller} onscroll={update} data-nav-row>
+  <div class="scroller bleed-fade" class:wide class:large bind:this={scroller} onscroll={update} data-nav-row>
     {@render children()}
   </div>
 </section>
@@ -86,9 +86,9 @@
     grid-auto-columns: 160px;
     gap: 18px;
     overflow-x: auto;
-    /* Marge pour la carte soulevée au survol (4 px) et son liseré (2 px), sinon rognés par le défilement. */
-    padding: 12px 8px 16px;
-    margin: -12px -8px -10px;
+    /* Marge pour la carte soulevée au survol (4 px), son liseré (2 px) et son ombre, sinon rognés par le défilement. */
+    padding: 16px var(--bleed, 8px) 44px;
+    margin: -16px calc(-1 * var(--bleed, 8px)) -38px;
     scrollbar-width: none;
   }
 

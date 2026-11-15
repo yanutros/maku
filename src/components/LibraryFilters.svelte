@@ -377,7 +377,7 @@
     padding: 6px;
     border: 1px solid #ffffff1a;
     border-radius: 12px;
-    background: #1c1e23f2;
+    background: color-mix(in srgb, var(--bg-elev) 95%, transparent);
     backdrop-filter: blur(18px);
     box-shadow: 0 18px 44px #000b;
     overflow-y: auto;

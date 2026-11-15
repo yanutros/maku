@@ -385,7 +385,7 @@
     overflow: hidden;
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
-    background: #1d1f23cc;
+    background: color-mix(in srgb, var(--bg-elev) 80%, transparent);
     backdrop-filter: blur(10px);
   }
 

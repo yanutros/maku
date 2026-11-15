@@ -140,7 +140,13 @@
       "playerBar": "Afspeelbalk",
       "playerBarHint": "Tijdens een film of aflevering.",
       "playerBarFull": "Volledig",
-      "playerBarMinimal": "Minimalistisch"
+      "playerBarMinimal": "Minimalistisch",
+      "background": "Achtergrond",
+      "backgrounds": {
+        "nuit": "Nacht",
+        "graphite": "Grafiet",
+        "ardoise": "Leisteen"
+      }
     },
     "tmdb": {
       "title": "Titellogo's (TMDB)",

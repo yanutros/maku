@@ -234,7 +234,7 @@
     overflow: hidden;
     border: 1px solid #ffffff1c;
     border-radius: 22px;
-    background: #1c1e23d0;
+    background: color-mix(in srgb, var(--bg-elev) 82%, transparent);
     backdrop-filter: blur(30px) saturate(1.6);
     box-shadow:
       0 18px 40px #0009,
@@ -581,7 +581,7 @@
     flex-direction: column;
     border: 1px solid #ffffff1a;
     border-radius: 18px;
-    background: #16181cf2;
+    background: color-mix(in srgb, var(--bg-mid) 95%, transparent);
     backdrop-filter: blur(24px);
     box-shadow: 0 20px 48px #000b;
     animation: rise 0.18s var(--ease);

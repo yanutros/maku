@@ -89,14 +89,14 @@
     overflow: hidden;
     border: 1px solid #ffffff14;
     border-radius: 14px;
-    background: #16171ce6;
+    background: color-mix(in srgb, var(--bg-mid) 90%, transparent);
     box-shadow: 0 10px 30px #000a;
   }
 
   /* Sélectionné : le lecteur se détache, pour qu'on voie où l'on est. */
   .tv-mini:focus-within {
     border-color: color-mix(in srgb, var(--accent) 60%, transparent);
-    background: #1c1d23f5;
+    background: color-mix(in srgb, var(--bg-elev) 96%, transparent);
   }
 
   .tv-mini :global(:focus) {

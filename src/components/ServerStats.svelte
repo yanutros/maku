@@ -534,7 +534,7 @@
     padding: 10px 12px;
     border: 1px solid #ffffff1a;
     border-radius: 10px;
-    background: #1c1e23f2;
+    background: color-mix(in srgb, var(--bg-elev) 95%, transparent);
     box-shadow: 0 10px 30px #000a;
     font-size: 12px;
     pointer-events: none;

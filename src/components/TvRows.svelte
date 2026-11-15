@@ -185,7 +185,7 @@
     width: 72%;
     height: 72%;
     background:
-      linear-gradient(90deg, var(--bg) 0%, #14151899 30%, transparent 60%),
+      linear-gradient(90deg, var(--bg) 0%, color-mix(in srgb, var(--bg) 60%, transparent) 30%, transparent 60%),
       linear-gradient(0deg, var(--bg) 0%, transparent 45%);
   }
 

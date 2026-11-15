@@ -3,6 +3,8 @@
   --bg-sidebar: #0e0f11;
   --bg-elev: #1d1f23;
   --bg-hover: #2a2d33;
+  /* Entre le fond et les panneaux : barres flottantes, menus du téléviseur. */
+  --bg-mid: color-mix(in srgb, var(--bg), var(--bg-elev));
   --border: #ffffff14;
   --text: #f1f1f3;
   --text-dim: #a0a3ab;
@@ -24,6 +26,23 @@
   --safe-top: max(env(safe-area-inset-top, 0px), var(--inset-top, 0px));
   --safe-bottom: max(env(safe-area-inset-bottom, 0px), var(--inset-bottom, 0px));
   color-scheme: dark;
+}
+
+/* Fonds au choix (Réglages → Interface), avec leurs nuances : menu de gauche plus sombre, panneaux et survol plus
+   clairs. Le fond par défaut est celui de :root. */
+[data-background="graphite"] {
+  --bg: #1a1a1a;
+  --bg-sidebar: #121212;
+  --bg-elev: #242424;
+  --bg-hover: #313131;
+}
+
+[data-background="ardoise"] {
+  --bg: #2f383e;
+  --bg-sidebar: #263035;
+  --bg-elev: #39434a;
+  --bg-hover: #47535b;
+  --text-faint: #8d979e;
 }
 
 [data-theme="rouge"] {
@@ -150,6 +169,9 @@ select:focus {
 
 .page {
   padding: 8px 40px 48px;
+  /* Débord des rangées qui défilent dans la marge de la page : l'ombre des cartes y tient entière, au lieu d'être
+     coupée net au bord de la rangée (une bande sombre, visible sur les fonds Graphite et Ardoise). */
+  --bleed: 24px;
 }
 
 .row-title {
@@ -265,6 +287,7 @@ html.tv .img > :focus {
 /* Téléphone : marges et titres resserrés, grilles de trois affiches. */
 html.phone .page {
   padding: 4px 16px 28px;
+  --bleed: 14px;
 }
 
 html.phone .row-title {
@@ -385,7 +408,7 @@ html.tv *:not(.update-backdrop) {
   position: relative;
   z-index: 2;
   transition: none;
-  background: #2a2d33 !important;
+  background: var(--bg-hover) !important;
   box-shadow: 0 12px 28px #000b;
   cursor: grabbing;
 }
@@ -399,7 +422,7 @@ html.tv *:not(.update-backdrop) {
   padding: 12px 12px 12px 14px;
   border: 1px solid #ffffff1a;
   border-radius: 14px;
-  background: #1f2126;
+  background: color-mix(in srgb, var(--bg-elev), #fff 2%);
   --tone: var(--ok);
 }
 
@@ -487,4 +510,11 @@ html.tv *:not(.update-backdrop) {
 .notice .close:hover {
   background: #ffffff14;
   color: var(--text);
+}
+
+/* Rangée qui déborde dans la marge de la page (--bleed, pour que l'ombre des cartes y tienne) : ses bords gauche et
+   droit se fondent, ombres comprises, au lieu d'une coupe nette. */
+.bleed-fade {
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 var(--bleed, 8px), #000 calc(100% - var(--bleed, 8px)), transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 var(--bleed, 8px), #000 calc(100% - var(--bleed, 8px)), transparent);
 }

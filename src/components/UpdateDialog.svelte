@@ -147,7 +147,7 @@
     max-height: min(680px, 100%);
     border: 1px solid #ffffff1f;
     border-radius: 18px;
-    background: #17181bf2;
+    background: color-mix(in srgb, var(--bg-mid) 95%, transparent);
     box-shadow: 0 30px 80px #000c;
     overflow: hidden;
   }

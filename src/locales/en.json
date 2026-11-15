@@ -140,7 +140,13 @@
       "playerBar": "Playback bar",
       "playerBarHint": "While watching a movie or an episode.",
       "playerBarFull": "Full",
-      "playerBarMinimal": "Minimal"
+      "playerBarMinimal": "Minimal",
+      "background": "Background",
+      "backgrounds": {
+        "nuit": "Night",
+        "graphite": "Graphite",
+        "ardoise": "Slate"
+      }
     },
     "tmdb": {
       "title": "Title logos (TMDB)",

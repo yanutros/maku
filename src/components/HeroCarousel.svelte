@@ -157,13 +157,13 @@
     position: absolute;
     inset: 0;
     background:
-      linear-gradient(90deg, #141518f2 0%, #141518c0 32%, #14151830 65%, transparent 100%),
-      linear-gradient(0deg, #141518d0 0%, transparent 50%);
+      linear-gradient(90deg, color-mix(in srgb, var(--bg) 95%, transparent) 0%, color-mix(in srgb, var(--bg) 75%, transparent) 32%, color-mix(in srgb, var(--bg) 19%, transparent) 65%, transparent 100%),
+      linear-gradient(0deg, color-mix(in srgb, var(--bg) 82%, transparent) 0%, transparent 50%);
   }
 
   .bleed .shade {
     background:
-      linear-gradient(90deg, var(--bg) 0%, #141518d9 30%, #14151840 65%, transparent 100%),
+      linear-gradient(90deg, var(--bg) 0%, color-mix(in srgb, var(--bg) 85%, transparent) 30%, color-mix(in srgb, var(--bg) 25%, transparent) 65%, transparent 100%),
       linear-gradient(0deg, var(--bg) 0%, transparent 45%);
   }
 

@@ -55,7 +55,7 @@
     {#if !atEnd}
       <button class="nav right" onclick={() => scrollBy(1)} aria-label={t("common.c1.next")}><Icon name="chevronRight" size={22} /></button>
     {/if}
-    <div class="track" bind:this={scroller} onscroll={update}>
+    <div class="track bleed-fade" bind:this={scroller} onscroll={update}>
       {#each panels as p (p.key)}
         <article class="panel">
           <button class="head" onclick={p.onclick}>
@@ -106,7 +106,7 @@
     padding: 0;
     border: 1px solid #ffffff2a;
     border-radius: 50%;
-    background: #14151899;
+    background: color-mix(in srgb, var(--bg) 60%, transparent);
     backdrop-filter: blur(12px);
     color: #fff;
     box-shadow: 0 8px 20px #0008;
@@ -141,10 +141,11 @@
     grid-auto-columns: max(380px, calc((100% - 40px) / 3));
     gap: 20px;
     overflow-x: auto;
-    padding: 4px 6px 12px;
-    margin: -4px -6px 0;
+    /* Place pour l'ombre des panneaux (34 px de flou, 14 px plus bas), sans décaler leur alignement. */
+    padding: 24px var(--bleed, 6px) 50px;
+    margin: -24px calc(-1 * var(--bleed, 6px)) -38px;
     scroll-snap-type: x mandatory;
-    scroll-padding: 0 6px;
+    scroll-padding: 0 var(--bleed, 6px);
     scrollbar-width: none;
   }
 

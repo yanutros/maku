@@ -140,7 +140,13 @@
       "playerBar": "Barre de lecture",
       "playerBarHint": "Pendant un film ou un épisode.",
       "playerBarFull": "Complète",
-      "playerBarMinimal": "Minimaliste"
+      "playerBarMinimal": "Minimaliste",
+      "background": "Fond",
+      "backgrounds": {
+        "nuit": "Nuit",
+        "graphite": "Graphite",
+        "ardoise": "Ardoise"
+      }
     },
     "tmdb": {
       "title": "Logos des titres (TMDB)",

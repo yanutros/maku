@@ -38,7 +38,7 @@
     grid-template-columns: repeat(5, 1fr);
     padding: 6px 4px calc(6px + var(--safe-bottom));
     border-top: 1px solid var(--border);
-    background: #0e0f11f2;
+    background: color-mix(in srgb, var(--bg-sidebar) 95%, transparent);
   }
 
   button {
