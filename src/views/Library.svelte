@@ -4,6 +4,8 @@
 </script>
 
 <script lang="ts">
+  import ErrorCard from "../components/ErrorCard.svelte";
+  import { reloadView } from "../lib/nav.svelte";
   import { onMount, tick } from "svelte";
   import { api, errorText, type Genre, type Hub, type Item } from "../lib/api";
   import { genreHue, genreLabel } from "../lib/genres";
@@ -474,7 +476,7 @@
   {:else}
     <div class="page tv-page">
       {@render tvHead()}
-      {#if error}<p class="error">{error}</p>{/if}
+      {#if error}<ErrorCard message={error} onretry={reloadView} />{/if}
       {#if tab === "library"}
         <!-- Sur sa propre ligne : à droite des onglets, on ne l'atteindrait pas (un onglet s'ouvre dès qu'on y passe). -->
         {#if filterable}
@@ -504,11 +506,12 @@
     </div>
   </div>
 
-  {#if error}<p class="error">{error}</p>{/if}
+  {#if error}<ErrorCard message={error} onretry={reloadView} />{/if}
 
   {#if tab === "recommended"}
+    <!-- Chargement en cours (pas après un échec : la carte d'erreur dit déjà ce qui se passe). -->
     {#if !hubs}
-      <div class="skeleton" style:height="420px"></div>
+      {#if !error}<div class="skeleton" style:height="420px"></div>{/if}
     {:else}
       <HeroCarousel items={slides} eyebrow={(i) => (i.viewOffsetMs ? t("library.upNext") : t("library.discover"))} />
       {#each continueHubs as hub, i (i)}
@@ -543,7 +546,7 @@
     {#if showTitleLetters}{@render letterBar((l) => letterOffsets.has(l), jumpToTitle)}{/if}
   {:else if tab === "collections"}
     {#if !collections}
-      <div class="grid">{#each Array(12) as _, i (i)}<div class="skeleton poster-skeleton"></div>{/each}</div>
+      {#if !error}<div class="grid">{#each Array(12) as _, i (i)}<div class="skeleton poster-skeleton"></div>{/each}</div>{/if}
     {:else if !collections.length}
       <p class="muted">{t("library.noCollections")}</p>
     {:else}
@@ -553,9 +556,11 @@
       {#if showLetters}{@render letterBar((l) => firstByLetter.has(l), jumpTo)}{/if}
     {/if}
   {:else if !genres}
-    <div class="categories">
-      {#each Array(6) as _, i (i)}<div class="skeleton tile-skeleton"></div>{/each}
-    </div>
+    {#if !error}
+      <div class="categories">
+        {#each Array(6) as _, i (i)}<div class="skeleton tile-skeleton"></div>{/each}
+      </div>
+    {/if}
   {:else}
     <div class="categories">
       {#each genres as g (g.id)}<GenreTile genre={g} onclick={() => openGenre(g)} />{/each}

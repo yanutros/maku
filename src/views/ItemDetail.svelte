@@ -17,6 +17,8 @@
 </script>
 
 <script lang="ts">
+  import ErrorCard from "../components/ErrorCard.svelte";
+  import { reloadView } from "../lib/nav.svelte";
   import { onMount, tick } from "svelte";
   import { listen } from "@tauri-apps/api/event";
   import { api, errorText, formatDuration, isMusic, type Item, type ItemDetail } from "../lib/api";
@@ -503,7 +505,7 @@
 <svelte:window onpointermove={pointerMove} onpointerup={pointerUp} />
 
 {#if error}
-  <div class="page"><p class="error">{error}</p></div>
+  <div class="page"><ErrorCard message={error} onretry={reloadView} /></div>
 {:else if !item}
   <div class="page"><div class="skeleton" style:height="360px"></div></div>
 {:else if isMusic(item.kind)}

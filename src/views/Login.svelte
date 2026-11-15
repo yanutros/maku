@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ErrorCard from "../components/ErrorCard.svelte";
   import { onDestroy, onMount, untrack } from "svelte";
   import { listen } from "@tauri-apps/api/event";
   import { api, errorText, type LoginPin, type Session } from "../lib/api";
@@ -305,7 +306,7 @@
         <button class="btn" onclick={back}>{t("login.back")}</button>
       </div>
     {/if}
-    {#if error}<p class="error">{error}</p>{/if}
+    {#if error}<ErrorCard message={error} />{/if}
   </div>
 </div>
 

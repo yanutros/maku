@@ -1,4 +1,6 @@
 <script lang="ts">
+  import ErrorCard from "../components/ErrorCard.svelte";
+  import { reloadView } from "../lib/nav.svelte";
   import { byLastPlay } from "../lib/playlistPlays";
   import { onMount } from "svelte";
   import { api, errorText, type Hub, type Item } from "../lib/api";
@@ -239,7 +241,7 @@
   {:else}
     <div class="page tv-page">
       {@render tvHead()}
-      {#if error}<p class="error">{error}</p>{/if}
+      {#if error}<ErrorCard message={error} onretry={reloadView} />{/if}
       {#if tab !== "recommended"}<TvGrid cards={tvItems} onEnd={loadMore} />{/if}
     </div>
   {/if}
@@ -274,11 +276,11 @@
     </div>
   </div>
 
-  {#if error}<p class="error">{error}</p>{/if}
+  {#if error}<ErrorCard message={error} onretry={reloadView} />{/if}
 
   {#if tab === "recommended"}
     {#if !hubs}
-      <div class="skeleton" style:height="260px"></div>
+      {#if !error}<div class="skeleton" style:height="260px"></div>{/if}
     {:else if !hubs.length}
       <p class="muted">{t("music.library.nothingToRecommend")}</p>
     {:else}

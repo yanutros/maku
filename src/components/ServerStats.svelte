@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ErrorCard from "./ErrorCard.svelte";
   import { onDestroy, onMount } from "svelte";
   import { api, errorText, formatLongDuration, type Bandwidth, type MediaStats, type PlayHistory, type StatAccount } from "../lib/api";
   import { locale, t } from "../lib/i18n";
@@ -266,7 +267,7 @@
     </div>
   </div>
   {#if bwError}
-    <p class="error">{t("dashboard.statsUnavailable", { error: bwError })}</p>
+    <ErrorCard message={t("dashboard.statsUnavailable", { error: bwError })} onretry={() => ((bwError = null), (bw = null), loadBandwidth())} />
   {:else if !bw}
     <div class="skeleton" style:height="{H}px"></div>
   {:else if !bwSeries.length}
@@ -320,7 +321,7 @@
     </div>
   </div>
   {#if histError}
-    <p class="error">{t("dashboard.statsUnavailable", { error: histError })}</p>
+    <ErrorCard message={t("dashboard.statsUnavailable", { error: histError })} onretry={() => ((histError = null), (hist = null), loadHistory())} />
   {:else if !hist}
     <div class="skeleton" style:height="{H}px"></div>
   {:else if !histBars.length}
@@ -371,7 +372,7 @@
     </div>
   </div>
   {#if topError}
-    <p class="error">{t("dashboard.statsUnavailable", { error: topError })}</p>
+    <ErrorCard message={t("dashboard.statsUnavailable", { error: topError })} onretry={() => ((topError = null), (top = null), loadTop())} />
   {:else if !top}
     <div class="skeleton" style:height="200px"></div>
   {:else if !topUsers.length}
@@ -419,7 +420,7 @@
     </div>
   </div>
   {#if mostError}
-    <p class="error">{t("dashboard.statsUnavailable", { error: mostError })}</p>
+    <ErrorCard message={t("dashboard.statsUnavailable", { error: mostError })} onretry={() => ((mostError = null), (plays = null), loadMost())} />
   {:else if !plays}
     <div class="skeleton" style:height="300px"></div>
   {:else}

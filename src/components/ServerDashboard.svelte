@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ErrorCard from "./ErrorCard.svelte";
   import { onDestroy, onMount } from "svelte";
   import { api, errorText, formatClock, type Section, type ServerSession } from "../lib/api";
   import { toast } from "../lib/nav.svelte";
@@ -101,7 +102,7 @@
 <div class="block wide">
 <h3 class="sub">{t("dashboard.nowPlaying")}</h3>
 {#if error}
-  <p class="error">{error}</p>
+  <ErrorCard message={error} onretry={() => ((error = null), load())} />
 {:else if !sessions}
   <div class="skeleton" style:height="120px"></div>
 {:else if !sessions.length}

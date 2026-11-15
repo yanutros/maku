@@ -1,4 +1,6 @@
 <script lang="ts">
+  import ErrorCard from "../components/ErrorCard.svelte";
+  import { reloadView } from "../lib/nav.svelte";
   import { offline, offlineAvailable } from "../lib/offline.svelte";
   import { onMount } from "svelte";
   import { listen } from "@tauri-apps/api/event";
@@ -84,7 +86,7 @@
 
 {#if error}
   <div class="page">
-    <p class="error">{error}</p>
+    <ErrorCard message={error} onretry={reloadView} />
     <!-- Sans réseau (train, avion) : les téléchargements restent lisibles. -->
     {#if offlineAvailable() && offline.items.length}
       <button class="btn primary" onclick={() => go({ name: "downloads" })}><Icon name="download" size={16} /> {t("offline.open")}</button>

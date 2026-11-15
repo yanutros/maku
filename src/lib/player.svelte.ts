@@ -4,7 +4,7 @@ import { listen } from "@tauri-apps/api/event";
 import type { QueueTrack, Track } from "./api";
 import { t } from "./i18n";
 import { device } from "./device";
-import { toast } from "./nav.svelte";
+import { notify, toast } from "./nav.svelte";
 import { hasEndScreen, loadUpNext, player, type MpvTrack, type NativeInfo, type PlayOptions, type Previews } from "./player/state.svelte";
 import { bridge, diag, nativeVideo, passthroughMode, setPassthroughMode } from "./player/bridge";
 import { cast, castCommand, sendToCast, type CastDevice } from "./player/cast.svelte";
@@ -408,7 +408,7 @@ export function onStalled(s: { at: number; passthrough: boolean; bitstream?: boo
   if (s && s.bitstream && passthroughMode() === "auto") {
     setPassthroughMode("off");
     diag("Maku : lecture figée avec le son envoyé tel quel, « Décodé ici » est retenu sur cet appareil");
-    toast(t("player.decodeRemembered"));
+    notify({ kind: "info", title: t("player.decodeRemembered") });
     unstall("decodeAudio");
     return;
   }

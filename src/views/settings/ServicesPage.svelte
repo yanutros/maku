@@ -1,5 +1,6 @@
 <!-- Réglages → Services : configuration rapide, Seerr, Tracearr, clé TMDB, invitations de l'administrateur. -->
 <script lang="ts">
+  import ErrorCard from "../../components/ErrorCard.svelte";
   import { invoke } from "@tauri-apps/api/core";
   import { listen } from "@tauri-apps/api/event";
   import { untrack } from "svelte";
@@ -287,7 +288,7 @@
         {#if relayUrl}<QrCode text={relayUrl} size={device.tv ? 260 : 190} />{:else}<div class="qr-wait skeleton"></div>{/if}
         <p class="muted">{t("settings.invite.phoneHint")}</p>
       </div>
-      {#if relayError}<p class="error">{relayError}</p>{/if}
+      {#if relayError}<ErrorCard message={relayError} />{/if}
     {/if}
   {:else}
     <div class="line-body row">
@@ -309,7 +310,7 @@
       {/if}
     </ul>
   {/if}
-  {#if inviteError}<p class="error line-body">{inviteError}</p>{/if}
+  {#if inviteError}<div class="line-body"><ErrorCard message={inviteError} /></div>{/if}
 </section>
 
 <!-- Relais Maku Server trouvé : un panneau comme ceux de Seerr et Tracearr, qui passent par lui. -->
@@ -342,7 +343,7 @@
           : t("settings.services.connectWithPlex")}
     </button>
   </div>
-  {#if seerrError}<p class="error">{seerrError}</p>{/if}
+  {#if seerrError}<ErrorCard message={seerrError} />{/if}
 </section>
 </div>
 
@@ -359,7 +360,7 @@
       <button class="btn" onclick={disconnectTracearr}>{t("settings.services.logout")}</button>
     {/if}
   </div>
-  {#if tracearrError}<p class="error">{tracearrError}</p>{/if}
+  {#if tracearrError}<ErrorCard message={tracearrError} />{/if}
 </section>
 </div>
 
@@ -395,7 +396,7 @@
       <button class="btn" disabled={tmdbBusy} onclick={() => saveTmdb(true)}>{t("settings.tmdb.remove")}</button>
     {/if}
   </div>
-  {#if tmdbError}<p class="error">{tmdbError}</p>{/if}
+  {#if tmdbError}<ErrorCard message={tmdbError} />{/if}
 </section>
 </div>
 

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ErrorCard from "../components/ErrorCard.svelte";
   import { onMount } from "svelte";
   import { api, errorText, type ServerSummary } from "../lib/api";
   import { t } from "../lib/i18n";
@@ -93,7 +94,7 @@
     {/each}
   </div>
 
-  {#if error}<p class="error">{error}</p>{/if}
+  {#if error}<ErrorCard message={error} />{/if}
   <div class="row logout">
     <button class="btn" onclick={otherService}>{t("servers.chooseKind")}</button>
     <button class="btn" onclick={() => api.switchPlexAccount().then(onDone)}>{t("servers.switchAccount")}</button>

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ErrorCard from "./ErrorCard.svelte";
   import { onMount, tick } from "svelte";
   import { api, errorText, seerrStatusLabel, type SeerrMedia, type SeerrSeason } from "../lib/api";
   import { nav, toast } from "../lib/nav.svelte";
@@ -109,7 +110,7 @@
         {/if}
       {/if}
 
-      {#if error}<p class="error">{error}</p>{/if}
+      {#if error}<ErrorCard message={error} />{/if}
 
       <div class="actions">
         <button class="btn" onclick={close}>{t("request.cancel")}</button>

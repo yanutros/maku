@@ -1,4 +1,6 @@
 <script lang="ts">
+  import ErrorCard from "../components/ErrorCard.svelte";
+  import { reloadView } from "../lib/nav.svelte";
   import { onMount } from "svelte";
   import { api, errorText, type Item, type SeerrMedia } from "../lib/api";
   import { device } from "../lib/device";
@@ -47,7 +49,7 @@
   </header>
 
   {#if error}
-    <p class="error">{error}</p>
+    <ErrorCard message={error} onretry={reloadView} />
   {:else if credits}
     {#if device.tv}
       <TvGrid cards={credits.map((m) => ({ ...fromSeerr(m), eyebrow: name }))} />

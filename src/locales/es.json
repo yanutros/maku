@@ -1133,5 +1133,16 @@
       "dashboard": "Lo que se reproduce ahora, el ancho de banda, los usuarios principales, el historial y lo más reproducido.",
       "users": "Los amigos con los que se comparte el servidor: sus bibliotecas, permisos y restricciones."
     }
+  },
+  "toast": {
+    "region": "Notificaciones",
+    "close": "Cerrar",
+    "details": "Detalles",
+    "hideDetails": "Ocultar",
+    "retry": "Reintentar",
+    "unreachable": "Servidor inaccesible",
+    "unreachableHint": "Comprueba que está encendido y conectado.",
+    "upToDate": "Maku está actualizado",
+    "latest": "Versión {{version}}, la más reciente."
   }
 }

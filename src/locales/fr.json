@@ -1133,5 +1133,16 @@
       "dashboard": "Ce qui se lit en ce moment, le débit, les plus gros consommateurs, l'historique et les titres les plus lus.",
       "users": "Les amis avec qui le serveur est partagé : leurs bibliothèques, leurs droits et leurs restrictions."
     }
+  },
+  "toast": {
+    "region": "Notifications",
+    "close": "Fermer",
+    "details": "Détails",
+    "hideDetails": "Masquer",
+    "retry": "Réessayer",
+    "unreachable": "Serveur injoignable",
+    "unreachableHint": "Vérifiez qu'il est allumé et connecté.",
+    "upToDate": "Maku est à jour",
+    "latest": "Version {{version}}, la plus récente."
   }
 }

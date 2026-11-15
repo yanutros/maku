@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ErrorCard from "../components/ErrorCard.svelte";
   import { onMount, tick } from "svelte";
   import { api, errorText, type HomeUser } from "../lib/api";
   import { stop } from "../lib/player.svelte";
@@ -135,7 +136,7 @@
         </button>
       {/each}
     </div>
-    {#if error}<p class="error">{error}</p>{/if}
+    {#if error}<ErrorCard message={error} />{/if}
     {#if cancel}<div class="row actions"><button class="btn" onclick={cancel}>{t("profiles.cancel")}</button></div>{/if}
   {:else}
     <!-- Code PIN du profil choisi : quatre points, puis un pavé numérique. -->

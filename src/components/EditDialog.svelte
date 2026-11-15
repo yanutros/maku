@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ErrorCard from "./ErrorCard.svelte";
   import { onMount } from "svelte";
   import { api, errorText, type EditInfo, type ImageChoice } from "../lib/api";
   import { genreLabel } from "../lib/genres";
@@ -195,7 +196,7 @@
       </nav>
 
       <div class="panel">
-        {#if error}<p class="error">{error}</p>{/if}
+        {#if error}<ErrorCard message={error} />{/if}
         {#if !info}
           <div class="skeleton" style:height="220px"></div>
         {:else if tab === "general"}

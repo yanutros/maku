@@ -389,3 +389,102 @@ html.tv *:not(.update-backdrop) {
   box-shadow: 0 12px 28px #000b;
   cursor: grabbing;
 }
+
+/* Cartes de notification et d'erreur (Toasts.svelte, ErrorCard.svelte) : icône teintée selon le type, titre,
+   explication, gestes et détails techniques. */
+.notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 12px 12px 14px;
+  border: 1px solid #ffffff1a;
+  border-radius: 14px;
+  background: #1f2126;
+  --tone: var(--ok);
+}
+
+.notice.is-error {
+  border-color: color-mix(in srgb, var(--danger) 32%, transparent);
+  --tone: var(--danger);
+}
+
+.notice.is-info {
+  --tone: var(--accent);
+}
+
+.notice .icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--tone) 16%, transparent);
+  color: var(--tone);
+}
+
+.notice .body {
+  flex: 1;
+  min-width: 0;
+  padding-top: 1px;
+}
+
+.notice .title {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.notice .text {
+  margin-top: 2px;
+  color: var(--text-dim);
+  font-size: 13px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.notice .details {
+  max-height: 120px;
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  overflow: auto;
+  border-radius: 8px;
+  background: #0000004d;
+  color: var(--text-faint);
+  font-size: 11.5px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.notice .actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.notice .actions .btn {
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.notice .close {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin: -2px -2px 0 0;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: var(--text-faint);
+}
+
+.notice .close:hover {
+  background: #ffffff14;
+  color: var(--text);
+}

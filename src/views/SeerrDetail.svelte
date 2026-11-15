@@ -1,4 +1,6 @@
 <script lang="ts">
+  import ErrorCard from "../components/ErrorCard.svelte";
+  import { reloadView } from "../lib/nav.svelte";
   import { onMount } from "svelte";
   import { invoke } from "@tauri-apps/api/core";
   import { api, errorText, seerrStatusLabel, type SeerrDetail, type SeerrMedia } from "../lib/api";
@@ -84,7 +86,7 @@
 </script>
 
 {#if error}
-  <div class="page"><p class="error">{error}</p></div>
+  <div class="page"><ErrorCard message={error} onretry={reloadView} /></div>
 {:else if !item}
   <div class="page"><div class="skeleton" style:height="360px"></div></div>
 {:else}

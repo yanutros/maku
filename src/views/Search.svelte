@@ -1,4 +1,6 @@
 <script lang="ts">
+  import ErrorCard from "../components/ErrorCard.svelte";
+  import { reloadView } from "../lib/nav.svelte";
   import { onMount } from "svelte";
   import { api, errorText, type Item, type SeerrMedia } from "../lib/api";
   import { go } from "../lib/nav.svelte";
@@ -58,7 +60,7 @@
   {:else}
   <div class="row-title section">{t("search.inLibrary")}</div>
   {#if plexError}
-    <p class="error">{plexError}</p>
+    <ErrorCard message={plexError} onretry={reloadView} />
   {:else if !plex}
     <p class="muted">{t("search.searching")}</p>
   {:else if !plex.length}

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ErrorCard from "./ErrorCard.svelte";
   // Utilisateurs du serveur Plex (administrateur), comme « Gérer l'accès à la bibliothèque » de Plex : la liste
   // des comptes à gauche, la fiche du compte choisi à droite (bibliothèques, autorisations, restrictions).
   // Chaque changement est envoyé aussitôt à plex.tv (plex_users.rs).
@@ -162,7 +163,7 @@
 {/snippet}
 
 {#if error}
-  <p class="error">{error}</p>
+  <ErrorCard message={error} onretry={() => ((error = null), load())} />
 {:else if !users}
   <div class="skeleton" style:height="320px"></div>
 {:else}

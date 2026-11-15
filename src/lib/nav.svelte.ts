@@ -1,6 +1,22 @@
 import type { Genre, Item, SeerrMedia } from "./api";
 import { reveal } from "./spatial";
 import { device } from "./device";
+import { t } from "./i18n";
+
+/** Notification : un succès, une erreur ou une information, en carte dans le coin de la fenêtre. */
+export type Toast = {
+  id: number;
+  kind: "success" | "error" | "info";
+  title: string;
+  /** Une phrase d'explication sous le titre. */
+  text?: string;
+  /** Le message technique, montré sur demande (« Détails »). */
+  details?: string;
+  /** Un geste proposé (« Réessayer »…), qui ferme la notification. */
+  action?: { label: string; run: () => void };
+  /** Icône à la place de celle du type (nom d'Icon.svelte). */
+  icon?: string;
+};
 
 export type View =
   | { name: "home" }
@@ -54,7 +70,8 @@ export const nav = $state({
   trailer: null as string | null,
   /** Téléviseur : lien d'autorisation Tracearr, montré en QR code à scanner avec un téléphone. */
   authUrl: null as string | null,
-  toast: null as { text: string; error: boolean } | null,
+  /** Notifications affichées, la plus récente en dernier (voir `notify`). */
+  toasts: [] as Toast[],
   /** Film ou série à ranger dans une collection (fenêtre « Ajouter à la collection » ouverte). */
   collectionFor: null as Item | null,
   /** « Ajouter à une collection » pour tous les titres de la bibliothèque filtrée (`keys` les rassemble). */
@@ -311,10 +328,75 @@ export function setupBackButton() {
   });
 }
 
-let toastTimer: ReturnType<typeof setTimeout> | undefined;
+// ---------- Notifications ----------
 
+/** Pas plus de trois cartes à la fois : la plus ancienne laisse sa place. */
+const MAX_TOASTS = 3;
+let lastToast = 0;
+const toastTimers = new Map<number, ReturnType<typeof setTimeout>>();
+
+/** Une erreur reste plus longtemps qu'un succès, le temps de la lire. */
+function toastDelay(kind: Toast["kind"]) {
+  return kind === "error" ? 8000 : 4500;
+}
+
+function scheduleToast(id: number, ms: number) {
+  clearTimeout(toastTimers.get(id));
+  toastTimers.set(id, setTimeout(() => dismissToast(id), ms));
+}
+
+/** Affiche une notification ; rend son identifiant. */
+export function notify(toast: Omit<Toast, "id">): number {
+  const id = ++lastToast;
+  const list = [...nav.toasts, { ...toast, id }];
+  for (const old of list.slice(0, -MAX_TOASTS)) clearTimeout(toastTimers.get(old.id));
+  nav.toasts = list.slice(-MAX_TOASTS);
+  scheduleToast(id, toastDelay(toast.kind));
+  return id;
+}
+
+export function dismissToast(id: number) {
+  clearTimeout(toastTimers.get(id));
+  toastTimers.delete(id);
+  nav.toasts = nav.toasts.filter((n) => n.id !== id);
+}
+
+/** Souris sur la carte, ou détails ouverts : elle reste. */
+export function holdToast(id: number) {
+  clearTimeout(toastTimers.get(id));
+}
+
+/** Elle repart ensuite pour quelques secondes. */
+export function releaseToast(id: number) {
+  if (nav.toasts.some((n) => n.id === id)) scheduleToast(id, 3000);
+}
+
+/** Message d'une erreur réseau (serveur éteint, adresse injoignable, délai dépassé). */
+const NETWORK = /error sending request|connection refused|connexion refusée|timed out|timeout|délai|dns error|failed to lookup|network is unreachable|tcp connect|unreachable host|os error 10061|os error 111/i;
+
+/**
+ * Titre lisible d'une erreur : « Seerr injoignable : connection refused » devient le titre « Seerr injoignable » et,
+ * pour une coupure réseau, une phrase sur quoi faire, le message technique restant en détail. Un message
+ * « Titre : suite » est coupé en titre et explication.
+ */
+export function describeError(message: string): Pick<Toast, "title" | "text" | "details" | "icon"> {
+  const at = message.search(/ ?: /);
+  const head = at > 0 && at <= 80 ? message.slice(0, at).trim() : null;
+  const rest = head ? message.slice(at).replace(/^ ?: /, "").trim() : message;
+  if (NETWORK.test(message)) {
+    return { title: head ?? t("toast.unreachable"), text: t("toast.unreachableHint"), details: rest, icon: "wifiOff" };
+  }
+  if (!head) return { title: message };
+  return { title: head, text: rest.charAt(0).toUpperCase() + rest.slice(1) };
+}
+
+/** Recharge la page en cours : la même vue, montée à neuf (elle redemande ses données). */
+export function reloadView() {
+  nav.view = { ...nav.view } as View;
+}
+
+/** Message court : un succès, ou une erreur (son titre et son explication sont tirés du message). */
 export function toast(text: string, error = false) {
-  nav.toast = { text, error };
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => (nav.toast = null), 4000);
+  if (error) notify({ kind: "error", ...describeError(text) });
+  else notify({ kind: "success", title: text });
 }

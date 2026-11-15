@@ -1133,5 +1133,16 @@
       "dashboard": "Was gerade läuft, Bandbreite, Top-Benutzer, Verlauf und die meistgespielten Titel.",
       "users": "Die Freunde, mit denen der Server geteilt wird: ihre Bibliotheken, Rechte und Einschränkungen."
     }
+  },
+  "toast": {
+    "region": "Benachrichtigungen",
+    "close": "Schließen",
+    "details": "Details",
+    "hideDetails": "Ausblenden",
+    "retry": "Erneut versuchen",
+    "unreachable": "Server nicht erreichbar",
+    "unreachableHint": "Prüfe, ob er eingeschaltet und verbunden ist.",
+    "upToDate": "Maku ist aktuell",
+    "latest": "Version {{version}}, die neueste."
   }
 }

@@ -9,6 +9,7 @@
   import Home from "./views/Home.svelte";
   import Library from "./views/Library.svelte";
   import MusicLibrary from "./views/MusicLibrary.svelte";
+  import Toasts from "./components/Toasts.svelte";
   import ItemDetail from "./views/ItemDetail.svelte";
   import MixDetail from "./views/MixDetail.svelte";
   import Search from "./views/Search.svelte";
@@ -373,9 +374,7 @@
 
 <UpdateDialog />
 
-{#if nav.toast}
-  <div class="toast" class:error={nav.toast.error} class:raised={listening}>{nav.toast.text}</div>
-{/if}
+<Toasts raised={listening} />
 
 <style>
   /* La barre musique, quand elle est affichée, prend sa hauteur sous l'application. */
@@ -618,33 +617,4 @@
     margin: 0 0 18px;
   }
 
-  .toast {
-    position: fixed;
-    bottom: 24px;
-    right: 24px;
-    z-index: 100;
-    max-width: 480px;
-    padding: 12px 18px;
-    border-radius: var(--radius);
-    border-left: 3px solid var(--ok);
-    background: var(--bg-elev);
-    box-shadow: 0 12px 32px #0009;
-    animation: rise 0.25s var(--ease);
-  }
-
-  /* Au-dessus de la barre musique. */
-  .toast.raised {
-    bottom: 124px;
-  }
-
-  .toast.error {
-    border-left-color: var(--danger);
-  }
-
-  @keyframes rise {
-    from {
-      opacity: 0;
-      transform: translateY(12px);
-    }
-  }
 </style>

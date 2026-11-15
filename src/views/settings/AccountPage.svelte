@@ -9,7 +9,7 @@
   import QrButton from "./QrButton.svelte";
   import { revealQr } from "./qr";
   import { api, errorText, type Account, type HomeUser, type ServerKinds, type Session } from "../../lib/api";
-  import { nav, toast } from "../../lib/nav.svelte";
+  import { describeError, nav, notify, toast } from "../../lib/nav.svelte";
   import { device } from "../../lib/device";
   import { checkForUpdate, showReleaseNotes, update } from "../../lib/update.svelte";
   import { t } from "../../lib/i18n";
@@ -67,9 +67,9 @@
 
   async function checkUpdates() {
     try {
-      if (!(await checkForUpdate())) toast(t("settings.account.upToDate", { version }));
+      if (!(await checkForUpdate())) notify({ kind: "success", title: t("toast.upToDate"), text: t("toast.latest", { version }) });
     } catch (e) {
-      toast(errorText(e), true);
+      notify({ kind: "error", ...describeError(errorText(e)), action: { label: t("toast.retry"), run: checkUpdates } });
     }
   }
 

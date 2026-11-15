@@ -1,4 +1,6 @@
 <script lang="ts">
+  import ErrorCard from "../components/ErrorCard.svelte";
+  import { reloadView } from "../lib/nav.svelte";
   import { onMount } from "svelte";
   import { api, errorText, type SeerrMedia, type SeerrSlider } from "../lib/api";
   import { go } from "../lib/nav.svelte";
@@ -61,7 +63,7 @@
 <div class="page">
   <h1 class="row-title page-title">{t("discover.title")}</h1>
   {#if error}
-    <p class="error">{error}</p>
+    <ErrorCard message={error} onretry={reloadView} />
     <button class="btn" onclick={() => go({ name: "settings", page: "services" })}>{t("discover.configureSeerr")}</button>
   {:else}
     {#each SOURCES as s (s.id)}

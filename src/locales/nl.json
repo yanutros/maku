@@ -1133,5 +1133,16 @@
       "dashboard": "Wat er nu speelt, bandbreedte, topgebruikers, geschiedenis en de meest afgespeelde titels.",
       "users": "De vrienden met wie de server gedeeld wordt: hun bibliotheken, rechten en beperkingen."
     }
+  },
+  "toast": {
+    "region": "Meldingen",
+    "close": "Sluiten",
+    "details": "Details",
+    "hideDetails": "Verbergen",
+    "retry": "Opnieuw proberen",
+    "unreachable": "Server onbereikbaar",
+    "unreachableHint": "Controleer of hij aan staat en verbonden is.",
+    "upToDate": "Maku is bijgewerkt",
+    "latest": "Versie {{version}}, de nieuwste."
   }
 }

@@ -1,4 +1,6 @@
 <script lang="ts">
+  import ErrorCard from "../components/ErrorCard.svelte";
+  import { reloadView } from "../lib/nav.svelte";
   import { onDestroy, untrack } from "svelte";
   import { api, errorText, formatClock, formatLongDuration, tracearrLogin, type Session, type TracearrDashboard } from "../lib/api";
   import { genreLabel } from "../lib/genres";
@@ -145,10 +147,10 @@
         <button class="btn primary" disabled={connecting} onclick={connect}>
           {connecting ? t("stats.waitingBrowser") : t("stats.loginWithPlex")}
         </button>
-        {#if error}<p class="error">{error}</p>{/if}
+        {#if error}<ErrorCard message={error} />{/if}
       </div>
     {:else if error}
-      <p class="error">{error}</p>
+      <ErrorCard message={error} onretry={reloadView} />
     {:else}
       <div class="skeleton" style:height="320px"></div>
     {/if}

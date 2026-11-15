@@ -1,5 +1,6 @@
 <!-- Réglages → Lecteur : son vers l'ampli (Android), chemin de mpv, épisode suivant, paroles, journal. -->
 <script lang="ts">
+  import ErrorCard from "../../components/ErrorCard.svelte";
   import { invoke } from "@tauri-apps/api/core";
   import QrCode from "../../components/QrCode.svelte";
   import Banner from "./Banner.svelte";
@@ -141,7 +142,7 @@
         {#if diagUrl}<QrCode text={diagUrl} size={device.tv ? 240 : 160} />{:else}<div class="qr-wait skeleton"></div>{/if}
         <p class="muted">{t("settings.player.diagPhoneHint")}</p>
       </div>
-      {#if diagError}<p class="error">{diagError}</p>{/if}
+      {#if diagError}<ErrorCard message={diagError} />{/if}
     {/if}
   {/if}
 </section>

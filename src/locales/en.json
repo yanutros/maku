@@ -1133,5 +1133,16 @@
       "dashboard": "What's playing right now, bandwidth, top users, history and the most played titles.",
       "users": "The friends the server is shared with: their libraries, permissions and restrictions."
     }
+  },
+  "toast": {
+    "region": "Notifications",
+    "close": "Close",
+    "details": "Details",
+    "hideDetails": "Hide",
+    "retry": "Retry",
+    "unreachable": "Server unreachable",
+    "unreachableHint": "Check that it's on and connected.",
+    "upToDate": "Maku is up to date",
+    "latest": "Version {{version}}, the latest one."
   }
 }

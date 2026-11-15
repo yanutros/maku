@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ErrorCard from "../components/ErrorCard.svelte";
   import { onMount } from "svelte";
   import { api, errorText, type Pref } from "../lib/api";
   import { nav } from "../lib/nav.svelte";
@@ -92,7 +93,7 @@
     </header>
     {#if tab === "users"}<ServerUsers />{:else}<ServerDashboard />{/if}
   {:else if prefsError}
-    <p class="error">{prefsError}</p>
+    <ErrorCard message={prefsError} onretry={loadPrefs} />
   {:else if !prefs}
     <div class="skeleton" style:height="300px"></div>
   {:else}
