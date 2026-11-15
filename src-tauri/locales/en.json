@@ -1,5 +1,6 @@
 {
   "app": {
+    "relayUntrusted": "A relay answers at this address, but Maku does not recognise it as this server's relay: the token was not sent to it. If it has just been reinstalled, remove its address in Settings › Services, then enter it again.",
     "noServer": "No Plex server selected",
     "seerrNotConfigured": "Seerr isn't set up (see Settings)",
     "tracearrNotConfigured": "Tracearr isn't set up (see Settings)",

@@ -2711,6 +2711,7 @@ dependencies = [
  "mdns-sd",
  "mpris-server",
  "reqwest 0.12.28",
+ "ring",
  "roxmltree",
  "serde",
  "serde_json",

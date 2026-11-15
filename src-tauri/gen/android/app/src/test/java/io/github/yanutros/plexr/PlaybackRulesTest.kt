@@ -392,3 +392,41 @@ class ScreenAndBufferTest {
     for (memoryClass in listOf(64, 96, 128, 192, 256, 320)) assertTrue("$memoryClass", mb(memoryClass) <= memoryClass / 2)
   }
 }
+
+class BridgeGateTest {
+  private val page = "0123456789abcdef0123456789abcdef"
+  private val other = "ffffffffffffffffffffffffffffffff"
+
+  @Test
+  fun `rien ne passe avant que la page se soit présentée`() {
+    val gate = BridgeGate()
+    for (key in listOf(page, "", null)) assertFalse(gate.allows(key))
+  }
+
+  @Test
+  fun `la première clé est retenue, et aucune autre ensuite`() {
+    val gate = BridgeGate()
+    assertTrue(gate.claim(page))
+    assertTrue(gate.allows(page))
+    // Un cadre (la bande-annonce d'un autre site) se présente après la page : sa clé n'est ni retenue ni acceptée.
+    assertFalse(gate.claim(other))
+    assertFalse(gate.allows(other))
+    assertTrue(gate.allows(page))
+    // Sans clé, avec une clé vide ou presque juste : refusé.
+    for (key in listOf(null, "", page.dropLast(1), page + "0", page.uppercase())) assertFalse(key, gate.allows(key))
+    // La page rechargée présente de nouveau sa clé : toujours la sienne.
+    assertTrue(gate.claim(page))
+  }
+
+  @Test
+  fun `une clé mal formée n'est pas retenue`() {
+    val gate = BridgeGate()
+    for (key in listOf(null, "", "court", "x".repeat(32), page.uppercase(), "0".repeat(31), "0".repeat(65))) {
+      assertFalse(key, gate.claim(key))
+      assertFalse(key, gate.allows(key))
+    }
+    // La place est toujours libre pour la page.
+    assertTrue(gate.claim(page))
+    assertTrue(gate.allows(page))
+  }
+}

@@ -38,6 +38,9 @@ pub struct Config {
     /// `seerr_*` et `tracearr_*` ci-dessus sont ceux du serveur en cours ; ils sont échangés avec
     /// cette liste quand on change de serveur (voir `switch_services`).
     pub services: HashMap<String, Services>,
+    /// Clé publique du Maku Server de chaque serveur (clé : voir `SavedServer::key`), retenue à la première
+    /// rencontre : le jeton ne part ensuite qu'au relais qui sait signer avec elle (voir `maku_server`).
+    pub relay_keys: HashMap<String, String>,
     /// Préférences de l'interface (couleur, fond, notes, accueil, menu…), copie de celles du navigateur intégré :
     /// elles y sont relues au démarrage, et ne se perdent ni quand ce stockage est vidé ou n'a pas été écrit à
     /// temps, ni entre deux versions de Maku (installée et de développement) qui ne le partagent pas.

@@ -5,17 +5,20 @@
 //! (`X-Maku-Token`), vérifié auprès du serveur. Il transmet ensuite l'appel tel quel (cookies de
 //! session compris) : Seerr et Tracearr voient le compte de l'utilisateur, avec ses droits.
 //!
-//! - `GET /maku/info` : ce que le relais propose (sans jeton), pour que Maku le reconnaisse.
+//! - `GET /maku/info` : ce que le relais propose (sans jeton), pour que Maku le reconnaisse. Avec `MAKU_KEY`,
+//!   il y prouve aussi son identité : Maku lui envoie un nombre au hasard, qu'il signe (voir `proof`).
 //! - `/seerr/api/v1/…` et `/tracearr/api/v1/…` : l'API de chacun, et rien d'autre (ni leur site web).
 
 mod auth;
+mod proof;
 mod proxy;
 
 use anyhow::{bail, Context, Result};
-use axum::extract::State;
+use axum::extract::{Query, State};
 use axum::routing::get;
 use axum::{Json, Router};
 use serde_json::{json, Value};
+use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Duration;
@@ -46,11 +49,13 @@ pub struct Config {
     pub seerr: Option<String>,
     pub tracearr: Option<String>,
     pub listen: SocketAddr,
+    /// Graine de la clé du relais, tirée de `MAKU_KEY` (voir `proof`). Sans elle, le relais ne prouve rien.
+    pub key: Option<[u8; 32]>,
 }
 
 impl Config {
     /// Lue dans l'environnement : `PLEX_URL`, `JELLYFIN_URL` ou `EMBY_URL` (un seul), `SEERR_URL`,
-    /// `TRACEARR_URL`, et `MAKU_LISTEN` (par défaut `0.0.0.0:32700`).
+    /// `TRACEARR_URL`, `MAKU_LISTEN` (par défaut `0.0.0.0:32700`) et `MAKU_KEY` (phrase secrète, facultative).
     pub fn from_env(get: impl Fn(&str) -> Option<String>) -> Result<Self> {
         let url = |key: &str| -> Result<Option<String>> {
             let Some(v) = get(key).map(|v| v.trim().trim_end_matches('/').to_owned()).filter(|v| !v.is_empty()) else {
@@ -78,7 +83,14 @@ impl Config {
         }
         let listen = get("MAKU_LISTEN").unwrap_or_else(|| "0.0.0.0:32700".into());
         let listen = listen.parse().with_context(|| format!("MAKU_LISTEN : adresse invalide ({listen})"))?;
-        Ok(Config { kind, media, seerr, tracearr, listen })
+        let key = match get("MAKU_KEY").map(|v| v.trim().to_owned()).filter(|v| !v.is_empty()) {
+            Some(phrase) if phrase.chars().count() < proof::MIN_PHRASE => {
+                bail!("MAKU_KEY : au moins {} caractères, tirés au hasard (par exemple avec « openssl rand -hex 24 »)", proof::MIN_PHRASE)
+            }
+            Some(phrase) => Some(proof::seed(&phrase)),
+            None => None,
+        };
+        Ok(Config { kind, media, seerr, tracearr, listen, key })
     }
 }
 
@@ -86,6 +98,8 @@ pub struct App {
     pub cfg: Config,
     pub http: reqwest::Client,
     pub auth: auth::Cache,
+    /// Clé du relais, s'il en a une (`MAKU_KEY`).
+    pub signer: Option<proof::Signer>,
 }
 
 pub type Shared = Arc<App>;
@@ -97,7 +111,8 @@ pub fn app(cfg: Config) -> Result<Router> {
         // Les redirections sont rendues à Maku telles quelles.
         .redirect(reqwest::redirect::Policy::none())
         .build()?;
-    let state = Arc::new(App { cfg, http, auth: auth::Cache::default() });
+    let signer = cfg.key.as_ref().map(proof::Signer::new).transpose()?;
+    let state = Arc::new(App { cfg, http, auth: auth::Cache::default(), signer });
     Ok(Router::new()
         .route("/", get(|| async { format!("Maku Server {VERSION}\n") }))
         .route("/maku/info", get(info))
@@ -107,15 +122,27 @@ pub fn app(cfg: Config) -> Result<Router> {
 
 /// Ce que propose le relais, et l'identité du serveur multimédia (pour que Maku vérifie qu'il est
 /// bien celui de son serveur).
-async fn info(State(app): State<Shared>) -> Json<Value> {
-    Json(json!({
+///
+/// L'identifiant du serveur est public : le donner ne prouve rien. Avec `MAKU_KEY`, le relais annonce donc sa clé
+/// publique (`key`) et signe le nombre au hasard que Maku lui envoie (`?challenge=`, réponse dans `proof`). Maku
+/// retient la clé à la première rencontre, et n'envoie ensuite son jeton qu'à qui sait signer avec elle.
+async fn info(State(app): State<Shared>, Query(q): Query<HashMap<String, String>>) -> Json<Value> {
+    let id = auth::server_id(&app).await;
+    let mut out = json!({
         "app": "maku-server",
         "version": VERSION,
         "server": app.cfg.kind.name(),
-        "id": auth::server_id(&app).await,
+        "id": id,
         "seerr": app.cfg.seerr.is_some(),
         "tracearr": app.cfg.tracearr.is_some(),
-    }))
+    });
+    if let Some(signer) = &app.signer {
+        out["key"] = json!(signer.public());
+        if let Some(challenge) = q.get("challenge").and_then(|c| proof::challenge(c)) {
+            out["proof"] = json!(signer.sign(app.cfg.kind.name(), id.as_deref().unwrap_or(""), &challenge));
+        }
+    }
+    Json(out)
 }
 
 #[tokio::main]
@@ -135,6 +162,9 @@ async fn main() {
         cfg.seerr.as_deref().unwrap_or("non"),
         cfg.tracearr.as_deref().unwrap_or("non"),
     );
+    if cfg.key.is_none() {
+        println!("Maku Server : sans MAKU_KEY, le relais ne prouve pas son identité à Maku (voir le README).");
+    }
     let router = match app(cfg) {
         Ok(r) => r,
         Err(e) => {

@@ -213,8 +213,42 @@ object MediaActions {
 }
 
 /**
+ * Porte du pont entre la page et Android (`MakuBridge`).
+ *
+ * Android montre l'objet du pont à toute page affichée dans le WebView, y compris dans un cadre : la bande-annonce
+ * d'un autre site pouvait donc lire le journal, piloter le lecteur ou ouvrir le partage. La page de Maku tire une
+ * clé au hasard et la présente en tout premier, avant d'afficher quoi que ce soit ; cette clé est retenue, aucune
+ * autre ne le sera, et chaque méthode du pont la demande. Un cadre ne peut ni la lire (elle vit dans la page de
+ * Maku, d'une autre origine) ni en présenter une autre.
+ */
+class BridgeGate {
+  private var key: String? = null
+
+  /** Première clé présentée : retenue. Ensuite : vrai pour elle seule (la page rechargée la présente de nouveau). */
+  @Synchronized
+  fun claim(candidate: String?): Boolean {
+    if (candidate == null || !KEY.matches(candidate)) return false
+    val current = key ?: return true.also { key = candidate }
+    return same(current, candidate)
+  }
+
+  @Synchronized
+  fun allows(candidate: String?): Boolean {
+    val current = key ?: return false
+    return candidate != null && same(current, candidate)
+  }
+
+  private fun same(a: String, b: String) = java.security.MessageDigest.isEqual(a.toByteArray(), b.toByteArray())
+
+  private companion object {
+    /** 128 bits au moins, en hexadécimal. */
+    val KEY = Regex("[0-9a-f]{32,64}")
+  }
+}
+
+/**
  * Ce que la page peut demander à l'appareil (MainActivity.kt) : un nom d'image à partager, un APK à installer.
- * L'objet `PlexrDevice` est visible de toute page affichée dans Maku, dont la bande-annonce d'un autre site : rien
+ * Le pont est visible de toute page affichée dans Maku (voir BridgeGate, qui le ferme aux autres) : en plus, rien
  * de ce qu'il reçoit ne doit pouvoir désigner un autre fichier que ceux prévus.
  */
 object BridgeRules {

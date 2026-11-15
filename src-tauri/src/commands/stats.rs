@@ -9,6 +9,7 @@ pub async fn tracearr_configure(state: State<'_, AppState>, url: String) -> CmdR
         Tracearr::new(&url, None, None)?;
     }
     *state.tracearr.lock().await = None;
+    state.forget_relay_key()?;
     state.update_cfg(|c| {
         c.tracearr_url = (!url.is_empty()).then_some(url);
         c.tracearr_cookies = None;

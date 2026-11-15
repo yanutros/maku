@@ -166,7 +166,8 @@ construction des paquets d'une version (les images de référence, prises sous W
 **Tests du Rust.** Les règles qui ne dépendent ni d'un serveur ni d'un appareil ont leurs tests dans le code
 (`#[cfg(test)]`) : commandes que l'interface peut envoyer à mpv, redirections suivies, jetons retirés des messages
 d'erreur, écriture de la configuration, adresse d'un serveur Plex retenue seulement si c'est lui qui répond, relais
-cherché en `https` d'abord, lecture arrêtée ou remplacée pendant sa préparation qui ne lance pas mpv, progression
+cherché en `https` d'abord et sur la seule machine du serveur, jeton envoyé au seul relais qui signe avec la clé retenue
+(autre clé, pas de clé, ou réponse qui se dit « plugin » : refusé), lecture arrêtée ou remplacée pendant sa préparation qui ne lance pas mpv, progression
 abandonnée quand le serveur ne répond pas, aucun jeton sur la ligne de commande de mpv, seul mpv accepté comme
 lecteur, pochette publiée au bureau sans l'adresse du serveur, reprise d'un téléchargement (fichier d'origine ou
 converti), longue file Chromecast envoyée par lots, fiche demandée une seule fois par les parties qui la veulent
@@ -174,7 +175,15 @@ en même temps, meilleure adresse Plex retenue sans attendre les moins bonnes, d
 intégrant jsQR). Sur GitHub, ils passent à chaque envoi sur `main` et avant la construction des paquets d'une
 version, comme ceux de Maku Server (`cargo test` dans `server` : jeton vérifié auprès de Plex, de Jellyfin et d'Emby,
 chacun à sa façon, gardé ensuite ; serveur ou service injoignable ; envoi trop gros ; chemins hors de l'API ;
-redirection rendue telle quelle). `cargo clippy` y passe aussi, dans les deux, sans aucun signalement.
+redirection rendue telle quelle ; avec `MAKU_KEY`, signature du nombre envoyé par Maku, que les deux programmes
+calculent de la même façon). `cargo clippy` y passe aussi, dans les deux, sans aucun signalement.
+
+**Sécurité de la page.** `tests/securite.spec.ts` sert la page avec la CSP de `src-tauri/tauri.conf.json` : aucune vue
+de la démo n'y perd rien, les images et les médias d'un serveur quelconque passent, la bande-annonce s'affiche dans
+son cadre ; un script glissé dans la page, un script ou un cadre d'un autre site et une requête vers un autre hôte
+sont refusés. Il vérifie aussi que la page présente sa clé au pont Android avant tout autre appel, la joint à chacun
+et la retrouve après un rechargement. `node --test tests/pont.test.mjs` relit `MainActivity.kt` : aucune méthode du
+pont n'agit sans avoir demandé cette clé.
 
 **Contrat entre l'interface et le Rust.** `node --test tests/contrat.test.mjs` vérifie que chaque commande appelée par
 l'interface existe côté Rust, que le mode démo n'en simule aucune qui n'existe pas, et qu'aucune commande du Rust n'est
@@ -309,9 +318,10 @@ traduisez les valeurs sans toucher aux clés ni aux `{{variables}}`, puis décla
 | `src-tauri/src/player.rs` | mpv incrusté dans la fenêtre (`--wid`, sous la page web transparente) ou en audio seul, piloté par son IPC JSON ; la progression part vers le serveur à côté du suivi de mpv, pour qu'un serveur lent ne gèle ni la barre de lecture ni les commandes |
 | `src-tauri/src/seerr.rs` | Seerr : connexion Plex ou Jellyfin, découverte, fiches détaillées, demandes, et leur gestion par l'administrateur (liste, validation, modification, suppression) |
 | `src-tauri/src/tracearr.rs` | Tracearr : connexion Plex et tableau de bord personnel |
-| `src-tauri/src/maku_server.rs` | relais Maku Server : recherche sur la machine du serveur, vérification (`/maku/info`) et jeton joint aux appels |
+| `src-tauri/src/maku_server.rs` | relais Maku Server : recherche sur la machine du serveur, vérification (`/maku/info`, signature du relais s'il a une clé, retenue par serveur dans la configuration) et jeton joint aux appels |
+| `src/lib/androidBridge.ts` | pont Android : la page tire une clé, la présente à Android avant tout, et la joint à chaque appel (`window.PlexrDevice`) ; un cadre d'un autre site, à qui Android montre le même objet, n'en obtient rien |
 | `plugins/jellyfin/` | plugin Maku pour Jellyfin 12 (C#, .NET 10) : relais de Seerr (clé d'API, au nom du compte Seerr de chaque utilisateur, retrouvé par son identifiant Jellyfin ou lié à la main ; jeton CSRF de Seerr géré) et de Tracearr (cookies de session) à l'adresse du serveur (`/Maku/…`), `/Maku/maku/info` pour que Maku le reconnaisse, page de réglages ; tests xUnit des règles du relais et du compte Seerr sous lequel agit chaque utilisateur (lien choisi par l'administrateur, compte importé, aucun compte). Compilé par `.github/workflows/plugin-jellyfin.yml` ; un tag `jellyfin-v1.2.3` publie le catalogue Jellyfin (version GitHub `jellyfin-plugin`), construit par `plugins/jellyfin/catalogue.mjs` : les versions précédentes y sont gardées, et un ancien catalogue introuvable ou illisible arrête la publication au lieu d'être remplacé (`node --test plugins/jellyfin/catalogue.test.mjs`) |
-| `server/` | Maku Server, le relais lui-même (Rust, axum) : vérification du jeton auprès de Plex, Jellyfin ou Emby, transmission de l'API de Seerr et de Tracearr ; image Docker |
+| `server/` | Maku Server, le relais lui-même (Rust, axum) : vérification du jeton auprès de Plex, Jellyfin ou Emby, transmission de l'API de Seerr et de Tracearr, preuve de son identité (`MAKU_KEY`, `proof.rs`) ; image Docker |
 | `src-tauri/src/plex_admin.rs`, `src/components/FixMatchDialog.svelte` | administration : édition des métadonnées, images, association d'un film ou d'une série (« Corriger l'association » : titres proposés par l'agent de Plex ou recherche par titre et année ; « Dissocier »), réglages et lectures du serveur |
 | `src-tauri/src/net.rs` | règles de redirection des clients HTTP : même machine pour les serveurs, domaines GitHub pour les mises à jour ; jetons retirés des messages d'erreur (`redact`, appliqué à toute erreur rendue à l'interface) |
 | `src-tauri/src/update.rs` | dernière version sur GitHub, paquet adapté à l'appareil, téléchargement et installation |
@@ -338,7 +348,7 @@ traduisez les valeurs sans toucher aux clés ni aux `{{variables}}`, puis décla
 | `src/components/PhoneTabs.svelte`, `src/views/Libraries.svelte` | téléphone : barre d'onglets et liste des bibliothèques |
 | `src/components/SeerrRequests.svelte`, `src/components/RequestEditDialog.svelte`, `src/lib/seerrAdmin.svelte.ts` | Admin › Demandes, pour l'administrateur de Seerr (droit ADMIN ou MANAGE_REQUESTS, lu dans `/auth/me`), sauf au téléviseur : demandes de tous les utilisateurs par état, valider, refuser, relancer, supprimer, et changer serveur, profil et dossier d'une demande en attente (`/service/radarr`, `/service/sonarr`) ; pastille des demandes en attente dans le menu |
 | `src/components/Toasts.svelte`, `src/components/ErrorCard.svelte`, `notify` et `toast` (`src/lib/nav.svelte.ts`) | notifications en cartes empilées (trois au plus) : icône selon le type (succès, erreur, information), titre, explication, geste (« Réessayer ») et détails techniques repliés ; `describeError` tire d'un message d'erreur un titre lisible ; sur TV, ni bouton ni croix. Les erreurs dans les pages et les formulaires prennent la même carte (`ErrorCard`), à leur place, avec « Réessayer » qui recharge la page (`reloadView`) ou le bloc ; styles communs `.notice` dans `src/app.css` |
-| `src-tauri/tauri.conf.json`, `tauri.windows.conf.json` | configuration et paquets ; la fenêtre transparente n'est activée que sous Windows |
+| `src-tauri/tauri.conf.json`, `tauri.windows.conf.json` | configuration et paquets ; ce que la page a le droit de charger (CSP) ; la fenêtre transparente n'est activée que sous Windows |
 | `.github/workflows/paquets.yml`, `.signpath/` | construction des paquets Windows, Linux et macOS, signature des paquets Windows par SignPath (l'APK est construit à part ; `android.yml` vérifie qu'il se construit à chaque envoi) |
 | `docs/` | le site (GitHub Pages) : accueil, pages des fonctionnalités, guide et questions fréquentes, styles dans `docs/assets/site.css`, captures dans `docs/screenshots/` |
 
@@ -356,8 +366,13 @@ La politique de confidentialité complète, en français et en anglais, est dans
 - Maku parle directement à votre serveur de médias, à plex.tv (connexion), à l'API publique de GitHub (pour savoir
   si une nouvelle version existe) et, si vous les configurez, à Seerr, Tracearr et TMDB. Il n'envoie rien ailleurs
   et ne collecte aucune statistique d'usage.
-- Il cherche Maku Server sur la machine de votre serveur (port 32700, en `https` d'abord), et ne lui confie votre
-  jeton qu'après avoir vérifié qu'il est le relais de ce serveur-là.
+- Il cherche Maku Server sur la machine de votre serveur (port 32700, en `https` d'abord), à la seule adresse où il
+  vient de reconnaître ce serveur, et ne lui confie votre jeton qu'après avoir vérifié qu'il est le relais de ce
+  serveur-là. Si l'administrateur a donné une clé au relais (`MAKU_KEY`), Maku la retient à la première rencontre et
+  n'envoie ensuite le jeton qu'au relais qui sait signer avec elle.
+- La page de Maku n'exécute que les scripts de l'application : ni script écrit dans un texte venu du serveur, ni
+  script d'un autre site. Elle ne charge d'ailleurs que les images et les médias de votre serveur, et le lecteur de
+  bandes-annonces, dans un cadre qui, sur Android, n'a pas accès aux fonctions de l'appareil.
 - Avec Plex, les adresses du serveur sont essayées sans jeton, et une adresse n'est retenue que si le serveur qui y
   répond est le vôtre : sur un autre réseau, la machine qui occupe la même adresse locale ne reçoit rien. Une adresse
   Jellyfin ou Emby saisie sans `http://` ni `https://` est essayée en `https` d'abord.

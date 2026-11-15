@@ -147,12 +147,40 @@ impl AppState {
 
     /// Ce qu'il faut joindre aux appels vers `url`, quand elle passe par le relais du serveur (Maku Server ou le
     /// plugin Maku de Jellyfin).
-    async fn relay_token(&self, url: &str) -> Option<maku_server::Relay> {
+    ///
+    /// Erreur si un relais répond à cette adresse sans être celui du serveur (sa clé n'est pas celle retenue) : le
+    /// jeton n'y part pas, et l'appel non plus.
+    async fn relay_token(&self, url: &str) -> anyhow::Result<Option<maku_server::Relay>> {
         let c = self.cfg();
         let client_id = c.client_id.clone();
-        self.relays
-            .token_for(&self.http, url, c.server.as_ref(), |token| jellyfin::authorization(&client_id, Some(token)))
-            .await
+        let server_key = c.server.as_ref().map(config::SavedServer::key);
+        let pinned = server_key.as_ref().and_then(|k| c.relay_keys.get(k)).map(String::as_str);
+        let decision = self
+            .relays
+            .token_for(&self.http, url, c.server.as_ref(), pinned, |token| jellyfin::authorization(&client_id, Some(token)))
+            .await;
+        match decision {
+            maku_server::Decision::Direct => Ok(None),
+            maku_server::Decision::Send(relay, pin) => {
+                if let (Some(key), Some(server_key)) = (pin, server_key) {
+                    self.update_cfg(|c| void(c.relay_keys.insert(server_key, key)))?;
+                }
+                Ok(Some(relay))
+            }
+            maku_server::Decision::Refused => Err(anyhow!(crate::i18n::tr("app.relayUntrusted"))),
+        }
+    }
+
+    /// L'utilisateur vient de donner ou de retirer lui-même une adresse de Seerr ou de Tracearr : la clé retenue pour
+    /// le relais de ce serveur est oubliée, et le prochain relais rencontré sera retenu à sa place (relais réinstallé
+    /// avec une autre clé).
+    fn forget_relay_key(&self) -> anyhow::Result<()> {
+        self.relays.forget();
+        let Some(key) = self.cfg().server.as_ref().map(config::SavedServer::key) else { return Ok(()) };
+        if self.cfg().relay_keys.contains_key(&key) {
+            self.update_cfg(|c| void(c.relay_keys.remove(&key)))?;
+        }
+        Ok(())
     }
 
     /// Session Seerr ouverte à la demande, puis réutilisée.
@@ -168,7 +196,7 @@ impl AppState {
         let url = c.seerr_url.ok_or_else(|| anyhow!(crate::i18n::tr("app.seerrNotConfigured")))?;
         // La session Seerr d'un compte Jellyfin ne sert qu'avec le serveur Jellyfin.
         let cookies = c.seerr_cookies.as_deref().filter(|_| c.server.as_ref().is_some_and(|s| s.is_jellyfin()));
-        let relay = self.relay_token(&url).await;
+        let relay = self.relay_token(&url).await?;
         let s = Arc::new(Seerr::connect(&url, c.plex_token.clone(), cookies, relay).await?);
         *slot = Some(s.clone());
         Ok(s)
@@ -185,7 +213,7 @@ impl AppState {
         }
         let c = self.cfg();
         let url = c.tracearr_url.ok_or_else(|| anyhow!(crate::i18n::tr("app.tracearrNotConfigured")))?;
-        let relay = self.relay_token(&url).await;
+        let relay = self.relay_token(&url).await?;
         let t = Arc::new(Tracearr::new(&url, c.tracearr_cookies.as_deref(), relay)?);
         *slot = Some(t.clone());
         Ok(t)
@@ -200,6 +228,9 @@ impl AppState {
         Ok(())
     }
 }
+
+/// Pour une fermeture qui ne rend rien, autour d'un appel qui rend quelque chose.
+fn void<T>(_: T) {}
 
 /// Dernière réponse de plex.tv à « ce compte possède-t-il ce serveur ? », pour un compte et un serveur.
 #[derive(Default)]

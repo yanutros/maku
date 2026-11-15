@@ -34,6 +34,8 @@ services:
       # Ce qu'il faut relayer : l'un, l'autre ou les deux.
       SEERR_URL: http://192.168.1.10:5055
       TRACEARR_URL: http://192.168.1.10:3000
+      # Conseillé : une longue phrase au hasard, par laquelle le relais prouve à Maku qui il est (voir plus bas).
+      # MAKU_KEY: "collez ici le résultat de : openssl rand -hex 24"
 ```
 
 Ou en une ligne :
@@ -55,6 +57,7 @@ contient que le programme, sans dossier de données : Maku Server ne garde rien 
 | `SEERR_URL` | | adresse de Seerr, vue depuis le conteneur |
 | `TRACEARR_URL` | | adresse de Tracearr, vue depuis le conteneur |
 | `MAKU_LISTEN` | `0.0.0.0:32700` | adresse et port d'écoute |
+| `MAKU_KEY` | | phrase secrète (16 caractères au moins) : le relais prouve son identité à Maku |
 
 Le port 32600 est évité : Plex l'utilise pour son service tuner (DVR). Si 32700 est déjà pris sur la machine,
 choisissez-en un autre avec `MAKU_LISTEN` ; Maku ne le trouvera alors plus tout seul, et ses adresses se
@@ -74,6 +77,33 @@ Il faut au moins `SEERR_URL` ou `TRACEARR_URL`.
 
 Maku ne joint le jeton de l'utilisateur qu'à une adresse dont il a vérifié qu'elle est le relais de son
 serveur (`/maku/info`).
+
+## Prouver son identité : `MAKU_KEY`
+
+Le relais dit à Maku de quel serveur il est le relais, mais l'identifiant d'un serveur n'est pas un secret. Sur un
+autre réseau (hôtel, bureau), l'adresse locale de votre relais peut être celle d'une autre machine : si elle se
+faisait passer pour lui, elle recevrait le jeton de l'utilisateur.
+
+Avec `MAKU_KEY`, le relais a une clé, tirée de cette phrase :
+
+```sh
+openssl rand -hex 24
+```
+
+- Maku lui envoie un nombre au hasard, que le relais signe avec sa clé.
+- À la première rencontre, Maku retient la clé publique du relais pour ce serveur.
+- Ensuite, il n'envoie le jeton qu'au relais qui sait signer avec cette clé. Une autre machine, à la même adresse,
+  ne reçoit rien : Seerr et Tracearr affichent alors une erreur, au lieu de lui parler.
+
+À savoir :
+
+- **Gardez la même phrase** d'une mise à jour à l'autre : elle redonne la même clé, et rien ne change pour vos
+  utilisateurs. Maku Server ne garde toujours rien sur disque.
+- **Si vous la changez** (ou la retirez), Maku ne reconnaît plus le relais. Chaque utilisateur retire puis remet
+  l'adresse de Seerr ou de Tracearr dans **Réglages → Services** : Maku retient alors la nouvelle clé.
+- **Sans `MAKU_KEY`**, tout fonctionne comme avant : Maku reconnaît le relais à l'identifiant du serveur.
+- La première rencontre reste un acte de confiance : faites-la chez vous, ou par une adresse en HTTPS. Et la clé ne
+  chiffre rien : depuis Internet, le HTTPS reste nécessaire (voir ci-dessous).
 
 ## Depuis Internet : en HTTPS
 

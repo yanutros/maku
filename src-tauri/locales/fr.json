@@ -1,5 +1,6 @@
 {
   "app": {
+    "relayUntrusted": "Un relais répond à cette adresse, mais Maku ne le reconnaît pas comme celui de ce serveur : le jeton ne lui a pas été envoyé. S'il vient d'être réinstallé, retirez puis remettez son adresse dans Réglages › Services.",
     "noServer": "Aucun serveur Plex sélectionné",
     "seerrNotConfigured": "Seerr n'est pas configuré (voir Réglages)",
     "tracearrNotConfigured": "Tracearr n'est pas configuré (voir Réglages)",

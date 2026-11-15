@@ -1,3 +1,5 @@
+// En tout premier : la clé du pont Android, avant les modules qui s'en servent (voir androidBridge.ts).
+import "./lib/androidBridge";
 import "./app.css";
 
 // `?demo=<vue>` : interface de démonstration avec une bibliothèque fictive (captures du README).

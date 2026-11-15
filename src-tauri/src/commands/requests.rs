@@ -7,6 +7,7 @@ use crate::*;
 pub async fn seerr_configure(state: State<'_, AppState>, url: String) -> CmdResult<()> {
     let url = url.trim().trim_end_matches('/').to_string();
     let mut slot = state.seerr.lock().await;
+    state.forget_relay_key()?;
     if url.is_empty() {
         *slot = None;
         state.update_cfg(|c| {
@@ -15,7 +16,7 @@ pub async fn seerr_configure(state: State<'_, AppState>, url: String) -> CmdResu
         })?;
         return Ok(());
     }
-    let relay = state.relay_token(&url).await;
+    let relay = state.relay_token(&url).await?;
     let seerr = Seerr::connect(&url, state.cfg().plex_token, None, relay).await?;
     state.update_cfg(|c| {
         c.seerr_url = Some(url);
@@ -30,7 +31,8 @@ pub async fn seerr_configure(state: State<'_, AppState>, url: String) -> CmdResu
 pub async fn seerr_configure_jellyfin(state: State<'_, AppState>, url: String, username: String, password: String) -> CmdResult<()> {
     let url = url.trim().trim_end_matches('/').to_string();
     let mut slot = state.seerr.lock().await;
-    let relay = state.relay_token(&url).await;
+    state.forget_relay_key()?;
+    let relay = state.relay_token(&url).await?;
     let seerr = Seerr::connect_jellyfin(&url, username.trim(), &password, relay).await?;
     let cookies = seerr.saved_cookies();
     state.update_cfg(|c| {

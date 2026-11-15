@@ -1,5 +1,6 @@
 {
   "app": {
+    "relayUntrusted": "Op dit adres antwoordt een relay, maar Maku herkent die niet als de relay van deze server: het token is er niet naartoe gestuurd. Is de relay net opnieuw geïnstalleerd, verwijder dan het adres in Instellingen › Services en vul het opnieuw in.",
     "noServer": "Geen Plex-server geselecteerd",
     "seerrNotConfigured": "Seerr is niet ingesteld (zie Instellingen)",
     "tracearrNotConfigured": "Tracearr is niet ingesteld (zie Instellingen)",

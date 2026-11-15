@@ -124,7 +124,8 @@ class MainActivity : TauriActivity() {
   }
 
   // Le WebView annonce un écran tactile même sur téléviseur : l'interface demande donc à
-  // Android (`window.PlexrDevice.isTv()`) si l'appareil est en mode télévision.
+  // Android (`window.PlexrDevice.isTv()`) si l'appareil est en mode télévision. `PlexrDevice` est ce que la page
+  // construit autour de l'objet `MakuBridge` ci-dessous, en y joignant sa clé (src/lib/androidBridge.ts).
   override fun onWebViewCreate(webView: WebView) {
     val tv = (getSystemService(UI_MODE_SERVICE) as UiModeManager).currentModeType == Configuration.UI_MODE_TYPE_TELEVISION ||
       packageManager.hasSystemFeature("android.software.leanback_only")
@@ -137,46 +138,60 @@ class MainActivity : TauriActivity() {
     if (tv) webView.post { webView.requestFocus() }
     MediaService.webView = webView
     val video = NativeVideo(this, webView).also { this.video = it }
+    // Android montre cet objet à toute page affichée dans le WebView, dont la bande-annonce d'un autre site, dans son
+    // cadre. Chaque méthode demande donc une clé, que seule la page de Maku connaît (voir BridgeGate).
+    val gate = BridgeGate()
     webView.addJavascriptInterface(object {
+      /** La page de Maku se présente, avant toute chose : sa clé est retenue, et aucune autre ne le sera. */
+      @JavascriptInterface
+      fun claim(key: String): Boolean = gate.claim(key)
+
       /** Vidéo : lecteur natif ExoPlayer sous la page (voir NativeVideo.kt). */
       @JavascriptInterface
-      fun videoOpen(json: String) {
+      fun videoOpen(key: String, json: String) {
+        if (!gate.allows(key)) return
         video.open(json)
       }
 
       @JavascriptInterface
-      fun videoCommand(name: String, value: String) {
+      fun videoCommand(key: String, name: String, value: String) {
+        if (!gate.allows(key)) return
         video.command(name, value)
       }
 
       @JavascriptInterface
-      fun videoClose() {
+      fun videoClose(key: String) {
+        if (!gate.allows(key)) return
         video.closeAsync()
       }
 
       @JavascriptInterface
-      fun isTv(): Boolean = tv
+      fun isTv(key: String): Boolean = gate.allows(key) && tv
 
       // Retour depuis l'accueil : l'application passe en arrière-plan, comme le fait Android sur sa première page.
       @JavascriptInterface
-      fun leave() {
+      fun leave(key: String) {
+        if (!gate.allows(key)) return
         runOnUiThread { moveTaskToBack(true) }
       }
 
       /** Réglages : formats audio que l'ampli, la barre de son ou la TV acceptent tels quels (JSON). */
       @JavascriptInterface
-      fun audioPassthrough(): String = NativeVideo.passthroughFormats(this@MainActivity)
+      fun audioPassthrough(key: String): String = if (gate.allows(key)) NativeVideo.passthroughFormats(this@MainActivity) else ""
 
 
       /** Journal de diagnostic (DiagLog.kt) : une ligne de la page, le texte entier, ou son partage. */
       @JavascriptInterface
-      fun diagLog(message: String) = DiagLog.log(message)
+      fun diagLog(key: String, message: String) {
+        if (gate.allows(key)) DiagLog.log(message)
+      }
 
       @JavascriptInterface
-      fun diagText(): String = DiagLog.text()
+      fun diagText(key: String): String = if (gate.allows(key)) DiagLog.text() else ""
 
       @JavascriptInterface
-      fun diagShare() {
+      fun diagShare(key: String) {
+        if (!gate.allows(key)) return
         val uri = FileProvider.getUriForFile(this@MainActivity, "$packageName.fileprovider", DiagLog.exportFile(this@MainActivity))
         val send = Intent(Intent.ACTION_SEND)
           .setType("text/plain")
@@ -191,7 +206,8 @@ class MainActivity : TauriActivity() {
        * ou « Copier »). Le presse-papiers de la page ne sait pas y mettre une image : elle n'arrivait nulle part.
        */
       @JavascriptInterface
-      fun shareImage(base64: String, shared: String) {
+      fun shareImage(key: String, base64: String, shared: String) {
+        if (!gate.allows(key)) return
         // Le nom vient de la page : jamais un chemin, qui écrirait ailleurs que dans le dossier du partage.
         val name = BridgeRules.shareName(shared)
         val file = File(cacheDir, "partage/$name.png")
@@ -209,7 +225,8 @@ class MainActivity : TauriActivity() {
 
       /** Téléviseur : OK sur un champ de saisie ouvre le clavier (il ne s'ouvre pas au simple passage). */
       @JavascriptInterface
-      fun showKeyboard() {
+      fun showKeyboard(key: String) {
+        if (!gate.allows(key)) return
         runOnUiThread {
           val imm = getSystemService(INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
           // Le champ vient de changer de mode de saisie : Android le relit avant d'ouvrir le clavier.
@@ -220,14 +237,19 @@ class MainActivity : TauriActivity() {
 
       /** Musique : état de la lecture pour la notification (JSON, voir MediaService). */
       @JavascriptInterface
-      fun mediaUpdate(json: String) = MediaService.update(this@MainActivity, json)
+      fun mediaUpdate(key: String, json: String) {
+        if (gate.allows(key)) MediaService.update(this@MainActivity, json)
+      }
 
       @JavascriptInterface
-      fun mediaStop() = MediaService.stop()
+      fun mediaStop(key: String) {
+        if (gate.allows(key)) MediaService.stop()
+      }
 
       /** Téléphone : vidéo en paysage et plein écran (barres système masquées), ou retour à la normale. */
       @JavascriptInterface
-      fun setVideoMode(on: Boolean) {
+      fun setVideoMode(key: String, on: Boolean) {
+        if (!gate.allows(key)) return
         runOnUiThread {
           requestedOrientation = if (on) ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE else ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
           val controller = WindowCompat.getInsetsController(window, window.decorView)
@@ -242,7 +264,8 @@ class MainActivity : TauriActivity() {
 
       /** Hauteur des barres d'état et de navigation (« haut,bas », en px CSS), que la page évite. */
       @JavascriptInterface
-      fun insets(): String {
+      fun insets(key: String): String {
+        if (!gate.allows(key)) return "0,0"
         val insets = ViewCompat.getRootWindowInsets(webView)
           ?.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
           ?: return "0,0"
@@ -252,7 +275,8 @@ class MainActivity : TauriActivity() {
 
       /** Icône du lanceur aux couleurs du thème : active l'alias correspondant, désactive les autres. */
       @JavascriptInterface
-      fun setIconTheme(theme: String) {
+      fun setIconTheme(key: String, theme: String) {
+        if (!gate.allows(key)) return
         val themes = listOf("jaune", "rouge", "vert", "violet")
         if (theme !in themes) return
         // La nouvelle entrée d'abord, pour que le lanceur ne se retrouve jamais sans Maku.
@@ -274,7 +298,8 @@ class MainActivity : TauriActivity() {
        * ouvre alors l'écran où l'accorder, et il suffit de relancer la mise à jour.
        */
       @JavascriptInterface
-      fun installApk(path: String): String {
+      fun installApk(key: String, path: String): String {
+        if (!gate.allows(key)) return "refused"
         // Seule une mise à jour téléchargée par Maku s'installe : pas un autre fichier de l'appareil.
         if (!BridgeRules.isUpdateApk(path, cacheDir)) return "refused"
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !packageManager.canRequestPackageInstalls()) {
@@ -297,6 +322,6 @@ class MainActivity : TauriActivity() {
         }
         return "ok"
       }
-    }, "PlexrDevice")
+    }, "MakuBridge")
   }
 }

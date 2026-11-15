@@ -279,3 +279,95 @@ async fn redirection_du_service_rendue_telle_quelle() {
     assert_eq!(r.headers()["location"], "http://ailleurs.invalid/");
 }
 
+
+/// Relais avec une clé (`MAKU_KEY`).
+async fn relay_with_key(phrase: &str) -> String {
+    let plex = fake_plex().await;
+    let seerr = fake_seerr().await;
+    let phrase = phrase.to_owned();
+    let cfg = Config::from_env(|k| match k {
+        "PLEX_URL" => Some(plex.clone()),
+        "SEERR_URL" => Some(seerr.clone()),
+        "MAKU_KEY" => Some(phrase.clone()),
+        _ => None,
+    })
+    .unwrap();
+    serve(app(cfg).unwrap()).await
+}
+
+const B64: base64::engine::GeneralPurpose = base64::engine::general_purpose::URL_SAFE_NO_PAD;
+
+fn verifies(key: &str, proof: &str, kind: &str, id: &str, challenge: &[u8]) -> bool {
+    use base64::Engine;
+    let (Ok(key), Ok(proof)) = (B64.decode(key), B64.decode(proof)) else { return false };
+    ring::signature::UnparsedPublicKey::new(&ring::signature::ED25519, key).verify(&proof::message(kind, id, challenge), &proof).is_ok()
+}
+
+#[tokio::test]
+async fn le_relais_prouve_son_identite() {
+    use base64::Engine;
+    let base = relay_with_key("une phrase secrète de test").await;
+    let http = reqwest::Client::new();
+    let challenge = [42u8; 32];
+    let v: Value = http.get(format!("{base}/maku/info?challenge={}", B64.encode(challenge))).send().await.unwrap().json().await.unwrap();
+    let (key, proof) = (v["key"].as_str().unwrap(), v["proof"].as_str().unwrap());
+    assert!(verifies(key, proof, "plex", "abc123", &challenge));
+    // La signature ne vaut que pour ce nombre, ce serveur et cette clé.
+    assert!(!verifies(key, proof, "plex", "abc123", &[43u8; 32]));
+    assert!(!verifies(key, proof, "plex", "autre", &challenge));
+    assert!(!verifies(key, proof, "jellyfin", "abc123", &challenge));
+    // La même phrase redonne la même clé (relais réinstallé) ; une autre phrase, une autre clé.
+    let again = relay_with_key("une phrase secrète de test").await;
+    let w: Value = http.get(format!("{again}/maku/info")).send().await.unwrap().json().await.unwrap();
+    assert_eq!(w["key"], v["key"]);
+    let other = relay_with_key("une autre phrase secrète").await;
+    let x: Value = http.get(format!("{other}/maku/info?challenge={}", B64.encode(challenge))).send().await.unwrap().json().await.unwrap();
+    assert_ne!(x["key"], v["key"]);
+    assert!(!verifies(key, x["proof"].as_str().unwrap(), "plex", "abc123", &challenge));
+}
+
+#[tokio::test]
+async fn pas_de_signature_sans_nombre_ni_sans_cle() {
+    use base64::Engine;
+    let http = reqwest::Client::new();
+    let base = relay_with_key("une phrase secrète de test").await;
+    // Sans nombre, ou avec un nombre trop court, trop long ou illisible : la clé est annoncée, rien n'est signé.
+    for query in ["", "?challenge=", "?challenge=AAAA", "?challenge=pas%20du%20base64"] {
+        let v: Value = http.get(format!("{base}/maku/info{query}")).send().await.unwrap().json().await.unwrap();
+        assert!(v["key"].is_string(), "{query}");
+        assert!(v.get("proof").is_none(), "{query}");
+    }
+    let long = B64.encode([1u8; 65]);
+    let v: Value = http.get(format!("{base}/maku/info?challenge={long}")).send().await.unwrap().json().await.unwrap();
+    assert!(v.get("proof").is_none());
+    // Sans MAKU_KEY : ni clé ni signature (le relais est reconnu à son identifiant, comme avant).
+    let (plain, _) = relay().await;
+    let v: Value = http.get(format!("{plain}/maku/info?challenge={}", B64.encode([42u8; 32]))).send().await.unwrap().json().await.unwrap();
+    assert!(v.get("key").is_none() && v.get("proof").is_none());
+    assert_eq!(v["id"], "abc123");
+}
+
+/// Valeurs reprises telles quelles par le test de Maku (`src-tauri/src/maku_server.rs`) : les deux programmes
+/// s'entendent sur la clé tirée d'une phrase et sur ce qui est signé.
+#[test]
+fn preuve_connue() {
+    let s = proof::Signer::new(&proof::seed("une phrase secrète de test")).unwrap();
+    assert_eq!(s.public(), "61yEhfgSy-fJvLSLxDs2eaxmvD1ncYslE4wkNqnj8kw");
+    assert_eq!(s.sign("plex", "abc", &[7u8; 32]), "jDuWUtVRWFeR2olwqP7x8QS_v_1ilkxgy1M2_kh8MMtBYPivTunXH16Mm1zW7IXkTI5A9XJdt4UAu5XsCl1dBw");
+}
+
+#[test]
+fn phrase_trop_courte_refusee() {
+    let env = |phrase: &'static str| {
+        Config::from_env(move |k| match k {
+            "PLEX_URL" => Some("http://127.0.0.1:1".into()),
+            "SEERR_URL" => Some("http://127.0.0.1:2".into()),
+            "MAKU_KEY" => Some(phrase.into()),
+            _ => None,
+        })
+    };
+    assert!(env("trop courte").is_err());
+    assert!(env("seize caractères").unwrap().key.is_some());
+    // Vide : pas de clé, et pas d'erreur.
+    assert!(env("  ").unwrap().key.is_none());
+}

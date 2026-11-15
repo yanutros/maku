@@ -36,20 +36,12 @@ pub(crate) struct RelayFound {
 pub async fn relay_discover(state: State<'_, AppState>) -> CmdResult<Option<RelayFound>> {
     let c = state.cfg();
     let Some(server) = c.server.clone() else { return Ok(None) };
-    // Plex : ses adresses connues (réseau local d'abord, sans les relais de Plex), en plus de celle enregistrée.
-    let mut others = Vec::new();
-    if !server.is_jellyfin() {
-        if let Some(token) = c.plex_token.as_deref() {
-            if let Ok(list) = plex::servers(&state.http, &c.client_id, token).await {
-                if let Some(r) = list.into_iter().find(|r| r.client_identifier == server.machine_id) {
-                    let mut conns: Vec<_> = r.connections.into_iter().filter(|c| !c.relay && !c.address.is_empty()).collect();
-                    conns.sort_by_key(|c| !c.local);
-                    others = conns.into_iter().map(|c| c.address).collect();
-                }
-            }
-        }
+    let pinned = c.relay_keys.get(&server.key()).cloned();
+    let Some(maku_server::Found { base, info, pin }) = maku_server::discover(&state.http, &server, pinned.as_deref()).await else { return Ok(None) };
+    // Première rencontre d'un relais qui a une clé : elle est retenue avant qu'un jeton ne lui parte.
+    if let Some(key) = pin {
+        state.update_cfg(|c| void(c.relay_keys.insert(server.key(), key)))?;
     }
-    let Some((base, info)) = maku_server::discover(&state.http, &server, others).await else { return Ok(None) };
     let mut applied = false;
     // Avec Jellyfin, Seerr demande un mot de passe, sauf par le plugin Maku (il agit sous le compte de l'utilisateur).
     if info.seerr && c.seerr_url.is_none() && (!server.is_jellyfin() || info.plugin) {

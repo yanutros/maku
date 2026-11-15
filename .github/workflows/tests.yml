@@ -35,7 +35,7 @@ jobs:
           TAG: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
         run: |
           node scripts/check-version.mjs "$TAG"
-          node --test tests/versions.test.mjs tests/contrat.test.mjs
+          node --test tests/versions.test.mjs tests/contrat.test.mjs tests/pont.test.mjs
 
       - name: Navigateurs (Chromium et WebKit)
         run: npx playwright install --with-deps chromium webkit

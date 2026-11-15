@@ -125,11 +125,14 @@ services:
       # EMBY_URL: http://192.168.1.10:8096
       # L'un, l'autre ou les deux.
       SEERR_URL: http://192.168.1.10:5055
-      TRACEARR_URL: http://192.168.1.10:3000</code></pre>
+      TRACEARR_URL: http://192.168.1.10:3000
+      # Conseillé : une longue phrase au hasard (16 caractères au moins).
+      # MAKU_KEY: "collez ici le résultat de : openssl rand -hex 24"</code></pre>
       <p>L'image fonctionne sur les ordinateurs (amd64) et sur les serveurs ARM 64 bits (Raspberry Pi, NAS). Elle ne garde rien sur disque.</p>
       <h3>Côté Maku</h3>
       <ul>
         <li><strong>Sur le réseau de la maison</strong>, Maku trouve le relais tout seul (en <code>https</code> s'il le propose, sinon en <code>http</code>), vérifie que c'est bien celui de son serveur, et remplit les adresses de Seerr et de Tracearr. Réglages → Services affiche alors « Maku Server local détecté ».</li>
+        <li><strong>Avec <code>MAKU_KEY</code></strong>, le relais prouve à Maku qui il est. Maku retient sa clé à la première rencontre, puis n'envoie plus votre jeton qu'à lui : sur un autre réseau, une machine qui occuperait la même adresse ne reçoit rien. Gardez la même phrase d'une mise à jour à l'autre ; si vous la changez, chacun retire puis remet l'adresse de Seerr ou de Tracearr dans Réglages → Services.</li>
         <li><strong>Depuis Internet</strong>, placez le relais derrière un proxy inverse HTTPS (Caddy, Nginx Proxy Manager, Traefik…) ou un VPN, et utilisez ses adresses : <code>https://maku.mondomaine.fr/seerr</code> et <code>https://maku.mondomaine.fr/tracearr</code>, dans les Réglages ou dans l'invitation.</li>
       </ul>
       <p>Le <a href="https://github.com/yanutros/maku/blob/main/server/README.md">guide complet de Maku Server</a> détaille les variables, le HTTPS et un tunnel sans port à ouvrir.</p>

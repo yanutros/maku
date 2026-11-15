@@ -1,5 +1,6 @@
 {
   "app": {
+    "relayUntrusted": "Un relé responde en esta dirección, pero Maku no lo reconoce como el de este servidor: no se le ha enviado el token. Si acaba de reinstalarse, quita su dirección en Ajustes › Servicios y vuelve a ponerla.",
     "noServer": "No hay ningún servidor de Plex seleccionado",
     "seerrNotConfigured": "Seerr no está configurado (ver Ajustes)",
     "tracearrNotConfigured": "Tracearr no está configurado (ver Ajustes)",
