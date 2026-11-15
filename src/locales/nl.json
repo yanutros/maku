@@ -1053,6 +1053,8 @@
     "season": "Seizoen {{season}}",
     "groupProgress": "{{done}} van {{total}} gedownload",
     "removeAll": "Alles verwijderen",
+    "removeAllQuestion": "Deze hele map van het apparaat verwijderen?",
+    "removeAllConfirm": "Verwijderen",
     "episodeCode": "S{{season}} · A{{episode}}"
   },
   "lyrics": {

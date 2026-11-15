@@ -4,7 +4,7 @@
   import Icon from "../components/Icon.svelte";
   import { errorText, formatDuration } from "../lib/api";
   import { t } from "../lib/i18n";
-  import { toast } from "../lib/nav.svelte";
+  import { closeOnBack, toast } from "../lib/nav.svelte";
   import {
     filePath,
     formatSize,
@@ -62,7 +62,15 @@
     return `${count} · ${formatSize(g.items.reduce((s, d) => s + d.size, 0))}`;
   }
 
+  /**
+   * Dossier dont la suppression attend d'être confirmée : un appui malheureux sur « Tout supprimer » effacerait une
+   * playlist ou une saison entière, à retélécharger ensuite. Retour et Échap annulent.
+   */
+  let confirming = $state<string | null>(null);
+  $effect(() => (confirming ? closeOnBack(() => (confirming = null)) : undefined));
+
   async function removeGroup(g: Group) {
+    confirming = null;
     for (const d of g.items) await act(() => removeDownload(d.id));
   }
   const used = $derived(offline.items.reduce((s, d) => s + d.done, 0));
@@ -168,7 +176,16 @@
                 {#each g.items as d (d.id)}{@render row(d, !g.music, () => (g.music ? playAlbum(g.groupKey, d) : play(d)))}{/each}
               </div>
               <div class="group-foot">
-                <button class="btn" onclick={() => removeGroup(g)}><Icon name="x" size={16} /> {t("offline.removeAll")}</button>
+                {#if confirming === g.key}
+                  <!-- La question prend la place du bouton, avec ce que le dossier contient. -->
+                  <span class="confirm" role="alertdialog" aria-label={t("offline.removeAllQuestion")}>
+                    <span class="confirm-text"><strong>{t("offline.removeAllQuestion")}</strong><span class="muted small">{summary(g)}</span></span>
+                    <button class="btn" onclick={() => (confirming = null)}>{t("common.c1.cancel")}</button>
+                    <button class="btn danger" onclick={() => removeGroup(g)}>{t("offline.removeAllConfirm")}</button>
+                  </span>
+                {:else}
+                  <button class="btn" onclick={() => (confirming = g.key)}><Icon name="x" size={16} /> {t("offline.removeAll")}</button>
+                {/if}
               </div>
             {/if}
           </section>
@@ -254,6 +271,27 @@
     display: flex;
     justify-content: flex-end;
     margin: 10px 10px 0;
+  }
+
+  .confirm {
+    display: flex;
+    flex: 1;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  .confirm-text {
+    display: grid;
+    flex: 1 1 100%;
+    gap: 2px;
+  }
+
+  .btn.danger {
+    border-color: var(--danger, #e5484d);
+    background: var(--danger, #e5484d);
+    color: #fff;
   }
 
   .list {

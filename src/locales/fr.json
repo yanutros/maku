@@ -1053,6 +1053,8 @@
     "season": "Saison {{season}}",
     "groupProgress": "{{done}} sur {{total}} téléchargés",
     "removeAll": "Tout supprimer",
+    "removeAllQuestion": "Supprimer tout ce dossier de l'appareil ?",
+    "removeAllConfirm": "Supprimer",
     "episodeCode": "S{{season}} · E{{episode}}"
   },
   "lyrics": {

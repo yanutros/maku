@@ -121,7 +121,20 @@ test("téléchargements : une playlist et chaque saison sont un dossier, qui s'o
   await saison2.locator(".group-toggle").tap();
   await expect(saison2.locator(".row")).toHaveCount(6);
   await expect(saison2.locator(".row").first()).toContainText("S2 · E1");
-  // « Tout supprimer » vide le dossier, qui disparaît.
+  // « Tout supprimer » demande d'abord confirmation : rien n'est effacé à ce stade.
   await saison2.getByRole("button", { name: "Tout supprimer" }).tap();
+  const question = saison2.getByRole("alertdialog");
+  await expect(question).toContainText("Supprimer tout ce dossier de l'appareil ?");
+  await expect(question).toContainText("6 épisodes");
+  await expect(saison2.locator(".row")).toHaveCount(6);
+  // « Annuler » ne touche à rien, et le bouton revient.
+  await question.getByRole("button", { name: "Annuler" }).tap();
+  await expect(question).toHaveCount(0);
+  await expect(dossiers).toHaveCount(3);
+  await expect(saison2.locator(".row")).toHaveCount(6);
+  // Confirmé : le dossier se vide et disparaît, les autres restent.
+  await saison2.getByRole("button", { name: "Tout supprimer" }).tap();
+  await saison2.getByRole("alertdialog").getByRole("button", { name: "Supprimer", exact: true }).tap();
   await expect(dossiers).toHaveCount(2);
+  await expect(dossiers.filter({ hasText: "Les Marées · Saison 1" })).toHaveCount(1);
 });
