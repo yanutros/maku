@@ -114,6 +114,36 @@ pub async fn start(app: AppHandle, login: Option<(&str, &str)>) -> Result<Relay>
     Ok(Relay { url: format!("http://{ip}:{port}/{token}"), shared, task })
 }
 
+/// Réponse à une requête (code, type, contenu), et l'événement à transmettre à l'interface s'il y en a un. Rien
+/// n'existe hors de l'adresse secrète : tout autre chemin répond « introuvable », sans rien dire de ce qui est servi.
+fn route(method: &str, path: &str, body: &str, shared: &Shared) -> (&'static str, &'static str, String, Option<(&'static str, String)>) {
+    let base = format!("/{}", shared.token);
+    let tmdb = format!("{base}/tmdb");
+    let html = "text/html; charset=utf-8";
+    let ok = || ("200 OK", "application/json", r#"{"ok":true}"#.to_string());
+    let journal = shared.journal.lock().unwrap().clone();
+    let mut event = None;
+    let (code, kind, content) = match (method, path, shared.tmdb_page.as_ref()) {
+        ("GET", p, _) if p == format!("{base}/journal") && journal.is_some() => ("200 OK", "text/plain; charset=utf-8", journal.unwrap_or_default()),
+        ("GET", p, _) if p == base => ("200 OK", html, shared.page.clone()),
+        ("GET", p, _) if p == format!("{base}/status") => ("200 OK", "application/json", shared.status.lock().unwrap().clone()),
+        ("POST", p, _) if p == format!("{base}/{}", shared.route) => {
+            *shared.status.lock().unwrap() = RECEIVED.into();
+            event = Some((if shared.route == "login" { "relay-login" } else { "relay-code" }, body.trim().to_string()));
+            ok()
+        }
+        ("GET", p, Some(page)) if p == tmdb => ("200 OK", html, page.clone()),
+        ("GET", p, Some(_)) if p == format!("{tmdb}/status") => ("200 OK", "application/json", shared.tmdb_status.lock().unwrap().clone()),
+        ("POST", p, Some(_)) if p == tmdb => {
+            *shared.tmdb_status.lock().unwrap() = RECEIVED.into();
+            event = Some(("relay-tmdb", body.trim().to_string()));
+            ok()
+        }
+        _ => ("404 Not Found", "text/plain", crate::i18n::tr("relay.notFound")),
+    };
+    (code, kind, content, event)
+}
+
 /// Texte placé dans une chaîne JavaScript de la page, sans pouvoir en sortir.
 fn js_text(text: &str) -> String {
     let quoted = serde_json::to_string(text).unwrap_or_default();
@@ -154,29 +184,10 @@ async fn serve(mut conn: TcpStream, app: &AppHandle, shared: &Shared) -> Result<
     }
     let body = String::from_utf8_lossy(&buf[header_end..buf.len().min(header_end + length)]).to_string();
 
-    let base = format!("/{}", shared.token);
-    let tmdb = format!("{base}/tmdb");
-    let html = "text/html; charset=utf-8";
-    let ok = || ("200 OK", "application/json", r#"{"ok":true}"#.to_string());
-    let journal = shared.journal.lock().unwrap().clone();
-    let (code, kind, content) = match (method, path, shared.tmdb_page.as_ref()) {
-        ("GET", p, _) if p == format!("{base}/journal") && journal.is_some() => ("200 OK", "text/plain; charset=utf-8", journal.unwrap_or_default()),
-        ("GET", p, _) if p == base => ("200 OK", html, shared.page.clone()),
-        ("GET", p, _) if p == format!("{base}/status") => ("200 OK", "application/json", shared.status.lock().unwrap().clone()),
-        ("POST", p, _) if p == format!("{base}/{}", shared.route) => {
-            *shared.status.lock().unwrap() = RECEIVED.into();
-            app.emit(if shared.route == "login" { "relay-login" } else { "relay-code" }, body.trim().to_string())?;
-            ok()
-        }
-        ("GET", p, Some(page)) if p == tmdb => ("200 OK", html, page.clone()),
-        ("GET", p, Some(_)) if p == format!("{tmdb}/status") => ("200 OK", "application/json", shared.tmdb_status.lock().unwrap().clone()),
-        ("POST", p, Some(_)) if p == tmdb => {
-            *shared.tmdb_status.lock().unwrap() = RECEIVED.into();
-            app.emit("relay-tmdb", body.trim().to_string())?;
-            ok()
-        }
-        _ => ("404 Not Found", "text/plain", crate::i18n::tr("relay.notFound")),
-    };
+    let (code, kind, content, event) = route(method, path, &body, shared);
+    if let Some((name, payload)) = event {
+        app.emit(name, payload)?;
+    }
     // Le journal arrive comme un fichier à enregistrer, pour l'envoyer ensuite.
     let download = if kind.starts_with("text/plain") && code == "200 OK" {
         "Content-Disposition: attachment; filename=\"maku-journal.txt\"\r\n"
@@ -194,6 +205,73 @@ async fn serve(mut conn: TcpStream, app: &AppHandle, shared: &Shared) -> Result<
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+
+    /// Relais de l'invitation (`login` faux) ou de la connexion Jellyfin / Emby d'un téléviseur.
+    fn shared(login: bool) -> Shared {
+        Shared {
+            token: "secret123".into(),
+            page: "<html>page</html>".into(),
+            route: if login { "login" } else { "code" },
+            status: Mutex::new(WAITING.into()),
+            tmdb_page: (!login).then(|| "<html>tmdb</html>".to_string()),
+            tmdb_status: Mutex::new(WAITING.into()),
+            journal: Mutex::new(None),
+        }
+    }
+
+    #[test]
+    fn rien_hors_de_l_adresse_secrete() {
+        let s = shared(false);
+        for path in ["/", "/status", "/code", "/journal", "/tmdb", "/autre/status", "/secret12", "/secret1234", "/secret123/../x", "/SECRET123"] {
+            for method in ["GET", "POST"] {
+                let (code, _, content, event) = route(method, path, "MAKU-INVITE:x", &s);
+                assert_eq!(code, "404 Not Found", "{method} {path}");
+                assert!(event.is_none() && !content.contains("page") && !content.contains("tmdb"), "{method} {path}");
+            }
+        }
+        // Rien n'a été pris pour un envoi : l'écran attend toujours.
+        assert_eq!(*s.status.lock().unwrap(), WAITING);
+    }
+
+    #[test]
+    fn invitation_recue_et_transmise() {
+        let s = shared(false);
+        assert_eq!(route("GET", "/secret123", "", &s).2, "<html>page</html>");
+        assert_eq!(route("GET", "/secret123/status", "", &s).2, WAITING);
+        let (code, _, _, event) = route("POST", "/secret123/code", "  MAKU-INVITE:abc \n", &s);
+        assert_eq!((code, event), ("200 OK", Some(("relay-code", "MAKU-INVITE:abc".to_string()))));
+        assert_eq!(route("GET", "/secret123/status", "", &s).2, RECEIVED);
+        // La page de connexion n'existe pas sur ce relais, la clé TMDB si.
+        assert_eq!(route("POST", "/secret123/login", "x", &s).0, "404 Not Found");
+        assert_eq!(route("GET", "/secret123/tmdb", "", &s).2, "<html>tmdb</html>");
+        let (_, _, _, event) = route("POST", "/secret123/tmdb", "cle", &s);
+        assert_eq!(event, Some(("relay-tmdb", "cle".to_string())));
+        assert_eq!(route("GET", "/secret123/tmdb/status", "", &s).2, RECEIVED);
+    }
+
+    #[test]
+    fn connexion_d_un_televiseur_sans_page_tmdb() {
+        let s = shared(true);
+        let (code, _, _, event) = route("POST", "/secret123/login", "{\"u\":\"a\"}", &s);
+        assert_eq!((code, event.map(|e| e.0)), ("200 OK", Some("relay-login")));
+        // Ni l'invitation ni la clé TMDB sur le relais de connexion.
+        for (method, path) in [("POST", "/secret123/code"), ("GET", "/secret123/tmdb"), ("POST", "/secret123/tmdb"), ("GET", "/secret123/tmdb/status")] {
+            assert_eq!(route(method, path, "x", &s).0, "404 Not Found", "{method} {path}");
+        }
+    }
+
+    #[test]
+    fn journal_servi_seulement_une_fois_depose() {
+        let s = shared(false);
+        assert_eq!(route("GET", "/secret123/journal", "", &s).0, "404 Not Found");
+        *s.journal.lock().unwrap() = Some("lignes du journal".into());
+        let (code, kind, content, _) = route("GET", "/secret123/journal", "", &s);
+        assert_eq!((code, kind, content.as_str()), ("200 OK", "text/plain; charset=utf-8", "lignes du journal"));
+        assert_eq!(route("GET", "/autre/journal", "", &s).0, "404 Not Found");
+        assert_eq!(route("POST", "/secret123/journal", "", &s).0, "404 Not Found");
+    }
+
     #[test]
     fn js_text_stays_in_its_string() {
         assert_eq!(super::js_text("Emby"), "Emby");

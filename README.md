@@ -171,7 +171,14 @@ lecteur, pochette publiée au bureau sans l'adresse du serveur, reprise d'un té
 converti), longue file Chromecast envoyée par lots, fiche demandée une seule fois par les parties qui la veulent
 en même temps, meilleure adresse Plex retenue sans attendre les moins bonnes, droit d'administration gardé cinq minutes, adresse Plex enregistrée pour le seul serveur qu'elle concerne… `cargo test` dans `src-tauri` les lance (après `npm install`, la page du téléphone
 intégrant jsQR). Sur GitHub, ils passent à chaque envoi sur `main` et avant la construction des paquets d'une
-version, comme ceux de Maku Server (`cargo test` dans `server`).
+version, comme ceux de Maku Server (`cargo test` dans `server` : jeton vérifié auprès de Plex, de Jellyfin et d'Emby,
+chacun à sa façon, gardé ensuite ; serveur ou service injoignable ; envoi trop gros ; chemins hors de l'API ;
+redirection rendue telle quelle).
+
+**Contrat entre l'interface et le Rust.** `node --test tests/contrat.test.mjs` vérifie que chaque commande appelée par
+l'interface existe côté Rust, que le mode démo n'en simule aucune qui n'existe pas, et qu'aucune commande du Rust n'est
+restée sans appel. Le mode démo répond `null` à une commande inconnue : sans ce contrôle, une commande mal nommée
+passerait tous les tests de l'interface. Sur GitHub, il passe avec eux.
 
 **Tests du lecteur Android.** Les règles du lecteur vidéo natif sont à part, dans `PlaybackRules.kt` : vidéo
 figée (prête, en lecture, avec de l'avance, mais immobile 5 s ; reprise ou saut ensuite), son envoyé tel quel à
@@ -246,6 +253,13 @@ systèmes sur GitHub Actions et les joint à une version en brouillon. Il se lan
 `src-tauri/Cargo.toml` et `src-tauri/tauri.conf.json`, ainsi que `server/Cargo.toml`) ou à la main depuis l'onglet
 **Actions**. La même étiquette publie l'image Docker de Maku Server ([`.github/workflows/serveur.yml`](.github/workflows/serveur.yml)).
 
+[`scripts/check-version.mjs`](scripts/check-version.mjs) vérifie que ces quatre fichiers portent le même numéro, et
+qu'il vaut l'étiquette poussée : les deux workflows s'arrêtent sinon, plutôt que de sortir des paquets d'un autre
+numéro ou d'écraser l'image de la version précédente (`node scripts/check-version.mjs v0.2.0` pour le vérifier avant
+de pousser). Dans tous les workflows, chaque action est épinglée par l'empreinte de son commit (l'étiquette est en
+commentaire) : la mettre à jour se fait en changeant cette empreinte. Seuls les jobs qui joignent des paquets à une
+version ont le droit d'y écrire.
+
 Sous Windows, `plexr.exe` est signé avant d'être empaqueté, puis l'installeur NSIS et le MSI le sont à leur tour,
 par [SignPath](https://signpath.io) : le workflow attend que chacune des deux demandes de signature soit approuvée
 dans SignPath (voir [Signature du code](#-signature-du-code)). Il lui faut le secret `SIGNPATH_API_TOKEN` et les
@@ -295,7 +309,7 @@ traduisez les valeurs sans toucher aux clés ni aux `{{variables}}`, puis décla
 | `src-tauri/src/seerr.rs` | Seerr : connexion Plex ou Jellyfin, découverte, fiches détaillées, demandes, et leur gestion par l'administrateur (liste, validation, modification, suppression) |
 | `src-tauri/src/tracearr.rs` | Tracearr : connexion Plex et tableau de bord personnel |
 | `src-tauri/src/maku_server.rs` | relais Maku Server : recherche sur la machine du serveur, vérification (`/maku/info`) et jeton joint aux appels |
-| `plugins/jellyfin/` | plugin Maku pour Jellyfin 12 (C#, .NET 10) : relais de Seerr (clé d'API, au nom du compte Seerr de chaque utilisateur, retrouvé par son identifiant Jellyfin ou lié à la main ; jeton CSRF de Seerr géré) et de Tracearr (cookies de session) à l'adresse du serveur (`/Maku/…`), `/Maku/maku/info` pour que Maku le reconnaisse, page de réglages ; tests xUnit des règles du relais. Compilé par `.github/workflows/plugin-jellyfin.yml` ; un tag `jellyfin-v1.2.3` publie le catalogue Jellyfin (version GitHub `jellyfin-plugin`), construit par `plugins/jellyfin/catalogue.mjs` : les versions précédentes y sont gardées, et un ancien catalogue introuvable ou illisible arrête la publication au lieu d'être remplacé (`node --test plugins/jellyfin/catalogue.test.mjs`) |
+| `plugins/jellyfin/` | plugin Maku pour Jellyfin 12 (C#, .NET 10) : relais de Seerr (clé d'API, au nom du compte Seerr de chaque utilisateur, retrouvé par son identifiant Jellyfin ou lié à la main ; jeton CSRF de Seerr géré) et de Tracearr (cookies de session) à l'adresse du serveur (`/Maku/…`), `/Maku/maku/info` pour que Maku le reconnaisse, page de réglages ; tests xUnit des règles du relais et du compte Seerr sous lequel agit chaque utilisateur (lien choisi par l'administrateur, compte importé, aucun compte). Compilé par `.github/workflows/plugin-jellyfin.yml` ; un tag `jellyfin-v1.2.3` publie le catalogue Jellyfin (version GitHub `jellyfin-plugin`), construit par `plugins/jellyfin/catalogue.mjs` : les versions précédentes y sont gardées, et un ancien catalogue introuvable ou illisible arrête la publication au lieu d'être remplacé (`node --test plugins/jellyfin/catalogue.test.mjs`) |
 | `server/` | Maku Server, le relais lui-même (Rust, axum) : vérification du jeton auprès de Plex, Jellyfin ou Emby, transmission de l'API de Seerr et de Tracearr ; image Docker |
 | `src-tauri/src/plex_admin.rs`, `src/components/FixMatchDialog.svelte` | administration : édition des métadonnées, images, association d'un film ou d'une série (« Corriger l'association » : titres proposés par l'agent de Plex ou recherche par titre et année ; « Dissocier »), réglages et lectures du serveur |
 | `src-tauri/src/net.rs` | règles de redirection des clients HTTP : même machine pour les serveurs, domaines GitHub pour les mises à jour ; jetons retirés des messages d'erreur (`redact`, appliqué à toute erreur rendue à l'interface) |

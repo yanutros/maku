@@ -56,9 +56,11 @@ test("TV : deux Retour rapides depuis une fiche ouverte de l'accueil : la sélec
   // L'accueil met du temps à se remettre en place (comme sur un téléviseur) : ses jaquettes arrivent après 1,5 s.
   await page.evaluate(() => {
     const keep = Element.prototype.querySelectorAll;
-    const until = Date.now() + 1500;
+    // L'heure de la page est figée par les tests (`ouvrir`) : `Date.now()` n'avancerait jamais, et les jaquettes
+    // n'arriveraient pas du tout. Le temps écoulé, lui, avance.
+    const until = performance.now() + 1500;
     Element.prototype.querySelectorAll = function (this: Element, sel: string) {
-      return Date.now() < until && (sel === "[data-key]" || sel === "[data-cell]") ? keep.call(this, ":not(*)") : keep.call(this, sel);
+      return performance.now() < until && (sel === "[data-key]" || sel === "[data-cell]") ? keep.call(this, ":not(*)") : keep.call(this, sel);
     } as typeof Element.prototype.querySelectorAll;
   });
   await page.goBack();

@@ -27,14 +27,14 @@ jobs:
     name: APK (ARM 64 et 32 bits)
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: lts/*
           cache: npm
 
-      - uses: actions/setup-java@v5
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           distribution: temurin
           java-version: "17"
@@ -49,11 +49,11 @@ jobs:
           "$sdkmanager" --install "platforms;android-37.0" "build-tools;36.0.0" "ndk;29.0.14206865"
           echo "NDK_HOME=$ANDROID_HOME/ndk/29.0.14206865" >> "$GITHUB_ENV"
 
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@39008827e6b4319a349e9a42dfc90579dd25f1ca # stable
         with:
           targets: aarch64-linux-android,armv7-linux-androideabi
 
-      - uses: swatinem/rust-cache@v2
+      - uses: swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
         with:
           workspaces: src-tauri
 
@@ -68,7 +68,7 @@ jobs:
         working-directory: src-tauri/gen/android
         run: ./gradlew :app:testUniversalDebugUnitTest --console=plain
 
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: maku-android-apk
           path: src-tauri/gen/android/app/build/outputs/apk/universal/release/*.apk

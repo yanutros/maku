@@ -19,14 +19,23 @@ jobs:
     name: Interface (Playwright)
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: lts/*
           cache: npm
 
       - run: npm ci
+
+      # Les numéros de version concordent (et valent l'étiquette, à la publication d'une version) ; chaque commande
+      # appelée par l'interface existe côté Rust.
+      - name: Versions et contrat entre l'interface et le Rust
+        env:
+          TAG: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
+        run: |
+          node scripts/check-version.mjs "$TAG"
+          node --test tests/versions.test.mjs tests/contrat.test.mjs
 
       - name: Navigateurs (Chromium et WebKit)
         run: npx playwright install --with-deps chromium webkit
@@ -34,7 +43,7 @@ jobs:
       - name: Tests
         run: npx playwright test
 
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: failure()
         with:
           name: rapport-tests
@@ -48,7 +57,7 @@ jobs:
       run:
         working-directory: server
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Tests du relais
         run: cargo test --locked
@@ -59,14 +68,14 @@ jobs:
     name: Application (cargo test)
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: lts/*
           cache: npm
 
-      - uses: swatinem/rust-cache@v2
+      - uses: swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
         with:
           workspaces: src-tauri
 

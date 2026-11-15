@@ -10,7 +10,8 @@ test("aucune case à cocher : des interrupteurs partout", async ({ page }, info)
   for (const nom of RUBRIQUES) {
     // Ordinateur : la barre de sections ; téléphone : la bande des rubriques.
     const lien = appareil(info) === "telephone" ? page.locator(".settings .menu button", { hasText: nom }) : page.getByRole("tab", { name: nom });
-    if (!(await lien.count())) continue;
+    // Une rubrique renommée ou disparue ne fait pas passer le test à vide.
+    await expect(lien, `rubrique ${nom}`).toHaveCount(1);
     await lien.first().click();
     await page.waitForTimeout(200);
     const cases = await page.locator('input[type="checkbox"]:not(.switch)').count();

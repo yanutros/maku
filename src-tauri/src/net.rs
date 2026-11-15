@@ -8,22 +8,33 @@ const MAX_REDIRECTS: usize = 10;
 /// Serveurs (Plex, Jellyfin, Seerr, Tracearr) : une redirection n'est suivie que vers la même machine
 /// (`http` → `https` compris, pour un serveur derrière un proxy inverse). Un serveur ne peut donc pas
 /// renvoyer Maku, avec ses jetons, vers une autre adresse (réseau local, métadonnées du cloud…).
+///
+/// Jamais de `https` vers `http` : les jetons, donnés en en-tête, repartiraient en clair.
 pub fn same_host() -> Policy {
     Policy::custom(|attempt| {
-        let same = attempt.previous().last().and_then(|p| p.host_str()) == attempt.url().host_str();
+        let same = attempt.previous().last().is_some_and(|from| same_machine(from, attempt.url()));
         follow_if(attempt, same)
     })
+}
+
+/// La redirection de `from` vers `to` reste-t-elle sur la même machine, sans quitter `https` ?
+fn same_machine(from: &reqwest::Url, to: &reqwest::Url) -> bool {
+    from.host_str().is_some() && from.host_str() == to.host_str() && !(from.scheme() == "https" && to.scheme() != "https")
 }
 
 /// Mises à jour : GitHub redirige le téléchargement des paquets vers son stockage ; seuls ses domaines
 /// sont acceptés.
 pub fn github_only() -> Policy {
     Policy::custom(|attempt| {
-        let host = attempt.url().host_str().unwrap_or_default();
-        let github = attempt.url().scheme() == "https"
-            && (host == "github.com" || host.ends_with(".github.com") || host.ends_with(".githubusercontent.com"));
+        let github = is_github(attempt.url());
         follow_if(attempt, github)
     })
+}
+
+/// Une adresse de GitHub ou de son stockage, en `https`.
+fn is_github(url: &reqwest::Url) -> bool {
+    let host = url.host_str().unwrap_or_default();
+    url.scheme() == "https" && (host == "github.com" || host.ends_with(".github.com") || host.ends_with(".githubusercontent.com"))
 }
 
 /// Message d'erreur sans ce qui ne doit ni s'afficher ni s'enregistrer : les paramètres des adresses qu'il cite
@@ -108,6 +119,34 @@ mod tests {
         let shown = redact(&format!("{:#}", anyhow::Error::from(e)));
         assert!(shown.contains("http://127.0.0.1:9/file"), "{shown}");
         assert!(!shown.contains("SECRET"), "{shown}");
+    }
+
+    #[test]
+    fn same_machine_rules() {
+        let url = |s: &str| reqwest::Url::parse(s).unwrap();
+        // Même machine : de http vers https (proxy inverse), un autre chemin, un autre port.
+        assert!(same_machine(&url("http://serveur.example/a"), &url("https://serveur.example/a")));
+        assert!(same_machine(&url("https://serveur.example/a"), &url("https://serveur.example/b?x=1")));
+        assert!(same_machine(&url("http://10.0.0.2:32400/"), &url("http://10.0.0.2:8443/")));
+        // Jamais de https vers http : le jeton repartirait en clair.
+        assert!(!same_machine(&url("https://serveur.example/a"), &url("http://serveur.example/a")));
+        // Jamais vers une autre machine, même au nom voisin.
+        assert!(!same_machine(&url("https://serveur.example/"), &url("https://autre.example/")));
+        assert!(!same_machine(&url("https://serveur.example/"), &url("https://serveur.example.attaquant.invalid/")));
+        assert!(!same_machine(&url("https://serveur.example/"), &url("https://sous.serveur.example/")));
+        assert!(!same_machine(&url("http://10.0.0.2/"), &url("http://169.254.169.254/latest/meta-data/")));
+    }
+
+    #[test]
+    fn github_rules() {
+        let url = |s: &str| reqwest::Url::parse(s).unwrap();
+        for ok in ["https://github.com/yanutros/maku/releases", "https://api.github.com/repos/x", "https://objects.githubusercontent.com/a", "https://release-assets.githubusercontent.com/a"] {
+            assert!(is_github(&url(ok)), "{ok}");
+        }
+        // Pas en http, ni sur un domaine qui ressemble à GitHub.
+        for refused in ["http://github.com/x", "https://github.com.attaquant.invalid/x", "https://fauxgithub.com/x", "https://githubusercontent.com.attaquant.invalid/x", "https://attaquant.invalid/github.com", "https://10.0.0.2/"] {
+            assert!(!is_github(&url(refused)), "{refused}");
+        }
     }
 
     #[tokio::test]

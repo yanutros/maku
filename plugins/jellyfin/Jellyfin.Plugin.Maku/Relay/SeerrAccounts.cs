@@ -109,7 +109,8 @@ public sealed class SeerrAccounts : IDisposable
 
         foreach (var u in results.EnumerateArray())
         {
-            if (!u.TryGetProperty("id", out var idProp) || !idProp.TryGetInt32(out var id))
+            // Un numéro qui n'est pas un nombre : le compte est ignoré (le lire tel quel lèverait une erreur).
+            if (!u.TryGetProperty("id", out var idProp) || idProp.ValueKind != JsonValueKind.Number || !idProp.TryGetInt32(out var id))
             {
                 continue;
             }
