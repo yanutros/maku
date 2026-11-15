@@ -1,6 +1,6 @@
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::path::Path;
 
 /// Configuration persistée dans le dossier de configuration de l'application.
@@ -38,6 +38,10 @@ pub struct Config {
     /// `seerr_*` et `tracearr_*` ci-dessus sont ceux du serveur en cours ; ils sont échangés avec
     /// cette liste quand on change de serveur (voir `switch_services`).
     pub services: HashMap<String, Services>,
+    /// Préférences de l'interface (couleur, fond, notes, accueil, menu…), copie de celles du navigateur intégré :
+    /// elles y sont relues au démarrage, et ne se perdent ni quand ce stockage est vidé ou n'a pas été écrit à
+    /// temps, ni entre deux versions de Maku (installée et de développement) qui ne le partagent pas.
+    pub ui: BTreeMap<String, String>,
 }
 
 /// Seerr et Tracearr d'un serveur : chacun a les siens.

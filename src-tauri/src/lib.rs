@@ -393,6 +393,8 @@ pub fn run() {
             offline_sync,
             set_app_icon,
             set_language,
+            ui_prefs,
+            ui_pref_set,
         ])
         .build(tauri::generate_context!())
         .expect("erreur au lancement de Maku")

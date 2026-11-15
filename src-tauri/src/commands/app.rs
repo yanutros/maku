@@ -2,6 +2,32 @@
 
 use crate::*;
 
+/// Préférences de l'interface gardées dans la configuration (voir `Config::ui`).
+#[tauri::command]
+pub fn ui_prefs(state: State<'_, AppState>) -> std::collections::BTreeMap<String, String> {
+    state.cfg().ui
+}
+
+/// Enregistre (ou retire, sans `value`) une préférence de l'interface. Seules celles de Maku sont gardées.
+#[tauri::command]
+pub fn ui_pref_set(state: State<'_, AppState>, key: String, value: Option<String>) -> CmdResult<()> {
+    if !(key.starts_with("plexr.") || key.starts_with("maku.")) || key.len() > 64 {
+        return Ok(());
+    }
+    if state.cfg().ui.get(&key) == value.as_ref() {
+        return Ok(());
+    }
+    state.update_cfg(|c| match value {
+        Some(v) => {
+            c.ui.insert(key, v);
+        }
+        None => {
+            c.ui.remove(&key);
+        }
+    })?;
+    Ok(())
+}
+
 /// Langue de l'interface, pour les messages du backend.
 #[tauri::command]
 pub fn set_language(language: String) {

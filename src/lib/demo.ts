@@ -581,6 +581,21 @@ function handle(cmd: string, a: Args): unknown {
       };
     }
     // `?demo=…&tracearrlogin` : Tracearr pas encore connecté ; la connexion Plex aboutit au premier relevé.
+    // Préférences de l'interface gardées par Maku (config.json) : ici dans le stockage de session, qui survit au
+    // rechargement de la page quand les tests vident le stockage du navigateur.
+    case "ui_prefs":
+      try {
+        return JSON.parse(sessionStorage.getItem("demo.uiPrefs") ?? "null");
+      } catch {
+        return null;
+      }
+    case "ui_pref_set": {
+      const prefs = JSON.parse(sessionStorage.getItem("demo.uiPrefs") ?? "{}");
+      if (a.value == null) delete prefs[a.key];
+      else prefs[a.key] = a.value;
+      sessionStorage.setItem("demo.uiPrefs", JSON.stringify(prefs));
+      return null;
+    }
     case "tracearr_start_login":
       // Un compte Jellyfin ne passe jamais par Plex.
       if (new URLSearchParams(location.search).has("plugin")) throw new Error("Tracearr : pas de connexion Plex pour un compte Jellyfin");

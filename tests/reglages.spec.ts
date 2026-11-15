@@ -126,3 +126,18 @@ test("interface : le fond se choisit parmi cinq teintes, et reste sur l'appareil
   });
   expect(await teinte()).toBe("rgb(26, 26, 26)");
 });
+
+test("interface : les réglages reviennent au redémarrage, même si le stockage du navigateur a été vidé", async ({ page }, info) => {
+  test.skip(appareil(info) !== "pc" && appareil(info) !== "telephone", "même mécanisme partout");
+  await ouvrir(page, info, "reglages-interface");
+  await page.getByRole("radiogroup", { name: "Couleur" }).getByRole("radio", { name: "Violet" }).click();
+  await page.getByRole("radiogroup", { name: "Fond" }).getByRole("radio", { name: "Marine", exact: true }).click();
+  // Le temps que la copie parte vers la configuration de Maku.
+  await page.waitForTimeout(800);
+  // Redémarrage : les tests vident le stockage du navigateur à chaque chargement, comme une perte de ces données.
+  await page.reload();
+  await page.locator("main").waitFor({ state: "attached" });
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "violet");
+  await expect(page.locator("html")).toHaveAttribute("data-background", "marine");
+  expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor)).toBe("rgb(22, 30, 45)");
+});

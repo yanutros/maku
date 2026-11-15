@@ -5,6 +5,9 @@ async function start() {
   const demo = new URLSearchParams(location.search).get("demo");
   // La simulation doit être en place avant le chargement des modules qui écoutent le backend.
   const afterMount = demo !== null ? await (await import("./lib/demo")).installDemo(demo) : null;
+  // Préférences de l'interface gardées par Maku : remises dans le stockage du navigateur avant le chargement des
+  // modules qui les lisent (langue, menu, notes, accueil…).
+  await (await import("./lib/prefs")).restorePrefs();
   const [{ mount }, { default: App }, { detectDevice, device }, { setupBackButton }, { enableSpatialNavigation }] =
     await Promise.all([
       import("svelte"),
