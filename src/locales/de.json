@@ -1131,8 +1131,10 @@
       "extras": "Trailer, Extras und Online-Inhalte zu den Filmen.",
       "butler": "Nächtliche Serverpflege: Sicherungen, Aufräumen und Analysen.",
       "dashboard": "Was gerade läuft, Bandbreite, Top-Benutzer, Verlauf und die meistgespielten Titel.",
-      "users": "Die Freunde, mit denen der Server geteilt wird: ihre Bibliotheken, Rechte und Einschränkungen."
-    }
+      "users": "Die Freunde, mit denen der Server geteilt wird: ihre Bibliotheken, Rechte und Einschränkungen.",
+      "requests": "Die Anfragen aller Nutzer: genehmigen, ablehnen, Profil oder Ordner vor der Genehmigung korrigieren, löschen."
+    },
+    "requests": "Anfragen"
   },
   "toast": {
     "region": "Benachrichtigungen",
@@ -1144,5 +1146,63 @@
     "unreachableHint": "Prüfe, ob er eingeschaltet und verbunden ist.",
     "upToDate": "Maku ist aktuell",
     "latest": "Version {{version}}, die neueste."
+  },
+  "requests": {
+    "tabs": {
+      "pending": "Ausstehend",
+      "processing": "In Bearbeitung",
+      "available": "Verfügbar",
+      "all": "Alle"
+    },
+    "state": {
+      "pending": "Ausstehend",
+      "processing": "Genehmigt",
+      "available": "Verfügbar",
+      "partial": "Teilweise verfügbar",
+      "declined": "Abgelehnt",
+      "failed": "Fehlgeschlagen"
+    },
+    "kind": {
+      "movie": "Film",
+      "tv": "Serie"
+    },
+    "requestedBy": "Angefragt von {{name}}",
+    "approvedBy": "Bearbeitet von {{name}}, {{when}}",
+    "declinedBy": "Abgelehnt von {{name}}, {{when}}",
+    "seasons_one": "Staffel {{list}}",
+    "seasons_other": "Staffeln {{list}}",
+    "unknownTitle": "Unbekannter Titel",
+    "approve": "Genehmigen",
+    "decline": "Ablehnen",
+    "retry": "Erneut versuchen",
+    "delete": "Löschen",
+    "confirmDelete": "Anfrage löschen?",
+    "more": "Mehr anzeigen ({{count}})",
+    "empty": "Keine Anfragen hier.",
+    "emptyPending": "Keine ausstehenden Anfragen: alles erledigt.",
+    "locked": "Nur für den Seerr-Administrator.",
+    "pendingCount_one": "{{count}} ausstehende Anfrage",
+    "pendingCount_other": "{{count}} ausstehende Anfragen",
+    "done": {
+      "approved": "„{{title}}“ genehmigt",
+      "declined": "„{{title}}“ abgelehnt",
+      "retried": "„{{title}}“ erneut gesendet",
+      "deleted": "Anfrage für „{{title}}“ gelöscht",
+      "saved": "„{{title}}“ geändert"
+    },
+    "edit": {
+      "open": "Bearbeiten",
+      "title": "Anfrage bearbeiten",
+      "server": "Zielserver",
+      "profile": "Qualitätsprofil",
+      "folder": "Stammordner",
+      "default": "{{name}} (Standard)",
+      "freeSpace": "{{path}} ({{size}} frei)",
+      "save": "Speichern",
+      "saveApprove": "Speichern und genehmigen",
+      "saving": "Wird gesendet…",
+      "noRadarr": "In Seerr ist kein Radarr-Server eingerichtet.",
+      "noSonarr": "In Seerr ist kein Sonarr-Server eingerichtet."
+    }
   }
 }

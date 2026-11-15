@@ -48,8 +48,9 @@ export type View =
   /** `seerr` : acteur connu par Seerr (TMDB) : ses films et séries, à demander, plutôt que ceux du serveur. */
   | { name: "person"; id: string; personName: string; photo: string | null; seerr?: boolean }
   | { name: "settings"; page?: string }
-  /** Catégorie Admin (administrateur, sur ordinateur) : Dashboard ou Réglages du serveur, et leur section. */
-  | { name: "admin"; page: "dashboard" | "settings"; tab?: string };
+  /** Catégorie Admin (administrateur, sauf au téléviseur) : Dashboard, Réglages du serveur ou Demandes (Seerr), et
+   *  leur section. */
+  | { name: "admin"; page: "dashboard" | "settings" | "requests"; tab?: string };
 
 export const nav = $state({
   view: { name: "home" } as View,
@@ -66,6 +67,10 @@ export const nav = $state({
   editing: null as Item | null,
   /** Le compte connecté administre le serveur (édition, réglages). */
   admin: false,
+  /** Le compte Seerr connecté gère les demandes de tout le monde (Admin › Demandes). */
+  seerrManager: false,
+  /** Demandes Seerr en attente de validation, en pastille sur l'entrée Demandes. */
+  pendingRequests: 0,
   /** Bande-annonce YouTube ouverte par-dessus la page (identifiant de la vidéo). */
   trailer: null as string | null,
   /** Téléviseur : lien d'autorisation Tracearr, montré en QR code à scanner avec un téléphone. */

@@ -1131,8 +1131,10 @@
       "extras": "Les bandes-annonces, bonus et contenus en ligne proposés avec les films.",
       "butler": "L'entretien nocturne du serveur : sauvegardes, nettoyage et analyses.",
       "dashboard": "Ce qui se lit en ce moment, le débit, les plus gros consommateurs, l'historique et les titres les plus lus.",
-      "users": "Les amis avec qui le serveur est partagé : leurs bibliothèques, leurs droits et leurs restrictions."
-    }
+      "users": "Les amis avec qui le serveur est partagé : leurs bibliothèques, leurs droits et leurs restrictions.",
+      "requests": "Les demandes de tous les utilisateurs : les valider, les refuser, corriger leur profil ou leur dossier avant validation, les supprimer."
+    },
+    "requests": "Demandes"
   },
   "toast": {
     "region": "Notifications",
@@ -1144,5 +1146,63 @@
     "unreachableHint": "Vérifiez qu'il est allumé et connecté.",
     "upToDate": "Maku est à jour",
     "latest": "Version {{version}}, la plus récente."
+  },
+  "requests": {
+    "tabs": {
+      "pending": "En attente",
+      "processing": "En cours",
+      "available": "Disponibles",
+      "all": "Toutes"
+    },
+    "state": {
+      "pending": "En attente",
+      "processing": "Validée",
+      "available": "Disponible",
+      "partial": "Partiellement disponible",
+      "declined": "Refusée",
+      "failed": "Échec"
+    },
+    "kind": {
+      "movie": "Film",
+      "tv": "Série"
+    },
+    "requestedBy": "Demandé par {{name}}",
+    "approvedBy": "Traitée par {{name}}, {{when}}",
+    "declinedBy": "Refusée par {{name}}, {{when}}",
+    "seasons_one": "Saison {{list}}",
+    "seasons_other": "Saisons {{list}}",
+    "unknownTitle": "Titre inconnu",
+    "approve": "Valider",
+    "decline": "Refuser",
+    "retry": "Réessayer",
+    "delete": "Supprimer",
+    "confirmDelete": "Supprimer la demande ?",
+    "more": "Afficher plus ({{count}})",
+    "empty": "Aucune demande ici.",
+    "emptyPending": "Aucune demande en attente : tout est traité.",
+    "locked": "Réservé à l'administrateur de Seerr.",
+    "pendingCount_one": "{{count}} demande en attente",
+    "pendingCount_other": "{{count}} demandes en attente",
+    "done": {
+      "approved": "« {{title}} » validée",
+      "declined": "« {{title}} » refusée",
+      "retried": "« {{title}} » renvoyée",
+      "deleted": "Demande de « {{title}} » supprimée",
+      "saved": "« {{title}} » modifiée"
+    },
+    "edit": {
+      "open": "Modifier",
+      "title": "Modifier la demande",
+      "server": "Serveur de destination",
+      "profile": "Profil de qualité",
+      "folder": "Dossier racine",
+      "default": "{{name}} (par défaut)",
+      "freeSpace": "{{path}} ({{size}} libres)",
+      "save": "Enregistrer",
+      "saveApprove": "Enregistrer et valider",
+      "saving": "Envoi…",
+      "noRadarr": "Aucun serveur Radarr n'est configuré dans Seerr.",
+      "noSonarr": "Aucun serveur Sonarr n'est configuré dans Seerr."
+    }
   }
 }

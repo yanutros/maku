@@ -666,3 +666,279 @@ impl Seerr {
         Ok(self.cards(ids).await)
     }
 }
+
+// ---------- Gestion des demandes (administrateur de Seerr) ----------
+
+/// Droits de Seerr qui ouvrent la gestion des demandes : ADMIN (2) ou MANAGE_REQUESTS (16).
+const MANAGE_REQUESTS: u64 = 2 | 16;
+
+#[derive(Serialize)]
+pub struct SeerrUser {
+    pub id: u64,
+    pub name: String,
+    pub avatar: Option<String>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SeerrRequest {
+    pub id: u64,
+    /// 1 en attente, 2 validée, 3 refusée, 4 échec, 5 terminée.
+    pub status: u8,
+    /// Le titre demandé ; son `status` est celui du média (5 disponible, 4 partiel…).
+    pub media: SeerrMedia,
+    /// Saisons demandées (séries).
+    pub seasons: Vec<u32>,
+    pub requested_by: SeerrUser,
+    pub modified_by: Option<SeerrUser>,
+    pub created_at: String,
+    pub updated_at: String,
+    pub is4k: bool,
+    pub server_id: Option<u64>,
+    pub profile_id: Option<u64>,
+    pub profile_name: Option<String>,
+    pub root_folder: Option<String>,
+    pub language_profile_id: Option<u64>,
+    /// Étiquettes Radarr / Sonarr de la demande, renvoyées telles quelles à la modification.
+    pub tags: Value,
+}
+
+#[derive(Serialize)]
+pub struct RequestPage {
+    pub results: Vec<SeerrRequest>,
+    pub total: u64,
+}
+
+#[derive(Serialize, Deserialize, Default)]
+pub struct RequestCounts {
+    #[serde(default)]
+    pub pending: u64,
+    #[serde(default)]
+    pub processing: u64,
+    #[serde(default)]
+    pub available: u64,
+    #[serde(default)]
+    pub total: u64,
+}
+
+/// Serveur Radarr ou Sonarr déclaré dans Seerr.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ArrServer {
+    pub id: u64,
+    pub name: String,
+    pub is4k: bool,
+    pub is_default: bool,
+}
+
+#[derive(Serialize)]
+pub struct ArrProfile {
+    pub id: u64,
+    pub name: String,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ArrFolder {
+    pub path: String,
+    pub free_space: Option<u64>,
+}
+
+/// Profils de qualité et dossiers d'un serveur Radarr / Sonarr, avec ceux qu'il prend par défaut.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ArrOptions {
+    pub profiles: Vec<ArrProfile>,
+    pub root_folders: Vec<ArrFolder>,
+    pub active_profile_id: Option<u64>,
+    pub active_directory: Option<String>,
+}
+
+/// Nouveaux réglages d'une demande en attente.
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RequestChanges {
+    pub media_type: String,
+    pub server_id: Option<u64>,
+    pub profile_id: Option<u64>,
+    pub root_folder: Option<String>,
+    pub language_profile_id: Option<u64>,
+    #[serde(default)]
+    pub seasons: Vec<u32>,
+    #[serde(default)]
+    pub tags: Value,
+}
+
+fn seerr_user(base: &str, u: &Value) -> Option<SeerrUser> {
+    let id = u["id"].as_u64()?;
+    let name = ["displayName", "username", "plexUsername", "jellyfinUsername"]
+        .iter()
+        .find_map(|k| u[*k].as_str().filter(|s| !s.is_empty()))
+        .unwrap_or_default()
+        .to_string();
+    // Avatar : adresse complète (plex.tv, Gravatar) ou chemin de Seerr (« /avatarproxy/… »).
+    let avatar = u["avatar"].as_str().filter(|a| !a.is_empty()).map(|a| {
+        if a.starts_with('/') {
+            format!("{base}{a}")
+        } else {
+            a.to_string()
+        }
+    });
+    Some(SeerrUser { id, name, avatar })
+}
+
+fn arr_kind(media_type: &str) -> &'static str {
+    if media_type == "tv" {
+        "sonarr"
+    } else {
+        "radarr"
+    }
+}
+
+impl Seerr {
+    /// Le compte connecté peut gérer les demandes de tout le monde (administrateur de Seerr).
+    pub async fn can_manage(&self) -> Result<bool> {
+        let me = self.json("/auth/me").await?;
+        Ok(me["permissions"].as_u64().unwrap_or(0) & MANAGE_REQUESTS != 0)
+    }
+
+    /// Demandes de tous les utilisateurs, les plus récentes d'abord. `filter` : pending, processing, available,
+    /// failed ou all.
+    pub async fn requests(&self, filter: &str, skip: u32, take: u32) -> Result<RequestPage> {
+        let raw = self
+            .json(&format!("/request?take={take}&skip={skip}&filter={filter}&sort=added&sortDirection=desc"))
+            .await?;
+        let list: Vec<Value> = raw["results"].as_array().cloned().unwrap_or_default();
+        // Le titre, l'affiche et l'année viennent de la fiche TMDB de chaque demande.
+        let cards = futures::future::join_all(list.iter().map(|r| async move {
+            let kind = r["media"]["mediaType"].as_str().unwrap_or("movie");
+            match r["media"]["tmdbId"].as_u64() {
+                Some(id) => self.card(kind, id).await,
+                None => None,
+            }
+        }))
+        .await;
+        let results = list
+            .iter()
+            .zip(cards)
+            .filter_map(|(r, card)| {
+                let kind = r["media"]["mediaType"].as_str().unwrap_or("movie").to_string();
+                let mut media = card.unwrap_or(SeerrMedia {
+                    tmdb_id: r["media"]["tmdbId"].as_u64().unwrap_or(0),
+                    media_type: kind.clone(),
+                    title: String::new(),
+                    year: None,
+                    overview: None,
+                    poster: None,
+                    backdrop: None,
+                    rating: None,
+                    status: 0,
+                });
+                media.status = r["media"]["status"].as_u64().unwrap_or(0) as u8;
+                media.media_type = kind;
+                Some(SeerrRequest {
+                    id: r["id"].as_u64()?,
+                    status: r["status"].as_u64().unwrap_or(0) as u8,
+                    media,
+                    seasons: r["seasons"]
+                        .as_array()
+                        .into_iter()
+                        .flatten()
+                        .filter_map(|s| s["seasonNumber"].as_u64().map(|n| n as u32))
+                        .collect(),
+                    requested_by: seerr_user(&self.base, &r["requestedBy"])?,
+                    modified_by: seerr_user(&self.base, &r["modifiedBy"]),
+                    created_at: r["createdAt"].as_str().unwrap_or_default().to_string(),
+                    updated_at: r["updatedAt"].as_str().unwrap_or_default().to_string(),
+                    is4k: r["is4k"].as_bool().unwrap_or(false),
+                    server_id: r["serverId"].as_u64(),
+                    profile_id: r["profileId"].as_u64(),
+                    profile_name: r["profileName"].as_str().map(str::to_owned),
+                    root_folder: r["rootFolder"].as_str().filter(|f| !f.is_empty()).map(str::to_owned),
+                    language_profile_id: r["languageProfileId"].as_u64(),
+                    tags: r["tags"].clone(),
+                })
+            })
+            .collect();
+        Ok(RequestPage { results, total: raw["pageInfo"]["results"].as_u64().unwrap_or(0) })
+    }
+
+    pub async fn request_counts(&self) -> Result<RequestCounts> {
+        Ok(serde_json::from_value(self.json("/request/count").await?).unwrap_or_default())
+    }
+
+    /// Valide (`approve`) ou refuse (`decline`) une demande en attente.
+    pub async fn set_request_status(&self, id: u64, approve: bool) -> Result<()> {
+        let status = if approve { "approve" } else { "decline" };
+        self.request(Method::POST, &format!("/request/{id}/{status}"), None).await?;
+        Ok(())
+    }
+
+    /// Renvoie à Radarr / Sonarr une demande dont l'envoi a échoué.
+    pub async fn retry_request(&self, id: u64) -> Result<()> {
+        self.request(Method::POST, &format!("/request/{id}/retry"), None).await?;
+        Ok(())
+    }
+
+    pub async fn delete_request(&self, id: u64) -> Result<()> {
+        self.request(Method::DELETE, &format!("/request/{id}"), None).await?;
+        Ok(())
+    }
+
+    /// Change le serveur, le profil de qualité et le dossier d'une demande en attente (Seerr refuse les autres).
+    pub async fn update_request(&self, id: u64, changes: RequestChanges) -> Result<()> {
+        let mut body = json!({
+            "mediaType": changes.media_type,
+            "serverId": changes.server_id,
+            "profileId": changes.profile_id,
+            "rootFolder": changes.root_folder,
+        });
+        if !changes.tags.is_null() {
+            body["tags"] = changes.tags;
+        }
+        if changes.media_type == "tv" {
+            body["seasons"] = json!(changes.seasons);
+            body["languageProfileId"] = json!(changes.language_profile_id);
+        }
+        self.request(Method::PUT, &format!("/request/{id}"), Some(&body)).await?;
+        Ok(())
+    }
+
+    /// Serveurs Radarr (films) ou Sonarr (séries) déclarés dans Seerr.
+    pub async fn arr_servers(&self, media_type: &str) -> Result<Vec<ArrServer>> {
+        let raw = self.json(&format!("/service/{}", arr_kind(media_type))).await?;
+        Ok(raw
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(|s| {
+                Some(ArrServer {
+                    id: s["id"].as_u64()?,
+                    name: s["name"].as_str().unwrap_or_default().to_string(),
+                    is4k: s["is4k"].as_bool().unwrap_or(false),
+                    is_default: s["isDefault"].as_bool().unwrap_or(false),
+                })
+            })
+            .collect())
+    }
+
+    pub async fn arr_options(&self, media_type: &str, server_id: u64) -> Result<ArrOptions> {
+        let raw = self.json(&format!("/service/{}/{server_id}", arr_kind(media_type))).await?;
+        Ok(ArrOptions {
+            profiles: raw["profiles"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .filter_map(|p| Some(ArrProfile { id: p["id"].as_u64()?, name: p["name"].as_str()?.to_string() }))
+                .collect(),
+            root_folders: raw["rootFolders"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .filter_map(|f| Some(ArrFolder { path: f["path"].as_str()?.to_string(), free_space: f["freeSpace"].as_u64() }))
+                .collect(),
+            active_profile_id: raw["server"]["activeProfileId"].as_u64(),
+            active_directory: raw["server"]["activeDirectory"].as_str().map(str::to_owned),
+        })
+    }
+}

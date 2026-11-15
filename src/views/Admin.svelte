@@ -8,11 +8,16 @@
   import ServerDashboard from "../components/ServerDashboard.svelte";
   import ServerUsers from "../components/ServerUsers.svelte";
   import ServerPrefs from "../components/ServerPrefs.svelte";
+  import SeerrRequests from "../components/SeerrRequests.svelte";
+  import type { RequestFilter } from "../lib/api";
 
-  // Catégorie « Admin » du menu (administrateur, sur ordinateur) : le Dashboard (tableau de bord du serveur et
-  // ses utilisateurs) et les Réglages du serveur (une section par rubrique de Plex Web), chacun avec la barre de
-  // sections des bibliothèques (Recommandé, Bibliothèque…).
-  let { page, initialTab = null }: { page: "dashboard" | "settings"; initialTab?: string | null } = $props();
+  // Catégorie « Admin » du menu (administrateur, sauf au téléviseur) : le Dashboard (tableau de bord du serveur et
+  // ses utilisateurs), les Réglages du serveur (une section par rubrique de Plex Web) et les Demandes (Seerr, pour
+  // son administrateur), chacun avec la barre de sections des bibliothèques (Recommandé, Bibliothèque…).
+  let { page, initialTab = null }: { page: "dashboard" | "settings" | "requests"; initialTab?: string | null } = $props();
+
+  /** Onglets des Demandes : les filtres de Seerr. */
+  const REQUEST_TABS: RequestFilter[] = ["pending", "processing", "available", "all"];
 
   const GROUPS: Record<string, string> = {
     general: t("settings.groups.general"),
@@ -53,7 +58,12 @@
   });
 
   const tabs = $derived(
-    page === "dashboard"
+    page === "requests"
+      ? REQUEST_TABS.map((id) => ({
+          id,
+          label: id === "pending" && nav.pendingRequests ? `${t("requests.tabs.pending")} (${nav.pendingRequests})` : t(`requests.tabs.${id}`),
+        }))
+      : page === "dashboard"
       ? [{ id: "dashboard", label: t("settings.menu.dashboard") }, ...(nav.serverKind !== "jellyfin" ? [{ id: "users", label: t("settings.users.title") }] : [])]
       : Object.keys(GROUPS)
           .filter((g) => !prefs || prefs.some((p) => p.group === g))
@@ -61,7 +71,7 @@
   );
 
   // svelte-ignore state_referenced_locally
-  let tab = $state(initialTab ?? (page === "dashboard" ? "dashboard" : "general"));
+  let tab = $state(initialTab ?? (page === "dashboard" ? "dashboard" : page === "requests" ? "pending" : "general"));
 
   function select(id: string) {
     tab = id;
@@ -73,7 +83,7 @@
 
 <div class="page">
   <div class="head">
-    <h1 class="row-title page-title">{page === "dashboard" ? t("admin.dashboard") : t("admin.serverSettings")}</h1>
+    <h1 class="row-title page-title">{page === "dashboard" ? t("admin.dashboard") : page === "requests" ? t("admin.requests") : t("admin.serverSettings")}</h1>
     <div class="tabs" role="tablist">
       {#each tabs as tb (tb.id)}
         <button role="tab" aria-selected={tab === tb.id} class:active={tab === tb.id} onclick={() => select(tb.id)}>{tb.label}</button>
@@ -81,7 +91,20 @@
     </div>
   </div>
 
-  {#if !nav.admin}
+  {#if page === "requests"}
+    {#if !nav.seerrManager}
+      <p class="muted">{t("requests.locked")}</p>
+    {:else}
+      <header class="banner">
+        <span class="banner-icon"><Icon name="inbox" size={30} /></span>
+        <div class="banner-text">
+          <h2>{t("admin.requests")}</h2>
+          <p>{t("admin.banner.requests")}</p>
+        </div>
+      </header>
+      {#key tab}<SeerrRequests filter={tab as RequestFilter} />{/key}
+    {/if}
+  {:else if !nav.admin}
     <p class="muted">{t("settings.menu.locked")}</p>
   {:else if page === "dashboard"}
     <header class="banner">

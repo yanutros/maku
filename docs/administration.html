@@ -33,7 +33,7 @@
   <section class="page-hero">
     <p class="eyebrow">Pour l'administrateur du serveur</p>
     <h1>Votre serveur, piloté depuis la même application.</h1>
-    <p class="lead">Si vous êtes le propriétaire du serveur Plex, Maku vous donne en plus une catégorie <strong style="color: var(--text);">Admin</strong> : ce qui se lit en ce moment, qui consomme quoi, vos utilisateurs et les réglages du serveur. Sur ordinateur, tablette et téléphone, sans ouvrir de navigateur.</p>
+    <p class="lead">Si vous êtes le propriétaire du serveur Plex, Maku vous donne en plus une catégorie <strong style="color: var(--text);">Admin</strong> : ce qui se lit en ce moment, qui consomme quoi, vos utilisateurs, les réglages du serveur et, si vous administrez Seerr, les demandes à valider. Sur ordinateur, tablette et téléphone, sans ouvrir de navigateur.</p>
     <img class="shot-big" src="screenshots/admin.png" alt="Le tableau de bord : lectures en cours, débit et historique de lecture" width="1600" height="1000">
   </section>
 
@@ -51,6 +51,21 @@
       </ul>
     </div>
     <div class="media"><img loading="lazy" src="screenshots/admin.png" alt="Les lectures en cours sur le tableau de bord" width="1600" height="1000"></div>
+  </section>
+
+  <section class="feature flip" id="demandes">
+    <div>
+      <p class="eyebrow">Pour l'administrateur de Seerr</p>
+      <h2>Les demandes de vos utilisateurs, traitées sans quitter Maku</h2>
+      <p>Si votre compte administre Seerr (ou a le droit de gérer les demandes), Maku ajoute <strong>Demandes</strong> dans la catégorie Admin, avec une pastille qui compte celles qui attendent votre réponse. Avec Plex, Jellyfin ou Emby, sur ordinateur, tablette et téléphone.</p>
+      <ul class="points">
+        <li><strong>Valider ou refuser</strong> une demande en un geste : elle part aussitôt vers Radarr ou Sonarr.</li>
+        <li><strong>Corriger avant de valider</strong> : le serveur de destination, le profil de qualité et le dossier, si la personne s'est trompée. « Enregistrer et valider » fait les deux d'un coup. Seerr n'accepte ces changements que tant que la demande est en attente.</li>
+        <li><strong>Relancer</strong> une demande dont l'envoi a échoué, et <strong>supprimer</strong> une demande, après confirmation.</li>
+        <li><strong>Tout l'historique</strong> : en attente, en cours, disponibles, avec qui a demandé, quand, et qui l'a traitée.</li>
+      </ul>
+    </div>
+    <div class="media"><img loading="lazy" src="screenshots/demandes-admin.png" alt="La page Demandes : valider, refuser, modifier ou supprimer chaque demande" width="1600" height="1000"></div>
   </section>
 
   <section class="section" style="padding-bottom: 24px;">

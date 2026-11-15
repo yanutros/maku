@@ -27,7 +27,7 @@ use player::{Entry, PlayerControl, Source};
 use plex::{Adjacent, Genre, Hub, Item, WebStream, ItemDetail, LoginPin, Page, PlexServer, QueueTrack, Section};
 use plex_admin::{Account, EditInfo, FieldChange, ImageChoice, Pref, ServerSession};
 use std::collections::HashMap;
-use seerr::{Seerr, SeerrDetail, SeerrMedia, SeerrSeason, Slider};
+use seerr::{ArrOptions, ArrServer, RequestChanges, RequestCounts, RequestPage, Seerr, SeerrDetail, SeerrMedia, SeerrSeason, Slider};
 use serde::Serialize;
 use serde_json::Value;
 use std::path::PathBuf;
@@ -328,6 +328,15 @@ pub fn run() {
             seerr_person_credits,
             seerr_recent_requests,
             seerr_watchlist,
+            seerr_can_manage,
+            seerr_requests,
+            seerr_request_counts,
+            seerr_request_status,
+            seerr_request_retry,
+            seerr_request_delete,
+            seerr_request_update,
+            seerr_arr_servers,
+            seerr_arr_options,
             tracearr_configure,
             relay_discover,
             tmdb_configure,

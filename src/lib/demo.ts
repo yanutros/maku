@@ -10,6 +10,7 @@ import type {
   QueueTrack,
   SeerrDetail,
   SeerrMedia,
+  SeerrRequest,
   Section,
   TracearrDashboard,
 } from "./api";
@@ -357,6 +358,80 @@ const seerr: SeerrMedia[] = SEERR_DATA.map(([title, mediaType, status, overview]
   status,
 }));
 
+// Demandes vues par l'administrateur de Seerr (`?demo=…&admin` : Admin › Demandes). Hugo s'est trompé de dossier
+// pour « Ondes Courtes » : de quoi montrer « Modifier ».
+const ARR_PROFILES = [
+  { id: 1, name: "HD 1080p" },
+  { id: 2, name: "Ultra HD" },
+  { id: 3, name: "Tout" },
+];
+const ARR_FOLDERS = {
+  movie: [
+    { path: "/data/films", freeSpace: 8_400_000_000_000 },
+    { path: "/data/films-animation", freeSpace: 8_400_000_000_000 },
+  ],
+  tv: [
+    { path: "/data/series", freeSpace: 3_100_000_000_000 },
+    { path: "/data/series-animation", freeSpace: 3_100_000_000_000 },
+  ],
+};
+let demoRequests: SeerrRequest[] | null = null;
+
+function requestList(): SeerrRequest[] {
+  if (demoRequests) return demoRequests;
+  const who = (id: number, name: string) => ({ id, name, avatar: avatar(name) });
+  const hugo = who(2, "Hugo");
+  const lea = who(3, "Léa");
+  const admin = who(1, "Camille");
+  const at = (hours: number) => new Date(Date.now() - hours * 3_600_000).toISOString();
+  // [titre (index de SEERR_DATA), état de la demande, état du titre, demandeur, il y a (heures), dossier]
+  const rows: [number, number, number, typeof hugo, number, string][] = [
+    [8, 1, 2, hugo, 3, "/data/films-animation"],
+    [6, 1, 2, lea, 26, "/data/series"],
+    [5, 2, 3, hugo, 50, "/data/films"],
+    [4, 2, 4, lea, 120, "/data/series"],
+    [2, 5, 5, hugo, 216, "/data/films"],
+    [7, 4, 2, lea, 290, "/data/films"],
+    [3, 3, 0, hugo, 480, "/data/films"],
+  ];
+  demoRequests = rows.map(([i, status, mediaStatus, by, hours, folder]) => {
+    const m = seerr[i];
+    return {
+      id: 40 + i,
+      status,
+      media: { ...m, status: mediaStatus },
+      seasons: m.mediaType === "tv" ? (status === 1 ? [1] : [1, 2]) : [],
+      requestedBy: by,
+      modifiedBy: status === 1 ? null : admin,
+      createdAt: at(hours),
+      updatedAt: at(status === 1 ? hours : hours - 2),
+      is4k: false,
+      serverId: 0,
+      profileId: 1,
+      profileName: "HD 1080p",
+      rootFolder: folder,
+      languageProfileId: null,
+      tags: [],
+    };
+  });
+  return demoRequests;
+}
+
+function requestMatches(r: SeerrRequest, filter: string) {
+  switch (filter) {
+    case "pending":
+      return r.status === 1;
+    case "processing":
+      return r.status === 2 && r.media.status !== 5;
+    case "available":
+      return r.status === 5 || r.media.status === 5;
+    case "failed":
+      return r.status === 4;
+    default:
+      return true;
+  }
+}
+
 function seerrDetail(tmdbId: number): SeerrDetail {
   const m = seerr.find((s) => s.tmdbId === tmdbId) ?? seerr[0];
   return {
@@ -685,6 +760,49 @@ function handle(cmd: string, a: Args): unknown {
       return seerrDetail(a.tmdbId);
     case "seerr_tv_seasons":
       return [1, 2].map((n) => ({ seasonNumber: n, name: `Saison ${n}`, episodeCount: 8, status: n === 1 ? 5 : 0 }));
+    // Administrateur de Seerr : avec `?demo=…&admin`, comme l'administrateur du serveur.
+    case "seerr_can_manage":
+      return new URLSearchParams(location.search).has("admin");
+    case "seerr_request_counts": {
+      const list = requestList();
+      const n = (f: string) => list.filter((r) => requestMatches(r, f)).length;
+      return { pending: n("pending"), processing: n("processing"), available: n("available"), total: list.length };
+    }
+    case "seerr_requests": {
+      const list = requestList().filter((r) => requestMatches(r, a.filter));
+      return { results: list.slice(a.skip, a.skip + a.take), total: list.length };
+    }
+    case "seerr_request_status":
+    case "seerr_request_retry": {
+      const r = requestList().find((x) => x.id === a.id)!;
+      const approve = cmd === "seerr_request_retry" || a.approve;
+      r.status = approve ? 2 : 3;
+      r.media = { ...r.media, status: approve ? 3 : 0 };
+      r.modifiedBy = { id: 1, name: "Camille", avatar: avatar("Camille") };
+      return null;
+    }
+    case "seerr_request_delete":
+      demoRequests = requestList().filter((x) => x.id !== a.id);
+      return null;
+    case "seerr_request_update": {
+      const r = requestList().find((x) => x.id === a.id)!;
+      r.serverId = a.changes.serverId;
+      r.profileId = a.changes.profileId;
+      r.profileName = ARR_PROFILES.find((p) => p.id === a.changes.profileId)?.name ?? null;
+      r.rootFolder = a.changes.rootFolder;
+      return null;
+    }
+    case "seerr_arr_servers":
+      return a.mediaType === "tv"
+        ? [{ id: 0, name: "Sonarr", is4k: false, isDefault: true }]
+        : [
+            { id: 0, name: "Radarr", is4k: false, isDefault: true },
+            { id: 1, name: "Radarr 4K", is4k: true, isDefault: true },
+          ];
+    case "seerr_arr_options": {
+      const folders = ARR_FOLDERS[a.mediaType as "movie" | "tv"];
+      return { profiles: ARR_PROFILES, rootFolders: folders, activeProfileId: 1, activeDirectory: folders[0].path };
+    }
     case "tracearr_dashboard":
       return dashboard;
     case "plugin:window|is_fullscreen":
@@ -719,6 +837,10 @@ export async function installDemo(view: string): Promise<() => Promise<void>> {
         return;
       case "reglages-interface":
         go({ name: "settings", page: "interface" });
+        return;
+      // Admin › Demandes (avec `&admin`).
+      case "demandes-admin":
+        go({ name: "admin", page: "requests" });
         return;
       case "films":
         go({ name: "section", key: "1", title: "Films", kind: "movie" });

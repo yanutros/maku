@@ -1131,8 +1131,10 @@
       "extras": "Trailers, extras and online content offered with movies.",
       "butler": "Nightly server maintenance: backups, cleanup and analysis.",
       "dashboard": "What's playing right now, bandwidth, top users, history and the most played titles.",
-      "users": "The friends the server is shared with: their libraries, permissions and restrictions."
-    }
+      "users": "The friends the server is shared with: their libraries, permissions and restrictions.",
+      "requests": "Everyone's requests: approve them, decline them, fix their profile or folder before approval, delete them."
+    },
+    "requests": "Requests"
   },
   "toast": {
     "region": "Notifications",
@@ -1144,5 +1146,63 @@
     "unreachableHint": "Check that it's on and connected.",
     "upToDate": "Maku is up to date",
     "latest": "Version {{version}}, the latest one."
+  },
+  "requests": {
+    "tabs": {
+      "pending": "Pending",
+      "processing": "Processing",
+      "available": "Available",
+      "all": "All"
+    },
+    "state": {
+      "pending": "Pending",
+      "processing": "Approved",
+      "available": "Available",
+      "partial": "Partially available",
+      "declined": "Declined",
+      "failed": "Failed"
+    },
+    "kind": {
+      "movie": "Movie",
+      "tv": "Series"
+    },
+    "requestedBy": "Requested by {{name}}",
+    "approvedBy": "Handled by {{name}}, {{when}}",
+    "declinedBy": "Declined by {{name}}, {{when}}",
+    "seasons_one": "Season {{list}}",
+    "seasons_other": "Seasons {{list}}",
+    "unknownTitle": "Unknown title",
+    "approve": "Approve",
+    "decline": "Decline",
+    "retry": "Retry",
+    "delete": "Delete",
+    "confirmDelete": "Delete this request?",
+    "more": "Show more ({{count}})",
+    "empty": "No requests here.",
+    "emptyPending": "No pending requests: all caught up.",
+    "locked": "For the Seerr administrator only.",
+    "pendingCount_one": "{{count}} pending request",
+    "pendingCount_other": "{{count}} pending requests",
+    "done": {
+      "approved": "“{{title}}” approved",
+      "declined": "“{{title}}” declined",
+      "retried": "“{{title}}” sent again",
+      "deleted": "Request for “{{title}}” deleted",
+      "saved": "“{{title}}” updated"
+    },
+    "edit": {
+      "open": "Edit",
+      "title": "Edit request",
+      "server": "Destination server",
+      "profile": "Quality profile",
+      "folder": "Root folder",
+      "default": "{{name}} (default)",
+      "freeSpace": "{{path}} ({{size}} free)",
+      "save": "Save",
+      "saveApprove": "Save and approve",
+      "saving": "Sending…",
+      "noRadarr": "No Radarr server is set up in Seerr.",
+      "noSonarr": "No Sonarr server is set up in Seerr."
+    }
   }
 }

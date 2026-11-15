@@ -100,3 +100,51 @@ pub async fn seerr_request(
 ) -> CmdResult<()> {
     Ok(state.seerr().await?.create_request(&media_type, tmdb_id, seasons).await?)
 }
+
+// ---------- Gestion des demandes (administrateur de Seerr) ----------
+
+/// Le compte Seerr connecté gère les demandes de tout le monde (administrateur de Seerr).
+#[tauri::command]
+pub async fn seerr_can_manage(state: State<'_, AppState>) -> CmdResult<bool> {
+    Ok(state.seerr().await?.can_manage().await?)
+}
+
+#[tauri::command]
+pub async fn seerr_requests(state: State<'_, AppState>, filter: String, skip: u32, take: u32) -> CmdResult<RequestPage> {
+    Ok(state.seerr().await?.requests(&filter, skip, take).await?)
+}
+
+#[tauri::command]
+pub async fn seerr_request_counts(state: State<'_, AppState>) -> CmdResult<RequestCounts> {
+    Ok(state.seerr().await?.request_counts().await?)
+}
+
+#[tauri::command]
+pub async fn seerr_request_status(state: State<'_, AppState>, id: u64, approve: bool) -> CmdResult<()> {
+    Ok(state.seerr().await?.set_request_status(id, approve).await?)
+}
+
+#[tauri::command]
+pub async fn seerr_request_retry(state: State<'_, AppState>, id: u64) -> CmdResult<()> {
+    Ok(state.seerr().await?.retry_request(id).await?)
+}
+
+#[tauri::command]
+pub async fn seerr_request_delete(state: State<'_, AppState>, id: u64) -> CmdResult<()> {
+    Ok(state.seerr().await?.delete_request(id).await?)
+}
+
+#[tauri::command]
+pub async fn seerr_request_update(state: State<'_, AppState>, id: u64, changes: RequestChanges) -> CmdResult<()> {
+    Ok(state.seerr().await?.update_request(id, changes).await?)
+}
+
+#[tauri::command]
+pub async fn seerr_arr_servers(state: State<'_, AppState>, media_type: String) -> CmdResult<Vec<ArrServer>> {
+    Ok(state.seerr().await?.arr_servers(&media_type).await?)
+}
+
+#[tauri::command]
+pub async fn seerr_arr_options(state: State<'_, AppState>, media_type: String, server_id: u64) -> CmdResult<ArrOptions> {
+    Ok(state.seerr().await?.arr_options(&media_type, server_id).await?)
+}

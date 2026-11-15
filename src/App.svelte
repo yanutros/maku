@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import { api, type Section, type Session } from "./lib/api";
   import { back, go, nav, onBack, reload, restoreSpot, takeSpot } from "./lib/nav.svelte";
+  import { checkSeerrManager } from "./lib/seerrAdmin.svelte";
   import { player, stop } from "./lib/player.svelte";
   import Login from "./views/Login.svelte";
   import ServerPicker from "./views/ServerPicker.svelte";
@@ -79,10 +80,15 @@
       }
       // Édition des métadonnées et réglages du serveur : réservés à son administrateur.
       nav.admin = await api.isAdmin().catch(() => false);
+      // Administrateur de Seerr : la gestion des demandes (Admin › Demandes).
+      checkSeerrManager(!!session.seerrUrl);
       // Seerr ou Tracearr sans adresse : le relais Maku Server du serveur, s'il y en a un, les fournit.
       if (!session.seerrUrl || !session.tracearrUrl) {
         api.relayDiscover().then(async (r) => {
-          if (r?.applied) session = await api.session();
+          if (r?.applied) {
+            session = await api.session();
+            checkSeerrManager(!!session.seerrUrl);
+          }
         }, () => {});
       }
     }

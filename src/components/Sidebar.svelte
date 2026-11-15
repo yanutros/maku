@@ -214,9 +214,12 @@
             aria-current={isActive("stats") ? "page" : undefined} onclick={() => open({ name: "stats" })} title={t("sidebar.stats")}>
       <Icon name="stats" /> <span class="label">{t("sidebar.stats")}</span>
     </button>
-    <!-- Admin : l'administrateur du serveur, partout sauf au téléviseur (le téléphone l'a dans l'onglet Bibliothèques). -->
-    {#if nav.admin && !device.tv}
+    <!-- Admin : l'administrateur du serveur (Dashboard, Réglages serveur) et celui de Seerr (Demandes), partout sauf
+         au téléviseur (le téléphone l'a dans l'onglet Bibliothèques). -->
+    {#if (nav.admin || nav.seerrManager) && !device.tv}
       <div class="group"><span>{t("sidebar.admin")}</span></div>
+    {/if}
+    {#if nav.admin && !device.tv}
       <button class="item" class:active={nav.view.name === "admin" && nav.view.page === "dashboard"}
               aria-current={nav.view.name === "admin" && nav.view.page === "dashboard" ? "page" : undefined} onclick={() => open({ name: "admin", page: "dashboard" })} title={t("admin.dashboard")}>
         <Icon name="server" /> <span class="label">{t("admin.dashboard")}</span>
@@ -224,6 +227,13 @@
       <button class="item" class:active={nav.view.name === "admin" && nav.view.page === "settings"}
               aria-current={nav.view.name === "admin" && nav.view.page === "settings" ? "page" : undefined} onclick={() => open({ name: "admin", page: "settings" })} title={t("admin.serverSettings")}>
         <Icon name="sliders" /> <span class="label">{t("admin.serverSettings")}</span>
+      </button>
+    {/if}
+    {#if nav.seerrManager && !device.tv}
+      <button class="item" class:active={nav.view.name === "admin" && nav.view.page === "requests"}
+              aria-current={nav.view.name === "admin" && nav.view.page === "requests" ? "page" : undefined} onclick={() => open({ name: "admin", page: "requests" })} title={t("admin.requests")}>
+        <Icon name="inbox" /> <span class="label">{t("admin.requests")}</span>
+        {#if nav.pendingRequests}<span class="count" aria-label={t("requests.pendingCount", { count: nav.pendingRequests })}>{nav.pendingRequests}</span>{/if}
       </button>
     {/if}
   </nav>
@@ -331,6 +341,36 @@
 
   .item :global(svg) {
     flex: none;
+  }
+
+  /* Demandes Seerr en attente, en pastille au bout de l'entrée ; menu replié, sur le coin de l'icône. */
+  .count {
+    margin-left: auto;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 10px;
+    background: var(--accent);
+    color: var(--accent-text);
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 20px;
+    text-align: center;
+  }
+
+  .item:has(.count) {
+    position: relative;
+  }
+
+  .collapsed .count {
+    position: absolute;
+    top: 2px;
+    right: 6px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    font-size: 10px;
+    line-height: 16px;
   }
 
   button.item:hover {

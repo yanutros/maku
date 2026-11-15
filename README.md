@@ -58,7 +58,7 @@ absent, et **Tracearr**, pour suivre ses statistiques. Tout se fait avec son com
 | 📥 **[Les demandes](https://yanutros.github.io/maku/demandes.html)** | tendances et sorties à venir via Seerr, fiche complète, demande d'un film ou de saisons en un clic |
 | 📊 **[Les statistiques](https://yanutros.github.io/maku/statistiques.html)** | avec Tracearr : temps devant l'écran, top 10 du mois, genres préférés, plus longue série, plus gros marathon |
 | 📺 **[TV, téléphone et voiture](https://yanutros.github.io/maku/appareils.html)** | une interface pour la télécommande, une autre pour le téléphone, la musique sur Android Auto, des mises à jour intégrées |
-| 🛠️ **[Pour l'administrateur](https://yanutros.github.io/maku/administration.html)** | lectures en cours, débit, utilisateurs, réglages du serveur, fiches à modifier, collections intelligentes, invitations en QR code |
+| 🛠️ **[Pour l'administrateur](https://yanutros.github.io/maku/administration.html)** | lectures en cours, débit, utilisateurs, réglages du serveur, demandes Seerr à valider, corriger ou refuser, fiches à modifier, collections intelligentes, invitations en QR code |
 
 Maku parle français, anglais, espagnol, allemand et néerlandais, et prend la couleur de votre choix (jaune, rouge, vert ou violet).
 
@@ -129,7 +129,7 @@ L'interface se recharge à chaque modification et le backend Rust est recompilé
 **Mode démo.** `npx vite` puis `http://localhost:1420/?demo=accueil` lance l'interface dans un navigateur, sans
 serveur, avec une bibliothèque fictive et des visuels générés. Vues disponibles : `accueil`, `films`,
 `categories`, `series`, `serie`, `fiche`, `lecteur`, `decouvrir`, `seerr`, `musique`, `ecoute`, `stats`, `reglages`,
-`reglages-interface` et `vide` (l'accueil sans musique en cours). C'est ce mode qui produit les captures de cette page et du
+`reglages-interface`, `demandes-admin` (avec `&admin` : Admin › Demandes) et `vide` (l'accueil sans musique en cours). C'est ce mode qui produit les captures de cette page et du
 site. `?device=phone` ou `?device=tv` imposent l'interface du téléphone ou du téléviseur dans le navigateur.
 
 **Le site.** Il est dans [`docs/`](docs/) et publié par GitHub Pages : des pages HTML statiques (`index.html`, une page par
@@ -261,7 +261,7 @@ traduisez les valeurs sans toucher aux clés ni aux `{{variables}}`, puis décla
 | --- | --- |
 | `src-tauri/src/plex.rs` | plex.tv (PIN, serveurs) et API du serveur Plex : bibliothèques, rangées, genres, musique |
 | `src-tauri/src/player.rs` | mpv incrusté dans la fenêtre (`--wid`, sous la page web transparente) ou en audio seul, piloté par son IPC JSON |
-| `src-tauri/src/seerr.rs` | Seerr : connexion Plex ou Jellyfin, découverte, fiches détaillées, demandes |
+| `src-tauri/src/seerr.rs` | Seerr : connexion Plex ou Jellyfin, découverte, fiches détaillées, demandes, et leur gestion par l'administrateur (liste, validation, modification, suppression) |
 | `src-tauri/src/tracearr.rs` | Tracearr : connexion Plex et tableau de bord personnel |
 | `src-tauri/src/maku_server.rs` | relais Maku Server : recherche sur la machine du serveur, vérification (`/maku/info`) et jeton joint aux appels |
 | `server/` | Maku Server, le relais lui-même (Rust, axum) : vérification du jeton auprès de Plex, Jellyfin ou Emby, transmission de l'API de Seerr et de Tracearr ; image Docker |
@@ -288,6 +288,7 @@ traduisez les valeurs sans toucher aux clés ni aux `{{variables}}`, puis décla
 | `src/lib/player.svelte.ts`, `src/lib/player/` | lecture : mpv sur ordinateur, ExoPlayer natif sur Android (décodeur audio FFmpeg, son transmis à l'ampli ; en secours, flux du serveur qui ne convertit que le son, puis tout). L'état du lecteur (`state.svelte.ts`), le pont Android (`bridge.ts`), Chromecast (`cast.svelte.ts`) et la notification (`notification.svelte.ts`) sont à part ; `player.svelte.ts` les réexporte |
 | `src-tauri/gen/android/` | projet Android : manifeste (Android TV, bannière, icônes par couleur), signature, détection du téléviseur et du téléphone, barres système, vidéo en paysage (`MainActivity.kt`), lecteur vidéo natif sous la page (`NativeVideo.kt`, ses règles testées dans `PlaybackRules.kt`), journal de diagnostic (`DiagLog.kt`), musique en arrière-plan, notification et Android Auto (`MediaService.kt`, bibliothèque lue auprès de Plex dans `PlexLibrary.kt`, pochettes servies à la voiture par `ArtProvider.kt`) |
 | `src/components/PhoneTabs.svelte`, `src/views/Libraries.svelte` | téléphone : barre d'onglets et liste des bibliothèques |
+| `src/components/SeerrRequests.svelte`, `src/components/RequestEditDialog.svelte`, `src/lib/seerrAdmin.svelte.ts` | Admin › Demandes, pour l'administrateur de Seerr (droit ADMIN ou MANAGE_REQUESTS, lu dans `/auth/me`), sauf au téléviseur : demandes de tous les utilisateurs par état, valider, refuser, relancer, supprimer, et changer serveur, profil et dossier d'une demande en attente (`/service/radarr`, `/service/sonarr`) ; pastille des demandes en attente dans le menu |
 | `src/components/Toasts.svelte`, `src/components/ErrorCard.svelte`, `notify` et `toast` (`src/lib/nav.svelte.ts`) | notifications en cartes empilées (trois au plus) : icône selon le type (succès, erreur, information), titre, explication, geste (« Réessayer ») et détails techniques repliés ; `describeError` tire d'un message d'erreur un titre lisible ; sur TV, ni bouton ni croix. Les erreurs dans les pages et les formulaires prennent la même carte (`ErrorCard`), à leur place, avec « Réessayer » qui recharge la page (`reloadView`) ou le bloc ; styles communs `.notice` dans `src/app.css` |
 | `src-tauri/tauri.conf.json`, `tauri.windows.conf.json` | configuration et paquets ; la fenêtre transparente n'est activée que sous Windows |
 | `.github/workflows/paquets.yml`, `.signpath/` | construction des paquets Windows, Linux et macOS, signature des paquets Windows par SignPath (l'APK est construit à part ; `android.yml` vérifie qu'il se construit à chaque envoi) |

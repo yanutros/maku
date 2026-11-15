@@ -1131,8 +1131,10 @@
       "extras": "Trailers, extra's en online inhoud bij films.",
       "butler": "Nachtelijk serveronderhoud: back-ups, opschonen en analyses.",
       "dashboard": "Wat er nu speelt, bandbreedte, topgebruikers, geschiedenis en de meest afgespeelde titels.",
-      "users": "De vrienden met wie de server gedeeld wordt: hun bibliotheken, rechten en beperkingen."
-    }
+      "users": "De vrienden met wie de server gedeeld wordt: hun bibliotheken, rechten en beperkingen.",
+      "requests": "De verzoeken van alle gebruikers: goedkeuren, afwijzen, profiel of map vóór goedkeuring corrigeren, verwijderen."
+    },
+    "requests": "Verzoeken"
   },
   "toast": {
     "region": "Meldingen",
@@ -1144,5 +1146,63 @@
     "unreachableHint": "Controleer of hij aan staat en verbonden is.",
     "upToDate": "Maku is bijgewerkt",
     "latest": "Versie {{version}}, de nieuwste."
+  },
+  "requests": {
+    "tabs": {
+      "pending": "In afwachting",
+      "processing": "In behandeling",
+      "available": "Beschikbaar",
+      "all": "Alle"
+    },
+    "state": {
+      "pending": "In afwachting",
+      "processing": "Goedgekeurd",
+      "available": "Beschikbaar",
+      "partial": "Gedeeltelijk beschikbaar",
+      "declined": "Afgewezen",
+      "failed": "Mislukt"
+    },
+    "kind": {
+      "movie": "Film",
+      "tv": "Serie"
+    },
+    "requestedBy": "Aangevraagd door {{name}}",
+    "approvedBy": "Behandeld door {{name}}, {{when}}",
+    "declinedBy": "Afgewezen door {{name}}, {{when}}",
+    "seasons_one": "Seizoen {{list}}",
+    "seasons_other": "Seizoenen {{list}}",
+    "unknownTitle": "Onbekende titel",
+    "approve": "Goedkeuren",
+    "decline": "Afwijzen",
+    "retry": "Opnieuw proberen",
+    "delete": "Verwijderen",
+    "confirmDelete": "Verzoek verwijderen?",
+    "more": "Meer tonen ({{count}})",
+    "empty": "Geen verzoeken hier.",
+    "emptyPending": "Geen verzoeken in afwachting: alles is afgehandeld.",
+    "locked": "Alleen voor de Seerr-beheerder.",
+    "pendingCount_one": "{{count}} verzoek in afwachting",
+    "pendingCount_other": "{{count}} verzoeken in afwachting",
+    "done": {
+      "approved": "‘{{title}}’ goedgekeurd",
+      "declined": "‘{{title}}’ afgewezen",
+      "retried": "‘{{title}}’ opnieuw verzonden",
+      "deleted": "Verzoek voor ‘{{title}}’ verwijderd",
+      "saved": "‘{{title}}’ gewijzigd"
+    },
+    "edit": {
+      "open": "Wijzigen",
+      "title": "Verzoek wijzigen",
+      "server": "Doelserver",
+      "profile": "Kwaliteitsprofiel",
+      "folder": "Hoofdmap",
+      "default": "{{name}} (standaard)",
+      "freeSpace": "{{path}} ({{size}} vrij)",
+      "save": "Opslaan",
+      "saveApprove": "Opslaan en goedkeuren",
+      "saving": "Bezig met verzenden…",
+      "noRadarr": "Er is geen Radarr-server ingesteld in Seerr.",
+      "noSonarr": "Er is geen Sonarr-server ingesteld in Seerr."
+    }
   }
 }

@@ -38,10 +38,11 @@
       </button>
     {/each}
   </div>
-  <!-- Admin : l'administrateur du serveur, comme dans le menu de l'ordinateur et de la tablette. -->
-  {#if nav.admin}
+  <!-- Admin : l'administrateur du serveur et celui de Seerr, comme dans le menu de l'ordinateur et de la tablette. -->
+  {#if nav.admin || nav.seerrManager}
     <h2 class="group">{t("sidebar.admin")}</h2>
     <div class="list">
+      {#if nav.admin}
       <button class="library" onclick={() => go({ name: "admin", page: "dashboard" })}>
         <span class="icon"><Icon name="server" size={22} /></span>
         <span class="name">{t("admin.dashboard")}</span>
@@ -52,6 +53,15 @@
         <span class="name">{t("admin.serverSettings")}</span>
         <Icon name="chevronRight" size={18} />
       </button>
+      {/if}
+      {#if nav.seerrManager}
+        <button class="library" onclick={() => go({ name: "admin", page: "requests" })}>
+          <span class="icon"><Icon name="inbox" size={22} /></span>
+          <span class="name">{t("admin.requests")}</span>
+          {#if nav.pendingRequests}<span class="count">{nav.pendingRequests}</span>{/if}
+          <Icon name="chevronRight" size={18} />
+        </button>
+      {/if}
     </div>
   {/if}
 </div>
@@ -91,6 +101,20 @@
     border-radius: 12px;
     background: color-mix(in srgb, var(--accent) 16%, transparent);
     color: var(--accent);
+  }
+
+  /* Demandes Seerr en attente. */
+  .count {
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 10px;
+    background: var(--accent);
+    color: var(--accent-text);
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 20px;
+    text-align: center;
   }
 
   .name {

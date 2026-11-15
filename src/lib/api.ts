@@ -304,6 +304,67 @@ export interface SeerrSeason {
   status: number;
 }
 
+/** Demande Seerr vue par son administrateur (Admin › Demandes). */
+export interface SeerrUser {
+  id: number;
+  name: string;
+  avatar: string | null;
+}
+
+export interface SeerrRequest {
+  id: number;
+  /** 1 en attente, 2 validée, 3 refusée, 4 échec, 5 terminée. */
+  status: number;
+  /** Le titre demandé ; son `status` est celui du média (5 disponible, 4 partiel…). */
+  media: SeerrMedia;
+  seasons: number[];
+  requestedBy: SeerrUser;
+  modifiedBy: SeerrUser | null;
+  createdAt: string;
+  updatedAt: string;
+  is4k: boolean;
+  serverId: number | null;
+  profileId: number | null;
+  profileName: string | null;
+  rootFolder: string | null;
+  languageProfileId: number | null;
+  tags: unknown;
+}
+
+export type RequestFilter = "pending" | "processing" | "available" | "failed" | "all";
+
+export interface RequestCounts {
+  pending: number;
+  processing: number;
+  available: number;
+  total: number;
+}
+
+/** Serveur Radarr (films) ou Sonarr (séries) déclaré dans Seerr. */
+export interface ArrServer {
+  id: number;
+  name: string;
+  is4k: boolean;
+  isDefault: boolean;
+}
+
+export interface ArrOptions {
+  profiles: { id: number; name: string }[];
+  rootFolders: { path: string; freeSpace: number | null }[];
+  activeProfileId: number | null;
+  activeDirectory: string | null;
+}
+
+export interface RequestChanges {
+  mediaType: "movie" | "tv";
+  serverId: number | null;
+  profileId: number | null;
+  rootFolder: string | null;
+  languageProfileId: number | null;
+  seasons: number[];
+  tags: unknown;
+}
+
 export interface TracearrTotals {
   watchMs: number;
   listenMs: number;
@@ -590,6 +651,15 @@ export const api = {
   seerrTvSeasons: (tmdbId: number) => invoke<SeerrSeason[]>("seerr_tv_seasons", { tmdbId }),
   seerrRequest: (mediaType: string, tmdbId: number, seasons: number[] | null) =>
     invoke<void>("seerr_request", { mediaType, tmdbId, seasons }),
+  seerrCanManage: () => invoke<boolean>("seerr_can_manage"),
+  seerrRequests: (filter: RequestFilter, skip = 0, take = 20) => invoke<{ results: SeerrRequest[]; total: number }>("seerr_requests", { filter, skip, take }),
+  seerrRequestCounts: () => invoke<RequestCounts>("seerr_request_counts"),
+  seerrRequestStatus: (id: number, approve: boolean) => invoke<void>("seerr_request_status", { id, approve }),
+  seerrRequestRetry: (id: number) => invoke<void>("seerr_request_retry", { id }),
+  seerrRequestDelete: (id: number) => invoke<void>("seerr_request_delete", { id }),
+  seerrRequestUpdate: (id: number, changes: RequestChanges) => invoke<void>("seerr_request_update", { id, changes }),
+  seerrArrServers: (mediaType: "movie" | "tv") => invoke<ArrServer[]>("seerr_arr_servers", { mediaType }),
+  seerrArrOptions: (mediaType: "movie" | "tv", serverId: number) => invoke<ArrOptions>("seerr_arr_options", { mediaType, serverId }),
 
   tracearrConfigure: (url: string) => invoke<void>("tracearr_configure", { url }),
   /** Relais Maku Server sur la machine du serveur : il remplit les adresses de Seerr et Tracearr qui manquent. */
