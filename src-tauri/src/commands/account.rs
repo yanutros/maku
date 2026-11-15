@@ -137,6 +137,7 @@ pub async fn resume_jellyfin(state: State<'_, AppState>, emby: Option<bool>) -> 
         token: saved.token.clone(),
         user_id: saved.user_id.clone().unwrap_or_default(),
         client_id: c.client_id,
+        tracks: Default::default(),
     };
     if let Err(e) = server.account().await {
         // Jeton refusé (session fermée dans Jellyfin) : il faut se reconnecter.

@@ -222,6 +222,29 @@ pub async fn video_stream(
     Ok(state.server()?.web_stream(&rating_key, media_index, audio_stream, subtitle_stream, max_kbps, &session, copy).await?)
 }
 
+/// L'utilisateur vient de choisir un son ou des sous-titres, dans le lecteur ou sur la fiche : le choix est retenu
+/// pour ce titre (la série entière, pour un épisode) et repris à la lecture suivante.
+///
+/// `kind` : « audio » ou « subtitle ». La piste est désignée par son identifiant sur le serveur (`stream`, 0 : aucun
+/// sous-titre) ou, quand le lecteur ne connaît que les pistes du fichier, par sa langue (`lang`, « off » : aucun).
+#[tauri::command]
+pub async fn remember_track(state: State<'_, AppState>, rating_key: String, kind: String, stream: Option<u64>, lang: Option<String>) -> CmdResult<()> {
+    let off = kind == "subtitle" && (stream == Some(0) || lang.as_deref() == Some(tracks::OFF));
+    let server = state.server()?;
+    let (key, found) = match &server {
+        media::MediaServer::Plex(p) => p.track_ref(&rating_key, stream.filter(|&s| s > 0)).await?,
+        media::MediaServer::Jellyfin(j) => j.track_ref(&rating_key, stream.filter(|&s| s > 0)).await?,
+    };
+    let lang = if off { Some(tracks::OFF.to_owned()) } else { found.or_else(|| lang.as_deref().and_then(tracks::lang)) };
+    // Piste sans langue connue : rien à retenir.
+    let Some(lang) = lang else { return Ok(()) };
+    let picked = if kind == "audio" { tracks::Picked::Audio(lang) } else { tracks::Picked::Subtitle(lang) };
+    let Some(server_key) = state.cfg().server.as_ref().map(config::SavedServer::key) else { return Ok(()) };
+    let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
+    state.update_cfg(|c| tracks::remember(&mut c.track_memory, format!("{server_key}/{key}"), picked, now))?;
+    Ok(())
+}
+
 /// Lecture native sur Android (ExoPlayer) : le fichier d'origine, sans conversion, avec les
 /// pistes à choisir (numérotées comme pour mpv, à partir de 1 dans chaque type).
 #[derive(Serialize)]

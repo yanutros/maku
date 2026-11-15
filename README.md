@@ -171,12 +171,16 @@ cherché en `https` d'abord et sur la seule machine du serveur, jeton envoyé au
 abandonnée quand le serveur ne répond pas, aucun jeton sur la ligne de commande de mpv, seul mpv accepté comme
 lecteur, pochette publiée au bureau sans l'adresse du serveur, reprise d'un téléchargement (fichier d'origine ou
 converti), longue file Chromecast envoyée par lots, fiche demandée une seule fois par les parties qui la veulent
-en même temps, meilleure adresse Plex retenue sans attendre les moins bonnes, droit d'administration gardé cinq minutes, adresse Plex enregistrée pour le seul serveur qu'elle concerne… `cargo test` dans `src-tauri` les lance (après `npm install`, la page du téléphone
+en même temps, meilleure adresse Plex retenue sans attendre les moins bonnes, droit d'administration gardé cinq minutes, adresse Plex enregistrée pour le seul serveur qu'elle concerne, son et sous-titres préférés (par défaut la langue de l'interface et aucun sous-titre, langue des Réglages, « Choix du serveur », choix retenu par titre ou par série, « Aucun » qui n'affiche aucun sous-titre, piste du serveur quand la langue manque) marqués à la place de ceux du serveur pour Plex comme pour Jellyfin… `cargo test` dans `src-tauri` les lance (après `npm install`, la page du téléphone
 intégrant jsQR). Sur GitHub, ils passent à chaque envoi sur `main` et avant la construction des paquets d'une
 version, comme ceux de Maku Server (`cargo test` dans `server` : jeton vérifié auprès de Plex, de Jellyfin et d'Emby,
 chacun à sa façon, gardé ensuite ; serveur ou service injoignable ; envoi trop gros ; chemins hors de l'API ;
 redirection rendue telle quelle ; avec `MAKU_KEY`, signature du nombre envoyé par Maku, que les deux programmes
 calculent de la même façon). `cargo clippy` y passe aussi, dans les deux, sans aucun signalement.
+
+**Pistes préférées.** `tests/pistes.spec.ts` vérifie que Réglages → Lecteur garde la langue du son et les sous-titres
+choisis (et les retire quand on revient au choix du serveur), et qu'une piste choisie dans le lecteur ou sur la fiche
+est confiée à Maku pour ce titre.
 
 **Sécurité de la page.** `tests/securite.spec.ts` sert la page avec la CSP de `src-tauri/tauri.conf.json` : aucune vue
 de la démo n'y perd rien, les images et les médias d'un serveur quelconque passent, la bande-annonce s'affiche dans
@@ -319,6 +323,7 @@ traduisez les valeurs sans toucher aux clés ni aux `{{variables}}`, puis décla
 | `src-tauri/src/seerr.rs` | Seerr : connexion Plex ou Jellyfin, découverte, fiches détaillées, demandes, et leur gestion par l'administrateur (liste, validation, modification, suppression) |
 | `src-tauri/src/tracearr.rs` | Tracearr : connexion Plex et tableau de bord personnel |
 | `src-tauri/src/maku_server.rs` | relais Maku Server : recherche sur la machine du serveur, vérification (`/maku/info`, signature du relais s'il a une clé, retenue par serveur dans la configuration) et jeton joint aux appels |
+| `src-tauri/src/tracks.rs`, `src/lib/trackPrefs.ts` | son et sous-titres préférés : la langue du son et les sous-titres choisis dans Réglages → Lecteur, et le choix fait sur un titre (dans le lecteur ou sur sa fiche), retenu par titre ou par série dans la configuration. Le Rust déplace la marque « piste choisie » du serveur là où il lit une fiche : la fiche, le lecteur et la conversion suivent |
 | `src/lib/androidBridge.ts` | pont Android : la page tire une clé, la présente à Android avant tout, et la joint à chaque appel (`window.PlexrDevice`) ; un cadre d'un autre site, à qui Android montre le même objet, n'en obtient rien |
 | `plugins/jellyfin/` | plugin Maku pour Jellyfin 12 (C#, .NET 10) : relais de Seerr (clé d'API, au nom du compte Seerr de chaque utilisateur, retrouvé par son identifiant Jellyfin ou lié à la main ; jeton CSRF de Seerr géré) et de Tracearr (cookies de session) à l'adresse du serveur (`/Maku/…`), `/Maku/maku/info` pour que Maku le reconnaisse, page de réglages ; tests xUnit des règles du relais et du compte Seerr sous lequel agit chaque utilisateur (lien choisi par l'administrateur, compte importé, aucun compte). Compilé par `.github/workflows/plugin-jellyfin.yml` ; un tag `jellyfin-v1.2.3` publie le catalogue Jellyfin (version GitHub `jellyfin-plugin`), construit par `plugins/jellyfin/catalogue.mjs` : les versions précédentes y sont gardées, et un ancien catalogue introuvable ou illisible arrête la publication au lieu d'être remplacé (`node --test plugins/jellyfin/catalogue.test.mjs`) |
 | `server/` | Maku Server, le relais lui-même (Rust, axum) : vérification du jeton auprès de Plex, Jellyfin ou Emby, transmission de l'API de Seerr et de Tracearr, preuve de son identité (`MAKU_KEY`, `proof.rs`) ; image Docker |

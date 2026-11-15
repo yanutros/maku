@@ -22,6 +22,7 @@
   import Icon from "./Icon.svelte";
   import EndScreen from "./EndScreen.svelte";
   import { t } from "../lib/i18n";
+  import { rememberTrack } from "../lib/trackPrefs";
   import { device } from "../lib/device";
   import { playerBar } from "../lib/playerBar.svelte";
 
@@ -267,11 +268,16 @@
   function selectTrack(kind: "aid" | "sid", id: number | "no") {
     mpv("set_property", kind, id);
     menu = null;
+    // Retenu pour ce titre, par la langue de la piste (les numéros du lecteur ne sont pas ceux du serveur).
+    const type = kind === "aid" ? "audio" : "sub";
+    const lang = id === "no" ? "off" : player.tracks.find((tr) => tr.type === type && tr.id === id)?.lang;
+    if (lang) rememberTrack(player.ratingKey, kind === "aid" ? "audio" : "subtitle", { lang });
   }
 
   function selectServerTrack(kind: "audio" | "subtitle", id: number) {
     menu = null;
     if (id === (kind === "audio" ? serverAudioId : serverSubId)) return;
+    rememberTrack(player.ratingKey, kind, { stream: id });
     setServerStream(kind, id)?.catch((e) => toast(errorText(e), true));
   }
 

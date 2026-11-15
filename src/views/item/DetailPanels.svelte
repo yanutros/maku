@@ -5,6 +5,7 @@
   import TrackSelect from "../../components/TrackSelect.svelte";
   import type { ItemDetail, Version } from "../../lib/api";
   import { t } from "../../lib/i18n";
+  import { rememberTrack } from "../../lib/trackPrefs";
 
   /** `media` : la version choisie (ou la fiche elle-même), avec ses pistes ; les pistes choisies remontent à la fiche. */
   let {
@@ -63,6 +64,7 @@
               bind:value={audioStream}
               options={media.audioTracks.map((tr) => ({ value: tr.id, label: tr.label }))}
               label={t("item.facts.audio")}
+              onchange={(id) => rememberTrack(view.ratingKey, "audio", { stream: Number(id) })}
             />
           </label>
         {/if}
@@ -73,6 +75,7 @@
               bind:value={subtitleStream}
               options={[{ value: 0, label: t("item.facts.none") }, ...(media?.subtitleTracks ?? []).map((tr) => ({ value: tr.id, label: tr.label }))]}
               label={t("item.facts.subtitles")}
+              onchange={(id) => rememberTrack(view.ratingKey, "subtitle", { stream: Number(id) })}
             />
           </label>
         {/if}

@@ -780,7 +780,7 @@ mod tests {
     async fn progression_abandonnee_si_le_serveur_ne_repond_pas() {
         // Même client que l'application : sans la limite propre à la progression, l'envoi attendrait 30 s.
         let http = reqwest::Client::builder().timeout(Duration::from_secs(30)).build().unwrap();
-        let server = MediaServer::Plex(crate::plex::PlexServer { http, base: silent_server().await, token: "t".into(), client_id: "c".into() });
+        let server = MediaServer::Plex(crate::plex::PlexServer { http, base: silent_server().await, token: "t".into(), client_id: "c".into(), tracks: Default::default() });
         let started = tokio::time::Instant::now();
         progress(&server, "session", "42".into(), "playing", 12.0, 3600.0).await;
         assert!(started.elapsed() <= REPORT_TIMEOUT, "{:?}", started.elapsed());

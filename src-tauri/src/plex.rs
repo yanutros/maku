@@ -705,6 +705,8 @@ struct RawStream {
     display_title: Option<String>,
     extended_display_title: Option<String>,
     selected: bool,
+    /// Sous-titres « forcés » : seulement les passages dans une autre langue que celle du son.
+    forced: bool,
     key: Option<String>,
     /// Format d'un sous-titre externe (« srt », « ass », « vtt »…), pour le lecteur Android.
     codec: Option<String>,
@@ -1217,6 +1219,8 @@ pub struct PlexServer {
     pub base: String,
     pub token: String,
     pub client_id: String,
+    /// Son et sous-titres préférés de l'utilisateur (voir `tracks`).
+    pub tracks: std::sync::Arc<crate::tracks::Prefs>,
 }
 
 impl PlexServer {
@@ -1821,7 +1825,49 @@ impl PlexServer {
                 map.remove(&id);
             }
         }
-        found.map_err(|e| anyhow!(e))
+        let mut found = found.map_err(|e| anyhow!(e))?;
+        self.prefer_tracks(&mut found);
+        Ok(found)
+    }
+
+    /// Clé sous laquelle le choix du son et des sous-titres est retenu : la série pour un épisode, sinon le titre.
+    fn track_key(m: &RawMetadata) -> String {
+        m.grandparent_rating_key.clone().filter(|_| m.kind == "episode").unwrap_or_else(|| m.rating_key.clone())
+    }
+
+    /// Déplace la marque « piste choisie » du serveur vers le son et les sous-titres que l'utilisateur préfère : la
+    /// fiche, le lecteur et la conversion lisent tous cette marque.
+    fn prefer_tracks(&self, m: &mut RawMetadata) {
+        if self.tracks.is_empty() {
+            return;
+        }
+        let key = Self::track_key(m);
+        for part in m.media.iter_mut().flat_map(|x| x.part.iter_mut()) {
+            let of = |kind: u8| -> Vec<crate::tracks::Stream> {
+                part.stream
+                    .iter()
+                    .filter(|s| s.stream_type == kind)
+                    .map(|s| crate::tracks::Stream { id: s.id, lang: s.language_code.as_deref().and_then(crate::tracks::lang), forced: s.forced, selected: s.selected })
+                    .collect()
+            };
+            let choice = self.tracks.choose(&key, &of(2), &of(3));
+            if let Some(audio) = choice.audio {
+                part.stream.iter_mut().filter(|s| s.stream_type == 2).for_each(|s| s.selected = s.id == audio);
+            }
+            if let Some(subtitle) = choice.subtitle {
+                part.stream.iter_mut().filter(|s| s.stream_type == 3).for_each(|s| s.selected = Some(s.id) == subtitle);
+            }
+        }
+    }
+
+    /// Pour retenir un choix : la clé du titre (voir `track_key`) et la langue de la piste `stream`.
+    pub async fn track_ref(&self, rating_key: &str, stream: Option<u64>) -> Result<(String, Option<String>)> {
+        let m = self.fetch_raw_metadata(rating_key).await?;
+        let lang = stream
+            .and_then(|id| m.media.iter().flat_map(|x| &x.part).flat_map(|p| &p.stream).find(|s| s.id == id))
+            .and_then(|s| s.language_code.as_deref())
+            .and_then(crate::tracks::lang);
+        Ok((Self::track_key(&m), lang))
     }
 
     async fn fetch_raw_metadata(&self, rating_key: &str) -> Result<RawMetadata> {
@@ -2065,6 +2111,14 @@ impl PlexServer {
             .get(media_index)
             .and_then(|x| x.part.first())
             .ok_or_else(|| anyhow!(crate::i18n::tr_with("plex.noPlayableFile", &[("title", &m.title)])))?;
+        // Rien de demandé : sans préférence, le serveur convertit les pistes qu'il a choisies ; avec, celles que
+        // l'utilisateur préfère (marquées par `prefer_tracks`), qu'il faut lui indiquer.
+        let (audio, subtitle) = if self.tracks.is_empty() {
+            (audio, subtitle)
+        } else {
+            let marked = |kind: u8| part.stream.iter().find(|s| s.stream_type == kind && s.selected).map(|s| s.id);
+            (audio.or_else(|| marked(2)), subtitle.or_else(|| Some(marked(3).unwrap_or(0))))
+        };
         if audio.is_some() || subtitle.is_some() {
             let mut q = String::from("allParts=1");
             if let Some(a) = audio {
@@ -2400,7 +2454,7 @@ mod tests {
                 });
             }
         });
-        let server = PlexServer { http: Client::new(), base, token: "t".into(), client_id: "c".into() };
+        let server = PlexServer { http: Client::new(), base, token: "t".into(), client_id: "c".into(), tracks: Default::default() };
         // Cinq parties veulent la fiche en même temps : une seule demande au serveur.
         let all = join_all((0..5).map(|_| server.raw_metadata("42"))).await;
         assert!(all.iter().all(|m| m.as_ref().is_ok_and(|m| m.title == "Un film")));
@@ -2413,10 +2467,77 @@ mod tests {
         assert_eq!(hits.load(std::sync::atomic::Ordering::SeqCst), 4);
     }
 
+    /// Faux serveur Plex : un épisode (série 7) avec une version originale anglaise, marquée par le serveur avec ses
+    /// sous-titres français, et une version française.
+    async fn fake_episode() -> String {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let base = format!("http://{}", listener.local_addr().unwrap());
+        tokio::spawn(async move {
+            loop {
+                let Ok((mut socket, _)) = listener.accept().await else { return };
+                let mut buf = vec![0u8; 4096];
+                let _ = socket.read(&mut buf).await;
+                let body = serde_json::json!({ "MediaContainer": { "Metadata": [{
+                    "ratingKey": "42", "type": "episode", "title": "Épisode", "grandparentRatingKey": "7", "grandparentTitle": "Série",
+                    "Media": [{ "Part": [{ "id": 1, "key": "/library/parts/1/file.mkv", "Stream": [
+                        { "id": 100, "streamType": 1 },
+                        { "id": 101, "streamType": 2, "languageCode": "eng", "selected": true },
+                        { "id": 102, "streamType": 2, "languageCode": "fra" },
+                        { "id": 103, "streamType": 3, "languageCode": "eng" },
+                        { "id": 104, "streamType": 3, "languageCode": "fra", "selected": true },
+                        { "id": 105, "streamType": 3, "languageCode": "fra", "forced": true },
+                    ] }] }],
+                }] } })
+                .to_string();
+                let _ = socket.write_all(format!("HTTP/1.1 200 OK\r\ncontent-type: application/json\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{body}", body.len()).as_bytes()).await;
+            }
+        });
+        base
+    }
+
+    fn with_tracks(base: &str, audio: Option<&str>, subtitle: Option<&str>, memory: &[(&str, Option<&str>, Option<&str>)]) -> PlexServer {
+        let memory = memory
+            .iter()
+            .map(|(key, a, s)| (key.to_string(), crate::tracks::Memory { audio: a.map(str::to_owned), subtitle: s.map(str::to_owned), at: 1 }))
+            .collect();
+        let tracks = crate::tracks::Prefs { audio: audio.map(str::to_owned), subtitle: subtitle.map(str::to_owned), memory };
+        PlexServer { http: Client::new(), base: base.to_owned(), token: "t".into(), client_id: "c".into(), tracks: std::sync::Arc::new(tracks) }
+    }
+
+    #[tokio::test]
+    async fn son_et_sous_titres_preferes_a_la_lecture() {
+        let base = fake_episode().await;
+        let played = |server: PlexServer| async move {
+            let info = server.play_info("42", None, None, None).await.unwrap();
+            (info.aid, info.sid)
+        };
+        // Sans préférence : les pistes du serveur (version originale, sous-titres français).
+        assert_eq!(played(with_tracks(&base, None, None, &[])).await, (Some(1), "2".to_string()));
+        // Français, sans sous-titres : la version française, et aucun sous-titre, pas même les « forcés ».
+        assert_eq!(played(with_tracks(&base, Some("fr"), Some("off"), &[])).await, (Some(2), "no".to_string()));
+        // « Si le son est dans une autre langue » : le son est en français, restent les seuls « forcés » de cette langue.
+        assert_eq!(played(with_tracks(&base, Some("fr"), Some("auto"), &[])).await, (Some(2), "3".to_string()));
+        // Le choix fait sur la série (clé 7, et non celle de l'épisode) passe avant les Réglages.
+        assert_eq!(played(with_tracks(&base, Some("fr"), Some("off"), &[("7", Some("en"), Some("en"))])).await, (Some(1), "1".to_string()));
+        assert_eq!(played(with_tracks(&base, Some("fr"), Some("off"), &[("42", Some("en"), Some("en"))])).await, (Some(2), "no".to_string()));
+        // Une piste demandée pour cette lecture passe avant tout.
+        let info = with_tracks(&base, Some("fr"), Some("off"), &[]).play_info("42", None, Some(101), Some(103)).await.unwrap();
+        assert_eq!((info.aid, info.sid), (Some(1), "1".to_string()));
+        // La fiche montre les mêmes pistes que celles qui seront lues.
+        let detail = with_tracks(&base, Some("fr"), Some("off"), &[]).metadata("42").await.unwrap();
+        let marked = |tracks: &[Track]| tracks.iter().filter(|t| t.selected).map(|t| t.id).collect::<Vec<_>>();
+        assert_eq!((marked(&detail.audio_tracks), marked(&detail.subtitle_tracks)), (vec![102], vec![]));
+        // Pour retenir un choix : la clé de la série, et la langue de la piste désignée.
+        let server = with_tracks(&base, None, None, &[]);
+        assert_eq!(server.track_ref("42", Some(102)).await.unwrap(), ("7".to_string(), Some("fr".to_string())));
+        assert_eq!(server.track_ref("42", None).await.unwrap(), ("7".to_string(), None));
+    }
+
     #[tokio::test]
     async fn serveur_injoignable_signale_tel_quel() {
         // Port fermé : l'erreur de connexion remonte, au lieu de « introuvable » après un essai parmi les playlists.
-        let server = PlexServer { http: Client::new(), base: "http://127.0.0.1:9".into(), token: "t".into(), client_id: "c".into() };
+        let server = PlexServer { http: Client::new(), base: "http://127.0.0.1:9".into(), token: "t".into(), client_id: "c".into(), tracks: Default::default() };
         let e = format!("{:#}", server.raw_metadata("42").await.err().unwrap());
         assert!(!e.contains(&crate::i18n::tr_with("plex.notFound", &[("id", "42")])), "{e}");
     }

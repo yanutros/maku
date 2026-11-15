@@ -41,6 +41,9 @@ pub struct Config {
     /// Clé publique du Maku Server de chaque serveur (clé : voir `SavedServer::key`), retenue à la première
     /// rencontre : le jeton ne part ensuite qu'au relais qui sait signer avec elle (voir `maku_server`).
     pub relay_keys: HashMap<String, String>,
+    /// Son et sous-titres choisis sur un titre (clé : serveur, puis titre ou série), repris à la lecture suivante
+    /// (voir `tracks`).
+    pub track_memory: HashMap<String, crate::tracks::Memory>,
     /// Préférences de l'interface (couleur, fond, notes, accueil, menu…), copie de celles du navigateur intégré :
     /// elles y sont relues au démarrage, et ne se perdent ni quand ce stockage est vidé ou n'a pas été écrit à
     /// temps, ni entre deux versions de Maku (installée et de développement) qui ne le partagent pas.

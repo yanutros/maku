@@ -11,7 +11,9 @@
   import { api, errorText, type Session } from "../../lib/api";
   import { toast } from "../../lib/nav.svelte";
   import { device } from "../../lib/device";
-  import { t } from "../../lib/i18n";
+  import { locale, t } from "../../lib/i18n";
+  import TrackSelect from "../../components/TrackSelect.svelte";
+  import { SERVER, TRACK_LANGUAGES, audioLanguage, languageName, setAudioLanguage, setSubtitlePreference, subtitlePreference } from "../../lib/trackPrefs";
 
   let { session, onChange, desk }: { session: Session; onChange: () => void; desk: boolean } = $props();
 
@@ -56,6 +58,18 @@
       diagUrl = null;
     };
   });
+
+  // Son et sous-titres préférés, à la place du choix du serveur.
+  let audioLang = $state(audioLanguage());
+  let subtitles = $state(subtitlePreference());
+  const languages = TRACK_LANGUAGES.map((code) => ({ value: code, label: languageName(code, locale) }));
+  const audioOptions = [{ value: SERVER, label: t("settings.player.tracksServer") }, ...languages];
+  const subtitleOptions = [
+    { value: SERVER, label: t("settings.player.tracksServer") },
+    { value: "off", label: t("settings.player.subtitlesOff") },
+    { value: "auto", label: t("settings.player.subtitlesAuto") },
+    ...languages,
+  ];
 
   async function saveMpv() {
     try {
@@ -103,6 +117,21 @@
       </div>
     </div>
   {/if}
+  <!-- Son et sous-titres préférés (src/lib/trackPrefs.ts). -->
+  <div class="line" data-pref="audio">
+    <div class="line-text">
+      <strong>{t("settings.player.audioLanguage")}</strong>
+      <span class="muted small">{t("settings.player.audioLanguageHint")}</span>
+    </div>
+    <div class="pick"><TrackSelect bind:value={audioLang} options={audioOptions} label={t("settings.player.audioLanguage")} onchange={(v) => setAudioLanguage(String(v))} /></div>
+  </div>
+  <div class="line" data-pref="subtitles">
+    <div class="line-text">
+      <strong>{t("settings.player.subtitles")}</strong>
+      <span class="muted small">{t("settings.player.subtitlesHint")}</span>
+    </div>
+    <div class="pick"><TrackSelect bind:value={subtitles} options={subtitleOptions} label={t("settings.player.subtitles")} onchange={(v) => setSubtitlePreference(String(v))} /></div>
+  </div>
   <!-- Épisode suivant au générique, après un compte à rebours (PlayerOverlay.svelte). -->
   <div class="line">
     <div class="line-text">

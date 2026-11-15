@@ -21,6 +21,7 @@ mod offline;
 mod plex_users;
 mod seerr;
 mod tracearr;
+mod tracks;
 mod update;
 
 use anyhow::anyhow;
@@ -92,6 +93,8 @@ impl AppState {
     /// Serveur de médias choisi : Plex ou Jellyfin (voir media.rs).
     fn server(&self) -> anyhow::Result<media::MediaServer> {
         let c = self.cfg();
+        // Son et sous-titres préférés : appliqués par le client du serveur, là où il lit une fiche.
+        let tracks = std::sync::Arc::new(tracks::Prefs::from_config(&c, crate::i18n::language()));
         let s = c.server.ok_or_else(|| anyhow!(crate::i18n::tr("app.noServer")))?;
         Ok(if s.is_jellyfin() {
             media::MediaServer::Jellyfin(jellyfin::JellyfinServer {
@@ -100,9 +103,10 @@ impl AppState {
                 token: s.token,
                 user_id: s.user_id.unwrap_or_default(),
                 client_id: c.client_id,
+                tracks,
             })
         } else {
-            media::MediaServer::Plex(PlexServer { http: self.http.clone(), base: s.uri, token: s.token, client_id: c.client_id })
+            media::MediaServer::Plex(PlexServer { http: self.http.clone(), base: s.uri, token: s.token, client_id: c.client_id, tracks })
         })
     }
 
@@ -392,6 +396,7 @@ pub fn run() {
             music_queue,
             video_stream,
             native_video,
+            remember_track,
             stop_transcode,
             report_timeline,
             player_command,

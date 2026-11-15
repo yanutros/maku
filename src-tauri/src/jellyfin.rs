@@ -195,6 +195,50 @@ async fn server_name(http: &Client, base: &str) -> Result<String> {
     Ok(info.server_name)
 }
 
+/// Clé sous laquelle le choix du son et des sous-titres est retenu : la série pour un épisode, sinon le titre.
+fn track_key(v: &Value, id: &str) -> String {
+    let series = v["SeriesId"].as_str().filter(|_| v["Type"] == "Episode");
+    series.or(v["Id"].as_str()).unwrap_or(id).to_owned()
+}
+
+/// Déplace la marque « piste par défaut » du serveur vers le son et les sous-titres que l'utilisateur préfère : la
+/// fiche, le lecteur et la conversion lisent tous cette marque.
+fn prefer_tracks(prefs: &crate::tracks::Prefs, v: &mut Value) {
+    if prefs.is_empty() {
+        return;
+    }
+    let key = track_key(v, "");
+    let Some(sources) = v["MediaSources"].as_array_mut() else { return };
+    for source in sources {
+        let Some(streams) = source["MediaStreams"].as_array_mut() else { continue };
+        let of = |kind: &str| -> Vec<crate::tracks::Stream> {
+            streams
+                .iter()
+                .filter(|s| s["Type"] == kind)
+                .map(|s| crate::tracks::Stream {
+                    id: s["Index"].as_u64().unwrap_or(0),
+                    lang: s["Language"].as_str().and_then(crate::tracks::lang),
+                    forced: s["IsForced"] == true,
+                    selected: s["IsDefault"] == true,
+                })
+                .collect()
+        };
+        let choice = prefs.choose(&key, &of("Audio"), &of("Subtitle"));
+        if let Some(audio) = choice.audio {
+            for s in streams.iter_mut().filter(|s| s["Type"] == "Audio") {
+                s["IsDefault"] = Value::Bool(s["Index"].as_u64() == Some(audio));
+            }
+        }
+        if let Some(subtitle) = choice.subtitle {
+            for s in streams.iter_mut().filter(|s| s["Type"] == "Subtitle") {
+                // « Forcé » vaut « par défaut » pour le lecteur : seule la piste retenue garde une marque.
+                s["IsDefault"] = Value::Bool(s["Index"].as_u64().is_some_and(|i| Some(i) == subtitle));
+                s["IsForced"] = Value::Bool(false);
+            }
+        }
+    }
+}
+
 /// Serveur Jellyfin ou Emby connecté.
 #[derive(Clone)]
 pub struct JellyfinServer {
@@ -203,6 +247,8 @@ pub struct JellyfinServer {
     pub token: String,
     pub user_id: String,
     pub client_id: String,
+    /// Son et sous-titres préférés de l'utilisateur (voir `tracks`).
+    pub tracks: std::sync::Arc<crate::tracks::Prefs>,
 }
 
 #[derive(Deserialize)]
@@ -762,8 +808,27 @@ impl JellyfinServer {
 
     // ---------- Fiche ----------
 
-    pub async fn metadata(&self, id: &str) -> Result<ItemDetail> {
+    /// La fiche d'un titre, les pistes préférées de l'utilisateur marquées à la place de celles du serveur.
+    async fn item(&self, id: &str) -> Result<Value> {
+        let mut v = self.json(&format!("/Users/{}/Items/{id}", self.uid())).await?;
+        prefer_tracks(&self.tracks, &mut v);
+        Ok(v)
+    }
+
+    /// Pour retenir un choix : la clé du titre (voir `track_key`) et la langue de la piste `stream`.
+    pub async fn track_ref(&self, id: &str, stream: Option<u64>) -> Result<(String, Option<String>)> {
         let v = self.json(&format!("/Users/{}/Items/{id}", self.uid())).await?;
+        let lang = stream
+            .and_then(|index| {
+                v["MediaSources"].as_array()?.iter().flat_map(|s| s["MediaStreams"].as_array().into_iter().flatten()).find(|s| s["Index"].as_u64() == Some(index))
+            })
+            .and_then(|s| s["Language"].as_str())
+            .and_then(crate::tracks::lang);
+        Ok((track_key(&v, id), lang))
+    }
+
+    pub async fn metadata(&self, id: &str) -> Result<ItemDetail> {
+        let v = self.item(id).await?;
         let item = self.to_item(&v);
         let people = v["People"].as_array().cloned().unwrap_or_default();
         let names = |t: &str| people.iter().filter(|p| p["Type"] == t).filter_map(|p| str_of(&p["Name"])).collect::<Vec<_>>();
@@ -938,7 +1003,7 @@ impl JellyfinServer {
     }
 
     pub async fn play_info(&self, id: &str, media: Option<usize>, audio: Option<u64>, subtitle: Option<u64>) -> Result<PlayInfo> {
-        let v = self.json(&format!("/Users/{}/Items/{id}", self.uid())).await?;
+        let v = self.item(id).await?;
         let index = media.filter(|&i| v["MediaSources"][i].is_object()).unwrap_or(0);
         let source = &v["MediaSources"][index];
         let source_id = source["Id"].as_str().unwrap_or(id).to_string();
@@ -1018,9 +1083,19 @@ impl JellyfinServer {
         session: &str,
         copy_video: bool,
     ) -> Result<WebStream> {
-        let info = self.play_info(id, media, audio, subtitle).await?;
-        let v = self.json(&format!("/Users/{}/Items/{id}", self.uid())).await?;
+        let v = self.item(id).await?;
         let index = media.filter(|&i| v["MediaSources"][i].is_object()).unwrap_or(0);
+        // Rien de demandé : sans préférence, le serveur convertit les pistes qu'il a choisies ; avec, celles que
+        // l'utilisateur préfère (marquées par `prefer_tracks`), qu'il faut lui indiquer.
+        let (audio, subtitle) = if self.tracks.is_empty() {
+            (audio, subtitle)
+        } else {
+            let marked = |kind: &str| {
+                v["MediaSources"][index]["MediaStreams"].as_array()?.iter().find(|s| s["Type"] == kind && s["IsDefault"] == true)?["Index"].as_u64()
+            };
+            (audio.or_else(|| marked("Audio")), subtitle.or_else(|| Some(marked("Subtitle").unwrap_or(0))))
+        };
+        let info = self.play_info(id, media, audio, subtitle).await?;
         let source_id = v["MediaSources"][index]["Id"].as_str().unwrap_or(id).to_string();
         let kbps = max_kbps.unwrap_or(crate::plex::DEFAULT_KBPS);
         let (width, _) = crate::plex::resolution_for(kbps);
@@ -1236,6 +1311,54 @@ fn jellyfin_filter(name: &str, value: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn pistes_preferees_marquees_a_la_place_de_celles_du_serveur() {
+        let episode = || {
+            serde_json::json!({ "Id": "e1", "Type": "Episode", "SeriesId": "s1", "MediaSources": [{ "Id": "m1", "MediaStreams": [
+                { "Type": "Video", "Index": 0 },
+                { "Type": "Audio", "Index": 1, "Language": "eng", "IsDefault": true },
+                { "Type": "Audio", "Index": 2, "Language": "fre" },
+                { "Type": "Subtitle", "Index": 3, "Language": "eng", "IsForced": true },
+                { "Type": "Subtitle", "Index": 4, "Language": "fre", "IsDefault": true },
+                { "Type": "Subtitle", "Index": 5, "Language": "fre", "IsForced": true },
+            ] }] })
+        };
+        let marked = |v: &Value, kind: &str| -> Vec<u64> {
+            v["MediaSources"][0]["MediaStreams"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .filter(|s| s["Type"] == kind && (s["IsDefault"] == true || s["IsForced"] == true))
+                .filter_map(|s| s["Index"].as_u64())
+                .collect()
+        };
+        let prefs = |audio: Option<&str>, subtitle: Option<&str>, memory: &[(&str, &str)]| crate::tracks::Prefs {
+            audio: audio.map(str::to_owned),
+            subtitle: subtitle.map(str::to_owned),
+            memory: memory.iter().map(|(k, a)| (k.to_string(), crate::tracks::Memory { audio: Some(a.to_string()), subtitle: None, at: 1 })).collect(),
+        };
+        // Sans préférence : rien ne bouge.
+        let mut v = episode();
+        prefer_tracks(&prefs(None, None, &[]), &mut v);
+        assert_eq!(v, episode());
+        // Français, sans sous-titres : le son français, et aucun sous-titre, pas même les « forcés ».
+        prefer_tracks(&prefs(Some("fr"), Some("off"), &[]), &mut v);
+        assert_eq!((marked(&v, "Audio"), marked(&v, "Subtitle")), (vec![2], vec![]));
+        // « Si le son est dans une autre langue » : le son est en français, restent les seuls « forcés » de cette langue.
+        let mut v = episode();
+        prefer_tracks(&prefs(Some("fr"), Some("auto"), &[]), &mut v);
+        assert_eq!((marked(&v, "Audio"), marked(&v, "Subtitle")), (vec![2], vec![5]));
+        // Le choix retenu pour la série (et non pour l'épisode) passe avant.
+        let mut v = episode();
+        prefer_tracks(&prefs(Some("fr"), Some("off"), &[("s1", "en")]), &mut v);
+        assert_eq!((marked(&v, "Audio"), marked(&v, "Subtitle")), (vec![1], vec![]));
+        let mut v = episode();
+        prefer_tracks(&prefs(Some("fr"), Some("off"), &[("e1", "en")]), &mut v);
+        assert_eq!(marked(&v, "Audio"), vec![2]);
+        assert_eq!(track_key(&episode(), "x"), "s1");
+        assert_eq!(track_key(&serde_json::json!({ "Id": "f1", "Type": "Movie", "SeriesId": "s1" }), "x"), "f1");
+    }
 
     #[test]
     fn emby_chapters_give_intro_and_credits() {
