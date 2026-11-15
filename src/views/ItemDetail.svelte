@@ -136,14 +136,28 @@
       );
   }
 
+  /**
+   * Saison ouverte par un onglet : c'est elle que la page recharge ensuite (après une lecture, « Marquer vu »), et non
+   * celle par laquelle la page a été ouverte.
+   */
+  let tabSeason: string | null = null;
+  /** Demande de saison en cours : la réponse d'une demande plus ancienne (onglet quitté depuis) est ignorée. */
+  let seasonRequest = 0;
+
   /** Onglet d'une autre saison : elle remplace celle-ci sur la même page, sans rien ajouter à l'historique. */
   async function openSeason(key: string) {
-    if (key === item?.ratingKey) return;
+    if (key === item?.ratingKey && !tabSeason) return;
+    if (key === tabSeason) return;
+    const request = ++seasonRequest;
+    tabSeason = key;
     try {
       const [detail, kids] = await Promise.all([api.metadata(key), api.children(key)]);
+      if (request !== seasonRequest) return;
       showSeason(detail, kids, null);
       remember();
     } catch (e) {
+      // La saison demandée n'a pas pu s'ouvrir : la page reste, et se rechargera, sur celle qui est affichée.
+      if (request === seasonRequest) tabSeason = item?.kind === "season" ? item.ratingKey : null;
       toast(errorText(e), true);
     }
   }
@@ -168,7 +182,16 @@
    * par lequel la page a été ouverte.
    */
   async function load(again = false) {
+    const request = ++seasonRequest;
     try {
+      if (tabSeason) {
+        const key = tabSeason;
+        const [detail, kids] = await Promise.all([api.metadata(key), api.children(key)]);
+        if (request !== seasonRequest) return;
+        showSeason(detail, kids, target);
+        remember();
+        return;
+      }
       let detail = await api.metadata(ratingKey);
       // Un épisode s'ouvre dans sa saison ; sans saison joignable, il garde sa propre fiche.
       if (detail.kind === "episode" && detail.seasonKey) {

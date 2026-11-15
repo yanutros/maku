@@ -326,11 +326,8 @@ pub(crate) async fn refresh_connection(state: &AppState, quick: bool) -> anyhow:
         return Ok(false);
     }
     if quick {
-        let alive = plex::with_plex_headers(state.http.get(format!("{}/identity", saved.uri)), &c.client_id, Some(&saved.token))
-            .timeout(Duration::from_secs(3))
-            .send()
-            .await
-            .is_ok_and(|r| r.status().is_success());
+        // Sans jeton, et seulement si c'est bien ce serveur qui répond (voir `plex::answers_as`).
+        let alive = plex::answers_as(&state.http, &c.client_id, &saved.uri, &saved.machine_id, Duration::from_secs(3)).await;
         if alive {
             return Ok(false);
         }
@@ -346,12 +343,10 @@ pub(crate) async fn refresh_connection(state: &AppState, quick: bool) -> anyhow:
     if uri == saved.uri {
         return Ok(false);
     }
-    state.update_cfg(|c| {
-        if let Some(s) = c.server.as_mut() {
-            s.uri = uri;
-        }
-    })?;
-    Ok(true)
+    // Le tour des adresses a pris du temps : si l'on est passé entre-temps sur un autre serveur, il garde la sienne.
+    let mut changed = false;
+    state.update_cfg(|c| changed = c.set_plex_uri(&saved.machine_id, uri))?;
+    Ok(changed)
 }
 
 /// Retour dans l'application, réseau revenu : l'adresse du serveur répond-elle toujours ? Sinon, Maku

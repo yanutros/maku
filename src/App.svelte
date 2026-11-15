@@ -101,15 +101,17 @@
   let hiddenAt = 0;
   let checking = false;
   async function checkServer(force = false) {
-    if (checking || !session?.serverName || session.serverKind !== "plex") return;
+    if (checking || !session?.serverName) return;
     if (!force && Date.now() - hiddenAt < 15000) return;
     checking = true;
     try {
-      if (await api.reconnect()) {
+      // Plex : son adresse a pu changer (Jellyfin et Emby n'en ont qu'une).
+      if (session.serverKind === "plex" && (await api.reconnect())) {
         sections = await api.sections().catch(() => sections);
-        syncOffline();
         reload();
       }
+      // Avec tous les serveurs : ce qui a été regardé hors ligne lui est renvoyé, et les téléchargements reprennent.
+      syncOffline();
     } catch {
       // Toujours injoignable : la page garde son message d'erreur, une nouvelle tentative viendra.
     } finally {

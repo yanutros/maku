@@ -128,6 +128,18 @@ impl Config {
         }
     }
 
+    /// Nouvelle adresse du serveur Plex `machine_id`, s'il est toujours le serveur en cours. Renvoie vrai si elle a été
+    /// enregistrée : un autre serveur (Plex, Jellyfin ou Emby) choisi entre-temps ne reçoit pas l'adresse de l'ancien.
+    pub fn set_plex_uri(&mut self, machine_id: &str, uri: String) -> bool {
+        match self.server.as_mut() {
+            Some(s) if !s.is_jellyfin() && s.machine_id == machine_id => {
+                s.uri = uri;
+                true
+            }
+            _ => false,
+        }
+    }
+
     pub fn load(path: &Path) -> Self {
         let mut config: Config = match std::fs::read_to_string(path) {
             Ok(s) => serde_json::from_str(&s).unwrap_or_else(|_| {
@@ -213,6 +225,20 @@ mod tests {
         assert_eq!(c.seerr_url, None);
         switch(&mut c, Some(server("emby", "emby1")));
         assert_eq!((c.seerr_url.as_deref(), c.seerr_cookies.as_deref()), (Some("https://seerr-b"), Some("s=1")));
+    }
+
+    #[test]
+    fn plex_address_only_for_the_same_server() {
+        let mut c = Config { server: Some(server("", "plex1")), ..Default::default() };
+        assert!(c.set_plex_uri("plex1", "https://nouvelle".into()));
+        assert_eq!(c.server.as_ref().unwrap().uri, "https://nouvelle");
+        // Passé sur un autre serveur Plex, ou sur Jellyfin (même identifiant ou non), pendant le tour des adresses.
+        for other in [server("", "plex2"), server("jellyfin", "plex1"), server("emby", "e1")] {
+            let mut c = Config { server: Some(SavedServer { uri: "http://la-sienne".into(), ..other }), ..Default::default() };
+            assert!(!c.set_plex_uri("plex1", "https://ancienne".into()));
+            assert_eq!(c.server.as_ref().unwrap().uri, "http://la-sienne");
+        }
+        assert!(!Config::default().set_plex_uri("plex1", "https://x".into()));
     }
 
     fn temp_dir(name: &str) -> std::path::PathBuf {

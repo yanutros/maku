@@ -425,6 +425,16 @@ fn is_server(identity: &serde_json::Value, machine_id: &str) -> bool {
     !machine_id.is_empty() && identity["MediaContainer"]["machineIdentifier"].as_str() == Some(machine_id)
 }
 
+/// Le serveur d'identifiant `machine_id` répond-il à l'adresse `uri` ? La question (`/identity`) part sans jeton :
+/// sur un autre réseau, la même adresse peut être celle d'une autre machine, qui ne doit ni recevoir le jeton ni
+/// être prise pour le serveur.
+pub async fn answers_as(http: &Client, client_id: &str, uri: &str, machine_id: &str, timeout: Duration) -> bool {
+    match with_plex_headers(http.get(format!("{uri}/identity")), client_id, None).timeout(timeout).send().await {
+        Ok(r) if r.status().is_success() => r.json::<serde_json::Value>().await.is_ok_and(|v| is_server(&v, machine_id)),
+        _ => false,
+    }
+}
+
 /// Teste toutes les adresses du serveur en parallèle et garde la meilleure joignable : locale
 /// d'abord, puis distante, le relais Plex en dernier recours.
 ///
@@ -453,12 +463,7 @@ pub async fn pick_connection(http: &Client, client_id: &str, res: &Resource) -> 
     candidates.sort();
     candidates.dedup_by(|a, b| a.1 == b.1);
     let checks = candidates.iter().map(|(_, uri)| async move {
-        let answer = with_plex_headers(http.get(format!("{uri}/identity")), client_id, None).timeout(Duration::from_secs(4)).send().await;
-        let ok = match answer {
-            Ok(r) if r.status().is_success() => r.json::<serde_json::Value>().await.is_ok_and(|v| is_server(&v, &res.client_identifier)),
-            _ => false,
-        };
-        (uri.clone(), ok)
+        (uri.clone(), answers_as(http, client_id, uri, &res.client_identifier, Duration::from_secs(4)).await)
     });
     join_all(checks)
         .await

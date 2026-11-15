@@ -143,7 +143,9 @@ Il se tient à jour avec l'application : chaque nouvelle fonctionnalité y a sa 
 **Tests de l'interface.** `npm test` ouvre Maku en mode démo avec [Playwright](https://playwright.dev) et le pilote
 comme un utilisateur, sur quatre appareils simulés : ordinateur, téléviseur (flèches, OK, Retour), téléphone et
 moteur de Safari (iPad, Mac). Les parcours (`tests/`) couvrent l'accueil, les fiches (série, saison, épisode),
-les acteurs, le lecteur, le journal de diagnostic (un élément y est décrit sans son texte), la lecture (une lecture arrêtée ou remplacée pendant l'attente du serveur ne démarre pas,
+les acteurs, le lecteur, le journal de diagnostic (un élément y est décrit sans son texte), les réponses qui arrivent dans le désordre (la
+saison ouverte par son onglet reste celle de la page après une lecture, la bibliothèque musicale ne double pas sa
+liste, la progression hors ligne repart à chaque retour du réseau), la lecture (une lecture arrêtée ou remplacée pendant l'attente du serveur ne démarre pas,
 le plein écran se quitte à la fermeture de la vidéo, une session Tracearr expirée ne recharge pas l'application en
 boucle), les Réglages et la barre simplifiée. Pour jouer un serveur lent ou une erreur, un test retarde ou fait
 échouer une commande de la démo (`window.__demoHooks`, voir `src/lib/demo.ts`). Ils vérifient des règles tirées des bugs déjà
@@ -159,7 +161,8 @@ construction des paquets d'une version (les images de référence, prises sous W
 d'erreur, écriture de la configuration, adresse d'un serveur Plex retenue seulement si c'est lui qui répond, relais
 cherché en `https` d'abord, lecture arrêtée ou remplacée pendant sa préparation qui ne lance pas mpv, progression
 abandonnée quand le serveur ne répond pas, aucun jeton sur la ligne de commande de mpv, seul mpv accepté comme
-lecteur, pochette publiée au bureau sans l'adresse du serveur… `cargo test` dans `src-tauri` les lance (après `npm install`, la page du téléphone
+lecteur, pochette publiée au bureau sans l'adresse du serveur, reprise d'un téléchargement (fichier d'origine ou
+converti), adresse Plex enregistrée pour le seul serveur qu'elle concerne… `cargo test` dans `src-tauri` les lance (après `npm install`, la page du téléphone
 intégrant jsQR). Sur GitHub, ils passent à chaque envoi sur `main` et avant la construction des paquets d'une
 version, comme ceux de Maku Server (`cargo test` dans `server`).
 
@@ -304,7 +307,7 @@ traduisez les valeurs sans toucher aux clés ni aux `{{variables}}`, puis décla
 | `src/lib/device.ts` | type d'appareil (ordinateur, tablette tactile, téléviseur) et échelle de l'interface sur TV |
 | `src/lib/spatial.ts`, `src/lib/nav.svelte.ts` | navigation à la télécommande (flèches) et bouton Retour d'Android |
 | `src/components/TvRows.svelte`, `TvGrid.svelte`, `src/lib/tvcards.ts` | interface TV : rangées avec fiche en haut, grilles légères ; menu d'un titre à l'appui long (`TvMenu.svelte`, `src/lib/longpress.ts`), choix des pistes sous le champ (`TrackSelect.svelte`) |
-| `src-tauri/src/offline.rs`, `src/lib/offline.svelte.ts`, `src/views/Downloads.svelte` | lecture hors ligne : file de téléchargements (fichier d'origine repris par `Range`, ou version convertie récupérée morceau par morceau en HLS et mise bout à bout), page Téléchargements, progression renvoyée au serveur |
+| `src-tauri/src/offline.rs`, `src/lib/offline.svelte.ts`, `src/views/Downloads.svelte` | lecture hors ligne : file de téléchargements (fichier d'origine repris par `Range`, seulement s'il n'a pas changé sur le serveur, `If-Range` ; ou version convertie récupérée morceau par morceau en HLS et mise bout à bout, reprise au dernier morceau enregistré, le surplus d'un arrêt brutal étant coupé), page Téléchargements, progression renvoyée au serveur à chaque retour du réseau |
 | `src-tauri/src/plex_users.rs`, `src/components/ServerUsers.svelte` | utilisateurs du serveur Plex (administrateur) : comptes partagés, bibliothèques, autorisations et restrictions, invitation et retrait, via plex.tv |
 | `src-tauri/src/cast.rs`, `src/components/CastButton.svelte` | Chromecast : appareils trouvés par mDNS, protocole Cast v2 (TLS, messages protobuf), file confiée au lecteur de Google et pilotée ; AirPlay sur iOS |
 | `src/lib/player.svelte.ts`, `src/lib/player/` | lecture : mpv sur ordinateur, ExoPlayer natif sur Android (décodeur audio FFmpeg, son transmis à l'ampli ; en secours, flux du serveur qui ne convertit que le son, puis tout). L'état du lecteur (`state.svelte.ts`), le pont Android (`bridge.ts`), Chromecast (`cast.svelte.ts`) et la notification (`notification.svelte.ts`) sont à part ; `player.svelte.ts` les réexporte |

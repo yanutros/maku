@@ -75,6 +75,13 @@ pub struct Download {
     /// Converti : morceaux déjà mis bout à bout (reprise).
     #[serde(default)]
     pub segments_done: usize,
+    /// Converti : taille du fichier après ces morceaux. Le fichier grossit à chaque morceau, l'index n'est écrit
+    /// que de temps en temps : à la reprise, ce qui dépasse est coupé, au lieu d'être rejoué en double.
+    #[serde(default)]
+    pub bytes_done: u64,
+    /// Fichier d'origine : sa version sur le serveur (ETag ou date de modification), pour ne reprendre que le même.
+    #[serde(default)]
+    pub validator: Option<String>,
     pub added: u64,
     /// Adresse de l'affiche sur le serveur (téléchargée avec le média).
     #[serde(default)]
@@ -139,6 +146,50 @@ fn extension(url: &str) -> String {
     } else {
         ".mkv".into()
     }
+}
+
+/// Reprise d'un téléchargement converti : le morceau par lequel recommencer, et la taille à laquelle ramener le
+/// fichier. Sans taille connue (index d'une version précédente) ou avec un fichier plus court que prévu, tout
+/// recommence : coller la suite au mauvais endroit donnerait une vidéo qui saute ou se fige.
+fn hls_resume(segments_done: usize, bytes_done: u64, file_len: u64, segments: usize) -> (usize, u64) {
+    if segments_done == 0 || bytes_done == 0 || file_len < bytes_done || segments_done > segments {
+        (0, 0)
+    } else {
+        (segments_done, bytes_done)
+    }
+}
+
+/// Ce que la réponse du serveur permet, quand `have` octets sont déjà sur l'appareil.
+#[derive(Debug, PartialEq)]
+enum Resume {
+    /// 206 : la suite arrive, à ajouter au fichier.
+    Append,
+    /// 416 et le fichier a déjà la taille de celui du serveur : il était complet.
+    Complete,
+    /// 416 sans cela : le fichier de l'appareil ne correspond plus, à redemander en entier.
+    Discard,
+    /// Tout autre cas (200 : le serveur renvoie le fichier entier, ou une erreur) : on repart de zéro.
+    Restart,
+}
+
+fn original_resume(status: u16, have: u64, total: Option<u64>) -> Resume {
+    match status {
+        206 if have > 0 => Resume::Append,
+        416 if have > 0 && total == Some(have) => Resume::Complete,
+        416 if have > 0 => Resume::Discard,
+        _ => Resume::Restart,
+    }
+}
+
+/// Taille du fichier d'après « Content-Range » (« bytes 100-199/1234 », ou « bytes */1234 » avec un 416).
+fn range_total(content_range: Option<&str>) -> Option<u64> {
+    content_range?.rsplit('/').next()?.trim().parse().ok()
+}
+
+/// Version du fichier à redonner au serveur à la reprise (« If-Range ») : un ETag fort, sinon sa date.
+fn validator(headers: &reqwest::header::HeaderMap) -> Option<String> {
+    let text = |name: &str| headers.get(name).and_then(|v| v.to_str().ok()).map(str::to_owned);
+    text("etag").filter(|e| !e.starts_with("W/")).or_else(|| text("last-modified"))
 }
 
 impl Offline {
@@ -225,6 +276,8 @@ impl Offline {
                 watched: false,
                 pending: false,
                 segments_done: 0,
+                bytes_done: 0,
+                validator: None,
                 added: now(),
                 poster_url: r.poster,
                 url: r.url,
@@ -319,14 +372,24 @@ impl Offline {
                     .list()
                     .into_iter()
                     .find(|d| d.status == Status::Queued && d.server == server_key);
-                let Some(d) = next else { break };
+                let Some(d) = next else {
+                    me.running.store(false, Ordering::SeqCst);
+                    // Un téléchargement ajouté à l'instant où la file se vidait n'a pas pu la relancer : on le prend.
+                    let waiting = me.list().iter().any(|d| d.status == Status::Queued && d.server == server_key);
+                    if waiting && !me.running.swap(true, Ordering::SeqCst) {
+                        continue;
+                    }
+                    break;
+                };
                 me.stop.lock().unwrap().remove(&d.id);
                 me.update(&d.id, |x| x.status = Status::Downloading);
                 me.emit(&app, &d.id);
                 let result = me.fetch(&app, &http, &server, &d).await;
                 let stopped = me.stop.lock().unwrap().remove(&d.id);
                 if me.list().iter().all(|x| x.id != d.id) {
-                    continue; // supprimé pendant le téléchargement
+                    // Supprimé pendant le téléchargement : le fichier créé entre-temps ne reste pas sur l'appareil.
+                    me.remove_files_of(&d.id);
+                    continue;
                 }
                 match result {
                     Ok(()) if !stopped => {
@@ -356,8 +419,18 @@ impl Offline {
                 me.save();
                 me.emit(&app, &d.id);
             }
-            me.running.store(false, Ordering::SeqCst);
         });
+    }
+
+    /// Fichiers du téléchargement `id` (« id.mkv », « id.ts »…), quel que soit leur format.
+    fn remove_files_of(&self, id: &str) {
+        let Ok(entries) = std::fs::read_dir(&self.dir) else { return };
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.file_stem().and_then(|s| s.to_str()) == Some(id) {
+                let _ = std::fs::remove_file(path);
+            }
+        }
     }
 
     fn emit(&self, app: &AppHandle, id: &str) {
@@ -406,14 +479,41 @@ impl Offline {
         let file = if d.file.is_empty() { format!("{}{}", d.id, extension(&url)) } else { d.file.clone() };
         self.update(&d.id, |x| x.file = file.clone());
         let path = self.dir.join(&file);
-        let have = tokio::fs::metadata(&path).await.map(|m| m.len()).unwrap_or(0);
-        let mut req = http.get(&url);
-        if have > 0 {
-            req = req.header("Range", format!("bytes={have}-"));
+        let mut have = tokio::fs::metadata(&path).await.map(|m| m.len()).unwrap_or(0);
+        let (mut resp, resumed) = loop {
+            let mut req = http.get(&url);
+            if have > 0 {
+                req = req.header("Range", format!("bytes={have}-"));
+                // Le fichier a changé sur le serveur depuis : il le renvoie alors en entier, au lieu d'une suite
+                // qui ne correspondrait plus au début déjà reçu.
+                if let Some(v) = &d.validator {
+                    req = req.header("If-Range", v);
+                }
+            }
+            let resp = req.send().await?;
+            let total = range_total(resp.headers().get("content-range").and_then(|v| v.to_str().ok()));
+            match original_resume(resp.status().as_u16(), have, total) {
+                // Le fichier était déjà entier (arrêt juste après le dernier octet) : rien à redemander.
+                Resume::Complete => {
+                    self.update(&d.id, |x| {
+                        x.done = have;
+                        x.size = have;
+                    });
+                    return Ok(());
+                }
+                Resume::Discard => {
+                    let _ = tokio::fs::remove_file(&path).await;
+                    have = 0;
+                }
+                Resume::Append => break (resp.error_for_status()?, true),
+                Resume::Restart => break (resp.error_for_status()?, false),
+            }
+        };
+        if !resumed {
+            let version = validator(resp.headers());
+            self.update(&d.id, |x| x.validator = version);
         }
-        let mut resp = req.send().await?.error_for_status()?;
         // Le serveur a repris là où on s'était arrêté (206), sinon tout recommence.
-        let resumed = resp.status() == reqwest::StatusCode::PARTIAL_CONTENT;
         let start = if resumed { have } else { 0 };
         let total = resp.content_length().map(|l| l + start).unwrap_or(0);
         let mut out = tokio::fs::OpenOptions::new().create(true).write(true).append(resumed).truncate(!resumed).open(&path).await?;
@@ -472,9 +572,14 @@ impl Offline {
         let file = if d.file.is_empty() { format!("{}.ts", d.id) } else { d.file.clone() };
         self.update(&d.id, |x| x.file = file.clone());
         let path = self.dir.join(&file);
-        let resume = d.segments_done.min(segments.len());
+        let file_len = tokio::fs::metadata(&path).await.map(|m| m.len()).unwrap_or(0);
+        let (resume, keep) = hls_resume(d.segments_done, d.bytes_done, file_len, segments.len());
+        if resume > 0 {
+            // Ce qui a été écrit après le dernier index enregistré (arrêt brutal) est coupé, puis retéléchargé.
+            tokio::fs::OpenOptions::new().write(true).open(&path).await?.set_len(keep).await?;
+        }
         let mut out = tokio::fs::OpenOptions::new().create(true).write(true).append(resume > 0).truncate(resume == 0).open(&path).await?;
-        let mut done = if resume > 0 { tokio::fs::metadata(&path).await.map(|m| m.len()).unwrap_or(0) } else { 0 };
+        let mut done = keep;
         let mut last = Instant::now();
         for (i, seg) in segments.iter().enumerate().skip(resume) {
             if self.stopped(&d.id) {
@@ -490,7 +595,14 @@ impl Offline {
                         bytes = Some(r.bytes().await?);
                         break;
                     }
-                    Err(_) if attempt < 29 => tokio::time::sleep(Duration::from_secs(2)).await,
+                    Err(_) if attempt < 29 => {
+                        // Pause ou suppression pendant l'attente : la file passe au suivant sans attendre la minute.
+                        if self.stopped(&d.id) {
+                            out.flush().await?;
+                            return Ok(());
+                        }
+                        tokio::time::sleep(Duration::from_secs(2)).await
+                    }
                     Err(e) => return Err(e.into()),
                 }
             }
@@ -501,6 +613,7 @@ impl Offline {
             let estimate = done / (i as u64 + 1) * segments.len() as u64;
             self.update(&d.id, |x| {
                 x.segments_done = i + 1;
+                x.bytes_done = done;
                 x.done = done;
                 x.size = estimate.max(done);
             });
@@ -527,6 +640,69 @@ mod tests {
         assert_eq!(super::extension("http://x/library/parts/1/2/file.mkv?X-Plex-Token=a"), ".mkv");
         assert_eq!(super::extension("http://x/Videos/abc/stream?static=true"), ".mkv");
         assert_eq!(super::extension("http://x/a/b.FLAC"), ".flac");
+    }
+
+    #[test]
+    fn reprise_d_un_telechargement_converti() {
+        use super::hls_resume;
+        // Arrêt brutal : 12 morceaux notés (9 000 octets), le fichier en contient davantage. On coupe et on reprend au 13e.
+        assert_eq!(hls_resume(12, 9_000, 11_500, 40), (12, 9_000));
+        assert_eq!(hls_resume(12, 9_000, 9_000, 40), (12, 9_000));
+        // Rien de commencé, taille inconnue (index d'une version précédente), fichier plus court ou disparu,
+        // liste de morceaux plus courte qu'avant : tout recommence.
+        assert_eq!(hls_resume(0, 0, 0, 40), (0, 0));
+        assert_eq!(hls_resume(12, 0, 11_500, 40), (0, 0));
+        assert_eq!(hls_resume(12, 9_000, 8_999, 40), (0, 0));
+        assert_eq!(hls_resume(12, 9_000, 0, 40), (0, 0));
+        assert_eq!(hls_resume(12, 9_000, 11_500, 10), (0, 0));
+    }
+
+    #[test]
+    fn reprise_du_fichier_d_origine() {
+        use super::{original_resume, range_total, Resume};
+        assert_eq!(original_resume(206, 500, Some(1_000)), Resume::Append);
+        // Le serveur ignore la reprise, ou le fichier a changé (If-Range) : il le renvoie en entier.
+        assert_eq!(original_resume(200, 500, None), Resume::Restart);
+        assert_eq!(original_resume(200, 0, None), Resume::Restart);
+        // Fichier déjà entier sur l'appareil : le serveur n'a plus rien à envoyer.
+        assert_eq!(original_resume(416, 1_000, Some(1_000)), Resume::Complete);
+        // 416 sans que les tailles concordent : le fichier de l'appareil n'est plus le bon.
+        assert_eq!(original_resume(416, 1_200, Some(1_000)), Resume::Discard);
+        assert_eq!(original_resume(416, 1_000, None), Resume::Discard);
+        // Une erreur reste une erreur (elle est signalée ensuite), jamais « terminé ».
+        assert_eq!(original_resume(404, 500, None), Resume::Restart);
+        assert_eq!(original_resume(416, 0, Some(0)), Resume::Restart);
+
+        assert_eq!(range_total(Some("bytes */1000")), Some(1_000));
+        assert_eq!(range_total(Some("bytes 500-999/1000")), Some(1_000));
+        assert_eq!(range_total(Some("bytes 500-999/*")), None);
+        assert_eq!(range_total(None), None);
+    }
+
+    #[test]
+    fn version_du_fichier_pour_la_reprise() {
+        use reqwest::header::{HeaderMap, HeaderValue};
+        let headers = |pairs: &[(&'static str, &'static str)]| pairs.iter().map(|(k, v)| (reqwest::header::HeaderName::from_static(k), HeaderValue::from_static(v))).collect::<HeaderMap>();
+        assert_eq!(super::validator(&headers(&[("etag", "\"abc\""), ("last-modified", "Mon, 02 Nov 2026 10:00:00 GMT")])).as_deref(), Some("\"abc\""));
+        // Un ETag faible ne vaut pas pour une reprise : la date à la place.
+        assert_eq!(super::validator(&headers(&[("etag", "W/\"abc\""), ("last-modified", "Mon, 02 Nov 2026 10:00:00 GMT")])).as_deref(), Some("Mon, 02 Nov 2026 10:00:00 GMT"));
+        assert_eq!(super::validator(&headers(&[])), None);
+    }
+
+    #[test]
+    fn fichiers_d_un_telechargement_supprime() {
+        let dir = std::env::temp_dir().join(format!("maku-offline-{}", uuid::Uuid::new_v4().simple()));
+        std::fs::create_dir_all(&dir).unwrap();
+        for name in ["plex_a-12-original.mkv", "plex_a-12-720.ts", "plex_a-12-original-bis.mkv", "art-12.jpg"] {
+            std::fs::write(dir.join(name), "x").unwrap();
+        }
+        let offline = super::Offline::new(dir.clone());
+        offline.remove_files_of("plex_a-12-original");
+        let mut left: Vec<_> = std::fs::read_dir(&dir).unwrap().map(|e| e.unwrap().file_name().into_string().unwrap()).collect();
+        left.sort();
+        // Ni le même titre dans une autre qualité, ni un autre titre au nom voisin, ni l'affiche.
+        assert_eq!(left, ["art-12.jpg", "plex_a-12-720.ts", "plex_a-12-original-bis.mkv"]);
+        let _ = std::fs::remove_dir_all(dir);
     }
 
     #[test]

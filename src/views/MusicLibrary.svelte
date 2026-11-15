@@ -157,23 +157,31 @@
       : items.map((i) => fromItem(i, title)),
   );
 
+  /**
+   * Changement d'onglet en cours : une réponse demandée pour un onglet quitté depuis (même si l'on y est revenu) est
+   * ignorée. Sans cela, deux réponses « artistes » s'ajoutaient l'une à l'autre : liste en double.
+   */
+  let generation = 0;
+
   async function loadMore() {
     if (tab === "recommended" || loading || (total && items.length >= total)) return;
     loading = true;
     const forTab = tab;
+    const asked = generation;
     try {
       // Les playlists arrivent d'un bloc ; artistes et albums page par page.
       const page =
         forTab === "playlists"
           ? await api.playlists(sectionKey).then((list) => ({ items: list, total: list.length }))
           : await api.sectionItems(sectionKey, items.length, PAGE_SIZE, KIND[forTab]);
-      if (tab !== forTab) return;
+      if (asked !== generation) return;
       items.push(...page.items);
       total = page.total;
     } catch (e) {
-      error = errorText(e);
+      if (asked === generation) error = errorText(e);
     } finally {
-      loading = false;
+      // Une réponse périmée ne dit pas « plus rien en cours » à la place de la demande qui l'a remplacée.
+      if (asked === generation) loading = false;
     }
   }
 
@@ -188,6 +196,7 @@
   function select(next: Tab) {
     if (next === tab) return;
     keepTabFocus();
+    generation++;
     tab = next;
     items = [];
     total = 0;

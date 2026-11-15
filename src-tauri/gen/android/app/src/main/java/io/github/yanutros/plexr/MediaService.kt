@@ -245,6 +245,10 @@ class MediaService : MediaBrowserServiceCompat() {
           override fun onPlayerError(error: PlaybackException) {
             showError(error)
             stopNative()
+            // Plus rien ne joue : sans cela, la notification restait « en lecture », impossible à balayer, et le
+            // service au premier plan. Le message d'erreur, lui, reste affiché sur l'écran de la voiture.
+            state = JSONObject()
+            ServiceCompat.stopForeground(this@MediaService, ServiceCompat.STOP_FOREGROUND_REMOVE)
           }
           override fun onPlaybackStateChanged(playbackState: Int) {
             if (playbackState == Player.STATE_ENDED) stopPlayback()
