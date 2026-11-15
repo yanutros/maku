@@ -62,11 +62,19 @@ class MediaService : MediaBrowserServiceCompat() {
     val playing: Boolean
       get() = instance?.let { it.player == null && it.state.optBoolean("playing") } == true
 
+    /**
+     * État de la page en attente du démarrage du service. Il ne voyage pas dans l'Intent : le service est visible
+     * des autres applications, qui pourraient y glisser le leur.
+     */
+    @Volatile
+    private var pending: String? = null
+
     /** État envoyé par la page (JSON : title, artist, album, art, playing, position, duration). */
     fun update(context: Context, json: String) {
       val service = instance
       if (service == null) {
-        ContextCompat.startForegroundService(context, Intent(context, MediaService::class.java).putExtra("state", json))
+        pending = json
+        ContextCompat.startForegroundService(context, Intent(context, MediaService::class.java))
       } else {
         service.handler.post { service.fromPage(JSONObject(json)) }
       }
@@ -79,7 +87,8 @@ class MediaService : MediaBrowserServiceCompat() {
 
     /** Commande vers la page : play, pause, next, previous, stop, seek:<ms>. */
     fun dispatch(action: String) {
-      webView?.post { webView?.evaluateJavascript("window.__plexrMedia && window.__plexrMedia('$action')", null) }
+      val script = MediaActions.script(action) ?: return
+      webView?.post { webView?.evaluateJavascript(script, null) }
     }
   }
 
@@ -132,9 +141,13 @@ class MediaService : MediaBrowserServiceCompat() {
   }
 
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-    // Boutons de la notification.
-    intent?.action?.let { command(it) }
-    intent?.getStringExtra("state")?.let { fromPage(JSONObject(it)) }
+    // Boutons de la notification : les commandes de lecture, rien d'autre (une autre application peut aussi
+    // envoyer un Intent à ce service).
+    MediaActions.valid(intent?.action)?.let { command(it) }
+    pending?.let { json ->
+      pending = null
+      runCatching { fromPage(JSONObject(json)) }
+    }
     return START_NOT_STICKY
   }
 

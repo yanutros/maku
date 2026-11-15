@@ -56,7 +56,7 @@
       <p>Au premier lancement, Maku vous demande votre service : Plex, Jellyfin ou Emby.</p>
       <ol class="steps">
         <li>Choisissez <strong>Plex</strong>, puis <strong>Se connecter avec Plex</strong> : votre navigateur s'ouvre, validez le code affiché.</li>
-        <li>Choisissez votre serveur, présenté comme un profil avec la photo de son propriétaire. Maku teste ses adresses et garde la plus rapide (locale, distante, puis relais), et la revérifie à chaque lancement et à chaque changement de réseau.</li>
+        <li>Choisissez votre serveur, présenté comme un profil avec la photo de son propriétaire. Maku teste ses adresses et garde la plus rapide (locale, distante, puis relais), et la revérifie à chaque lancement et à chaque changement de réseau. Une adresse n'est retenue que si c'est bien votre serveur qui y répond : sur un autre réseau, la même adresse locale peut être celle d'une autre machine, qui ne reçoit alors rien de votre compte.</li>
         <li>C'est prêt : parcourez vos bibliothèques et lancez une lecture.</li>
       </ol>
       <p><strong>Sur la télé</strong>, il n'y a pas de navigateur : Maku affiche un code à quatre caractères. Allez sur <a href="https://plex.tv/link">plex.tv/link</a> depuis un téléphone ou un ordinateur et saisissez-le ; la connexion se fait toute seule. Ce mode est aussi proposé sur ordinateur et tablette, avec <strong>Avec un code</strong>.</p>
@@ -66,7 +66,7 @@
       </div>
 
       <h2 id="jellyfin">Jellyfin et Emby</h2>
-      <p>Choisissez <strong>Jellyfin</strong> ou <strong>Emby</strong>, puis saisissez l'adresse du serveur, votre identifiant et votre mot de passe. Un œil affiche le mot de passe en clair pour vérifier la saisie.</p>
+      <p>Choisissez <strong>Jellyfin</strong> ou <strong>Emby</strong>, puis saisissez l'adresse du serveur, votre identifiant et votre mot de passe. Un œil affiche le mot de passe en clair pour vérifier la saisie. Si l'adresse est saisie sans <code>http://</code> ni <code>https://</code>, Maku essaie d'abord la connexion sécurisée (<code>https</code>), et ne passe en <code>http</code> que si le serveur ne la propose pas, comme souvent sur le réseau de la maison.</p>
       <ul>
         <li><strong>Quick Connect</strong> (Jellyfin) : un code à valider depuis une autre application Jellyfin déjà connectée. Pratique sur la télé.</li>
         <li><strong>Sur la télé</strong>, un QR code s'affiche à côté du formulaire : scanné par un téléphone sur le même Wi-Fi, il ouvre une page où saisir l'adresse et les identifiants, sans le clavier de la télécommande. Le mot de passe n'est pas enregistré.</li>
@@ -129,7 +129,7 @@ services:
       <p>L'image fonctionne sur les ordinateurs (amd64) et sur les serveurs ARM 64 bits (Raspberry Pi, NAS). Elle ne garde rien sur disque.</p>
       <h3>Côté Maku</h3>
       <ul>
-        <li><strong>Sur le réseau de la maison</strong>, Maku trouve le relais tout seul, vérifie que c'est bien celui de son serveur, et remplit les adresses de Seerr et de Tracearr. Réglages → Services affiche alors « Maku Server local détecté ».</li>
+        <li><strong>Sur le réseau de la maison</strong>, Maku trouve le relais tout seul (en <code>https</code> s'il le propose, sinon en <code>http</code>), vérifie que c'est bien celui de son serveur, et remplit les adresses de Seerr et de Tracearr. Réglages → Services affiche alors « Maku Server local détecté ».</li>
         <li><strong>Depuis Internet</strong>, placez le relais derrière un proxy inverse HTTPS (Caddy, Nginx Proxy Manager, Traefik…) ou un VPN, et utilisez ses adresses : <code>https://maku.mondomaine.fr/seerr</code> et <code>https://maku.mondomaine.fr/tracearr</code>, dans les Réglages ou dans l'invitation.</li>
       </ul>
       <p>Le <a href="https://github.com/yanutros/maku/blob/main/server/README.md">guide complet de Maku Server</a> détaille les variables, le HTTPS et un tunnel sans port à ouvrir.</p>

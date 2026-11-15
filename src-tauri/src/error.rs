@@ -12,7 +12,8 @@ impl<E: Into<anyhow::Error>> From<E> for AppError {
 
 impl Serialize for AppError {
     fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
-        s.serialize_str(&format!("{:#}", self.0))
+        // Le message s'affiche, se copie et part dans le journal de diagnostic : sans jeton.
+        s.serialize_str(&crate::net::redact(&format!("{:#}", self.0)))
     }
 }
 

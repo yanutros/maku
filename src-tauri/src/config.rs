@@ -130,7 +130,12 @@ impl Config {
 
     pub fn load(path: &Path) -> Self {
         let mut config: Config = match std::fs::read_to_string(path) {
-            Ok(s) => serde_json::from_str(&s).unwrap_or_default(),
+            Ok(s) => serde_json::from_str(&s).unwrap_or_else(|_| {
+                // Fichier illisible (écriture coupée, version plus récente) : gardé à côté, pour ne pas perdre
+                // les connexions qu'il contient quand la configuration neuve le remplacera.
+                let _ = std::fs::copy(path, unreadable(path));
+                Config::default()
+            }),
             // Premier lancement : Seerr et Tracearr se configurent ensuite (à la main ou par invitation).
             Err(_) => Config::default(),
         };
@@ -149,9 +154,33 @@ impl Config {
         if let Some(dir) = path.parent() {
             std::fs::create_dir_all(dir)?;
         }
-        std::fs::write(path, serde_json::to_string_pretty(self)?)?;
+        // Écrit à côté puis renommé : une coupure pendant l'écriture laisse l'ancien fichier entier.
+        let tmp = path.with_extension("json.tmp");
+        write_private(&tmp, serde_json::to_string_pretty(self)?.as_bytes())?;
+        std::fs::rename(&tmp, path)?;
         Ok(())
     }
+}
+
+/// Copie d'une configuration illisible (`config.json.bad`).
+fn unreadable(path: &Path) -> std::path::PathBuf {
+    path.with_extension("json.bad")
+}
+
+/// Le fichier contient des jetons : lisible par son seul propriétaire (Linux, macOS, Android).
+fn write_private(path: &Path, bytes: &[u8]) -> Result<()> {
+    use std::io::Write;
+    let mut options = std::fs::OpenOptions::new();
+    options.create(true).write(true).truncate(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        options.mode(0o600);
+    }
+    let mut file = options.open(path)?;
+    file.write_all(bytes)?;
+    file.sync_all()?;
+    Ok(())
 }
 
 #[cfg(test)]
@@ -184,6 +213,48 @@ mod tests {
         assert_eq!(c.seerr_url, None);
         switch(&mut c, Some(server("emby", "emby1")));
         assert_eq!((c.seerr_url.as_deref(), c.seerr_cookies.as_deref()), (Some("https://seerr-b"), Some("s=1")));
+    }
+
+    fn temp_dir(name: &str) -> std::path::PathBuf {
+        let dir = std::env::temp_dir().join(format!("maku-config-{name}-{}", uuid::Uuid::new_v4().simple()));
+        std::fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    #[test]
+    fn unreadable_config_is_kept_aside() {
+        let dir = temp_dir("bad");
+        let path = dir.join("config.json");
+        // Écriture coupée en plein milieu.
+        let cut = r#"{"client_id":"abc","plex_token":"jet"#;
+        std::fs::write(&path, cut).unwrap();
+        let loaded = Config::load(&path);
+        assert!(loaded.plex_token.is_none());
+        loaded.save(&path).unwrap();
+        // L'ancien contenu n'est pas perdu : il reste à côté.
+        assert_eq!(std::fs::read_to_string(dir.join("config.json.bad")).unwrap(), cut);
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn save_replaces_the_file_in_one_step() {
+        let dir = temp_dir("save");
+        let path = dir.join("config.json");
+        let c = Config { client_id: "abc".into(), plex_token: Some("jeton".into()), ..Default::default() };
+        c.save(&path).unwrap();
+        c.save(&path).unwrap();
+        let back = Config::load(&path);
+        assert_eq!((back.client_id.as_str(), back.plex_token.as_deref()), ("abc", Some("jeton")));
+        // Ni fichier de travail oublié, ni copie « illisible » d'un fichier sain.
+        let mut names: Vec<_> = std::fs::read_dir(&dir).unwrap().map(|e| e.unwrap().file_name().into_string().unwrap()).collect();
+        names.sort();
+        assert_eq!(names, ["config.json"]);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            assert_eq!(std::fs::metadata(&path).unwrap().permissions().mode() & 0o777, 0o600);
+        }
+        let _ = std::fs::remove_dir_all(dir);
     }
 
     #[test]

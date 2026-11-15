@@ -38,14 +38,44 @@ fn auth(client_id: &str, token: Option<&str>) -> HeaderMap {
     headers
 }
 
-/// Adresse saisie par l'utilisateur, sans barre finale ; « http:// » si le schéma manque.
-pub fn normalize_url(url: &str) -> String {
+/// Adresses à essayer pour celle que l'utilisateur a saisie (sans barre finale). Sans schéma : `https` d'abord,
+/// pour que l'identifiant et le mot de passe ne partent pas en clair vers un serveur qui sait faire mieux.
+fn url_candidates(url: &str) -> Vec<String> {
     let url = url.trim().trim_end_matches('/');
     if url.starts_with("http://") || url.starts_with("https://") {
-        url.to_string()
+        vec![url.to_string()]
     } else {
-        format!("http://{url}")
+        vec![format!("https://{url}"), format!("http://{url}")]
     }
+}
+
+/// Adresses déjà résolues : la vérification du code Quick Connect, toutes les deux secondes, ne refait pas l'essai.
+static RESOLVED: std::sync::LazyLock<std::sync::Mutex<std::collections::HashMap<String, (String, std::time::Instant)>>> =
+    std::sync::LazyLock::new(Default::default);
+/// Un repli sur `http` n'est gardé que deux minutes : `https` est réessayé ensuite.
+const HTTP_FALLBACK_FOR: std::time::Duration = std::time::Duration::from_secs(120);
+
+/// Adresse du serveur pour celle que l'utilisateur a saisie : telle quelle si elle a son schéma ; sinon en `https`
+/// si un serveur Jellyfin ou Emby y répond, et à défaut seulement en `http` (serveur du réseau local).
+pub async fn resolve_url(http: &Client, url: &str) -> String {
+    let mut candidates = url_candidates(url);
+    if candidates.len() == 1 {
+        return candidates.remove(0);
+    }
+    let key = url.trim().to_string();
+    if let Some((base, at)) = RESOLVED.lock().unwrap().get(&key).cloned() {
+        if base.starts_with("https://") || at.elapsed() < HTTP_FALLBACK_FOR {
+            return base;
+        }
+    }
+    let secure = candidates.remove(0);
+    let answers = match http.get(format!("{secure}/System/Info/Public")).timeout(std::time::Duration::from_secs(4)).send().await {
+        Ok(r) if r.status().is_success() => r.json::<PublicInfo>().await.is_ok(),
+        _ => false,
+    };
+    let base = if answers { secure } else { candidates.remove(0) };
+    RESOLVED.lock().unwrap().insert(key, (base.clone(), std::time::Instant::now()));
+    base
 }
 
 /// Résultat d'une connexion réussie.
@@ -1210,6 +1240,32 @@ mod tests {
         assert_eq!(iso_ms("2026-11-05T20:12:34.0000000Z"), Some(1_793_909_554_000));
         assert_eq!(iso_ms("0001-01-01T00:00:00.0000000Z"), None);
         assert_eq!(iso_ms("n/a"), None);
+    }
+
+    #[test]
+    fn adresse_sans_schema_en_https_d_abord() {
+        assert_eq!(url_candidates(" jellyfin.example/ "), ["https://jellyfin.example", "http://jellyfin.example"]);
+        // Un schéma saisi est respecté.
+        assert_eq!(url_candidates("http://10.0.0.2:8096/"), ["http://10.0.0.2:8096"]);
+        assert_eq!(url_candidates("https://jellyfin.example"), ["https://jellyfin.example"]);
+    }
+
+    #[tokio::test]
+    async fn adresse_sans_schema_repli_http_du_reseau_local() {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        // Serveur sans TLS : l'essai en https échoue, l'adresse retenue est en http.
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let port = listener.local_addr().unwrap().port();
+        tokio::spawn(async move {
+            while let Ok((mut s, _)) = listener.accept().await {
+                let mut buf = [0u8; 2048];
+                let _ = s.read(&mut buf).await;
+                let _ = s.write_all(b"HTTP/1.1 400 Bad Request\r\nContent-Length: 0\r\nConnection: close\r\n\r\n").await;
+            }
+        });
+        let http = Client::new();
+        assert_eq!(resolve_url(&http, &format!("127.0.0.1:{port}")).await, format!("http://127.0.0.1:{port}"));
+        assert_eq!(resolve_url(&http, &format!("https://127.0.0.1:{port}/")).await, format!("https://127.0.0.1:{port}"));
     }
 
     #[test]

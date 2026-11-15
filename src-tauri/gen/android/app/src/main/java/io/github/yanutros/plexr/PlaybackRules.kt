@@ -163,3 +163,20 @@ object AudioMemory {
     return Saved((listOf(C.ENCODING_PCM_16BIT) + saved).toIntArray(), savedChannels)
   }
 }
+
+/**
+ * Commandes du service de musique (MediaService.kt) : celles de la notification, de la voiture ou d'un casque.
+ * Le service est visible des autres applications (Android Auto doit pouvoir s'y relier) : une action qui n'est
+ * pas l'une de celles-ci est ignorée, et rien d'autre n'est jamais écrit dans le script envoyé à la page.
+ */
+object MediaActions {
+  private val SIMPLE = setOf("play", "pause", "next", "previous", "stop")
+  /** Position en millisecondes : des chiffres seulement, et pas plus qu'un `Long` n'en contient. */
+  private val SEEK = Regex("""seek:\d{1,15}""")
+
+  /** L'action, si c'en est une ; sinon rien. */
+  fun valid(action: String?): String? = action?.takeIf { it in SIMPLE || SEEK.matches(it) }
+
+  /** Script qui transmet l'action à la page, ou rien si elle n'est pas reconnue. */
+  fun script(action: String?): String? = valid(action)?.let { "window.__plexrMedia && window.__plexrMedia('$it')" }
+}

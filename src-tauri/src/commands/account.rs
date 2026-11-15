@@ -166,7 +166,7 @@ pub async fn resume_jellyfin(state: State<'_, AppState>, emby: Option<bool>) -> 
 /// Connexion à un serveur Jellyfin ou Emby (`emby`) par identifiant et mot de passe.
 #[tauri::command]
 pub async fn jellyfin_login(state: State<'_, AppState>, url: String, username: String, password: String, emby: Option<bool>) -> CmdResult<String> {
-    let base = jellyfin::normalize_url(&url);
+    let base = jellyfin::resolve_url(&state.http, &url).await;
     let client_id = state.cfg().client_id;
     let login = jellyfin::login(&state.http, &base, &client_id, username.trim(), &password).await?;
     Ok(save_jellyfin(&state, base, login, emby.unwrap_or(false))?)
@@ -181,14 +181,14 @@ pub(crate) struct QuickCode {
 
 #[tauri::command]
 pub async fn jellyfin_quick_start(state: State<'_, AppState>, url: String) -> CmdResult<QuickCode> {
-    let qc = jellyfin::quick_connect_start(&state.http, &jellyfin::normalize_url(&url), &state.cfg().client_id).await?;
+    let qc = jellyfin::quick_connect_start(&state.http, &jellyfin::resolve_url(&state.http, &url).await, &state.cfg().client_id).await?;
     Ok(QuickCode { code: qc.code, secret: qc.secret })
 }
 
 /// Le code Quick Connect est-il validé ? Si oui, Maku se connecte (renvoie `true`).
 #[tauri::command]
 pub async fn jellyfin_quick_poll(state: State<'_, AppState>, url: String, secret: String) -> CmdResult<bool> {
-    let base = jellyfin::normalize_url(&url);
+    let base = jellyfin::resolve_url(&state.http, &url).await;
     match jellyfin::quick_connect_poll(&state.http, &base, &state.cfg().client_id, &secret).await? {
         Some(login) => {
             save_jellyfin(&state, base, login, false)?;

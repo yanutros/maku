@@ -154,7 +154,9 @@ construction des paquets d'une version (les images de référence, prises sous W
 **Tests du lecteur Android.** Les règles du lecteur vidéo natif sont à part, dans `PlaybackRules.kt` : vidéo
 figée (prête, en lecture, avec de l'avance, mais immobile 5 s ; reprise ou saut ensuite), son envoyé tel quel à
 l'ampli, format de l'image à l'écran, type des sous-titres externes, erreurs qui demandent la conversion,
-numérotation des pistes et mémoire des formats de l'ampli au démarrage de la TV. Des tests ordinaires
+numérotation des pistes et mémoire des formats de l'ampli au démarrage de la TV. S'y ajoutent les commandes
+acceptées par le service de musique (`MediaActions`) : lecture, pause, suivant, précédent, arrêt et position, rien
+d'autre, même envoyé par une autre application. Des tests ordinaires
 (`src-tauri/gen/android/app/src/test/`) les vérifient sans appareil : dans `src-tauri/gen/android`,
 `./gradlew :app:testUniversalDebugUnitTest`, après une première construction de l'APK (Tauri y génère des
 fichiers du projet). Sur GitHub, ils passent à chaque envoi sur `main`, après la construction de l'APK.
@@ -271,7 +273,7 @@ traduisez les valeurs sans toucher aux clés ni aux `{{variables}}`, puis décla
 | `plugins/jellyfin/` | plugin Maku pour Jellyfin 12 (C#, .NET 10) : relais de Seerr (clé d'API, au nom du compte Seerr de chaque utilisateur, retrouvé par son identifiant Jellyfin ou lié à la main ; jeton CSRF de Seerr géré) et de Tracearr (cookies de session) à l'adresse du serveur (`/Maku/…`), `/Maku/maku/info` pour que Maku le reconnaisse, page de réglages ; tests xUnit des règles du relais. Compilé par `.github/workflows/plugin-jellyfin.yml` ; un tag `jellyfin-v1.2.3` publie le catalogue Jellyfin (version GitHub `jellyfin-plugin`) |
 | `server/` | Maku Server, le relais lui-même (Rust, axum) : vérification du jeton auprès de Plex, Jellyfin ou Emby, transmission de l'API de Seerr et de Tracearr ; image Docker |
 | `src-tauri/src/plex_admin.rs`, `src/components/FixMatchDialog.svelte` | administration : édition des métadonnées, images, association d'un film ou d'une série (« Corriger l'association » : titres proposés par l'agent de Plex ou recherche par titre et année ; « Dissocier »), réglages et lectures du serveur |
-| `src-tauri/src/net.rs` | règles de redirection des clients HTTP : même machine pour les serveurs, domaines GitHub pour les mises à jour |
+| `src-tauri/src/net.rs` | règles de redirection des clients HTTP : même machine pour les serveurs, domaines GitHub pour les mises à jour ; jetons retirés des messages d'erreur (`redact`, appliqué à toute erreur rendue à l'interface) |
 | `src-tauri/src/update.rs` | dernière version sur GitHub, paquet adapté à l'appareil, téléchargement et installation |
 | `src-tauri/src/relay.rs`, `relay.html`, `relay-login.html`, `relay-tmdb.html` | relais du téléphone : petite page servie sur le réseau local, pour l'invitation (lecture du QR code avec jsQR), la clé TMDB ou la connexion Jellyfin / Emby d'un téléviseur |
 | `src-tauri/src/lib.rs`, `src-tauri/src/commands/` | état de l'application et démarrage (`lib.rs`) ; commandes Tauri rangées par domaine : comptes, bibliothèques, actions sur un titre, lecture, Chromecast, téléchargements, Seerr, Tracearr, administration… |
@@ -314,14 +316,21 @@ La politique de confidentialité complète, en français et en anglais, est dans
 - Maku parle directement à votre serveur de médias, à plex.tv (connexion), à l'API publique de GitHub (pour savoir
   si une nouvelle version existe) et, si vous les configurez, à Seerr, Tracearr et TMDB. Il n'envoie rien ailleurs
   et ne collecte aucune statistique d'usage.
-- Il cherche Maku Server sur la machine de votre serveur (port 32700), et ne lui confie votre jeton qu'après avoir
-  vérifié qu'il est le relais de ce serveur-là.
+- Il cherche Maku Server sur la machine de votre serveur (port 32700, en `https` d'abord), et ne lui confie votre
+  jeton qu'après avoir vérifié qu'il est le relais de ce serveur-là.
+- Avec Plex, les adresses du serveur sont essayées sans jeton, et une adresse n'est retenue que si le serveur qui y
+  répond est le vôtre : sur un autre réseau, la machine qui occupe la même adresse locale ne reçoit rien. Une adresse
+  Jellyfin ou Emby saisie sans `http://` ni `https://` est essayée en `https` d'abord.
 - Pendant la configuration par téléphone, et seulement tant que l'écran est ouvert, Maku écoute sur le réseau
   local à une adresse aléatoire, qui n'accepte qu'un code d'invitation.
 - La configuration est stockée sur votre appareil : `%APPDATA%\io.github.yanutros.plexr\config.json` sous Windows,
   `~/.config/io.github.yanutros.plexr/config.json` sous Linux, `~/Library/Application Support/io.github.yanutros.plexr/config.json`
   sous macOS, dans les données privées de l'application sur Android. Elle contient
-  le jeton Plex et les cookies de session Tracearr **en clair** : ne la partagez pas.
+  le jeton Plex et les cookies de session Tracearr **en clair** : ne la partagez pas (sous Linux et macOS, elle n'est
+  lisible que par votre compte). Elle est écrite d'un seul geste, sans jamais rester à moitié écrite ; un fichier
+  devenu illisible est gardé à côté (`config.json.bad`) au lieu d'être perdu.
+- Les messages d'erreur affichés, copiés ou gardés avec un téléchargement ne contiennent pas vos jetons : les
+  paramètres des adresses en sont retirés.
 - Un serveur ne peut rediriger Maku que vers lui-même (de `http` vers `https`, par exemple) : jamais vers une autre
   adresse, où partiraient ses jetons. Seul le téléchargement des mises à jour suit les redirections de GitHub vers son stockage.
 - L'interface ne transmet à mpv que des commandes de lecture (pause, position, volume, pistes, file d'attente) ;

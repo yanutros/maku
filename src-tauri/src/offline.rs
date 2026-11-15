@@ -342,7 +342,8 @@ impl Offline {
                         let message = if e.to_string().contains("No space") || e.to_string().contains("ENOSPC") {
                             crate::i18n::tr("offline.noSpace")
                         } else {
-                            e.to_string()
+                            // Affiché dans Téléchargements et gardé dans l'index : sans l'adresse du fichier et son jeton.
+                            crate::net::redact(&e.to_string())
                         };
                         me.update(&d.id, |x| {
                             if x.status == Status::Downloading {

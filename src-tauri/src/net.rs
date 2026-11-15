@@ -26,6 +26,33 @@ pub fn github_only() -> Policy {
     })
 }
 
+/// Message d'erreur sans ce qui ne doit ni s'afficher ni s'enregistrer : les paramètres des adresses qu'il cite
+/// (une erreur réseau donne l'adresse appelée, et les jetons de Plex ou de Jellyfin y sont en paramètre), et la
+/// valeur d'un jeton écrit hors d'une adresse.
+pub fn redact(message: &str) -> String {
+    let mut out = String::with_capacity(message.len());
+    let mut rest = message;
+    while let Some(start) = ["http://", "https://"].iter().filter_map(|s| rest.find(s)).min() {
+        let (before, url) = rest.split_at(start);
+        out.push_str(before);
+        let end = url.find(|c: char| c.is_whitespace() || matches!(c, ')' | '"' | '\'' | '<' | '>')).unwrap_or(url.len());
+        let (url, after) = url.split_at(end);
+        out.push_str(url.split(['?', '#']).next().unwrap_or(url));
+        rest = after;
+    }
+    out.push_str(rest);
+    for key in ["x-plex-token=", "api_key=", "apikey=", "access_token="] {
+        let mut from = 0;
+        while let Some(at) = out[from..].to_ascii_lowercase().find(key) {
+            let value = from + at + key.len();
+            let end = out[value..].find(|c: char| c.is_whitespace() || matches!(c, '&' | ')' | '"' | '\'' | ',' | ';')).map_or(out.len(), |e| value + e);
+            out.replace_range(value..end, "…");
+            from = value + "…".len();
+        }
+    }
+    out
+}
+
 fn follow_if(attempt: Attempt, allowed: bool) -> reqwest::redirect::Action {
     if !allowed {
         attempt.stop()
@@ -58,6 +85,29 @@ mod tests {
         let resp = client.get(url).send().await;
         // Redirection non suivie : la réponse 302 revient telle quelle.
         !matches!(resp, Ok(r) if r.status() == 302)
+    }
+
+    #[test]
+    fn redact_removes_tokens_from_errors() {
+        // Erreur de reqwest : l'adresse appelée, avec le jeton en paramètre.
+        let e = "error sending request for url (http://10.0.0.2:32400/library/parts/1/file.mkv?download=1&X-Plex-Token=SECRET): connection closed";
+        assert_eq!(redact(e), "error sending request for url (http://10.0.0.2:32400/library/parts/1/file.mkv): connection closed");
+        assert_eq!(redact("HTTP 404 pour https://j.example/Videos/a/stream?api_key=SECRET&Static=true"), "HTTP 404 pour https://j.example/Videos/a/stream");
+        // Deux adresses, et un jeton hors d'une adresse.
+        let two = redact("de http://a/x?t=SECRET vers https://b/y?u=SECRET ; X-Plex-Token=SECRET, fin");
+        assert_eq!(two, "de http://a/x vers https://b/y ; X-Plex-Token=…, fin");
+        assert!(!redact("api_key=SECRET").contains("SECRET"));
+        // Rien à retirer : le message reste tel quel.
+        assert_eq!(redact("Serveur injoignable (délai dépassé)"), "Serveur injoignable (délai dépassé)");
+    }
+
+    #[tokio::test]
+    async fn reqwest_error_is_redacted() {
+        // Port fermé : l'erreur de reqwest cite l'adresse, jeton compris.
+        let e = reqwest::Client::new().get("http://127.0.0.1:9/file?X-Plex-Token=SECRET").send().await.unwrap_err();
+        let shown = redact(&format!("{:#}", anyhow::Error::from(e)));
+        assert!(shown.contains("http://127.0.0.1:9/file"), "{shown}");
+        assert!(!shown.contains("SECRET"), "{shown}");
     }
 
     #[tokio::test]

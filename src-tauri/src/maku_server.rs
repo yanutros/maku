@@ -119,6 +119,18 @@ pub async fn discover(http: &Client, server: &SavedServer, others: Vec<String>) 
             return Some((base, i));
         }
     }
+    for base in candidates(server, others) {
+        if let Some(i) = info(http, &base).await.filter(|i| serves(i, server)) {
+            return Some((base, i));
+        }
+    }
+    None
+}
+
+/// Adresses où chercher Maku Server : chaque machine connue du serveur, à son port par défaut. En `https`
+/// d'abord : l'adresse retenue est celle où partiront ensuite les jetons, qui ne passent en clair que si le
+/// relais ne répond pas autrement (réseau local, sans proxy inverse).
+fn candidates(server: &SavedServer, others: Vec<String>) -> Vec<String> {
     let saved = Url::parse(&server.uri).ok().and_then(|u| u.host_str().map(str::to_owned));
     let mut hosts: Vec<String> = Vec::new();
     for h in others.into_iter().chain(saved) {
@@ -127,16 +139,14 @@ pub async fn discover(http: &Client, server: &SavedServer, others: Vec<String>) 
             hosts.push(h);
         }
     }
+    let mut bases = Vec::new();
     for host in hosts {
         let host = if host.contains(':') { format!("[{host}]") } else { host };
-        for scheme in ["http", "https"] {
-            let base = format!("{scheme}://{host}:{PORT}");
-            if let Some(i) = info(http, &base).await.filter(|i| serves(i, server)) {
-                return Some((base, i));
-            }
+        for scheme in ["https", "http"] {
+            bases.push(format!("{scheme}://{host}:{PORT}"));
         }
     }
-    None
+    bases
 }
 
 #[cfg(test)]
@@ -161,6 +171,23 @@ mod tests {
         info.id = Some("abc".into());
         info.server = "jellyfin".into();
         assert!(!serves(&info, &server));
+    }
+
+    #[test]
+    fn relais_cherche_en_https_d_abord() {
+        let server = SavedServer { name: "s".into(), machine_id: "abc".into(), uri: "https://h.example:32400".into(), token: "t".into(), kind: String::new(), user_id: None };
+        let found = candidates(&server, vec!["10.0.0.2".into(), "fe80::1".into(), "10.0.0.2".into()]);
+        assert_eq!(
+            found,
+            [
+                "https://10.0.0.2:32700",
+                "http://10.0.0.2:32700",
+                "https://[fe80::1]:32700",
+                "http://[fe80::1]:32700",
+                "https://h.example:32700",
+                "http://h.example:32700",
+            ]
+        );
     }
 
     #[test]

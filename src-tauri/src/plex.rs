@@ -420,6 +420,11 @@ pub async fn servers(http: &Client, client_id: &str, token: &str) -> Result<Vec<
         .collect())
 }
 
+/// La réponse à `/identity` est-elle celle du serveur d'identifiant `machine_id` ?
+fn is_server(identity: &serde_json::Value, machine_id: &str) -> bool {
+    !machine_id.is_empty() && identity["MediaContainer"]["machineIdentifier"].as_str() == Some(machine_id)
+}
+
 /// Teste toutes les adresses du serveur en parallèle et garde la meilleure joignable : locale
 /// d'abord, puis distante, le relais Plex en dernier recours.
 ///
@@ -427,8 +432,11 @@ pub async fn servers(http: &Client, client_id: &str, token: &str) -> Result<Vec<
 /// routeurs et DNS qui protègent du « DNS rebinding » : comme Plex Web, on essaie alors l'adresse IP
 /// locale directement (`http://10.0.0.2:32400`), plutôt que de faire le tour par l'adresse publique
 /// (que la boucle du routeur, le « NAT hairpin », rend souvent capricieuse).
+///
+/// La question (`/identity`) part sans jeton, et une adresse n'est retenue que si c'est bien ce serveur qui y
+/// répond : sur un autre réseau, la même adresse locale peut être celle d'une autre machine, qui ne doit ni
+/// recevoir le jeton ni être prise pour le serveur.
 pub async fn pick_connection(http: &Client, client_id: &str, res: &Resource) -> Result<String> {
-    let token = res.access_token.as_deref().unwrap_or_default();
     let mut candidates: Vec<(u8, String)> = Vec::new();
     for c in &res.connections {
         if c.relay {
@@ -445,12 +453,11 @@ pub async fn pick_connection(http: &Client, client_id: &str, res: &Resource) -> 
     candidates.sort();
     candidates.dedup_by(|a, b| a.1 == b.1);
     let checks = candidates.iter().map(|(_, uri)| async move {
-        let ok = with_plex_headers(http.get(format!("{uri}/identity")), client_id, Some(token))
-            .timeout(Duration::from_secs(4))
-            .send()
-            .await
-            .map(|r| r.status().is_success())
-            .unwrap_or(false);
+        let answer = with_plex_headers(http.get(format!("{uri}/identity")), client_id, None).timeout(Duration::from_secs(4)).send().await;
+        let ok = match answer {
+            Ok(r) if r.status().is_success() => r.json::<serde_json::Value>().await.is_ok_and(|v| is_server(&v, &res.client_identifier)),
+            _ => false,
+        };
         (uri.clone(), ok)
     });
     join_all(checks)
@@ -2254,6 +2261,55 @@ impl PlexServer {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Faux serveur Plex : répond à `/identity` avec l'identifiant `id`, et garde ce qu'il a reçu.
+    async fn fake_identity(id: &'static str) -> (u16, std::sync::Arc<std::sync::Mutex<String>>) {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let port = listener.local_addr().unwrap().port();
+        let seen = std::sync::Arc::new(std::sync::Mutex::new(String::new()));
+        let log = seen.clone();
+        tokio::spawn(async move {
+            while let Ok((mut s, _)) = listener.accept().await {
+                let mut buf = [0u8; 4096];
+                let n = s.read(&mut buf).await.unwrap_or(0);
+                log.lock().unwrap().push_str(&String::from_utf8_lossy(&buf[..n]));
+                let body = format!(r#"{{"MediaContainer":{{"machineIdentifier":"{id}"}}}}"#);
+                let resp = format!("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}", body.len());
+                let _ = s.write_all(resp.as_bytes()).await;
+            }
+        });
+        (port, seen)
+    }
+
+    #[tokio::test]
+    async fn adresse_d_une_autre_machine_ecartee_et_sans_jeton() {
+        // À l'adresse locale du serveur, une autre machine (autre réseau) ; le vrai serveur à l'adresse distante.
+        let (other, other_seen) = fake_identity("une-autre-machine").await;
+        let (real, real_seen) = fake_identity("le-serveur").await;
+        let conn = |port: u16, local: bool| Connection { uri: format!("http://127.0.0.1:{port}"), local, relay: false, address: String::new(), port: 0 };
+        let res = Resource {
+            name: "s".into(),
+            client_identifier: "le-serveur".into(),
+            provides: "server".into(),
+            access_token: Some("jeton-secret".into()),
+            owned: true,
+            owner_id: None,
+            source_title: None,
+            connections: vec![conn(other, true), conn(real, false)],
+        };
+        let picked = pick_connection(&Client::new(), "client", &res).await.unwrap();
+        assert_eq!(picked, format!("http://127.0.0.1:{real}"));
+        // La question est partie aux deux, sans le jeton.
+        for seen in [other_seen, real_seen] {
+            let request = seen.lock().unwrap().to_lowercase();
+            assert!(request.contains("get /identity"), "{request}");
+            assert!(!request.contains("jeton-secret") && !request.contains("x-plex-token"), "{request}");
+        }
+        // Aucune adresse où le serveur répond : erreur, plutôt qu'une autre machine.
+        let alone = Resource { connections: vec![conn(other, true)], ..res };
+        assert!(pick_connection(&Client::new(), "client", &alone).await.is_err());
+    }
 
     #[test]
     fn filtres_avances_dans_la_recherche() {
