@@ -167,10 +167,29 @@
     if (key) play(key).catch((e) => toast(errorText(e), true));
   }
 
+  /** Dernier appui sur l'image : fait au doigt ? Et les commandes étaient-elles affichées à ce moment-là ? */
+  let touched = false;
+  let shownAtTouch = false;
+
+  function onStageDown(e: PointerEvent) {
+    touched = e.pointerType === "touch";
+    shownAtTouch = visible;
+  }
+
   // Un clic sur la vidéo met en pause ; un double clic bascule le plein écran.
+  //
+  // Au doigt, l'image ne met jamais en pause : sans souris, toucher l'écran est le seul moyen de faire venir les
+  // commandes, et le film s'arrêtait à chaque fois qu'on voulait voir l'heure ou changer une option. Le premier appui
+  // les affiche, le suivant les efface ; la pause a son bouton.
   function onStageClick() {
     if (menu) {
       menu = null;
+      return;
+    }
+    if (touched) {
+      clearTimeout(hideTimer);
+      if (!shownAtTouch) poke();
+      else if (canHide()) visible = false;
       return;
     }
     clearTimeout(clickTimer);
@@ -502,7 +521,7 @@
     <video class="web-video" bind:this={videoEl} playsinline></video>
   {/if}
   <!-- svelte-ignore a11y_click_events_have_key_events -->
-  <div class="stage" onclick={onStageClick} ondblclick={onStageDblClick}></div>
+  <div class="stage" onpointerdown={onStageDown} onclick={onStageClick} ondblclick={onStageDblClick}></div>
 
   {#if !player.embedded}
     <div class="center remote-note">

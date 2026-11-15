@@ -130,3 +130,47 @@ test("écran de fin : la jaquette de la saison, et le numéro de l'épisode sans
   // La jaquette de démo de la saison porte « Saison 2 » ; celle de la série, non.
   await expect(jaquette).toHaveAttribute("src", /SAISON%202/);
 });
+
+/** Note chaque commande envoyée au lecteur (la démo n'a pas mpv). */
+async function noterCommandes(page: import("@playwright/test").Page) {
+  await page.evaluate(() => {
+    const w = window as unknown as { __TAURI_INTERNALS__: { invoke: (c: string, a: unknown, o: unknown) => Promise<unknown> }; sent: unknown[] };
+    const invoke = w.__TAURI_INTERNALS__.invoke;
+    w.sent = [];
+    w.__TAURI_INTERNALS__.invoke = (c, a, o) => {
+      if (c === "player_command") w.sent.push(a);
+      return invoke(c, a, o);
+    };
+  });
+  return () => page.evaluate(() => (window as unknown as { sent: unknown[] }).sent.length);
+}
+
+test("téléphone : toucher l'image affiche ou efface les commandes, sans mettre en pause", async ({ page }, info) => {
+  test.skip(appareil(info) !== "telephone", "écran tactile");
+  await ouvrir(page, info, "lecteur");
+  const overlay = page.locator(".overlay");
+  const envoyees = await noterCommandes(page);
+  const taille = page.viewportSize()!;
+  const toucher = () => page.touchscreen.tap(taille.width / 2, taille.height / 3);
+  await expect(overlay).not.toHaveClass(/hidden/);
+  // Commandes affichées : un appui sur l'image les efface.
+  await toucher();
+  await expect(overlay).toHaveClass(/hidden/);
+  // Commandes effacées : le premier appui ne fait que les afficher.
+  await toucher();
+  await expect(overlay).not.toHaveClass(/hidden/);
+  // Le temps qu'un clic aurait mis à devenir une pause : rien n'est parti vers le lecteur.
+  await page.waitForTimeout(400);
+  expect(await envoyees(), "toucher l'image a mis en pause ou en lecture").toBe(0);
+  // La pause a son bouton.
+  await page.locator(".overlay .icon-btn.main").tap();
+  await expect.poll(envoyees).toBe(1);
+});
+
+test("ordinateur : un clic sur l'image met toujours en pause", async ({ page }, info) => {
+  test.skip(appareil(info) !== "pc", "souris");
+  await ouvrir(page, info, "lecteur");
+  const envoyees = await noterCommandes(page);
+  await page.mouse.click(640, 250);
+  await expect.poll(envoyees).toBe(1);
+});
