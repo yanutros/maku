@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Installer Maku</title>
+<meta name="description" content="Installer Maku sur Windows, macOS, Linux, téléphone et tablette Android, Android TV, Google TV et Fire TV, puis le garder à jour.">
+<meta name="theme-color" content="#0c0c0c">
+<link rel="icon" type="image/png" href="logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&amp;family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap nav">
+    <a class="brand" href="index.html"><img src="logo.png" alt=""><span>Maku</span></a>
+    <nav class="nav-links" aria-label="Navigation principale">
+      <a href="index.html#fonctionnalites">Fonctionnalités</a>
+      <a href="installer.html" aria-current="page">Installer</a>
+      <a href="configurer.html">Configurer</a>
+      <a href="faq.html">Questions</a>
+      <a href="https://github.com/yanutros/maku">GitHub</a>
+      <a class="btn btn-primary btn-sm" href="index.html#telecharger">Télécharger</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <p class="crumbs"><a href="index.html">Accueil</a> › Guide › Installer</p>
+  <section class="page-hero" style="padding-bottom: 8px;">
+    <p class="eyebrow">Guide</p>
+    <h1>Installer Maku</h1>
+    <p class="lead">Quelques minutes suffisent, quel que soit votre appareil. Une fois installé, Maku se met à jour tout seul.</p>
+  </section>
+
+  <div class="doc">
+    <nav class="toc" aria-label="Sommaire">
+      <strong>Sur cette page</strong>
+      <a href="#prerequis">Ce qu'il faut</a>
+      <a href="#windows">Windows</a>
+      <a href="#macos">macOS</a>
+      <a href="#linux">Linux</a>
+      <a href="#android">Téléphone et tablette</a>
+      <a href="#tv">Android TV et Fire TV</a>
+      <a href="#mises-a-jour">Mises à jour</a>
+      <a href="#plexr">Depuis Plexr</a>
+    </nav>
+
+    <article class="prose">
+      <h2 id="prerequis">Ce qu'il faut</h2>
+      <ul>
+        <li><strong>Un appareil</strong> : Windows 10 ou 11, macOS 11 et plus (Intel ou Apple Silicon), Linux 64 bits (Fedora, Debian, Ubuntu…), ou Android 7 et plus sur processeur ARM (téléphone, tablette, Android TV, Google TV, Fire TV).</li>
+        <li><strong>Un serveur de médias</strong> : un compte Plex et l'accès à un serveur Plex Media Server, ou un serveur Jellyfin ou Emby.</li>
+        <li><strong>Sur ordinateur, le lecteur <a href="https://mpv.io">mpv</a></strong> : fourni avec l'installeur Windows, installé avec les paquets RPM et DEB, à installer vous-même sur macOS et avec l'AppImage. Inutile sur Android.</li>
+        <li><strong>En option</strong> : <a href="demandes.html">Seerr</a> pour les demandes, <a href="statistiques.html">Tracearr</a> pour les statistiques.</li>
+      </ul>
+      <p>Tous les paquets sont sur la page des <a href="https://github.com/yanutros/maku/releases/latest">versions publiées</a>.</p>
+
+      <h2 id="windows">Windows</h2>
+      <p>Deux possibilités :</p>
+      <ul>
+        <li><strong>Le <a href="https://apps.microsoft.com/detail/9MZSQFBJL1X5">Microsoft Store</a></strong> (conseillé) : le Store installe Maku, le signe et le met à jour.</li>
+        <li><strong>L'installeur</strong> <code>Maku_…_x64-setup.exe</code> (ou le <code>.msi</code>) : lancez-le, mpv est inclus, rien d'autre à installer.</li>
+      </ul>
+      <div class="note">
+        <p><strong>Microsoft Defender s'inquiète ?</strong> L'installeur publié sur GitHub n'est pas encore signé : Windows peut le prendre pour un programme inconnu, parfois à tort pour un logiciel malveillant. Cliquez sur « Informations complémentaires » puis « Exécuter quand même », ou passez par le Microsoft Store, dont la version est signée par Microsoft.</p>
+      </div>
+
+      <h2 id="macos">macOS</h2>
+      <ol class="steps">
+        <li>Téléchargez <code>Maku_…_universal.dmg</code>, ouvrez-le et glissez Maku dans Applications.</li>
+        <li>Installez mpv avec <a href="https://brew.sh">Homebrew</a> : <code>brew install mpv</code>.</li>
+        <li>Au premier lancement, faites un <strong>clic droit sur Maku → Ouvrir</strong>, puis confirmez : l'application n'est pas encore signée par Apple.</li>
+      </ol>
+      <p>Sous macOS, la vidéo s'ouvre dans une fenêtre mpv en plein écran, que Maku pilote (pause, avance, pistes) et dont il suit la progression. La musique, elle, se lit dans Maku.</p>
+
+      <h2 id="linux">Linux</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Distribution</th><th>Fichier</th><th>Installation</th></tr></thead>
+          <tbody>
+            <tr><td>Fedora, RHEL</td><td><code>Maku-….x86_64.rpm</code></td><td><code>sudo dnf install ./Maku-*.rpm</code> (installe aussi mpv)</td></tr>
+            <tr><td>Debian, Ubuntu</td><td><code>Maku_…_amd64.deb</code></td><td><code>sudo apt install ./Maku_*.deb</code> (installe aussi mpv)</td></tr>
+            <tr><td>Les autres</td><td><code>Maku_…_amd64.AppImage</code></td><td>rendez-le exécutable (<code>chmod +x</code>), puis installez mpv avec votre gestionnaire de paquets</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note">
+        <p><strong>Fedora : les films s'arrêtent dès l'ouverture ?</strong> Le mpv des dépôts Fedora s'appuie sur une version de FFmpeg qui ne décode ni le H.264, ni le HEVC, ni l'E-AC3. Installez le FFmpeg complet de <a href="https://rpmfusion.org/Configuration">RPM Fusion</a> (dépôts « free » activés) :</p>
+        <pre><code>sudo dnf swap ffmpeg-free ffmpeg --allowerasing</code></pre>
+      </div>
+      <p>Comme sous macOS, la vidéo s'ouvre dans une fenêtre mpv en plein écran pilotée par Maku. Les touches multimédia du clavier fonctionnent même quand Maku n'est pas au premier plan, et ce qui joue apparaît dans les commandes de GNOME et KDE.</p>
+
+      <h2 id="android">Téléphone et tablette Android</h2>
+      <ol class="steps">
+        <li>Téléchargez <code>Maku_…_android.apk</code> sur l'appareil, depuis la page des <a href="https://github.com/yanutros/maku/releases/latest">versions publiées</a>.</li>
+        <li>Ouvrez le fichier. Android demande d'autoriser l'installation depuis le navigateur ou le gestionnaire de fichiers : acceptez.</li>
+        <li>Maku apparaît parmi vos applications. Les versions suivantes s'installent depuis Maku lui-même.</li>
+      </ol>
+      <p>Sous <strong>Android 17</strong>, Maku demande au premier lancement l'accès aux appareils du réseau local : sans lui, un serveur à la maison (Jellyfin, ou Plex par son adresse locale) reste injoignable.</p>
+      <p>Une version Google Play arrive bientôt : c'est alors le Play Store qui la mettra à jour.</p>
+
+      <h2 id="tv">Android TV, Google TV et Fire TV</h2>
+      <ul>
+        <li><strong>Fire TV</strong> : installez Maku depuis l'<a href="https://www.amazon.com/gp/product/B0HQWWD4DL">Amazon Appstore</a>.</li>
+        <li><strong>Android TV et Google TV</strong> : le plus simple est l'application <strong>Downloader</strong> de la TV, avec l'adresse de l'APK, ou une clé USB et un gestionnaire de fichiers.</li>
+      </ul>
+      <p>Depuis un ordinateur, avec le débogage activé dans les options pour les développeurs de la TV :</p>
+      <pre><code>adb connect &lt;adresse-de-la-tv&gt;:5555
+adb install Maku_&lt;version&gt;_android.apk</code></pre>
+      <p>Maku apparaît ensuite parmi les applications, avec sa bannière sur l'écran d'accueil de la TV. L'installation à la main n'est à faire qu'une fois : les mises à jour se font ensuite depuis Maku.</p>
+
+      <h2 id="mises-a-jour">Mises à jour</h2>
+      <p>À chaque lancement, Maku regarde s'il existe une version plus récente. Si oui, une fenêtre en présente les nouveautés ; <strong>Mettre à jour</strong> télécharge le bon paquet et l'installe :</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Système</th><th>Ce qui se passe</th></tr></thead>
+          <tbody>
+            <tr><td>Windows</td><td>l'installeur tourne avec une barre de progression, puis Maku redémarre</td></tr>
+            <tr><td>Android et TV</td><td>l'installateur d'Android s'ouvre ; la première fois, Android demande d'autoriser Maku à installer des applications</td></tr>
+            <tr><td>Linux (AppImage)</td><td>le fichier est remplacé et Maku redémarre</td></tr>
+            <tr><td>Linux (RPM, DEB)</td><td>le paquet s'ouvre dans la logithèque du système</td></tr>
+            <tr><td>macOS</td><td>l'image disque s'ouvre ; glissez Maku dans Applications</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p><strong>Plus tard</strong> referme la fenêtre jusqu'au prochain lancement, et <strong>Réglages → Compte → Rechercher les mises à jour</strong> relance la vérification à la demande. Avant d'installer, Maku vérifie que le paquet vient bien des versions publiées et que son empreinte est exactement celle annoncée ; sinon, rien n'est installé. Les versions du Microsoft Store et de l'Amazon Appstore sont mises à jour par leur magasin.</p>
+
+      <h2 id="plexr">Depuis Plexr</h2>
+      <p>Maku s'appelait <strong>Plexr</strong>. La mise à jour se fait comme d'habitude, et vos réglages et connexions sont gardés. Sous Windows, l'installeur de Maku retire l'ancien Plexr ; sous Linux et macOS, vous pouvez le supprimer à la main.</p>
+
+      <div class="callout" style="margin-top: 48px;">
+        <div>
+          <h3>Installé ? Place à la configuration</h3>
+          <p>Connectez Maku à votre serveur, puis ajoutez Seerr et Tracearr si vous le souhaitez.</p>
+        </div>
+        <a class="btn btn-primary" href="configurer.html">Configurer Maku →</a>
+      </div>
+    </article>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <span>© Maku · Logiciel libre sous licence GPL-3.0</span>
+    <nav aria-label="Liens du bas de page">
+      <a href="installer.html">Installer</a>
+      <a href="configurer.html">Configurer</a>
+      <a href="faq.html">Questions</a>
+      <a href="https://github.com/yanutros/maku/blob/main/PRIVACY.md">Confidentialité</a>
+      <a href="https://github.com/yanutros/maku/blob/main/LICENSE">Licence</a>
+      <a href="https://github.com/yanutros/maku">GitHub</a>
+    </nav>
+  </div>
+</footer>
+
+</body>
+</html>

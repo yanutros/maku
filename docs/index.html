@@ -4,215 +4,299 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Maku — le lecteur Plex, Jellyfin et Emby</title>
-<meta name="description" content="Maku est un lecteur libre et gratuit pour vos serveurs Plex, Jellyfin et Emby, sur Windows, macOS, Linux, Android, Android TV et Fire TV.">
+<meta name="description" content="Maku est un lecteur libre, gratuit et rapide pour vos serveurs Plex, Jellyfin et Emby, sur Windows, macOS, Linux, Android, Android TV et Fire TV.">
 <meta property="og:title" content="Maku — le lecteur Plex, Jellyfin et Emby">
-<meta property="og:description" content="Vos films, séries et musiques, comme sur une plateforme de streaming. Gratuit et libre.">
+<meta property="og:description" content="Vos films, séries et musiques, comme sur une plateforme de streaming. Rapide, gratuit et libre.">
 <meta property="og:image" content="banner.png">
 <meta name="theme-color" content="#0c0c0c">
 <link rel="icon" type="image/png" href="logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&amp;family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
-<style>
-body{margin:0;background:#0c0c0c}
-a{color:#e5a00d}a:hover{color:#f7bd3a}
-</style>
-<style>html{scroll-behavior:smooth}*{box-sizing:border-box}img{max-width:100%;height:auto}</style>
+<link rel="stylesheet" href="assets/site.css">
 </head>
 <body>
-<!-- ===== Racine de la page ===== -->
-<div style="background: #0c0c0c; color: #f2efe8; font-family: 'Manrope', system-ui, sans-serif; font-size: 17px; line-height: 1.6; min-height: 100vh;">
 
-  <!-- ===== En-tête / navigation ===== -->
-  <header style="border-bottom: 1px solid #222; background: #0c0c0c;">
-    <nav style="max-width: 1200px; margin: 0 auto; padding: 18px 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px;" aria-label="Navigation principale">
-      <a href="#haut" style="display: flex; align-items: center; gap: 12px; text-decoration: none; color: #f2efe8;">
-        <img src="logo.png" alt="" style="width: 40px; height: 40px;">
-        <span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 24px; letter-spacing: -0.02em;">Maku</span>
-      </a>
-      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 28px; font-weight: 600; font-size: 15px;">
-        <a href="#fonctionnalites" style="color: #c9c4b8; text-decoration: none;">Fonctionnalités</a>
-        <a href="#apercu" style="color: #c9c4b8; text-decoration: none;">Aperçu</a>
-        <a href="https://github.com/yanutros/maku" style="color: #c9c4b8; text-decoration: none;">GitHub</a>
-        <a href="#telecharger" style="background: #e5a00d; color: #1a1300; text-decoration: none; padding: 10px 18px; border-radius: 999px; min-height: 44px; box-sizing: border-box; display: inline-flex; align-items: center;">Télécharger</a>
-      </div>
+<header class="site-header">
+  <div class="wrap nav">
+    <a class="brand" href="index.html"><img src="logo.png" alt=""><span>Maku</span></a>
+    <nav class="nav-links" aria-label="Navigation principale">
+      <a href="#fonctionnalites">Fonctionnalités</a>
+      <a href="installer.html">Installer</a>
+      <a href="configurer.html">Configurer</a>
+      <a href="faq.html">Questions</a>
+      <a href="https://github.com/yanutros/maku">GitHub</a>
+      <a class="btn btn-primary btn-sm" href="#telecharger">Télécharger</a>
     </nav>
-  </header>
+  </div>
+</header>
 
-  <!-- ===== Hero ===== -->
-  <section id="haut" style="max-width: 1200px; margin: 0 auto; padding: 88px 24px 40px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 28px;">
-    <p style="margin: 0; font-size: 14px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #e5a00d;">Client Plex · Jellyfin · Emby</p>
-    <h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: clamp(40px, 6vw, 76px); line-height: 1.02; letter-spacing: -0.035em; max-width: 960px;">Vos films, séries et musiques, comme sur une plateforme de streaming.</h1>
-    <p style="margin: 0; font-size: 20px; color: #b9b4a8; max-width: 680px;">Maku est un lecteur libre et gratuit pour vos serveurs Plex, Jellyfin et Emby : grandes affiches, fiches immersives et lecture de presque tous les formats, sur PC, téléphone et TV.</p>
-    <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 14px;">
-      <a href="#telecharger" style="background: #e5a00d; color: #1a1300; text-decoration: none; font-weight: 700; padding: 14px 28px; border-radius: 999px; min-height: 52px; box-sizing: border-box; display: inline-flex; align-items: center; gap: 10px;">
-        <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"></path><path d="m7 10 5 5 5-5"></path><path d="M5 21h14"></path></svg>
+<main>
+  <!-- ===== En-tête ===== -->
+  <section class="wrap hero">
+    <p class="eyebrow">Client Plex · Jellyfin · Emby</p>
+    <h1>Vos films, séries et musiques, comme sur une plateforme de streaming.</h1>
+    <p class="lead">Maku est un lecteur libre et gratuit pour vos serveurs Plex, Jellyfin et Emby, pensé dès le départ pour être <strong style="color: var(--text);">rapide et fluide</strong> : grandes affiches, fiches immersives et lecture de presque tous les formats, sur ordinateur, téléphone et TV.</p>
+    <div class="btn-row">
+      <a class="btn btn-primary" href="#telecharger">
+        <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
         Télécharger gratuitement
       </a>
-      <a href="https://github.com/yanutros/maku" style="border: 1px solid #3a3a3a; color: #f2efe8; text-decoration: none; font-weight: 700; padding: 14px 28px; border-radius: 999px; min-height: 52px; box-sizing: border-box; display: inline-flex; align-items: center;">Voir le code source</a>
+      <a class="btn" href="#rapide">Pourquoi c'est rapide</a>
     </div>
-    <p style="margin: 0; font-size: 14px; color: #a8a396;">Gratuit · Logiciel libre GPL-3.0 · Sans publicité ni collecte de données</p>
-    <img src="screenshots/accueil.png" alt="L'accueil de Maku : bandeau à la une, Continuer à regarder et rangées de films" style="width: 100%; max-width: 1120px; margin-top: 28px; border-radius: 18px; border: 1px solid #2a2a2a; box-shadow: 0 40px 120px rgba(0,0,0,0.6);">
+    <p class="muted" style="margin: 0; font-size: 14px;">Gratuit · Logiciel libre GPL-3.0 · Sans publicité ni collecte de données</p>
+    <img class="hero-shot" src="screenshots/accueil.png" alt="L'accueil de Maku : bandeau à la une, Continuer à regarder et rangées de films" width="1600" height="1000">
   </section>
 
   <!-- ===== Origine du nom ===== -->
-  <section style="max-width: 820px; margin: 0 auto; padding: 56px 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 28px; text-align: left;">
-    <span lang="ja" style="font-size: 96px; line-height: 1; color: #e5a00d; font-weight: 700;">幕</span>
-    <p style="margin: 0; flex: 1 1 360px; color: #b9b4a8; font-size: 18px;"><strong style="color: #f2efe8;">Maku</strong> veut dire « rideau » en japonais : celui qui s'ouvre sur la séance. Son logo, un soleil couchant rayé, prend la couleur que vous choisissez dans l'interface.</p>
+  <section class="name">
+    <span lang="ja">幕</span>
+    <p><strong style="color: var(--text);">Maku</strong> veut dire « rideau » en japonais : celui qui s'ouvre sur la séance. Son logo, un soleil couchant rayé, prend la couleur que vous choisissez dans l'interface.</p>
   </section>
 
-  <!-- ===== Fonctionnalités ===== -->
-  <section id="fonctionnalites" style="max-width: 1200px; margin: 0 auto; padding: 72px 24px;">
-    <h2 style="margin: 0 0 12px; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: clamp(32px, 4vw, 48px); letter-spacing: -0.03em;">Tout ce qu'il faut, rien de superflu</h2>
-    <p style="margin: 0 0 44px; color: #b9b4a8; font-size: 19px; max-width: 680px;">Une interface pensée comme celle d'une box TV, et les outils qu'on utilise d'habitude à côté de son serveur, réunis au même endroit.</p>
-
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
-
-      <!-- Carte : lecture -->
-      <div style="background: #161616; border: 1px solid #262626; border-radius: 18px; padding: 28px; display: flex; flex-direction: column; gap: 12px;">
-        <svg aria-hidden="true" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#e5a00d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="3"></rect><path d="m10 9 5 3-5 3z"></path></svg>
-        <h3 style="margin: 0; font-size: 20px; font-weight: 700;">Il lit (presque) tout</h3>
-        <p style="margin: 0; color: #b9b4a8;">Vidéo lue par mpv sur ordinateur et ExoPlayer sur Android : 4K, HEVC et HDR sans conversion, choix des pistes audio et sous-titres, reprise là où vous vous étiez arrêté.</p>
+  <!-- ===== Rapide et fluide ===== -->
+  <section id="rapide" class="section section-alt">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">Rapide et fluide, par conception</p>
+        <h2>Pas d'attente, pas de saccades</h2>
+        <p class="lead">Beaucoup de lecteurs font convertir la vidéo par le serveur, ou redessinent leur interface par-dessus chaque image : c'est là que naissent les temps de chargement et les saccades, surtout sur un téléviseur. Maku a été construit pour éviter les deux.</p>
       </div>
 
-      <!-- Carte : bibliothèques -->
-      <div style="background: #161616; border: 1px solid #262626; border-radius: 18px; padding: 28px; display: flex; flex-direction: column; gap: 12px;">
-        <svg aria-hidden="true" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#e5a00d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"></rect><rect x="14" y="3" width="7" height="5" rx="1.5"></rect><rect x="14" y="12" width="7" height="9" rx="1.5"></rect><rect x="3" y="16" width="7" height="5" rx="1.5"></rect></svg>
-        <h3 style="margin: 0; font-size: 20px; font-weight: 700;">Vos bibliothèques mises en valeur</h3>
-        <p style="margin: 0; color: #b9b4a8;">Grandes affiches, logos officiels des titres, fiches immersives avec les notes IMDb, Rotten Tomatoes, TMDB et Allociné, catégories colorées et collections.</p>
+      <div class="figures">
+        <div class="figure"><strong>9 Mo</strong><span>le paquet Linux complet. Sous Windows, moins de 40 Mo avec le lecteur vidéo inclus.</span></div>
+        <div class="figure"><strong>4K HDR</strong><span>lus tels quels, décodés par la puce de votre appareil.</span></div>
+        <div class="figure"><strong>Direct</strong><span>le fichier d'origine d'abord : le serveur ne convertit qu'en dernier recours.</span></div>
+        <div class="figure"><strong>0 blanc</strong><span>entre deux morceaux : le suivant se charge pendant la fin du précédent.</span></div>
       </div>
 
-      <!-- Carte : musique -->
-      <div style="background: #161616; border: 1px solid #262626; border-radius: 18px; padding: 28px; display: flex; flex-direction: column; gap: 12px;">
-        <svg aria-hidden="true" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#e5a00d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
-        <h3 style="margin: 0; font-size: 20px; font-weight: 700;">Une vraie interface musique</h3>
-        <p style="margin: 0; color: #b9b4a8;">Paroles synchronisées, file d'attente, radio d'artiste, enchaînement sans blanc, Chromecast, AirPlay et Android Auto.</p>
-      </div>
-
-      <!-- Carte : Seerr -->
-      <div style="background: #161616; border: 1px solid #262626; border-radius: 18px; padding: 28px; display: flex; flex-direction: column; gap: 12px;">
-        <svg aria-hidden="true" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#e5a00d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path><path d="M11 8v6"></path><path d="M8 11h6"></path></svg>
-        <h3 style="margin: 0; font-size: 20px; font-weight: 700;">Demandes avec Seerr</h3>
-        <p style="margin: 0; color: #b9b4a8;">Découvrez les tendances et les sorties à venir, puis demandez un film ou une saison en un clic, sans quitter l'application.</p>
-      </div>
-
-      <!-- Carte : Tracearr -->
-      <div style="background: #161616; border: 1px solid #262626; border-radius: 18px; padding: 28px; display: flex; flex-direction: column; gap: 12px;">
-        <svg aria-hidden="true" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#e5a00d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10"></path><path d="M10 20V4"></path><path d="M16 20v-7"></path><path d="M22 20H2"></path></svg>
-        <h3 style="margin: 0; font-size: 20px; font-weight: 700;">Statistiques Tracearr</h3>
-        <p style="margin: 0; color: #b9b4a8;">Suivez vos habitudes de visionnage. Tout se fait avec votre compte Plex ou Jellyfin : aucune clé d'API à saisir.</p>
-      </div>
-
-      <!-- Carte : vie privée -->
-      <div style="background: #161616; border: 1px solid #262626; border-radius: 18px; padding: 28px; display: flex; flex-direction: column; gap: 12px;">
-        <svg aria-hidden="true" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#e5a00d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"></path><path d="m9 12 2 2 4-4"></path></svg>
-        <h3 style="margin: 0; font-size: 20px; font-weight: 700;">Libre et respectueux</h3>
-        <p style="margin: 0; color: #b9b4a8;">Aucun compte Maku, aucune publicité, aucune collecte : Maku ne parle qu'à vos serveurs. Disponible en français, anglais, espagnol, allemand et néerlandais.</p>
+      <div class="speed">
+        <div class="card">
+          <h3><svg class="icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>Une application légère</h3>
+          <p>Un moteur écrit en Rust et une interface compilée, qui s'appuie sur le moteur web déjà présent dans votre système au lieu d'embarquer un navigateur entier. Maku démarre vite et consomme peu de mémoire.</p>
+        </div>
+        <div class="card">
+          <h3><svg class="icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="3"/><path d="m10 9 5 3-5 3z"/></svg>La vidéo d'origine, sans détour</h3>
+          <p>mpv sur ordinateur, le lecteur natif d'Android sur téléphone et TV : le fichier d'origine (4K, HEVC, HDR) est décodé par votre appareil. Pas d'attente le temps que le serveur convertisse, et une qualité intacte.</p>
+        </div>
+        <div class="card">
+          <h3><svg class="icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/></svg>L'image dans sa propre couche</h3>
+          <p>Sous Windows et Android, la vidéo est dessinée sous l'interface, dans une couche à part : l'interface n'a pas à se redessiner à chaque image. Résultat, une lecture fluide même sur un téléviseur modeste.</p>
+        </div>
+        <div class="card">
+          <h3><svg class="icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a10 10 0 0 1 0 14"/></svg>Le son tel qu'il a été mixé</h3>
+          <p>Dolby, DTS et Atmos partent tels quels vers votre ampli ou votre barre de son. Les sons que l'appareil ne sait pas lire sont décodés sur place, au lieu de faire convertir tout le film par le serveur.</p>
+        </div>
+        <div class="card">
+          <h3><svg class="icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="13" rx="2"/><path d="M8 21h8"/></svg>Une interface TV allégée</h3>
+          <p>Sur téléviseur, pas de flou, pas de carrousel animé ni de cartes qui s'agrandissent : tout ce qui coûte au processeur graphique est retiré. Le menu glisse sans que la page soit recalculée.</p>
+        </div>
+        <div class="card">
+          <h3><svg class="icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Toujours la route la plus courte</h3>
+          <p>Maku teste les adresses de votre serveur et garde la plus rapide, locale avant distante. Il la revérifie à chaque changement de réseau. Et en revenant en arrière, la page précédente réapparaît aussitôt, au même endroit.</p>
+        </div>
       </div>
     </div>
   </section>
 
-  <!-- ===== Aperçu (galerie de captures) ===== -->
-  <section id="apercu" style="max-width: 1200px; margin: 0 auto; padding: 72px 24px;">
-    <h2 style="margin: 0 0 12px; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: clamp(32px, 4vw, 48px); letter-spacing: -0.03em;">Aperçu</h2>
-    <p style="margin: 0 0 40px; color: #a8a396; font-size: 15px;">Captures du mode démo : bibliothèque fictive, affiches générées par l'application.</p>
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 28px 24px;">
-      <figure style="margin: 0; display: flex; flex-direction: column; gap: 12px;">
-        <img loading="lazy" src="screenshots/fiche.png" alt="Fiche d'un film dans Maku" style="width: 100%; aspect-ratio: 16 / 10; object-fit: cover; border-radius: 14px; border: 1px solid #2a2a2a;">
-        <figcaption style="font-weight: 600; color: #d8d3c7;">La fiche d'un film</figcaption>
-      </figure>
-      <figure style="margin: 0; display: flex; flex-direction: column; gap: 12px;">
-        <img loading="lazy" src="screenshots/lecteur.png" alt="Lecteur vidéo intégré de Maku" style="width: 100%; aspect-ratio: 16 / 10; object-fit: cover; border-radius: 14px; border: 1px solid #2a2a2a;">
-        <figcaption style="font-weight: 600; color: #d8d3c7;">Le lecteur intégré</figcaption>
-      </figure>
-      <figure style="margin: 0; display: flex; flex-direction: column; gap: 12px;">
-        <img loading="lazy" src="screenshots/categories.png" alt="Catégories de films en grandes cartes colorées" style="width: 100%; aspect-ratio: 16 / 10; object-fit: cover; border-radius: 14px; border: 1px solid #2a2a2a;">
-        <figcaption style="font-weight: 600; color: #d8d3c7;">Les catégories</figcaption>
-      </figure>
-      <figure style="margin: 0; display: flex; flex-direction: column; gap: 12px;">
-        <img loading="lazy" src="screenshots/musique.png" alt="Accueil musique de Maku" style="width: 100%; aspect-ratio: 16 / 10; object-fit: cover; border-radius: 14px; border: 1px solid #2a2a2a;">
-        <figcaption style="font-weight: 600; color: #d8d3c7;">La musique</figcaption>
-      </figure>
-      <figure style="margin: 0; display: flex; flex-direction: column; gap: 12px;">
-        <img loading="lazy" src="screenshots/decouvrir.png" alt="Page Découvrir avec Seerr" style="width: 100%; aspect-ratio: 16 / 10; object-fit: cover; border-radius: 14px; border: 1px solid #2a2a2a;">
-        <figcaption style="font-weight: 600; color: #d8d3c7;">Découvrir avec Seerr</figcaption>
-      </figure>
-      <figure style="margin: 0; display: flex; flex-direction: column; gap: 12px;">
-        <img loading="lazy" src="screenshots/stats.png" alt="Statistiques de visionnage Tracearr" style="width: 100%; aspect-ratio: 16 / 10; object-fit: cover; border-radius: 14px; border: 1px solid #2a2a2a;">
-        <figcaption style="font-weight: 600; color: #d8d3c7;">Vos statistiques</figcaption>
-      </figure>
+  <!-- ===== Fonctionnalités ===== -->
+  <section id="fonctionnalites" class="section">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">Fonctionnalités</p>
+        <h2>Tout ce qu'il faut, rien de superflu</h2>
+        <p class="lead">Une interface pensée comme celle d'une box TV, et les outils qu'on utilise d'habitude à côté de son serveur, réunis au même endroit. Chaque carte ouvre sa page détaillée.</p>
+      </div>
+      <div class="cards fours">
+        <a class="card" href="lecture.html">
+          <svg class="icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="3"/><path d="m10 9 5 3-5 3z"/></svg>
+          <h3>Il lit (presque) tout</h3>
+          <p>4K, HEVC et HDR sans conversion, pistes audio et sous-titres, passer l'intro, épisode suivant, lecture hors ligne.</p>
+          <span class="more">Le lecteur →</span>
+        </a>
+        <a class="card" href="bibliotheques.html">
+          <svg class="icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+          <h3>Vos bibliothèques mises en valeur</h3>
+          <p>Grandes affiches, logos officiels, fiches immersives avec les notes IMDb, Rotten Tomatoes, TMDB et Allociné, catégories et collections.</p>
+          <span class="more">Les bibliothèques →</span>
+        </a>
+        <a class="card" href="musique.html">
+          <svg class="icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+          <h3>Une vraie interface musique</h3>
+          <p>Playlists, Mix of Three, paroles synchronisées, radio d'artiste, enchaînement sans blanc, Chromecast, AirPlay et Android Auto.</p>
+          <span class="more">La musique →</span>
+        </a>
+        <a class="card" href="demandes.html">
+          <svg class="icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/><path d="M11 8v6"/><path d="M8 11h6"/></svg>
+          <h3>Demandes avec Seerr</h3>
+          <p>Les tendances et les sorties à venir, la fiche complète de chaque titre, et la demande d'un film ou d'une saison en un clic.</p>
+          <span class="more">Les demandes →</span>
+        </a>
+        <a class="card" href="statistiques.html">
+          <svg class="icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M22 20H2"/></svg>
+          <h3>Statistiques Tracearr</h3>
+          <p>Votre temps devant l'écran, votre top 10, vos genres préférés et votre plus gros marathon, avec votre compte Plex et sans clé d'API.</p>
+          <span class="more">Les statistiques →</span>
+        </a>
+        <a class="card" href="appareils.html">
+          <svg class="icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="14" height="10" rx="2"/><rect x="17" y="8" width="5" height="12" rx="1.5"/><path d="M6 18h6"/></svg>
+          <h3>TV, téléphone et voiture</h3>
+          <p>Une interface pour la télécommande, une autre pour le pouce, la musique en arrière-plan et sur l'écran de la voiture.</p>
+          <span class="more">Les appareils →</span>
+        </a>
+        <a class="card" href="administration.html">
+          <svg class="icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="7" rx="2"/><rect x="2" y="14" width="20" height="7" rx="2"/><path d="M6 6.5h.01"/><path d="M6 17.5h.01"/></svg>
+          <h3>Pour l'administrateur</h3>
+          <p>Lectures en cours, débit, utilisateurs, réglages du serveur, fiches à modifier et invitations en QR code.</p>
+          <span class="more">L'administration →</span>
+        </a>
+        <a class="card" href="faq.html#vie-privee">
+          <svg class="icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/><path d="m9 12 2 2 4-4"/></svg>
+          <h3>Libre et respectueux</h3>
+          <p>Aucun compte Maku, aucune publicité, aucune collecte : Maku ne parle qu'à vos serveurs. En français, anglais, espagnol, allemand et néerlandais.</p>
+          <span class="more">Vos données →</span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Aperçu ===== -->
+  <section id="apercu" class="section section-alt">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">Aperçu</p>
+        <h2>Un tour en images</h2>
+        <p class="muted" style="margin: 0;">Captures du mode démo : bibliothèque fictive, affiches générées par l'application. Cliquez sur une image pour tout savoir de cet espace.</p>
+      </div>
+      <div class="gallery">
+        <a class="shot" href="bibliotheques.html#fiche">
+          <span class="frame"><img loading="lazy" src="screenshots/fiche.png" alt="Fiche d'un film dans Maku" width="1600" height="1000"><span class="go">Découvrir →</span></span>
+          <strong>La fiche d'un film</strong><span class="sub">Fond en grand, logo, notes, pistes et distribution.</span>
+        </a>
+        <a class="shot" href="lecture.html">
+          <span class="frame"><img loading="lazy" src="screenshots/lecteur.png" alt="Lecteur vidéo intégré de Maku" width="1600" height="1000"><span class="go">Découvrir →</span></span>
+          <strong>Le lecteur intégré</strong><span class="sub">Des commandes discrètes, la vidéo d'origine.</span>
+        </a>
+        <a class="shot" href="bibliotheques.html#categories">
+          <span class="frame"><img loading="lazy" src="screenshots/categories.png" alt="Catégories de films en grandes cartes colorées" width="1600" height="1000"><span class="go">Découvrir →</span></span>
+          <strong>Les catégories</strong><span class="sub">Un genre, une grande carte colorée.</span>
+        </a>
+        <a class="shot" href="musique.html">
+          <span class="frame"><img loading="lazy" src="screenshots/musique.png" alt="Accueil musique de Maku" width="1600" height="1000"><span class="go">Découvrir →</span></span>
+          <strong>La musique</strong><span class="sub">Playlists, Mix of Three, paroles et radio.</span>
+        </a>
+        <a class="shot" href="demandes.html">
+          <span class="frame"><img loading="lazy" src="screenshots/decouvrir.png" alt="Page Découvrir avec Seerr" width="1600" height="1000"><span class="go">Découvrir →</span></span>
+          <strong>Découvrir avec Seerr</strong><span class="sub">Tendances, sorties à venir et demandes.</span>
+        </a>
+        <a class="shot" href="statistiques.html">
+          <span class="frame"><img loading="lazy" src="screenshots/stats.png" alt="Statistiques de visionnage Tracearr" width="1600" height="1000"><span class="go">Découvrir →</span></span>
+          <strong>Vos statistiques</strong><span class="sub">Votre mois, votre top 10, vos records.</span>
+        </a>
+        <a class="shot" href="appareils.html">
+          <span class="frame"><img loading="lazy" src="screenshots/tv.png" alt="L'accueil de Maku sur Android TV" width="1600" height="1000"><span class="go">Découvrir →</span></span>
+          <strong>Sur la télé</strong><span class="sub">Une interface faite pour la télécommande.</span>
+        </a>
+        <a class="shot" href="administration.html">
+          <span class="frame"><img loading="lazy" src="screenshots/admin.png" alt="Tableau de bord de l'administrateur du serveur" width="1600" height="1000"><span class="go">Découvrir →</span></span>
+          <strong>Le tableau de bord</strong><span class="sub">Pour l'administrateur du serveur.</span>
+        </a>
+      </div>
     </div>
   </section>
 
   <!-- ===== Télécharger ===== -->
-  <section id="telecharger" style="background: #141414; border-top: 1px solid #222; border-bottom: 1px solid #222;">
-    <div style="max-width: 1200px; margin: 0 auto; padding: 88px 24px;">
-      <h2 style="margin: 0 0 12px; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: clamp(32px, 4vw, 48px); letter-spacing: -0.03em;">Télécharger Maku</h2>
-      <p style="margin: 0 0 44px; color: #b9b4a8; font-size: 19px; max-width: 680px;">Gratuit sur toutes les plateformes. Choisissez la vôtre.</p>
-
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
-
-        <!-- Windows -->
-        <div style="background: #0c0c0c; border: 1px solid #2a2a2a; border-radius: 18px; padding: 28px; display: flex; flex-direction: column; gap: 14px;">
-          <h3 style="margin: 0; font-size: 22px; font-weight: 700;">Windows</h3>
-          <p style="margin: 0; color: #a8a396; font-size: 15px; flex-grow: 1;">Windows 10 et 11. mpv est inclus, rien d'autre à installer.</p>
-          <a href="https://apps.microsoft.com/detail/9MZSQFBJL1X5" style="background: #e5a00d; color: #1a1300; text-decoration: none; font-weight: 700; padding: 12px 20px; border-radius: 12px; min-height: 48px; box-sizing: border-box; display: flex; align-items: center; justify-content: center;">Microsoft Store</a>
-          <a href="https://github.com/yanutros/maku/releases/latest" style="border: 1px solid #3a3a3a; color: #f2efe8; text-decoration: none; font-weight: 600; padding: 12px 20px; border-radius: 12px; min-height: 48px; box-sizing: border-box; display: flex; align-items: center; justify-content: center;">Installeur .exe / .msi</a>
+  <section id="telecharger" class="section">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">Télécharger</p>
+        <h2>Télécharger Maku</h2>
+        <p class="lead">Gratuit sur toutes les plateformes. Choisissez la vôtre, puis suivez le <a href="installer.html">guide d'installation</a> si besoin.</p>
+      </div>
+      <div class="cards">
+        <div class="card">
+          <h3>Windows</h3>
+          <p style="flex-grow: 1;">Windows 10 et 11. mpv est inclus, rien d'autre à installer.</p>
+          <a class="btn btn-primary" style="border-radius: 12px;" href="https://apps.microsoft.com/detail/9MZSQFBJL1X5">Microsoft Store</a>
+          <a class="btn" style="border-radius: 12px;" href="https://github.com/yanutros/maku/releases/latest">Installeur .exe / .msi</a>
         </div>
-
-        <!-- Android -->
-        <div style="background: #0c0c0c; border: 1px solid #2a2a2a; border-radius: 18px; padding: 28px; display: flex; flex-direction: column; gap: 14px;">
-          <h3 style="margin: 0; font-size: 22px; font-weight: 700;">Android et Android TV</h3>
-          <p style="margin: 0; color: #a8a396; font-size: 15px; flex-grow: 1;">Téléphones, tablettes, Android TV et Google TV (Android 7+). La version Google Play arrive bientôt.</p>
-          <a href="https://github.com/yanutros/maku/releases/latest" style="background: #e5a00d; color: #1a1300; text-decoration: none; font-weight: 700; padding: 12px 20px; border-radius: 12px; min-height: 48px; box-sizing: border-box; display: flex; align-items: center; justify-content: center;">Télécharger l'APK</a>
-          <span style="border: 1px dashed #3a3a3a; color: #a8a396; font-weight: 600; padding: 12px 20px; border-radius: 12px; min-height: 48px; box-sizing: border-box; display: flex; align-items: center; justify-content: center;">Google Play · bientôt</span>
+        <div class="card">
+          <h3>Android et Android TV</h3>
+          <p style="flex-grow: 1;">Téléphones, tablettes, Android TV et Google TV (Android 7+). La version Google Play arrive bientôt.</p>
+          <a class="btn btn-primary" style="border-radius: 12px;" href="https://github.com/yanutros/maku/releases/latest">Télécharger l'APK</a>
+          <span class="btn muted" style="border-radius: 12px; border-style: dashed; font-weight: 600;">Google Play · bientôt</span>
         </div>
-
-        <!-- Fire TV -->
-        <div style="background: #0c0c0c; border: 1px solid #2a2a2a; border-radius: 18px; padding: 28px; display: flex; flex-direction: column; gap: 14px;">
-          <h3 style="margin: 0; font-size: 22px; font-weight: 700;">Fire TV</h3>
-          <p style="margin: 0; color: #a8a396; font-size: 15px; flex-grow: 1;">Une interface dédiée à la télécommande, légère pour rester fluide sur les téléviseurs.</p>
-          <a href="https://www.amazon.com/gp/product/B0HQWWD4DL" style="background: #e5a00d; color: #1a1300; text-decoration: none; font-weight: 700; padding: 12px 20px; border-radius: 12px; min-height: 48px; box-sizing: border-box; display: flex; align-items: center; justify-content: center;">Amazon Appstore</a>
+        <div class="card">
+          <h3>Fire TV</h3>
+          <p style="flex-grow: 1;">Une interface dédiée à la télécommande, légère pour rester fluide sur les téléviseurs.</p>
+          <a class="btn btn-primary" style="border-radius: 12px;" href="https://www.amazon.com/gp/product/B0HQWWD4DL">Amazon Appstore</a>
         </div>
-
-        <!-- macOS -->
-        <div style="background: #0c0c0c; border: 1px solid #2a2a2a; border-radius: 18px; padding: 28px; display: flex; flex-direction: column; gap: 14px;">
-          <h3 style="margin: 0; font-size: 22px; font-weight: 700;">macOS</h3>
-          <p style="margin: 0; color: #a8a396; font-size: 15px; flex-grow: 1;">macOS 11 et plus, Intel et Apple Silicon. Installez mpv avec <code style="color: #d8d3c7;">brew install mpv</code>.</p>
-          <a href="https://github.com/yanutros/maku/releases/latest" style="background: #e5a00d; color: #1a1300; text-decoration: none; font-weight: 700; padding: 12px 20px; border-radius: 12px; min-height: 48px; box-sizing: border-box; display: flex; align-items: center; justify-content: center;">Télécharger le .dmg</a>
+        <div class="card">
+          <h3>macOS</h3>
+          <p style="flex-grow: 1;">macOS 11 et plus, Intel et Apple Silicon. Installez mpv avec <code>brew install mpv</code>.</p>
+          <a class="btn btn-primary" style="border-radius: 12px;" href="https://github.com/yanutros/maku/releases/latest">Télécharger le .dmg</a>
         </div>
-
-        <!-- Linux -->
-        <div style="background: #0c0c0c; border: 1px solid #2a2a2a; border-radius: 18px; padding: 28px; display: flex; flex-direction: column; gap: 14px;">
-          <h3 style="margin: 0; font-size: 22px; font-weight: 700;">Linux</h3>
-          <p style="margin: 0; color: #a8a396; font-size: 15px; flex-grow: 1;">Paquets RPM (Fedora, RHEL), DEB (Debian, Ubuntu) et AppImage pour les autres distributions.</p>
-          <a href="https://github.com/yanutros/maku/releases/latest" style="background: #e5a00d; color: #1a1300; text-decoration: none; font-weight: 700; padding: 12px 20px; border-radius: 12px; min-height: 48px; box-sizing: border-box; display: flex; align-items: center; justify-content: center;">RPM · DEB · AppImage</a>
+        <div class="card">
+          <h3>Linux</h3>
+          <p style="flex-grow: 1;">Paquets RPM (Fedora, RHEL), DEB (Debian, Ubuntu) et AppImage pour les autres distributions.</p>
+          <a class="btn btn-primary" style="border-radius: 12px;" href="https://github.com/yanutros/maku/releases/latest">RPM · DEB · AppImage</a>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ===== Soutenir / contribuer ===== -->
-  <section style="max-width: 1200px; margin: 0 auto; padding: 88px 24px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 20px;">
-    <img src="logo.png" alt="" style="width: 72px; height: 72px;">
-    <h2 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: clamp(30px, 4vw, 44px); letter-spacing: -0.03em;">Un projet libre, fait avec soin</h2>
-    <p style="margin: 0; color: #b9b4a8; font-size: 18px; max-width: 620px;">Maku est développé en Rust et Svelte, sous licence GPL-3.0. Une idée, un bug ? Le dépôt GitHub est ouvert à tous.</p>
-    <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 14px;">
-      <a href="https://ko-fi.com/yanutros" style="background: #e5a00d; color: #1a1300; text-decoration: none; font-weight: 700; padding: 14px 26px; border-radius: 999px; min-height: 52px; box-sizing: border-box; display: inline-flex; align-items: center;">Soutenir sur Ko-fi</a>
-      <a href="https://github.com/yanutros/maku/issues" style="border: 1px solid #3a3a3a; color: #f2efe8; text-decoration: none; font-weight: 700; padding: 14px 26px; border-radius: 999px; min-height: 52px; box-sizing: border-box; display: inline-flex; align-items: center;">Signaler un problème</a>
+  <!-- ===== Aide ===== -->
+  <section class="section section-alt">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">Guide</p>
+        <h2>Bien démarrer</h2>
+        <p class="lead">Tout ce qu'il faut savoir, pas à pas.</p>
+      </div>
+      <div class="help">
+        <a class="card" href="installer.html">
+          <h3>Installer</h3>
+          <p>Windows, macOS, Linux, téléphone, Android TV et Fire TV, puis les mises à jour.</p>
+          <span class="more">Le guide d'installation →</span>
+        </a>
+        <a class="card" href="configurer.html">
+          <h3>Configurer</h3>
+          <p>Se connecter à Plex, Jellyfin ou Emby, ajouter Seerr et Tracearr, inviter ses proches.</p>
+          <span class="more">Le guide de configuration →</span>
+        </a>
+        <a class="card" href="faq.html">
+          <h3>Questions fréquentes</h3>
+          <p>Un film muet, un antivirus inquiet, Android Auto, les téléchargements… les réponses.</p>
+          <span class="more">Les questions →</span>
+        </a>
+      </div>
     </div>
   </section>
 
-  <!-- ===== Pied de page ===== -->
-  <footer style="border-top: 1px solid #222;">
-    <div style="max-width: 1200px; margin: 0 auto; padding: 28px 24px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; font-size: 14px; color: #a8a396;">
-      <span>© Maku · Logiciel libre sous licence GPL-3.0</span>
-      <div style="display: flex; flex-wrap: wrap; gap: 20px;">
-        <a href="https://github.com/yanutros/maku/blob/main/PRIVACY.md" style="color: #a8a396;">Confidentialité</a>
-        <a href="https://github.com/yanutros/maku/blob/main/LICENSE" style="color: #a8a396;">Licence</a>
-        <a href="https://github.com/yanutros/maku" style="color: #a8a396;">GitHub</a>
-      </div>
+  <!-- ===== Soutenir ===== -->
+  <section class="support">
+    <img src="logo.png" alt="">
+    <h2>Un projet libre, fait avec soin</h2>
+    <p>Maku est développé en Rust et Svelte, sous licence GPL-3.0. Une idée, un bug ? Le dépôt GitHub est ouvert à tous.</p>
+    <div class="btn-row">
+      <a class="btn btn-primary" href="https://ko-fi.com/yanutros">Soutenir sur Ko-fi</a>
+      <a class="btn" href="https://github.com/yanutros/maku/issues">Signaler un problème</a>
     </div>
-  </footer>
-</div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <span>© Maku · Logiciel libre sous licence GPL-3.0</span>
+    <nav aria-label="Liens du bas de page">
+      <a href="installer.html">Installer</a>
+      <a href="configurer.html">Configurer</a>
+      <a href="faq.html">Questions</a>
+      <a href="https://github.com/yanutros/maku/blob/main/PRIVACY.md">Confidentialité</a>
+      <a href="https://github.com/yanutros/maku/blob/main/LICENSE">Licence</a>
+      <a href="https://github.com/yanutros/maku">GitHub</a>
+    </nav>
+  </div>
+</footer>
+
 </body>
 </html>

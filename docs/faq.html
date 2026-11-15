@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Questions fréquentes — Maku</title>
+<meta name="description" content="Questions fréquentes sur Maku : gratuité, Plex Pass, Jellyfin et Emby, antivirus, film muet ou figé, passer l'intro, téléchargements, Android Auto, Seerr, Tracearr et vie privée.">
+<meta name="theme-color" content="#0c0c0c">
+<link rel="icon" type="image/png" href="logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&amp;family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap nav">
+    <a class="brand" href="index.html"><img src="logo.png" alt=""><span>Maku</span></a>
+    <nav class="nav-links" aria-label="Navigation principale">
+      <a href="index.html#fonctionnalites">Fonctionnalités</a>
+      <a href="installer.html">Installer</a>
+      <a href="configurer.html">Configurer</a>
+      <a href="faq.html" aria-current="page">Questions</a>
+      <a href="https://github.com/yanutros/maku">GitHub</a>
+      <a class="btn btn-primary btn-sm" href="index.html#telecharger">Télécharger</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <p class="crumbs"><a href="index.html">Accueil</a> › Guide › Questions fréquentes</p>
+  <section class="page-hero" style="padding-bottom: 8px;">
+    <p class="eyebrow">Guide</p>
+    <h1>Questions fréquentes</h1>
+    <p class="lead">Les réponses aux questions qu'on se pose le plus souvent. Il en manque une ? <a href="https://github.com/yanutros/maku/issues">Posez-la sur GitHub</a>.</p>
+  </section>
+
+  <div class="doc">
+    <nav class="toc" aria-label="Sommaire">
+      <strong>Thèmes</strong>
+      <a href="#general">En général</a>
+      <a href="#installation">Installation</a>
+      <a href="#lecture">Lecture</a>
+      <a href="#musique">Musique et voiture</a>
+      <a href="#services">Seerr et Tracearr</a>
+      <a href="#vie-privee">Vie privée</a>
+    </nav>
+
+    <article class="prose faq">
+      <h2 id="general">En général</h2>
+      <details>
+        <summary>Maku est-il vraiment gratuit ?</summary>
+        <div class="answer">
+          <p>Oui. Maku est un logiciel libre, sous licence GPL-3.0 : gratuit, sans publicité, sans abonnement et sans compte Maku. Son code est public sur GitHub. Si l'application vous plaît, vous pouvez soutenir son développement sur <a href="https://ko-fi.com/yanutros">Ko-fi</a>.</p>
+        </div>
+      </details>
+      <details>
+        <summary>Faut-il un Plex Pass ?</summary>
+        <div class="answer">
+          <p>Non. Tout fonctionne avec un compte Plex gratuit, y compris <strong>Passer l'intro</strong> et <strong>Passer le générique</strong>, que Plex fournit à tous les comptes. Seule une fonction d'administration, arrêter la lecture d'un utilisateur avec un message, demande le Plex Pass du propriétaire du serveur.</p>
+        </div>
+      </details>
+      <details>
+        <summary>Avec quels serveurs Maku fonctionne-t-il ?</summary>
+        <div class="answer">
+          <p>Plex, Jellyfin et Emby. Accueil, bibliothèques, fiches, séries, recherche, lecture, progression, musique, demandes et statistiques fonctionnent avec les trois. Quelques fonctions restent propres à Plex : le bandeau des lettres, la musique dans la voiture et la catégorie Admin du propriétaire du serveur.</p>
+        </div>
+      </details>
+      <details>
+        <summary>Maku fournit-il des films ou des séries ?</summary>
+        <div class="answer">
+          <p>Non. Maku ne fournit aucun contenu : il affiche et lit la bibliothèque de votre propre serveur, ou de celui qu'un proche partage avec vous. C'est un projet indépendant, sans lien avec Plex, Inc. ni avec les projets Jellyfin, Emby, Seerr ou Tracearr.</p>
+        </div>
+      </details>
+      <details>
+        <summary>Existe-t-il une version pour iPhone et iPad ?</summary>
+        <div class="answer">
+          <p>Pas encore de version publique. Maku existe sur Windows, macOS, Linux, Android (téléphone et tablette), Android TV, Google TV et Fire TV.</p>
+        </div>
+      </details>
+      <details>
+        <summary>Dans quelles langues Maku est-il disponible ?</summary>
+        <div class="answer">
+          <p>Français, anglais, espagnol, allemand et néerlandais. Maku suit la langue du système, ou celle choisie dans <strong>Réglages → Interface</strong>. Les propositions de traduction sont les bienvenues sur GitHub.</p>
+        </div>
+      </details>
+
+      <h2 id="installation">Installation</h2>
+      <details>
+        <summary>Windows ou Microsoft Defender signale l'installeur. Est-ce un virus ?</summary>
+        <div class="answer">
+          <p>Non. L'installeur publié sur GitHub n'est pas encore signé, si bien que Windows le traite comme un programme inconnu, parfois à tort comme un logiciel malveillant. Cliquez sur « Informations complémentaires » puis « Exécuter quand même ».</p>
+          <p>Pour éviter la question, installez Maku depuis le <a href="https://apps.microsoft.com/detail/9MZSQFBJL1X5">Microsoft Store</a> : Microsoft vérifie le paquet et le signe.</p>
+        </div>
+      </details>
+      <details>
+        <summary>macOS refuse d'ouvrir Maku.</summary>
+        <div class="answer">
+          <p>L'application n'est pas encore signée par Apple. Au premier lancement, faites un <strong>clic droit sur Maku → Ouvrir</strong>, puis confirmez. Les fois suivantes, elle s'ouvre normalement.</p>
+        </div>
+      </details>
+      <details>
+        <summary>Sous Fedora, les films s'arrêtent dès l'ouverture.</summary>
+        <div class="answer">
+          <p>Le mpv des dépôts Fedora s'appuie sur une version de FFmpeg qui ne décode ni le H.264, ni le HEVC, ni l'E-AC3. Installez le FFmpeg complet de <a href="https://rpmfusion.org/Configuration">RPM Fusion</a> (dépôts « free » activés) :</p>
+          <pre><code>sudo dnf swap ffmpeg-free ffmpeg --allowerasing</code></pre>
+        </div>
+      </details>
+      <details>
+        <summary>Sous Linux et macOS, la vidéo s'ouvre dans une autre fenêtre.</summary>
+        <div class="answer">
+          <p>C'est normal : la vidéo s'affiche dans une fenêtre mpv en plein écran, que Maku pilote à distance (pause, avance, pistes) en suivant la progression. L'affichage de la vidéo dans la fenêtre même de Maku n'existe pour l'instant que sous Windows.</p>
+        </div>
+      </details>
+      <details>
+        <summary>Comment installer Maku sur une TV Android ?</summary>
+        <div class="answer">
+          <p>Sur Fire TV, par l'<a href="https://www.amazon.com/gp/product/B0HQWWD4DL">Amazon Appstore</a>. Sur Android TV et Google TV, avec l'application Downloader ou une clé USB : le <a href="installer.html#tv">guide d'installation</a> détaille chaque méthode. Ensuite, les mises à jour s'installent depuis Maku.</p>
+        </div>
+      </details>
+
+      <h2 id="lecture">Lecture</h2>
+      <details>
+        <summary>Sur la TV, un film reste muet ou se fige.</summary>
+        <div class="answer">
+          <p>Le plus souvent, l'appareil annonce accepter un format de son (Dolby, DTS…) qu'il ne sait pas vraiment transmettre. Dans <strong>Réglages → Lecteur</strong>, passez <strong>Son vers l'ampli</strong> sur « Décodé ici » : le son est alors décodé par l'appareil.</p>
+          <p>Quand une vidéo se fige, Maku propose de lui-même de réessayer, de passer 10 secondes, de décoder le son sur l'appareil ou de demander une conversion par le serveur. Si c'est le son qui fait caler la TV, il passe tout seul en « Décodé ici ».</p>
+        </div>
+      </details>
+      <details>
+        <summary>Le bouton « Passer l'intro » n'apparaît pas.</summary>
+        <div class="answer">
+          <p>Il s'appuie sur les repères détectés par le serveur. Avec Plex, l'analyse des intros et des génériques doit avoir été faite sur la bibliothèque. Avec Jellyfin, il faut la version 10.10 ou plus et un plugin de détection des intros. Avec Emby, les chapitres d'intro et de générique.</p>
+        </div>
+      </details>
+      <details>
+        <summary>Je ne vois pas d'aperçu en survolant la barre de progression.</summary>
+        <div class="answer">
+          <p>Les miniatures viennent du serveur : il faut que Plex ait généré les aperçus de la vidéo, ou que Jellyfin ait préparé son « trickplay ». Avec Emby, les aperçus ne sont pas encore pris en charge.</p>
+        </div>
+      </details>
+      <details>
+        <summary>Le bouton « Télécharger » n'apparaît pas sur mon téléphone.</summary>
+        <div class="answer">
+          <p>La lecture hors ligne n'est proposée qu'aux comptes qui en ont le droit : l'administrateur du serveur doit vous l'autoriser (« Autoriser les téléchargements » dans Plex, « Autoriser le téléchargement de médias » dans Jellyfin et Emby). Elle est disponible sur téléphone et tablette Android.</p>
+        </div>
+      </details>
+      <details>
+        <summary>La vidéo est convertie alors que mon appareil sait la lire.</summary>
+        <div class="answer">
+          <p>Vérifiez la qualité choisie dans le lecteur : si vous avez choisi une conversion (1080p, 720p…) pour une connexion faible, Maku la garde pour les vidéos suivantes. Repassez sur la qualité d'origine pour lire le fichier tel quel.</p>
+        </div>
+      </details>
+
+      <h2 id="musique">Musique et voiture</h2>
+      <details id="android-auto">
+        <summary>Maku n'apparaît pas dans Android Auto.</summary>
+        <div class="answer">
+          <p>Tant que Maku n'est pas sur le Play Store, Android Auto masque les applications installées à la main. Sur le téléphone : <strong>Android Auto → Paramètres</strong>, touchez dix fois <strong>Version</strong> pour ouvrir les paramètres développeur, puis activez <strong>Sources inconnues</strong>. Maku apparaît alors dans la voiture (vérifiez aussi qu'il est coché dans <strong>Personnaliser le lanceur</strong>).</p>
+          <p>En cas de souci en voiture, l'écran en affiche la cause : serveur à choisir, téléphone à déverrouiller une première fois, serveur injoignable. La voiture fonctionne pour l'instant avec Plex.</p>
+        </div>
+      </details>
+      <details>
+        <summary>Les paroles ne s'affichent pas.</summary>
+        <div class="answer">
+          <p>Elles viennent de lrclib.net, une base gratuite et collaborative : tous les morceaux n'y sont pas. Vérifiez aussi qu'elles sont activées dans <strong>Réglages → Lecteur</strong>.</p>
+        </div>
+      </details>
+      <details>
+        <summary>Mon enceinte Chromecast n'apparaît pas.</summary>
+        <div class="answer">
+          <p>L'enceinte et l'appareil qui fait tourner Maku doivent être sur le même réseau. <strong>Écouter sur</strong> fonctionne depuis l'ordinateur, le téléphone et la tablette Android. Sur iPhone et iPad, le bouton ouvre AirPlay ; sur Mac, le son suit la sortie choisie dans macOS.</p>
+        </div>
+      </details>
+
+      <h2 id="services">Seerr et Tracearr</h2>
+      <details>
+        <summary>Seerr ne reconnaît pas mon compte.</summary>
+        <div class="answer">
+          <p>Maku se connecte à Seerr avec votre compte Plex, mais ce compte doit avoir été importé dans Seerr par son administrateur. Demandez-lui de l'ajouter, puis reconnectez-vous dans <strong>Réglages → Services</strong>.</p>
+        </div>
+      </details>
+      <details>
+        <summary>Tracearr me redemande de me connecter.</summary>
+        <div class="answer">
+          <p>La session Tracearr dure 30 jours. Passé ce délai, appuyez de nouveau sur <strong>Se connecter avec Plex</strong> : une seule validation dans le navigateur suffit.</p>
+        </div>
+      </details>
+      <details>
+        <summary>Faut-il exposer Seerr et Tracearr sur Internet ?</summary>
+        <div class="answer">
+          <p>Non. Le relais <a href="configurer.html#maku-server">Maku Server</a>, installé à côté du serveur, les garde sur le réseau local : seul le relais est joignable, et il ne laisse passer que les utilisateurs du serveur.</p>
+        </div>
+      </details>
+
+      <h2 id="vie-privee">Vie privée</h2>
+      <details open>
+        <summary>Que collecte Maku ?</summary>
+        <div class="answer">
+          <p>Rien. Maku n'a pas de serveur à lui et ne collecte aucune statistique d'usage. Il parle à votre serveur de médias, à plex.tv pour la connexion, à l'API publique de GitHub pour savoir si une nouvelle version existe, et seulement si vous les utilisez : à Seerr, Tracearr, TMDB (avec votre clé), lrclib.net pour les paroles et YouTube pour une bande-annonce.</p>
+          <p>La politique de confidentialité complète est dans <a href="https://github.com/yanutros/maku/blob/main/PRIVACY.md">PRIVACY.md</a>.</p>
+        </div>
+      </details>
+      <details>
+        <summary>Où sont gardés mes réglages et mes connexions ?</summary>
+        <div class="answer">
+          <p>Sur votre appareil uniquement, dans un fichier de configuration privé à Maku. Il contient vos jetons de connexion : ne le partagez pas. Les téléchargements hors ligne restent aussi dans les données privées de Maku, et sont effacés avec l'application.</p>
+        </div>
+      </details>
+      <details>
+        <summary>Le journal de diagnostic envoie-t-il quelque chose ?</summary>
+        <div class="answer">
+          <p>Non. Il reste sur l'appareil tant que vous ne le partagez pas vous-même. Les adresses de serveur, adresses IP, jetons et identifiants en sont retirés avant l'écriture, et il ne dépasse pas 600 Ko.</p>
+        </div>
+      </details>
+      <details>
+        <summary>Pourquoi un serveur ne peut-il pas me rediriger ailleurs ?</summary>
+        <div class="answer">
+          <p>Par sécurité : un serveur ne peut rediriger Maku que vers lui-même, jamais vers une autre adresse où partiraient vos jetons. Seul le téléchargement des mises à jour suit les redirections de GitHub vers son stockage.</p>
+        </div>
+      </details>
+
+      <div class="callout" style="margin-top: 48px;">
+        <div>
+          <h3>Toujours bloqué ?</h3>
+          <p>Ouvrez un ticket sur GitHub. Sur Android, joignez le journal de diagnostic (Réglages → Lecteur).</p>
+        </div>
+        <a class="btn btn-primary" href="https://github.com/yanutros/maku/issues">Signaler un problème</a>
+      </div>
+    </article>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <span>© Maku · Logiciel libre sous licence GPL-3.0</span>
+    <nav aria-label="Liens du bas de page">
+      <a href="installer.html">Installer</a>
+      <a href="configurer.html">Configurer</a>
+      <a href="faq.html">Questions</a>
+      <a href="https://github.com/yanutros/maku/blob/main/PRIVACY.md">Confidentialité</a>
+      <a href="https://github.com/yanutros/maku/blob/main/LICENSE">Licence</a>
+      <a href="https://github.com/yanutros/maku">GitHub</a>
+    </nav>
+  </div>
+</footer>
+
+<script>
+  // Un lien vers une question (faq.html#android-auto) l'ouvre.
+  const open = () => {
+    const target = location.hash && document.getElementById(location.hash.slice(1));
+    if (target && target.tagName === "DETAILS") target.open = true;
+  };
+  open();
+  addEventListener("hashchange", open);
+</script>
+</body>
+</html>

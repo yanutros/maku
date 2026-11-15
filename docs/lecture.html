@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Le lecteur — Maku</title>
+<meta name="description" content="Le lecteur de Maku : la vidéo d'origine décodée par votre appareil, 4K HDR, son Dolby et DTS vers l'ampli, passer l'intro, épisode suivant et lecture hors ligne.">
+<meta name="theme-color" content="#0c0c0c">
+<link rel="icon" type="image/png" href="logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&amp;family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap nav">
+    <a class="brand" href="index.html"><img src="logo.png" alt=""><span>Maku</span></a>
+    <nav class="nav-links" aria-label="Navigation principale">
+      <a href="index.html#fonctionnalites" aria-current="page">Fonctionnalités</a>
+      <a href="installer.html">Installer</a>
+      <a href="configurer.html">Configurer</a>
+      <a href="faq.html">Questions</a>
+      <a href="https://github.com/yanutros/maku">GitHub</a>
+      <a class="btn btn-primary btn-sm" href="index.html#telecharger">Télécharger</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <p class="crumbs"><a href="index.html">Accueil</a> › <a href="index.html#fonctionnalites">Fonctionnalités</a> › Le lecteur</p>
+
+  <section class="page-hero">
+    <p class="eyebrow">Le lecteur</p>
+    <h1>La vidéo d'origine, lue tout de suite.</h1>
+    <p class="lead">Maku confie le fichier tel quel à un vrai lecteur vidéo, sur l'appareil qui vous sert d'écran. Pas d'attente le temps que le serveur convertisse, pas de perte de qualité : la 4K reste de la 4K, le HDR reste du HDR, et le son part tel qu'il a été mixé.</p>
+    <img class="shot-big" src="screenshots/lecteur.png" alt="Le lecteur vidéo de Maku, ses commandes en bas de l'image" width="1600" height="1000">
+  </section>
+
+  <section class="feature">
+    <div>
+      <p class="eyebrow">Lecture directe</p>
+      <h2>Décodée par votre appareil, pas par le serveur</h2>
+      <p>Sur ordinateur, c'est <strong>mpv</strong>, le lecteur libre réputé pour lire à peu près tout, qui affiche la vidéo. Sur téléphone, tablette et TV Android, c'est le <strong>lecteur natif d'Android</strong>, qui s'appuie sur la puce vidéo de l'appareil.</p>
+      <ul class="points">
+        <li><strong>4K, HEVC, HDR</strong> : le fichier d'origine est lu tel quel, sans conversion.</li>
+        <li><strong>Qualité au choix</strong> : le fichier d'origine, ou une conversion par le serveur de 20 Mb/s en 1080p à 1,5 Mb/s en 480p, pour une connexion faible. Le choix est retenu pour les vidéos suivantes.</li>
+        <li><strong>Plusieurs versions</strong> d'un même film (4K, 1080p…) ? Vous choisissez sur sa fiche, avec ses propres pistes audio et sous-titres.</li>
+        <li>Le serveur n'intervient qu'en dernier recours : d'abord pour le son seul, l'image restant intacte, puis pour le tout.</li>
+      </ul>
+    </div>
+    <div class="media"><img loading="lazy" src="screenshots/fiche.png" alt="La fiche d'un film : version, audio et sous-titres" width="1600" height="1000"></div>
+  </section>
+
+  <section class="feature flip">
+    <div>
+      <p class="eyebrow">Des commandes qui s'effacent</p>
+      <h2>Rien entre vous et le film</h2>
+      <p>Les commandes flottent dans une capsule translucide en bas de l'image : titre, pistes audio et sous-titres en cours, progression, temps restant, ±10 s, épisode précédent et suivant, arrêt. Elles s'effacent après 4 secondes sans bouger la souris.</p>
+      <ul class="points">
+        <li><strong>Aperçu au survol</strong> de la barre de progression : la miniature de l'instant visé, quand le serveur a préparé les aperçus.</li>
+        <li><strong>Pistes audio et sous-titres</strong> (intégrés ou externes) à changer pendant la lecture.</li>
+        <li><strong>Barre minimaliste</strong> en option : une seule rangée sur un dégradé, sans cadre.</li>
+        <li><strong>Raccourcis clavier</strong> : espace, flèches, <kbd>F</kbd> pour le plein écran, <kbd>M</kbd> pour couper le son, et les touches multimédia du clavier.</li>
+      </ul>
+    </div>
+    <div class="media"><img loading="lazy" src="screenshots/lecteur.png" alt="Les commandes du lecteur en capsule translucide" width="1600" height="1000"></div>
+  </section>
+
+  <section class="feature">
+    <div>
+      <p class="eyebrow">Les séries</p>
+      <h2>Les épisodes s'enchaînent tout seuls</h2>
+      <p>Pendant un épisode, <strong>Passer l'intro</strong> et <strong>Passer le générique</strong> apparaissent au bon moment, sur les repères détectés par votre serveur. Avec Plex, ces boutons sont là pour tous les comptes.</p>
+      <ul class="points">
+        <li><strong>Épisode suivant</strong> : à la fin d'un épisode, sa jaquette, son titre et son résumé, avec un compte à rebours réglable de 5 à 30 secondes (ou aucun).</li>
+        <li><strong>Reprise</strong> là où vous vous étiez arrêté, sur tous vos appareils, grâce à la progression enregistrée par le serveur.</li>
+        <li><strong>Continuer à regarder</strong> en tête de l'accueil, avec la scène et le temps restant.</li>
+        <li><strong>Bandes-annonces</strong> : celle du serveur d'abord, sinon celle de TMDB, dans votre langue quand elle existe.</li>
+      </ul>
+    </div>
+    <div class="media"><img loading="lazy" src="screenshots/episode-suivant.png" alt="L'écran Épisode suivant, avec son compte à rebours" width="1600" height="1000"></div>
+  </section>
+
+  <section class="feature flip">
+    <div>
+      <p class="eyebrow">Le son</p>
+      <h2>Dolby, DTS et Atmos jusqu'à l'ampli</h2>
+      <p>Sur Android et Android TV, le son Dolby, DTS ou Atmos part tel quel vers l'ampli ou la barre de son qui l'accepte. Les formats que l'appareil ne sait pas décoder (DTS, DTS-HD, TrueHD) le sont sur place, plutôt que de faire convertir tout le film par le serveur.</p>
+      <ul class="points">
+        <li>La page <strong>Réglages → Lecteur</strong> montre les formats que votre sortie audio accepte.</li>
+        <li><strong>Décodé ici</strong> : pour un appareil qui annonce à tort un format qu'il ne lit pas, le son est décodé par l'appareil.</li>
+        <li>Au démarrage de la TV, quand la liaison HDMI n'est pas encore établie, Maku se souvient des formats de votre ampli.</li>
+      </ul>
+    </div>
+    <div class="media">
+      <div class="card" style="gap: 14px;">
+        <h3>Une vidéo se fige ? Maku vous le dit.</h3>
+        <p>Sur Android, quand l'image n'avance plus alors que la vidéo est chargée, Maku ne reste pas bloqué : un message propose de <strong style="color: var(--text);">réessayer</strong> au même endroit, de <strong style="color: var(--text);">passer 10 s</strong>, de <strong style="color: var(--text);">décoder le son sur l'appareil</strong> ou de demander une <strong style="color: var(--text);">conversion par le serveur</strong>, qui reprend au même endroit.</p>
+        <p>Si c'est le son envoyé tel quel qui fait caler votre TV, Maku passe de lui-même en « Décodé ici » et vous le signale.</p>
+        <p>Un <strong style="color: var(--text);">journal de diagnostic</strong> garde la trace de chaque lecture, à partager depuis le téléphone, ou par QR code depuis la TV.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="feature">
+    <div>
+      <p class="eyebrow">Hors ligne</p>
+      <h2>Vos films dans le train, sans réseau</h2>
+      <p>Sur téléphone et tablette Android, <strong>Télécharger</strong> garde un film, un épisode ou une saison entière sur l'appareil : dans le fichier d'origine avec toutes ses pistes, ou converti par le serveur en 1080p ou 720p, plus léger. Un album ou une playlist se télécharge aussi.</p>
+      <ul class="points">
+        <li>La page <strong>Téléchargements</strong> les regroupe avec leur avancement, et les lit sans réseau.</li>
+        <li>Une coupure reprend là où elle s'était arrêtée.</li>
+        <li>La progression jouée hors ligne est renvoyée au serveur dès qu'il répond.</li>
+        <li>Le bouton n'apparaît que pour les comptes autorisés à télécharger par l'administrateur du serveur.</li>
+      </ul>
+    </div>
+    <div class="media phones"><img loading="lazy" src="screenshots/telephone.png" alt="Maku sur un téléphone : bandeau et Continuer à regarder" width="412" height="839"></div>
+  </section>
+
+  <aside class="callout">
+    <div>
+      <h3>Envie d'essayer ?</h3>
+      <p>Maku est gratuit, sur Windows, macOS, Linux, Android, Android TV et Fire TV.</p>
+    </div>
+    <a class="btn btn-primary" href="index.html#telecharger">Télécharger Maku</a>
+  </aside>
+
+  <section class="section">
+    <h2 style="font-size: 30px;">Les autres espaces</h2>
+    <div class="next">
+      <a class="card" href="bibliotheques.html"><h3>Bibliothèques</h3><p>Affiches, fiches, catégories et collections.</p><span class="more">Voir →</span></a>
+      <a class="card" href="musique.html"><h3>Musique</h3><p>Playlists, Mix of Three, paroles et radio.</p><span class="more">Voir →</span></a>
+      <a class="card" href="appareils.html"><h3>TV et téléphone</h3><p>La télécommande, le pouce, la voiture.</p><span class="more">Voir →</span></a>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <span>© Maku · Logiciel libre sous licence GPL-3.0</span>
+    <nav aria-label="Liens du bas de page">
+      <a href="installer.html">Installer</a>
+      <a href="configurer.html">Configurer</a>
+      <a href="faq.html">Questions</a>
+      <a href="https://github.com/yanutros/maku/blob/main/PRIVACY.md">Confidentialité</a>
+      <a href="https://github.com/yanutros/maku/blob/main/LICENSE">Licence</a>
+      <a href="https://github.com/yanutros/maku">GitHub</a>
+    </nav>
+  </div>
+</footer>
+
+</body>
+</html>

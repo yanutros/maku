@@ -18,221 +18,49 @@
 </p>
 
 <p align="center">
-  <a href="https://yanutros.github.io/maku/">Site</a> ·
-  <a href="#-ce-que-fait-maku">Fonctionnalités</a> ·
-  <a href="#-aperçu">Aperçu</a> ·
-  <a href="#-installer">Installer</a> ·
-  <a href="#%EF%B8%8F-configurer">Configurer</a> ·
+  <a href="https://yanutros.github.io/maku/"><b>Site</b></a> ·
+  <a href="https://yanutros.github.io/maku/installer.html">Installer</a> ·
+  <a href="https://yanutros.github.io/maku/configurer.html">Configurer</a> ·
+  <a href="https://yanutros.github.io/maku/faq.html">Questions fréquentes</a> ·
   <a href="#-développer">Développer</a> ·
   <a href="#-confidentialité">Confidentialité</a> ·
   <a href="#-signature-du-code">Code signing policy</a> ·
   <a href="#%EF%B8%8F-mentions-légales">Mentions légales</a> ·
-  <a href="#-soutenir-maku">Soutenir</a> ·
   <a href="#-licence">Licence</a>
 </p>
 
 ---
 
-Maku (anciennement **Plexr**) est un client [Plex](https://www.plex.tv), [Jellyfin](https://jellyfin.org) et [Emby](https://emby.media) pour PC,
-écrit en Rust avec [Tauri](https://tauri.app). Son nom vient de 幕, « rideau » en japonais : celui qui s'ouvre sur la
-séance ; son logo, un soleil couchant rayé, prend la couleur choisie dans l'interface. La vidéo
-et la musique sont lues par [mpv](https://mpv.io), directement dans la fenêtre de l'application, et l'interface est
-pensée comme celle d'une box TV : grands visuels, bandeaux qui défilent, rien de superflu.
+Maku (anciennement **Plexr**) est un client [Plex](https://www.plex.tv), [Jellyfin](https://jellyfin.org) et [Emby](https://emby.media)
+pour ordinateur, téléphone, tablette et TV, écrit en Rust avec [Tauri](https://tauri.app). Son nom vient de 幕, « rideau » en
+japonais : celui qui s'ouvre sur la séance ; son logo, un soleil couchant rayé, prend la couleur choisie dans l'interface.
 
-Il existe aussi en **application Android**, pour les **téléphones**, les **tablettes** et **Android TV / Google TV** :
-une interface tactile façon application mobile sur téléphone, et une interface dédiée à la télécommande, plus
-légère, pour rester fluide sur le matériel limité des téléviseurs.
+Il a été pensé pour être **rapide et fluide** : la vidéo d'origine est décodée par l'appareil lui-même ([mpv](https://mpv.io)
+sur ordinateur, le lecteur natif d'Android ailleurs), dans sa propre couche sous l'interface, sans attendre une conversion du
+serveur ; le son Dolby, DTS ou Atmos part tel quel vers l'ampli ; l'interface TV est allégée pour les téléviseurs modestes.
 
-Il réunit aussi deux outils que l'on utilise souvent à côté de Plex : **Seerr** (Jellyseerr / Overseerr), pour
-demander un film ou une série absent de la bibliothèque, et **Tracearr**, pour suivre ses statistiques de
-visionnage. Tout se fait avec son compte Plex (ou Jellyfin) : aucune clé d'API à saisir.
+Il réunit aussi deux outils que l'on utilise souvent à côté de son serveur : **Seerr**, pour demander un film ou une série
+absent, et **Tracearr**, pour suivre ses statistiques. Tout se fait avec son compte Plex (ou Jellyfin) : aucune clé d'API à saisir.
+
+> [!TIP]
+> **Le mode d'emploi complet est sur le [site de Maku](https://yanutros.github.io/maku/)** : une page par fonctionnalité,
+> le guide d'[installation](https://yanutros.github.io/maku/installer.html), celui de
+> [configuration](https://yanutros.github.io/maku/configurer.html) (Plex, Jellyfin, Emby, Seerr, Tracearr, invitations,
+> Maku Server) et les [questions fréquentes](https://yanutros.github.io/maku/faq.html).
 
 ## ✨ Ce que fait Maku
 
-<table>
-  <tr>
-    <td width="50%" valign="top">
-      <h4>🎬 Il lit tout, dans sa propre fenêtre</h4>
-      Vidéo intégrée, qui s'ouvre sur un fond noir jusqu'à sa première image, avec des commandes façon Apple TV : une capsule translucide qui flotte en bas de l'image
-      (titre, pistes audio et sous-titres en cours, progression, temps restant, ±10 s, épisode précédent et
-      suivant, arrêt), retour, volume et plein écran en boutons ronds dans les coins, raccourcis clavier. Comme dans
-      Plex, les commandes s'effacent après 4 s sans bouger la souris, et en pause quand la souris sort de la fenêtre. Dans
-      Réglages → Interface, **Barre de lecture : Minimaliste** remplace la capsule par une seule rangée sur un dégradé, sans
-      cadre (lecture, ±10 s, épisode suivant, arrêt, progression, temps restant, pistes en icônes, volume et plein écran). Reprise là où
-      vous vous étiez arrêté. Qualité au choix, comme dans Plex : le fichier d'origine, ou une conversion par le
-      serveur de 20 Mb/s en 1080p à 1,5 Mb/s en 480p, retenue pour les vidéos suivantes et visible telle quelle
-      dans Tautulli et Tracearr. Un film en plusieurs versions (4K, 1080p…) se choisit sur sa fiche, avec ses
-      propres pistes audio et sous-titres. Au survol de la barre de progression, la miniature de l'instant visé
-      apparaît, quand le serveur a généré les aperçus (Plex) ou le « trickplay » (Jellyfin).
-    </td>
-    <td width="50%" valign="top">
-      <h4>🏠 Il met vos bibliothèques en valeur</h4>
-      Accueil et bibliothèques avec un bandeau qui fait défiler cinq titres, puis un « Continuer à regarder »
-      façon plateforme de streaming : grandes affiches, et celle survolée s'ouvre en grand avec sa scène, son
-      épisode, sa progression et le bouton Reprendre ; un clic sur la carte ouvre la fiche (la saison, pour un épisode) sans rien lancer. Puis de grands panneaux « À la une » et les rangées de Plex. Au survol d'une affiche, un simple triangle blanc lance la lecture.
-      L'accueil se personnalise (Réglages → Interface, ou le bouton en bas de l'accueil) : rangées à masquer ou à
-      réordonner, et bibliothèques à épingler avec leurs derniers ajouts, pour chaque appareil. Au départ : Continuer à
-      regarder, les derniers ajouts de la première bibliothèque de films et de la première de séries (dans l'ordre du
-      menu), et les tendances à demander.
-      La fiche d'un film ou d'une série plonge dans son ambiance, comme Jellyfin : son fond en haute définition
-      sur toute la largeur (celui de la saison pour une série), le logo en grand et centré avec le titre
-      d'origine et l'heure de fin, les notes des sites comme dans Plex — IMDb, Rotten Tomatoes (tomate de la
-      presse, pop-corn du public), TMDB, et Allociné (presse et spectateurs, trouvé grâce à Wikidata) — avec
-      vos étoiles de 1 à 5 (Plex), le résumé dessous, puis deux panneaux — l'équipe d'un côté, la
-      vidéo, l'audio et les sous-titres de l'autre — la distribution et « Plus de ce genre ». Chaque note se
-      masque dans Réglages → Interface, où chaque site a sa pastille. Le bouton **⋯** de la fiche (et le menu de chaque jaquette) ne garde
-      que ce que Maku sait faire : noter, voir les informations du fichier, retirer de « Continuer à regarder »,
-      vu / non vu ; et pour l'administrateur seulement, comme dans Plex : modifier, ajouter à une collection,
-      actualiser les métadonnées et analyser.
-      Comme dans Plex, un épisode n'a pas de fiche à lui : il s'ouvre dans sa saison, sous le logo de la série (qui y ramène ; sur TV, les onglets de la série et
-      de ses saisons au-dessus), puis tous les épisodes de haut en bas, chacun avec sa vignette (▶ au survol pour le
-      lancer) et ses informations à droite : titre, vu, durée, temps restant, classement, note, vos étoiles et résumé,
-      et son menu **⋯**. L'épisode ouvert est mis en avant, et le bouton principal le reprend (**Reprendre S1 · E2**).
-      La fiche d'une série propose aussi **Reprendre S1 · E2**, qui ouvre la saison sur cet épisode ; son résumé (justifié, comme celui d'un film),
-      son encart studio et genres et ses saisons, quand elles ne remplissent pas une ligne, sont centrés sous le titre.
-      Les titres s'affichent avec leur logo officiel, comme dans Jellyfin : celui du serveur, sinon celui du
-      service en ligne de Plex — un logo dans la langue de l'interface passe avant celui du serveur, souvent en anglais —, et en dernier recours de TMDB avec votre clé d'API gratuite (Réglages → Services ; sur téléviseur, un QR code permet de la coller depuis le téléphone) ; les épisodes et les saisons reprennent celui de leur série ; sans logo nulle part, une typographie de cinéma choisie selon le genre. La musique, elle, garde ses titres en texte simple.
-    </td>
-  </tr>
-  <tr>
-    <td valign="top">
-      <h4>🗂️ Il range par catégories</h4>
-      Chaque genre devient une grande carte colorée avec un éventail des affiches les mieux notées. Un clic
-      filtre la bibliothèque.
-      Comme dans Plex, l'onglet **Bibliothèque** des films et des séries a son menu **Tout** (non vus, en cours,
-      HDR, sans correspondance… ou une valeur : genre, année, décennie, acteur, réalisateur, studio…) et son menu
-      de **tri** (titre, année, date de sortie, notes, durée, date d'ajout, au hasard…), croissant ou décroissant ;
-      le choix est gardé pour la visite suivante. La liste des filtres est celle que propose le serveur.
-      Avec Plex, l'administrateur a sur ordinateur un menu **Collection** dans l'onglet Bibliothèque :
-      **Ajouter à une collection…** range tous les titres affichés (filtre compris) dans une collection ordinaire,
-      existante ou nouvelle, comme dans Plex ; **Nouvelle collection intelligente** la compose de règles libres (titre contient « nuit », année après 2000,
-      genre est…, correspondant à toutes ou à l'une d'elles, limitées à N titres), avec un **aperçu** dans la grille
-      des titres qu'elle contiendra. Plex la tient ensuite à jour à chaque ajout dans la bibliothèque. Elle est
-      marquée d'une icône dans les Collections, et **Modifier les filtres** sur sa fiche rouvre ses règles.
-      L'onglet **Collections** n'apparaît que dans une bibliothèque de films qui en a au moins une.
-      Sur la page d'une collection, la **roue dentée** de l'administrateur règle son **ordre** (date de sortie, alphabétique ou
-      **personnalisé**, en glissant les jaquettes — une saga dans l'ordre de son histoire) ; une collection intelligente
-      peut être **convertie en collection ordinaire** pour la ranger ainsi (elle ne se remplit alors plus seule).
-      Les bibliothèques de films ont aussi leurs **collections** (sagas, univers…), avec sur ordinateur le bandeau des
-      lettres de Plex pour y sauter : chacune ouvre sa page, avec
-      ses films dans l'ordre de sortie et un bouton qui lance le premier pas encore vu.
-      Le même bandeau des lettres accompagne sur ordinateur l'onglet **Bibliothèque** des films et des séries quand
-      la liste est rangée par titre : une lettre y mène directement, même au-delà des titres déjà chargés (Plex dit
-      combien de titres commencent par chaque lettre, filtres compris ; pas de bandeau avec Jellyfin ou Emby).
-    </td>
-    <td valign="top">
-      <h4>🎵 Il joue votre musique</h4>
-      Une page d'accueil façon Apple Music : grands panneaux des derniers albums, playlists (la dernière lue en premier),
-      « Titres du moment », pochettes qui grandissent avec la fenêtre. Dans l'onglet Playlists, **Écouter tout** mélange
-      toutes vos playlists d'un coup, comme dans Plex, et **Mix of Three** en mélange trois au choix le temps d'une
-      écoute ; comme une playlist, sa pochette ouvre la liste de ses titres (avec **Oublier ce mix** pour le retirer plus
-      tôt) et ▶ le lance. Le mix reste deux jours après
-      sa dernière écoute en tête des playlists de l'accueil musique, puis
-      disparaît (ce n'est pas une playlist du serveur ; un titre présent dans deux playlists ne passe qu'une fois). File d'attente qui se réordonne en maintenant
-      un titre puis en le glissant ; dans le lecteur, **Aléatoire** mélange la suite de la file (un second appui la remet
-      dans l'ordre) et **Répéter** répète la file, puis le titre en cours, puis plus rien, comme dans Plex (ordinateur,
-      téléphone, TV, Chromecast). Vue « En cours de lecture », dont le fond aux couleurs de la pochette passe jusque derrière le menu, avec les
-      paroles synchronisées à côté de la pochette (lrclib.net, gratuit ; la ligne chantée ressort, un clic y saute,
-      désactivable dans Réglages → Lecteur). **Radio** sur la fiche d'un artiste : ses titres mêlés à ceux
-      d'artistes proches, choisis par le serveur (station de Plex, mix instantané de Jellyfin et Emby). Les titres
-      s'enchaînent sans blanc : le suivant est chargé pendant la fin du précédent. Le bouton **Écouter sur** envoie
-      la musique sur une enceinte ou un téléviseur **Chromecast** du réseau (ordinateur, téléphone et tablette
-      Android) : l'appareil lit lui-même la file, Maku la pilote et peut être fermé ; sur iPad et iPhone, il ouvre
-      **AirPlay**, et sur Mac le son suit la sortie choisie dans macOS. Une barre
-      de lecture flottante, en verre dépoli teinté par la pochette, reste en bas du contenu pendant que vous naviguez,
-      avec des commandes toutes de même taille. Comme dans Plex, chaque titre se note de 1 à 5 étoiles (au survol
-      de la ligne, ou dans son menu) et a son menu **⋮** (ou clic droit) : lire ensuite, ajouter à la file d'attente
-      ou à une playlist (les vôtres, ou une nouvelle), télécharger (Android, avec le droit du serveur) et voir les
-      informations du fichier (format, débit, échantillonnage…). Les albums et les artistes ont le même menu. Pour
-      l'administrateur seulement, comme dans Plex : modifier, actualiser les métadonnées et analyser.
-    </td>
-  </tr>
-  <tr>
-    <td valign="top">
-      <h4>📥 Il fait vos demandes</h4>
-      Découvrez les tendances et les sorties à venir via Seerr, lisez la fiche complète (notes, casting,
-      bande-annonce) et demandez un film ou des saisons en un clic. Un titre déjà demandé (en cours, partiellement
-      disponible ou disponible) ne se redemande pas.
-    </td>
-    <td valign="top">
-      <h4>📊 Il raconte vos habitudes</h4>
-      Avec Tracearr : temps passé devant l'écran, top 10 du mois, plus long marathon, genres préférés… dans
-      une page façon Apple TV, sur un fond aux couleurs de votre titre le plus regardé qui couvre toute la fenêtre, menu compris.
-    </td>
-  </tr>
-  <tr>
-    <td valign="top">
-      <h4>🔍 Il trouve tout</h4>
-      Une seule recherche pour les films, séries et artistes de la bibliothèque, puis les titres absents
-      que l'on peut demander, rangés par type : une rangée Films, une Séries, une Musique (seulement celles qui ont des
-      résultats). Un acteur, sur une fiche, ouvre tous ses films et séries du serveur.
-    </td>
-    <td valign="top">
-      <h4>🔑 Il se connecte avec Plex</h4>
-      Connexion par code PIN, choix du serveur avec test automatique des adresses (revérifiées au retour dans l'application et à chaque changement de réseau, Wi-Fi ↔ données mobiles) ; Seerr et Tracearr
-      utilisent le même compte. Avec Plex Home, « Qui regarde ? » au lancement : profils, profils gérés et
-      code PIN, comme dans Plex, ou connexion automatique au dernier profil (Réglages → Compte) ; la carte du
-      profil, en bas du menu, change d'utilisateur à tout moment.
-    </td>
-  </tr>
-  <tr>
-    <td valign="top">
-      <h4>✏️ Il modifie vos fiches</h4>
-      Titre, résumé, dates, genres, affiche et fond d'écran d'un film, d'une série ou d'un album, avec les
-      verrous de champ de Plex. Menu ⋮ (ou clic droit) sur chaque jaquette. « Ajouter à la collection… » range un
-      film ou une série dans une collection de sa bibliothèque, ou en crée une nouvelle, comme dans Plex.
-    </td>
-    <td valign="top">
-      <h4>🛠️ Il administre le serveur</h4>
-      Lectures en cours, entretien des bibliothèques, utilisateurs (bibliothèques partagées, téléchargements,
-      invitation, retrait) et réglages du serveur (général, réseau, transcodeur…),
-      pour l'administrateur uniquement : le propriétaire du serveur selon plex.tv (pas les membres du Plex Home
-      ni les amis), et chaque action le vérifie.
-    </td>
-  </tr>
-  <tr>
-    <td valign="top">
-      <h4>🎨 Il prend vos couleurs</h4>
-      Quatre couleurs au choix (jaune, rouge, vert, violet) dans Réglages → Interface ; l'icône de l'application
-      suit, dans la barre des tâches comme sur l'écran d'accueil d'Android et de la TV.
-    </td>
-    <td valign="top">
-      <h4>🌍 Il parle votre langue</h4>
-      Français, anglais, espagnol, allemand et néerlandais : Maku suit la langue du système, ou celle choisie dans
-      Réglages → Interface. Les fiches Seerr et les rangées de Plex arrivent dans la même langue.
-    </td>
-  </tr>
-  <tr>
-    <td valign="top">
-      <h4>🔄 Il se met à jour tout seul</h4>
-      Au lancement, une fenêtre présente la nouvelle version, ses nouveautés et ses corrections (dans la langue
-      de l'interface ; Réglages → Compte les rappelle pour la version installée) ; un clic télécharge et installe
-      le bon paquet, y compris sur Android TV, où installer à la main est fastidieux.
-    </td>
-    <td valign="top">
-      <h4>📨 Il s'invite en un QR code</h4>
-      L'administrateur partage un QR code ; chez l'utilisateur, il remplit Seerr et Tracearr et lance la
-      connexion. Sur la télé, on le montre simplement à son téléphone.
-    </td>
-  </tr>
-  <tr>
-    <td valign="top">
-      <h4>📺 Il passe sur la télé</h4>
-      Sur Android TV, une interface faite pour la télécommande, à la manière des applications TV : la fiche de
-      l'élément sélectionné en haut, des rangées de jaquettes en dessous, un menu qui se déplie quand on y entre.
-      Dans la musique et les statistiques, la page prend les couleurs floutées de la pochette sélectionnée, jusque
-      derrière le menu.
-      Connexion par un code à saisir sur plex.tv/link depuis son téléphone.
-    </td>
-    <td valign="top">
-      <h4>📱 Il tient dans la main</h4>
-      Sur téléphone, une interface mobile : onglets en bas, bandeau et « Continuer à regarder » à la taille de
-      l'écran, mini-lecteur façon Spotify et musique pilotable depuis la notification, même Maku fermé.
-      En voiture, la bibliothèque musicale se parcourt et se lit depuis l'écran d'Android Auto.
-      Sur tablette, l'interface de l'ordinateur adaptée au toucher.
-    </td>
-  </tr>
-</table>
+| | |
+| --- | --- |
+| 🎬 **[Le lecteur](https://yanutros.github.io/maku/lecture.html)** | 4K, HEVC et HDR sans conversion, pistes audio et sous-titres, aperçus sur la barre de progression, passer l'intro et le générique, épisode suivant, son vers l'ampli, lecture hors ligne sur Android |
+| 🏠 **[Les bibliothèques](https://yanutros.github.io/maku/bibliotheques.html)** | accueil façon plateforme de streaming, fiches immersives (logos, notes IMDb, Rotten Tomatoes, TMDB, Allociné), catégories, collections, filtres, tri et bandeau des lettres |
+| 🎵 **[La musique](https://yanutros.github.io/maku/musique.html)** | playlists, Mix of Three, paroles synchronisées, radio d'artiste, enchaînement sans blanc, Chromecast, AirPlay, musique en arrière-plan et Android Auto |
+| 📥 **[Les demandes](https://yanutros.github.io/maku/demandes.html)** | tendances et sorties à venir via Seerr, fiche complète, demande d'un film ou de saisons en un clic |
+| 📊 **[Les statistiques](https://yanutros.github.io/maku/statistiques.html)** | avec Tracearr : temps devant l'écran, top 10 du mois, genres préférés, plus longue série, plus gros marathon |
+| 📺 **[TV, téléphone et voiture](https://yanutros.github.io/maku/appareils.html)** | une interface pour la télécommande, une autre pour le téléphone, la musique sur Android Auto, des mises à jour intégrées |
+| 🛠️ **[Pour l'administrateur](https://yanutros.github.io/maku/administration.html)** | lectures en cours, débit, utilisateurs, réglages du serveur, fiches à modifier, collections intelligentes, invitations en QR code |
+
+Maku parle français, anglais, espagnol, allemand et néerlandais, et prend la couleur de votre choix (jaune, rouge, vert ou violet).
 
 ## 📸 Aperçu
 
@@ -247,222 +75,92 @@ visionnage. Tout se fait avec son compte Plex (ou Jellyfin) : aucune clé d'API 
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/screenshots/films.png" alt="Bibliothèque de films" /><br /><em>🎞️ Une bibliothèque, onglet Recommandé</em></td>
-    <td width="50%"><img src="docs/screenshots/categories.png" alt="Catégories" /><br /><em>🗂️ Les catégories</em></td>
-  </tr>
-  <tr>
-    <td><img src="docs/screenshots/fiche.png" alt="Fiche d'un film" /><br /><em>📄 La fiche d'un film</em></td>
-    <td><img src="docs/screenshots/lecteur.png" alt="Lecteur vidéo" /><br /><em>▶️ Le lecteur intégré</em></td>
-  </tr>
-  <tr>
-    <td><img src="docs/screenshots/decouvrir.png" alt="Découvrir" /><br /><em>🧭 Découvrir avec Seerr</em></td>
-    <td><img src="docs/screenshots/seerr.png" alt="Fiche Seerr" /><br /><em>📥 Demander un titre</em></td>
+    <td width="50%"><img src="docs/screenshots/fiche.png" alt="Fiche d'un film" /><br /><em>📄 La fiche d'un film</em></td>
+    <td width="50%"><img src="docs/screenshots/lecteur.png" alt="Lecteur vidéo" /><br /><em>▶️ Le lecteur intégré</em></td>
   </tr>
   <tr>
     <td><img src="docs/screenshots/musique.png" alt="Musique" /><br /><em>🎵 La musique</em></td>
-    <td><img src="docs/screenshots/ecoute.png" alt="En cours de lecture" /><br /><em>🎧 En cours de lecture</em></td>
+    <td><img src="docs/screenshots/decouvrir.png" alt="Découvrir" /><br /><em>🧭 Découvrir avec Seerr</em></td>
   </tr>
   <tr>
     <td><img src="docs/screenshots/stats.png" alt="Statistiques" /><br /><em>📊 Mes statistiques (Tracearr)</em></td>
-    <td><img src="docs/screenshots/series.png" alt="Séries" /><br /><em>📺 Les séries</em></td>
+    <td><img src="docs/screenshots/tv.png" alt="Interface TV" /><br /><em>📺 Sur Android TV</em></td>
   </tr>
-</table>
-
-## 🧰 Ce qu'il faut
-
-<table>
-  <tr><td>💻 <b>Système</b></td><td>Windows 10 ou 11, Linux (Fedora, Debian, Ubuntu… en 64 bits), macOS 11 et plus, ou Android 7 et plus (téléphones, tablettes, Android TV, Google TV ; processeurs ARM)</td></tr>
-  <tr><td>🎞️ <b>Plex</b></td><td>un compte Plex et l'accès à un serveur Plex Media Server</td></tr>
-  <tr><td>▶️ <b>mpv</b></td><td>sur ordinateur, le lecteur <a href="https://mpv.io">mpv</a> : fourni avec l'installeur Windows, installé automatiquement avec les paquets RPM et DEB, sinon voir ci-dessous (inutile sur Android)</td></tr>
-  <tr><td>➕ <b>En option</b></td><td>une instance <a href="https://github.com/seerr-team/seerr">Seerr / Jellyseerr / Overseerr</a> pour les demandes, une instance <a href="https://github.com/connorgallopo/Tracearr">Tracearr</a> pour les statistiques</td></tr>
 </table>
 
 ## 🚀 Installer
 
-Les paquets de chaque version sont publiés dans les [Releases](../../releases) du dépôt.
-
-Maku est aussi sur le [Microsoft Store](https://apps.microsoft.com/detail/9MZSQFBJL1X5) (Windows) et l'[Amazon Appstore](https://www.amazon.com/gp/product/B0HQWWD4DL) (Fire TV) :
-c'est alors le magasin qui l'installe et le met à jour.
+Les paquets de chaque version sont publiés dans les [Releases](../../releases). Maku est aussi sur le
+[Microsoft Store](https://apps.microsoft.com/detail/9MZSQFBJL1X5) (Windows) et l'[Amazon Appstore](https://www.amazon.com/gp/product/B0HQWWD4DL)
+(Fire TV) : c'est alors le magasin qui l'installe et le met à jour. Ailleurs, Maku se met à jour lui-même.
 
 | Système | Fichier | Installation |
 | --- | --- | --- |
-| 🪟 **Windows** | `Maku_<version>_x64-setup.exe` (ou `.msi`) | lancez l'installeur : mpv est inclus, rien d'autre à installer (voir aussi [Signature du code](#-signature-du-code)) |
+| 🪟 **Windows** | `Maku_<version>_x64-setup.exe` (ou `.msi`) | lancez l'installeur : mpv est inclus (voir aussi [Signature du code](#-signature-du-code)) |
 | 🎩 **Fedora / RHEL** | `Maku-<version>-1.x86_64.rpm` | `sudo dnf install ./Maku-*.rpm` (installe aussi mpv) |
 | 🐧 **Debian / Ubuntu** | `Maku_<version>_amd64.deb` | `sudo apt install ./Maku_*.deb` (installe aussi mpv) |
-| 📦 **Autres Linux** | `Maku_<version>_amd64.AppImage` | rendez-le exécutable (`chmod +x`), installez mpv avec votre gestionnaire de paquets |
+| 📦 **Autres Linux** | `Maku_<version>_amd64.AppImage` | `chmod +x`, et mpv depuis votre gestionnaire de paquets |
 | 🍎 **macOS** | `Maku_<version>_universal.dmg` | glissez Maku dans Applications, puis `brew install mpv` |
-| 🤖 **Android (téléphone, tablette, TV)** | `Maku_<version>_android.apk` | voir ci-dessous |
+| 🤖 **Android (téléphone, tablette, TV)** | `Maku_<version>_android.apk` | à installer une fois à la main ; les versions suivantes s'installent depuis Maku |
 
-Maku s'ouvre ensuite comme n'importe quel logiciel (menu Démarrer, lanceur d'applications ou Launchpad).
+Le [guide d'installation](https://yanutros.github.io/maku/installer.html) détaille chaque système : Microsoft Defender,
+premier lancement sur macOS, FFmpeg sous Fedora, installation sur Android TV, mises à jour. Pas encore de Flatpak : il
+demanderait d'embarquer mpv dans le bac à sable et de passer la relecture de Flathub.
 
-> [!NOTE]
-> **Sous Linux et macOS**, la vidéo s'ouvre dans une fenêtre mpv séparée, en plein écran : Maku la pilote à
-> distance (pause, avance, pistes…) et suit la progression comme sous Windows. L'incrustation de la vidéo dans la
-> fenêtre de Maku n'existe pour l'instant que sous Windows. La musique fonctionne partout de la même façon.
+## ⚙️ Configurer
 
-> [!IMPORTANT]
-> **Fedora** : le mpv des dépôts Fedora s'appuie sur `ffmpeg-free`, qui ne sait décoder ni le H.264, ni le HEVC,
-> ni l'E-AC3 : la plupart des films s'arrêtent dès l'ouverture. Installez le FFmpeg complet de
-> [RPM Fusion](https://rpmfusion.org/Configuration) (dépôts « free » activés) :
-> `sudo dnf swap ffmpeg-free ffmpeg --allowerasing`.
+Au premier lancement, choisissez **Plex** (connexion par code dans le navigateur, ou sur plex.tv/link depuis une TV),
+**Jellyfin** ou **Emby** (adresse, identifiant et mot de passe, ou Quick Connect). Seerr et Tracearr s'ajoutent dans
+**Réglages → Services**, à la main ou avec l'invitation en QR code de l'administrateur.
 
-> [!IMPORTANT]
-> **macOS** : l'application n'est pas signée par Apple. Au premier lancement, faites un clic droit sur Maku →
-> **Ouvrir**, puis confirmez.
+Tout est expliqué pas à pas dans le [guide de configuration](https://yanutros.github.io/maku/configurer.html).
+L'administrateur qui ne veut pas exposer Seerr et Tracearr sur Internet installe le relais [Maku Server](server/README.md)
+(image Docker `ghcr.io/yanutros/maku-server`, amd64 et arm64).
 
-### 📱 Android : téléphones, tablettes et TV
+## 🛠️ Développer
 
-L'APK s'installe à la main (« sideload »), une seule fois — les versions suivantes s'installent depuis Maku
-(voir *Mises à jour*). Une version **Google Play**, « Maku Player », est en test fermé : celle-là est mise à jour par
-le Play Store.
+```bash
+npm install
+npm run tauri dev
+```
 
-- **Téléphone et tablette** : copiez l'APK sur l'appareil et ouvrez-le ; Android demande d'autoriser
-  l'installation depuis le gestionnaire de fichiers ou le navigateur.
-- **Téléviseur** : le plus simple est l'application *Downloader* (ou un gestionnaire de fichiers avec une clé
-  USB). Depuis un ordinateur, avec le débogage activé dans les options pour les développeurs de la TV :
-  `adb connect <ip-de-la-tv>:5555` puis `adb install Maku_<version>_android.apk`.
+L'interface se recharge à chaque modification et le backend Rust est recompilé automatiquement.
 
-Maku apparaît ensuite parmi les applications, avec sa bannière sur l'écran d'accueil de la TV.
+**Mode démo.** `npx vite` puis `http://localhost:1420/?demo=accueil` lance l'interface dans un navigateur, sans
+serveur, avec une bibliothèque fictive et des visuels générés. Vues disponibles : `accueil`, `films`,
+`categories`, `series`, `serie`, `fiche`, `lecteur`, `decouvrir`, `seerr`, `musique`, `ecoute`, `stats`, `reglages`,
+`reglages-interface` et `vide` (l'accueil sans musique en cours). C'est ce mode qui produit les captures de cette page et du
+site. `?device=phone` ou `?device=tv` imposent l'interface du téléphone ou du téléviseur dans le navigateur.
 
-Sous **Android 17**, Maku demande au premier lancement l'autorisation d'accéder aux appareils du réseau local :
-sans elle, un serveur sur le réseau de la maison (Jellyfin, ou Plex par son adresse locale) reste injoignable.
+**Le site.** Il est dans [`docs/`](docs/) et publié par GitHub Pages : des pages HTML statiques (`index.html`, une page par
+fonctionnalité, `installer.html`, `configurer.html`, `faq.html`) qui partagent [`docs/assets/site.css`](docs/assets/site.css).
+Il se tient à jour avec l'application : chaque nouvelle fonctionnalité y a sa place, sans données personnelles.
 
-**Sur téléphone**, l'interface prend la forme d'une application mobile : un en-tête compact sous la barre
-d'état, des onglets en bas (Accueil, Bibliothèques, Découvrir, Stats, Réglages), le bandeau et « Continuer à
-regarder » à la taille de l'écran, des fiches qui s'empilent. Un appui long sur une affiche ouvre son menu ; dans
-les bandes d'onglets, l'onglet touché se centre. Les vidéos passent en paysage et en plein écran.
+**Tests de l'interface.** `npm test` ouvre Maku en mode démo avec [Playwright](https://playwright.dev) et le pilote
+comme un utilisateur, sur quatre appareils simulés : ordinateur, téléviseur (flèches, OK, Retour), téléphone et
+moteur de Safari (iPad, Mac). Les parcours (`tests/`) couvrent l'accueil, les fiches (série, saison, épisode),
+les acteurs, le lecteur, les Réglages et la barre simplifiée. Ils vérifient des règles tirées des bugs déjà
+corrigés (fond jusqu'au bord gauche, sélection entière à l'écran et de la couleur du thème, un seul acteur
+sélectionné, lignes des Réglages sans saut, plus de cases à cocher, pas de barres de défilement sur TV…) et
+comparent des captures à des images de référence (`tests/images/`). Après un changement voulu de l'affichage,
+`npm run test:update` met ces images à jour. Les navigateurs s'installent une fois avec
+`npx playwright install chromium webkit`. Sur GitHub, les tests passent à chaque envoi sur `main` et avant la
+construction des paquets d'une version (les images de référence, prises sous Windows, n'y sont pas comparées).
 
-**Musique en arrière-plan** : sur téléphone comme sur tablette, la musique continue quand Maku est quitté, avec
-une notification (pochette, titre, précédent / lecture / suivant, progression) qui la pilote aussi depuis l'écran
-de verrouillage et les boutons d'un casque Bluetooth. Fermer Maku depuis les applications récentes l'arrête.
-Le mini-lecteur, façon Spotify (lecture, suivant et arrêt), flotte sur le bas de la page et ouvre en plein écran la pochette, la progression et toutes les commandes, arrêt compris ; comme sur ordinateur, le bouton lecture a la taille des autres. Sous les commandes, **Paroles** (la ligne chantée suit la voix et reste au milieu) ou **À suivre** (la suite de la file).
+**Tests du lecteur Android.** Les règles du lecteur vidéo natif sont à part, dans `PlaybackRules.kt` : vidéo
+figée (prête, en lecture, avec de l'avance, mais immobile 5 s ; reprise ou saut ensuite), son envoyé tel quel à
+l'ampli, format de l'image à l'écran, type des sous-titres externes, erreurs qui demandent la conversion,
+numérotation des pistes et mémoire des formats de l'ampli au démarrage de la TV. Des tests ordinaires
+(`src-tauri/gen/android/app/src/test/`) les vérifient sans appareil : dans `src-tauri/gen/android`,
+`./gradlew :app:testUniversalDebugUnitTest`, après une première construction de l'APK (Tauri y génère des
+fichiers du projet). Sur GitHub, ils passent à chaque envoi sur `main`, après la construction de l'APK.
 
-**Android Auto** : Maku apparaît parmi les applications de musique de la voiture, avec quatre onglets —
-**Accueil** (ajouts récents), **Artistes** (avec une lecture aléatoire de toute la bibliothèque), **Albums** et
-**Playlists** — illustrés de leurs pochettes (la photo de l'artiste quand un album n'en a pas, comme dans l'application). Un album ou une playlist se lit d'un coup ou à partir d'un morceau,
-avec la file d'attente à l'écran ; « Joue … sur Maku » lance un artiste, un album ou un morceau à la voix. La
-voiture lit elle-même la musique (ExoPlayer), même si Maku n'est pas ouvert sur le téléphone : le compte et le
-serveur viennent de la configuration de Maku, et hors du Wi-Fi l'adresse distante du serveur (ou le relais Plex)
-prend le relais. Les écoutes remontent dans l'historique de Plex. Une musique lancée sur le téléphone remplace
-celle de la voiture, et inversement.
-
-> [!IMPORTANT]
-> Tant que Maku n'est pas sur le Play Store, Android Auto ne montre pas dans la voiture une application
-> installée à la main. Sur le téléphone : Android Auto → **Paramètres** → touchez dix fois **Version** pour
-> ouvrir les **Paramètres développeur** → activez **Sources inconnues**. Maku apparaît alors dans le lanceur de
-> la voiture (et dans **Personnaliser le lanceur**, si elle y est décochée). Sans ce réglage, toucher la musique
-> de Maku dans la voiture ouvre seulement l'application sur le téléphone.
-
-En cas de problème en voiture, la voiture affiche la cause (serveur à choisir,
-téléphone à déverrouiller une première fois, compte Plex absent, serveur injoignable). Android Auto ne connaît
-pour l'instant que Plex.
-
-> [!NOTE]
-> **Lecture sur Android** : il n'y a pas de mpv. La vidéo est lue par ExoPlayer, le lecteur natif qu'utilisent
-> aussi Plex et Wholphin : le fichier d'origine (4K, HEVC, HDR compris) est décodé par l'appareil et affiché dans
-> sa propre couche, sous l'interface de lecture de Maku — fluide même sur un téléviseur modeste, au bon format
-> (bandes noires pour un film plus large que l'écran). Les pistes audio
-> et les sous-titres (intégrés ou externes) se choisissent pendant la lecture. Comme Moonfin, Maku convertit le
-> moins possible : les sons que l'appareil ne décode pas (DTS, DTS-HD, TrueHD) le sont par FFmpeg, et le son
-> Dolby, DTS ou Atmos part tel quel vers l'ampli ou la barre de son qui l'accepte (**Réglages → Lecteur** :
-> Automatique, ou « Décodé ici » si un film reste muet ou se fige : le son est alors vraiment décodé par l'appareil, même s'il annonce accepter le Dolby ; la page montre les formats acceptés). La dernière
-> détection valable de la sortie audio est gardée pour le démarrage à froid, quand la liaison HDMI n'est pas encore
-> établie. Si seul le son reste illisible, le serveur (Plex, Jellyfin ou Emby) copie la vidéo d'origine et ne
-> convertit que le son ; sinon, il convertit tout à la volée (HLS, 1080p). La musique est lue directement. La reprise,
-> l'épisode suivant et la progression fonctionnent comme sur ordinateur.
->
-> **Lecture hors ligne** (téléphone et tablette Android) : sur la fiche d'un film, d'un épisode ou d'une saison,
-> **Télécharger** garde le titre sur l'appareil, dans le fichier d'origine (toutes ses pistes) ou converti par le
-> serveur en 1080p ou 720p, plus léger ; un album ou une playlist se télécharge aussi, titre par titre. La page
-> **Téléchargements** (Bibliothèques sur téléphone, menu sur tablette) les regroupe, avec leur avancement, et les lit
-> sans réseau ; sans connexion, l'accueil y mène. Une coupure reprend là où elle s'était arrêtée. La progression
-> jouée hors ligne est renvoyée au serveur dès qu'il répond. Le téléchargement n'apparaît que pour les comptes
-> qui en ont le droit : « Autoriser les téléchargements » de Plex, réglé par l'administrateur pour chaque ami, ou
-> « Autoriser le téléchargement de médias » de Jellyfin et d'Emby.
->
-> **Journal de diagnostic** (**Réglages → Lecteur**) : si l'appareil se bloque pendant une vidéo ou qu'une lecture
-> échoue, Maku garde la trace de l'appareil (modèle, puce, mémoire, écran), de chaque lecture (fichier d'origine ou
-> conversion, décodeurs choisis, format de l'image et du son, images perdues), des erreurs et de la mémoire libre
-> toutes les 30 secondes pendant une vidéo. Chaque ligne est écrite aussitôt, si bien que celles qui précèdent un
-> blocage survivent au redémarrage, et une lecture interrompue est signalée au lancement suivant. Sur téléphone, le
-> journal se partage ; sur TV, un QR code le fait télécharger par le téléphone, sur le réseau local.
->
-> **Vidéo figée** (Android) : quand l'image n'avance plus alors que la vidéo est chargée (prête, pas en pause,
-> des données d'avance, position immobile depuis 5 s), Maku le dit au lieu de rester bloqué : un message propose
-> **Réessayer** (au même endroit), **Passer 10 s**, si le son part tel quel vers l'ampli **Son décodé par
-> l'appareil**, et **Conversion par le serveur** : le serveur convertit l'image et le son, et la lecture reprend au même
-> endroit (pas pour un titre téléchargé, ni déjà converti). Si le son (Dolby…) partait réellement tel quel avec le réglage automatique, certaines TV calent
-> justement dessus après un saut : Maku passe alors de lui-même en « Décodé ici » pour cet appareil, relance au même
-> endroit et le signale par un court message (le réglage reste modifiable dans **Réglages → Lecteur**). Le journal note
-> le blocage (position, mémoire tampon, format du son, sortie vers l'ampli), chaque geste tenté et l'issue (lecture
-> repartie, saut, ou nouveau blocage).
-
-> [!TIP]
-> **Sur téléviseur**, l'interface est volontairement plus sobre que sur ordinateur (pas de carrousel animé, de
-> cartes qui s'agrandissent ni de flou) pour consommer peu de mémoire. Le menu de gauche se déplie en faisant
-> glisser la page vers la droite, comme dans Wholphin, sans la remettre en page : l'animation reste fluide même
-> sur un téléviseur modeste, comme la descente dans une fiche, dont le fond s'assombrit sans être redessiné. Avec
-> **Réglages → Interface → Barre de navigation simplifiée**, le menu devient une pilule d'icônes flottante, centrée
-> en hauteur, qui ne se déplie plus (la rubrique en cours en rond de la couleur du thème). Dans les Réglages, haut / bas
-> passent d'une ligne à la suivante, quelle que soit la place de la commande dans la ligne.
-> Dans une bibliothèque, la barre d'onglets (Recommandé, Bibliothèque, Catégories…) reste au même endroit d'un
-> onglet à l'autre, et la sélection reste sur l'onglet choisi. Les nouveautés arrivent d'abord sur
-> l'application de bureau. Un élément est toujours sélectionné (à l'arrivée, après une lecture), et les fiches
-> se parcourent rangée par rangée comme dans Plex et Wholphin : haut / bas d'une rangée à l'autre (boutons,
-> audio, sous-titres, distribution, « Plus de ce genre »), gauche / droite dans la rangée. Comme dans Plex, un **appui long sur OK** (ou la touche Menu) sur une jaquette ou la vignette d'un épisode ouvre
-> le menu du titre : reprendre ou recommencer, liste de visionnage, note, retrait de « Continuer à regarder »,
-> vu / non vu, et pour la musique lecture aléatoire, lire ensuite, ajouter à la file d'attente, aller à l'artiste ou à l'album. Après un choix du menu,
-> comme au retour d'une fiche (bouton Retour), la page reste là où vous étiez, sur la même rangée et la même jaquette.
-> Au retour de la fiche d'un acteur, la fiche du film ou de la série réapparaît aussitôt (les dernières sont
-> gardées en mémoire), la sélection directement sur l'acteur, entouré d'un cercle doré comme dans Plex.
-> Sur la fiche, la version (4K, 1080p…), le son et les sous-titres se choisissent dans une liste qui s'ouvre
-> juste sous le champ, comme sur Apple TV : haut / bas, OK pour choisir, Retour pour refermer sans rien changer.
-> Vu, non vu et la note s'appliquent sur place, sans recharger la page, et une petite coche discrète marque
-> les titres vus, comme dans Plex.
-> Une saison montre ses épisodes de haut en bas, chacun avec ses informations à droite ; elle s'ouvre avec la
-> sélection sur l'épisode visé (celui de « Continuer à regarder », sinon le prochain à voir) : OK le lance, haut et
-> bas passent d'un épisode à l'autre, et tout en haut viennent les onglets de la série et des autres saisons (Plex,
-> Jellyfin et Emby).
-> La musique a son lecteur plein écran, comme dans Plex : la pochette en grand, les commandes qui s'effacent au
-> repos, la file d'attente en rangée de pochettes (flèche bas), un bouton **Paroles** qui les affiche en grand à côté
-> de la pochette, et un bouton pour tout arrêter. Pendant qu'on parcourt les pages, un petit lecteur en bas à
-> droite montre le titre en cours, sa progression et son temps. La flèche bas, tout en bas d'une page, y entre :
-> gauche / droite passent de **Pause** à **Suivant**, à **Arrêter** et au titre (OK rouvre le lecteur plein écran),
-> haut ou Retour rendent la sélection là où elle était. « En cours de lecture », en tête du menu, rouvre aussi le lecteur.
-> **Découvrir** reprend les rangées de l'accueil, et la flèche haut remonte toujours une page jusqu'à son
-> bandeau (celui des statistiques, par exemple) avant de rejoindre le menu.
-
-### 🔄 Mises à jour
-
-À chaque lancement, Maku consulte la dernière version publiée dans les [Releases](../../releases). S'il y en a
-une plus récente, une fenêtre en présente les nouveautés par-dessus l'application floutée ; **Mettre à jour**
-télécharge le paquet qui convient et l'installe :
-
-| Système | Ce qui se passe |
-| --- | --- |
-| 🪟 Windows | l'installeur tourne avec une simple barre de progression, puis Maku redémarre (version du Microsoft Store : c'est le Store qui la met à jour) |
-| 🤖 Android / TV | l'installateur d'Android s'ouvre ; la première fois, Android demande d'autoriser Maku à installer des applications (version Google Play : c'est le Play Store qui la met à jour) |
-| 📦 Linux (AppImage) | le fichier est remplacé et Maku redémarre |
-| 🎩 Linux (RPM / DEB) | le paquet s'ouvre dans la logithèque du système |
-| 🍎 macOS | l'image disque s'ouvre ; glissez Maku dans Applications |
-
-**Plus tard** referme la fenêtre jusqu'au prochain lancement. **Réglages → Compte → Rechercher les mises à jour**
-lance la même vérification à la demande. Rien n'est envoyé : Maku lit seulement la page publique des versions
-sur GitHub.
-
-Avant d'installer, Maku vérifie que le paquet vient bien des versions publiées de ce dépôt, puis que son empreinte
-SHA-256 est exactement celle que GitHub publie pour ce fichier. Sinon, le fichier est supprimé et rien n'est installé.
-
-**Depuis Plexr** : la mise à jour se fait comme d'habitude, les réglages et les connexions sont gardés (l'identifiant
-de l'application ne change pas). Sous Windows, l'installeur de Maku désinstalle l'ancien Plexr pour qu'il n'en
-reste pas deux ; sur Linux et macOS, l'ancien Plexr peut être supprimé à la main. Le dépôt est passé de
-`yanutros/plexr` à `yanutros/maku` ; GitHub redirige les anciennes adresses, mises à jour comprises.
-
-### Pourquoi pas encore de Flatpak ?
-
-Flatpak est le meilleur format pour toucher toutes les distributions via Flathub, mais il demande d'embarquer mpv
-dans le bac à sable et de passer la relecture de Flathub. D'ici là, le RPM est la solution la plus simple sous
-Fedora (mises à jour par `dnf`, mpv venant des dépôts officiels).
+**iPad (essai).** Une app iPad se compile seulement sur un Mac : la construction « iPad (essai) » de l'onglet
+Actions la produit sur un Mac de GitHub, sans signature (`Maku-ipad.ipa`, joint à l'exécution). Un outil comme
+Sideloadly la signe avec un compte Apple en l'installant ; avec un compte gratuit, elle est à réinstaller tous les
+7 jours. Les vidéos y passent par le flux converti du serveur, que l'iPad lit nativement ; la qualité et les
+pistes audio et sous-titres se changent pendant la lecture. L'icône de l'app vient de `src-tauri/icons/ios.png`, un
+carré plein qu'iPadOS arrondit lui-même (voir `docs/logo-ios.html`).
 
 ### Compiler soi-même
 
@@ -507,7 +205,7 @@ Sur GitHub, [`.github/workflows/android.yml`](.github/workflows/android.yml) con
 sur `main` (et pour chaque demande de fusion), sauf quand seuls le README ou le site (`docs/`) changent : un problème de compilation Android (Rust, Kotlin, SDK, licences)
 se voit tout de suite, et non le jour d'une version. Faute de clé, cet APK n'est pas signé : il est joint à
 l'exécution pour vérification, pas pour être installé. Les tests du lecteur natif y passent ensuite (voir
-« Tests du lecteur Android » plus bas).
+« Tests du lecteur Android » plus haut).
 
 ### Publier une version
 
@@ -540,250 +238,6 @@ même clé (clé d'importation ; Google signe ensuite l'app). Google Play interd
 elle est construite avec `MAKU_PLAY` (mise à jour intégrée désactivée) et sans la permission
 `REQUEST_INSTALL_PACKAGES`. Comme celle du Microsoft Store, elle n'affiche pas non plus le lien de dons Ko-fi, que les
 règles des magasins n'autorisent pas.
-
-## ▶️ Premiers pas
-
-1. Choisissez votre serveur de médias, **Plex**, **Jellyfin** ou **Emby**. Avec Plex, cliquez sur **Se connecter avec
-   Plex** : votre navigateur s'ouvre, validez le code. Avec Jellyfin, saisissez l'adresse du serveur, votre
-   identifiant et votre mot de passe, ou utilisez **Quick Connect** (un code à valider depuis une autre application
-   Jellyfin déjà connectée, pratique sur téléviseur) : accueil, bibliothèques (mixtes comprises), fiches, séries,
-   pages d'acteurs, recherche, lecture (fichier d'origine ou flux converti), progression, « J'aime », « Retirer de
-   Continuer à regarder » et musique fonctionnent comme avec Plex ; la carte Compte des Réglages montre le nom,
-   la photo de profil et le rôle du compte Jellyfin. Seerr se connecte avec le compte Jellyfin ;
-   Tracearr garde sa connexion par compte plex.tv.
-   **Emby** (dont Jellyfin est issu, avec la même API) passe par le même client et les mêmes fonctions, avec
-   identifiant et mot de passe (Emby n'a pas Quick Connect ; partout, un œil affiche le mot de passe en clair) ; les aperçus sur la barre de progression ne sont pas
-   encore pris en charge. Jellyfin et Emby ont chacun leur connexion gardée : passer de l'un à l'autre ne fait perdre ni l'une ni l'autre.
-   Sur téléviseur, un QR code s'affiche à côté du formulaire Jellyfin ou Emby : scanné avec un téléphone (iPhone
-   ou Android, sur le même Wi-Fi), il ouvre une page où saisir l'adresse, l'identifiant et le mot de passe, et la
-   télé se connecte seule, sans le clavier de la télécommande (page servie sur le réseau local, à une adresse
-   secrète, tant que l'écran est ouvert ; le mot de passe n'est pas enregistré).
-   L'écran de choix montre les trois services avec leur icône. Maku retient ensuite les serveurs utilisés
-   (**Réglages → Compte → Serveurs de médias** : Plex, Jellyfin / Emby ou les deux) : avec Plex seul, il ne repose plus la
-   question. Sinon, **Changer de serveur** ramène au choix sans perdre les connexions : le compte Plex reste
-   connecté, et les dernières connexions Jellyfin et Emby sont gardées 30 jours sans utilisation (vérifiée auprès du serveur à
-   chaque retour ; le mot de passe n'est jamais enregistré). Depuis la liste des serveurs Plex, **Autre service
-   (Jellyfin, Emby)** ramène à ce choix, et **Changer de compte Plex** n'oublie que le compte Plex : Jellyfin et Emby
-   restent connectés. **Se déconnecter** efface tout et ferme aussi les sessions Jellyfin et Emby sur le serveur.
-2. Choisissez votre serveur, présenté comme un profil avec la photo du compte Plex de son propriétaire : Maku
-   teste ses adresses et garde la plus rapide (locale, distante, puis relais), et la revérifie à chaque lancement.
-   Si le routeur ou le DNS bloque les adresses locales `*.plex.direct` (protection contre le « DNS rebinding »),
-   Maku utilise directement l'adresse IP locale du serveur (`http://10.0.0.2:32400`), comme Plex Web, plutôt
-   que de faire le tour par l'adresse publique.
-3. Parcourez vos bibliothèques et lancez une lecture. Sur la fiche d'un film ou d'une série, **Bande-annonce**
-   cherche celle du serveur (extra Plex, fichier local Jellyfin, lien YouTube de la fiche Jellyfin), sinon celle
-   de TMDB avec votre clé — dans la langue de l'interface d'abord (une bande-annonce du serveur dont le titre dit
-   « French », ou celle de TMDB en français), sinon n'importe laquelle ; une vidéo YouTube s'ouvre par-dessus
-   la page, Retour la ferme. Pendant un épisode, **Passer l'intro** et **Passer le générique** apparaissent sur les
-   repères détectés par le serveur : Plex les fournit à tous les comptes (seules ses propres applications
-   réservent le bouton au Plex Pass) ; Jellyfin via ses segments (10.10 et plus, plugin Intro Skipper) ; Emby via ses chapitres d'intro et de générique. Sur un épisode qui a une
-   suite, **Passer le générique** (ou la fin de l'épisode) ouvre l'écran **Épisode suivant**, comme la « Lecture du
-   suivant » de Plex : la jaquette de sa saison (à défaut son image) avec un compte à rebours, son numéro (« S1 · E4 »), son titre et son résumé ; **Lire** le lance tout de
-   suite, **Fermer** (ou Retour) arrête là. Le compte à rebours se règle dans **Réglages → Lecteur** (5 à 30 s, ou
-   aucun ; 30 s par défaut). En
-   revenant d'une fiche, la bibliothèque rouvre l'onglet où l'on était (Bibliothèque, Collections, ou la
-   catégorie choisie), au même endroit : titres rechargés, défilement retrouvé et, sur téléviseur, la même
-   jaquette sélectionnée. Sur téléviseur, les catégories sont les mêmes grandes tuiles colorées que sur ordinateur.
-4. Dans **Réglages → Services**, ajoutez si vous le souhaitez Seerr et Tracearr, à la main ou avec
-   l'invitation de l'administrateur (voir ci-dessous).
-
-**Sur téléviseur**, il n'y a pas de navigateur : Maku affiche un code à quatre caractères. Allez sur
-[plex.tv/link](https://plex.tv/link) depuis un téléphone ou un ordinateur et saisissez-le ; la connexion se fait
-toute seule. Ce mode est aussi proposé sur ordinateur et tablette (**Avec un code**).
-
-### 📺 À la télécommande
-
-Les flèches déplacent la sélection (entourée en doré), toujours visible en entier avec son cadre, à distance des bords de l'écran, comme dans Plex et Wholphin. **OK** ouvre ou lance, **Retour** ferme ce qui est ouvert
-puis revient à la page précédente, sur la jaquette ou la saison quittée. Comme dans Plex, les pages du menu de gauche (accueil, bibliothèques, recherche…) sont de premier niveau : Retour y passe d'abord la sélection au menu, puis ramène à l'accueil, et ne met Maku en arrière-plan que depuis l'accueil. Maku traite lui-même la touche, au lieu de suivre l'historique du WebView qui pouvait fermer l'application en pleine navigation. Sur « Continuer à regarder », OK ouvre la fiche (la saison, pour un épisode) avec **Reprendre** déjà sélectionné : un second OK relance la lecture. Un épisode lancé depuis sa vignette rend la sélection à cette vignette quand la lecture s'arrête (celle du dernier épisode lu, si la lecture a enchaîné). Au retour du lecteur, la saison et l'accueil se mettent aussitôt à jour (épisode « Vu », reprise), comme sur ordinateur. Une fenêtre qui s'ouvre prend la sélection (dès l'ouverture pour une demande Seerr, à la première flèche pour les autres), et les flèches y restent jusqu'à sa fermeture. Pendant une
-vidéo, les commandes s'effacent après 4 s (8 s en pause) ; comme dans Plex, le premier OK (ou la première flèche) ne fait
-que les réafficher, sans mettre en pause : on voit le temps restant sans arrêter le film. Les touches lecture / pause et
-suivant / précédent de la télécommande fonctionnent. Les champs de saisie
-(connexion, réglages, recherche) se traversent aux flèches sans ouvrir le clavier : **OK** l'ouvre. La recherche reste
-inscrite le temps de consulter ses résultats ou de faire une demande ; **OK** sur son champ le vide pour en taper une
-nouvelle (les résultats précédents restent affichés jusque-là).
-Les onglets du haut des bibliothèques (films, séries, musique) s'ouvrent dès qu'on y arrive avec les flèches,
-sans appuyer sur OK.
-
-### ⌨️ Raccourcis
-
-| Touche | Pendant une vidéo | Pendant la musique |
-| --- | --- | --- |
-| Espace | Lecture / pause (K aussi) | Lecture / pause |
-| ← / → | Reculer / avancer de 10 s | |
-| ↑ / ↓ | Volume | |
-| M | Couper le son | |
-| F | Plein écran (double-clic aussi) | |
-| Touches multimédia | Lecture / pause, épisode suivant / précédent | Lecture / pause, suivant, précédent |
-| Échap | Quitter le plein écran, puis le lecteur | Fermer la file d'attente ou la vue « En cours de lecture » |
-
-Sous Linux, GNOME et KDE gardent les touches multimédia pour eux : Maku se déclare comme lecteur **MPRIS**, elles
-lui parviennent donc même sans la fenêtre au premier plan, et ce qui joue apparaît dans les commandes du bureau.
-
-### 🧭 Menu latéral
-
-Sur ordinateur et sur téléviseur, le menu est un panneau flottant aux coins arrondis, légèrement translucide ; la page ouverte est
-marquée d'une barre lumineuse dans la couleur de l'interface. Il donne accès à la recherche, à l'accueil, aux
-bibliothèques, à Découvrir et aux statistiques ; en bas, la carte du profil (photo, nom, serveur Plex, Jellyfin ou Emby)
-ouvre les Réglages. Sur téléviseur, le fond reste opaque (pas de flou, plus léger pour le processeur graphique).
-
-Le bouton ☰ replie le menu pour ne garder que les icônes. Le crayon à côté de « Bibliothèques » permet de les
-réordonner par glisser-déposer et d'en masquer (elles passent sous « Plus »). Ces choix sont gardés sur
-l'ordinateur ; **Réglages → Interface** les réinitialise.
-
-Sur téléviseur, le menu reste replié et se déplie quand on y entre (flèche gauche) ; l'ordre et l'affichage des
-bibliothèques se règlent dans **Réglages → Interface**, avec les boutons ▲ ▼ et l'œil de chaque bibliothèque.
-
-### 🎨 Couleur et langue
-
-Dans **Réglages → Interface** :
-
-- **Couleur** : jaune (par défaut), rouge, vert ou violet. Toute l'interface change de teinte, et l'icône de
-  l'application aussi : fenêtre et barre des tâches sur ordinateur, icône et bannière dans le lanceur sur Android
-  et Android TV (le lanceur de la TV peut mettre un moment à rafraîchir sa vignette). Les raccourcis du bureau et
-  du menu Démarrer gardent l'icône d'origine.
-- **Langue** : *Automatique* suit la langue du système (anglais si elle n'est pas disponible), ou choisissez
-  Français, English, Español, Deutsch ou Nederlands. L'interface se recharge dans la nouvelle langue.
-
-Ces choix sont gardés sur l'appareil.
-
-### ✏️ Modifier une fiche
-
-Pour l'administrateur du serveur, le menu ⋮ d'une jaquette (ou un clic droit) et le bouton **Modifier** des
-fiches ouvrent l'édition : champs (titre, tri, titre original, date, classification, studio, accroche, résumé…
-selon le type), genres, affiche et fond d'écran parmi les images proposées par Plex, depuis une adresse web ou depuis l'ordinateur
-(**Choisir une image**, ou la glisser sur la fenêtre). Les collections s'éditent aussi (titre, résumé, images).
-Un champ modifié est verrouillé, comme dans Plex, pour que l'actualisation des métadonnées ne l'écrase pas ; le
-cadenas permet de le déverrouiller. Le même menu propose **Actualiser les métadonnées** et **Analyser**. Pour tous, il permet aussi de lire, d'ouvrir
-la fiche et de marquer un titre comme vu ou non vu (« non vu » remet aussi à zéro une lecture commencée).
-
-## ⚙️ Configurer
-
-### 🖥️ Réglages du serveur Plex
-
-**Réglages** a ses rubriques (Compte, avec son en-tête de profil aux couleurs du thème ; Lecteur ; Interface ;
-Services : Seerr, Tracearr et TMDB) dans la barre de sections des bibliothèques sur ordinateur, avec un bandeau de
-rubrique façon Netflix et les réglages en tuiles sur deux colonnes, et en rail à gauche sur téléviseur, comme Netflix
-et Wholphin ; dans chaque rubrique, une ligne par réglage (son nom, une phrase d'explication, sa commande : interrupteur, choix ou bouton). Sur
-téléviseur, la rubrique s'ouvre au passage des flèches, droite entre dans le panneau, gauche revient au rail ; les QR
-codes (journal, clé TMDB, configuration rapide, Ko-fi) s'affichent à la demande.
-
-L'administrateur du serveur a, partout sauf au téléviseur, une catégorie **Admin** : dans le menu de gauche sur
-ordinateur et tablette (iPad compris), sous les bibliothèques de l'onglet **Bibliothèques** au téléphone. Elle a la barre de
-sections des bibliothèques et un bandeau par rubrique façon Netflix : **Dashboard** (**Tableau de bord** en tuiles, comme celui de Plex : lectures en cours de tous les
-utilisateurs, **en direct** (position mise à jour chaque seconde, jaquette, appareil et mode de lecture), que l'on peut **arrêter avec un message** (Plex Pass) ; **débit** en temps réel ou sur 24 heures / 30 jours,
-distant et local ; **top des utilisateurs** ; **historique de lecture** par type ; **les plus lus** (films, séries,
-artistes) ; recherche de nouveaux fichiers et corbeille de chaque bibliothèque — puis **Utilisateurs**) et **Réglages serveur**
-(**Général, Bibliothèque, Réseau, Transcodeur, DLNA, Bonus et Tâches planifiées** : un bandeau par rubrique façon
-Netflix, avec les réglages avancés sur demande, puis chaque réglage en tuile sur deux colonnes). Un utilisateur partagé ne la voit pas : Plex la lui refuserait de toute façon.
-
-**Utilisateurs** reprend « Gérer l'accès à la bibliothèque » de Plex : la liste des comptes avec qui le serveur est
-partagé à gauche, la fiche du compte choisi à droite, en trois onglets. **Bibliothèques** : un interrupteur par
-bibliothèque partagée. **Autorisations** : téléchargements (lecture hors ligne), sous-titres, chaînes, envoi des
-photos. **Restrictions** : les filtres de contenu de Plex, lisibles et retirables. On y invite aussi un ami (adresse
-e-mail ou nom d'utilisateur Plex, bibliothèques, droit de télécharger) et on retire un accès, après confirmation.
-Chaque changement est envoyé aussitôt à plex.tv, avec le compte du propriétaire du serveur.
-
-### 📨 Inviter des utilisateurs
-
-Dans **Réglages → Services**, l'administrateur du serveur trouve **Inviter des utilisateurs** : il y
-indique les adresses de Seerr et de Tracearr à partager (pré-remplies avec les siennes, s'il les a configurées) et
-obtient un QR code, et le code équivalent (`MAKU-INVITE:…` ; les anciens `PLEXR-INVITE:` restent acceptés), qui
-les contient **sans aucun identifiant**. Il le copie (texte ou image) pour l'envoyer par message ; sur Android, **Partager l'image** ouvre le partage du téléphone (Messages, WhatsApp…, ou Copier).
-
-Chez l'utilisateur, la **Configuration rapide** de la même page l'applique : Maku enregistre les adresses, se
-connecte à Seerr avec le compte Plex et lance la connexion Tracearr.
-
-- **Sur ordinateur** : collez le code, ou importez l'image du QR code.
-- **Sur téléphone** : **Choisir le QR code dans mes photos** lit la capture reçue de l'administrateur (ou
-  collez le code).
-- **Sur téléviseur et tablette** : Maku affiche son propre QR code. Scanné par un téléphone connecté au **même
-  Wi-Fi**, il ouvre une page servie par Maku lui-même, où l'on prend en photo le QR code de l'invitation (ou
-  choisit l'image reçue, ou colle le code). La télé se configure aussitôt ; pour Tracearr, la page propose
-  ensuite d'autoriser la connexion avec Plex, sur le téléphone. Cette page n'existe que tant que l'écran est
-  ouvert, à une adresse aléatoire.
-
-Sur téléviseur, la connexion manuelle à Tracearr affiche elle aussi le lien d'autorisation en QR code, à
-scanner avec le téléphone.
-
-Seerr et Tracearr sont propres à chaque serveur (Plex, Jellyfin, Emby, et chaque serveur Plex) : en changeant de
-serveur, Maku range leurs adresses et leurs sessions, et retrouve celles du serveur rejoint, sans rien ressaisir.
-
-### 📥 Seerr
-
-Maku ouvre la session Seerr avec **le compte Plex de l'utilisateur** : les demandes sont faites à son nom, avec
-ses quotas et ses droits. Il n'y a pas de clé API à saisir ; le compte doit simplement avoir été importé dans Seerr
-par l'administrateur. L'adresse de l'instance se règle dans **Réglages → Services**. La protection CSRF de Seerr est
-prise en charge.
-
-Avec un serveur **Jellyfin**, Maku demande une fois l'identifiant et le mot de passe : ceux du compte Jellyfin si
-Seerr est relié à Jellyfin ou Emby, sinon l'adresse e-mail et le mot de passe du compte local Seerr. Le mot de passe
-n'est jamais enregistré, seule la session Seerr l'est ; quand elle expire, Maku invite à se reconnecter.
-
-Sur la fiche d'un titre à demander, un acteur ouvre toute sa filmographie (TMDB, par Seerr), les titres les plus
-connus d'abord : chacun ouvre sa fiche, d'où le demander. Sur téléviseur, la fiche se parcourt rangée par rangée,
-jusqu'aux recommandations et aux titres similaires.
-
-### 📊 Tracearr
-
-Dans **Réglages → Tracearr**, indiquez l'adresse de l'instance puis cliquez sur **Se connecter avec Plex**.
-Tracearr gère lui-même sa connexion Plex : le navigateur s'ouvre une fois pour l'autoriser, Maku détecte la
-validation et garde la session 30 jours. Seules les données de l'utilisateur connecté sont affichées.
-
-### 🔒 Maku Server : Seerr et Tracearr sans les exposer
-
-[Maku Server](server/README.md) est un petit relais (image Docker `ghcr.io/yanutros/maku-server`, amd64 et arm64)
-que l'administrateur installe à côté de son serveur Plex, Jellyfin ou Emby. Seerr et Tracearr restent sur le réseau
-local : seul le relais est joignable, sur un port (32700), et il ne laisse passer que les utilisateurs du serveur.
-Maku joint à chaque appel le jeton de l'utilisateur, que le relais vérifie auprès du serveur. Il ne transmet que
-l'API de Seerr et de Tracearr, pas leur site web. Seerr et Tracearr voient le compte de l'utilisateur, avec ses droits.
-
-- Sur le réseau local, Maku trouve le relais tout seul (port 32700 de la machine du serveur). Il vérifie que c'est
-  celui de son serveur, puis remplit les adresses de Seerr et de Tracearr qui manquent ; avec Plex, Seerr se connecte
-  aussitôt.
-- Ailleurs, les adresses du relais (`…/seerr` et `…/tracearr`) remplacent celles de Seerr et de Tracearr, dans les
-  Réglages ou dans l'invitation. Depuis Internet, le relais se place derrière un proxy inverse HTTPS.
-- Maku ne joint le jeton qu'à une adresse dont il a vérifié qu'elle est le relais de son serveur.
-
-## 🛠️ Développer
-
-```bash
-npm install
-npm run tauri dev
-```
-
-L'interface se recharge à chaque modification et le backend Rust est recompilé automatiquement.
-
-**Mode démo.** `npx vite` puis `http://localhost:1420/?demo=accueil` lance l'interface dans un navigateur, sans
-serveur Plex, avec une bibliothèque fictive et des visuels générés. Vues disponibles : `accueil`, `films`,
-`categories`, `series`, `serie`, `fiche`, `lecteur`, `decouvrir`, `seerr`, `musique`, `ecoute`, `stats`, `reglages`,
-`reglages-interface` et `vide` (l'accueil sans musique en cours). C'est ce mode qui
-produit les captures de cette page (avec Edge en mode sans interface, `--screenshot`). `?device=phone` ou `?device=tv` imposent l'interface du téléphone ou du téléviseur dans le navigateur.
-
-**Tests de l'interface.** `npm test` ouvre Maku en mode démo avec [Playwright](https://playwright.dev) et le pilote
-comme un utilisateur, sur quatre appareils simulés : ordinateur, téléviseur (flèches, OK, Retour), téléphone et
-moteur de Safari (iPad, Mac). Les parcours (`tests/`) couvrent l'accueil, les fiches (série, saison, épisode),
-les acteurs, le lecteur, les Réglages et la barre simplifiée. Ils vérifient des règles tirées des bugs déjà
-corrigés (fond jusqu'au bord gauche, sélection entière à l'écran et de la couleur du thème, un seul acteur
-sélectionné, lignes des Réglages sans saut, plus de cases à cocher, pas de barres de défilement sur TV…) et
-comparent des captures à des images de référence (`tests/images/`). Après un changement voulu de l'affichage,
-`npm run test:update` met ces images à jour. Les navigateurs s'installent une fois avec
-`npx playwright install chromium webkit`. Sur GitHub, les tests passent à chaque envoi sur `main` et avant la
-construction des paquets d'une version (les images de référence, prises sous Windows, n'y sont pas comparées).
-
-**Tests du lecteur Android.** Les règles du lecteur vidéo natif sont à part, dans `PlaybackRules.kt` : vidéo
-figée (prête, en lecture, avec de l'avance, mais immobile 5 s ; reprise ou saut ensuite), son envoyé tel quel à
-l'ampli, format de l'image à l'écran, type des sous-titres externes, erreurs qui demandent la conversion,
-numérotation des pistes et mémoire des formats de l'ampli au démarrage de la TV. Des tests ordinaires
-(`src-tauri/gen/android/app/src/test/`) les vérifient sans appareil : dans `src-tauri/gen/android`,
-`./gradlew :app:testUniversalDebugUnitTest`, après une première construction de l'APK (Tauri y génère des
-fichiers du projet). Sur GitHub, ils passent à chaque envoi sur `main`, après la construction de l'APK.
-
-**iPad (essai).** Une app iPad se compile seulement sur un Mac : la construction « iPad (essai) » de l'onglet
-Actions la produit sur un Mac de GitHub, sans signature (`Maku-ipad.ipa`, joint à l'exécution). Un outil comme
-Sideloadly la signe avec un compte Apple en l'installant ; avec un compte gratuit, elle est à réinstaller tous les
-7 jours. Les vidéos y passent par le flux converti du serveur, que l'iPad lit nativement ; la qualité et les
-pistes audio et sous-titres se changent pendant la lecture. L'icône de l'app vient de `src-tauri/icons/ios.png`, un
-carré plein qu'iPadOS arrondit lui-même (voir `docs/logo-ios.html`).
 
 ### 🌍 Traductions
 
@@ -836,6 +290,7 @@ traduisez les valeurs sans toucher aux clés ni aux `{{variables}}`, puis décla
 | `src/components/PhoneTabs.svelte`, `src/views/Libraries.svelte` | téléphone : barre d'onglets et liste des bibliothèques |
 | `src-tauri/tauri.conf.json`, `tauri.windows.conf.json` | configuration et paquets ; la fenêtre transparente n'est activée que sous Windows |
 | `.github/workflows/paquets.yml`, `.signpath/` | construction des paquets Windows, Linux et macOS, signature des paquets Windows par SignPath (l'APK est construit à part ; `android.yml` vérifie qu'il se construit à chaque envoi) |
+| `docs/` | le site (GitHub Pages) : accueil, pages des fonctionnalités, guide et questions fréquentes, styles dans `docs/assets/site.css`, captures dans `docs/screenshots/` |
 
 Sous Windows, pendant une vidéo, la fenêtre Tauri devient transparente et mpv dessine l'image dessous : l'interface
 web n'affiche plus que la barre de contrôle par-dessus. Ailleurs, mpv ouvre sa propre fenêtre et Maku devient une
@@ -848,10 +303,10 @@ Maku par un « Job Object » qui le fait fermer par le système même si Maku pl
 
 La politique de confidentialité complète, en français et en anglais, est dans [PRIVACY.md](PRIVACY.md).
 
-- Maku parle directement à votre serveur Plex, à plex.tv (connexion), à l'API publique de GitHub (pour savoir
-  si une nouvelle version existe) et, si vous les configurez, à vos instances Seerr et Tracearr. Il n'envoie
-  rien ailleurs et ne collecte aucune statistique d'usage.
-- Il cherche Maku Server sur la machine de votre serveur (port 32700). Il ne lui confie votre jeton qu'après avoir
+- Maku parle directement à votre serveur de médias, à plex.tv (connexion), à l'API publique de GitHub (pour savoir
+  si une nouvelle version existe) et, si vous les configurez, à Seerr, Tracearr et TMDB. Il n'envoie rien ailleurs
+  et ne collecte aucune statistique d'usage.
+- Il cherche Maku Server sur la machine de votre serveur (port 32700), et ne lui confie votre jeton qu'après avoir
   vérifié qu'il est le relais de ce serveur-là.
 - Pendant la configuration par téléphone, et seulement tant que l'écran est ouvert, Maku écoute sur le réseau
   local à une adresse aléatoire, qui n'accepte qu'un code d'invitation.
@@ -859,15 +314,10 @@ La politique de confidentialité complète, en français et en anglais, est dans
   `~/.config/io.github.yanutros.plexr/config.json` sous Linux, `~/Library/Application Support/io.github.yanutros.plexr/config.json`
   sous macOS, dans les données privées de l'application sur Android. Elle contient
   le jeton Plex et les cookies de session Tracearr **en clair** : ne la partagez pas.
-- Les affiches et images affichées viennent de votre serveur Plex, de Seerr ou de TMDB, comme dans leurs propres
-  applications.
 - Un serveur ne peut rediriger Maku que vers lui-même (de `http` vers `https`, par exemple) : jamais vers une autre
   adresse, où partiraient ses jetons. Seul le téléchargement des mises à jour suit les redirections de GitHub vers son stockage.
 - L'interface ne transmet à mpv que des commandes de lecture (pause, position, volume, pistes, file d'attente) ;
-  celles qui lancent un programme ou écrivent un fichier sont refusées. Les titres ajoutés à la file d'attente sont
-  demandés au serveur par Maku lui-même : la page n'envoie à mpv aucune adresse de fichier.
-- Les téléchargements hors ligne restent dans les données privées de Maku sur l'appareil ; les supprimer, ou
-  désinstaller Maku, efface leurs fichiers.
+  celles qui lancent un programme ou écrivent un fichier sont refusées.
 - Sur Android, le journal de diagnostic reste sur l'appareil tant que vous ne l'envoyez pas vous-même. Les adresses
   de serveur, adresses IP, jetons et identifiants en sont retirés avant l'écriture ; il ne pèse pas plus de 600 Ko.
 

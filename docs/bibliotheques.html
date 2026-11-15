@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Les bibliothèques — Maku</title>
+<meta name="description" content="Les bibliothèques dans Maku : accueil façon plateforme de streaming, fiches immersives avec logos et notes, catégories colorées, collections, filtres, tri et bandeau des lettres.">
+<meta name="theme-color" content="#0c0c0c">
+<link rel="icon" type="image/png" href="logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&amp;family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap nav">
+    <a class="brand" href="index.html"><img src="logo.png" alt=""><span>Maku</span></a>
+    <nav class="nav-links" aria-label="Navigation principale">
+      <a href="index.html#fonctionnalites" aria-current="page">Fonctionnalités</a>
+      <a href="installer.html">Installer</a>
+      <a href="configurer.html">Configurer</a>
+      <a href="faq.html">Questions</a>
+      <a href="https://github.com/yanutros/maku">GitHub</a>
+      <a class="btn btn-primary btn-sm" href="index.html#telecharger">Télécharger</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <p class="crumbs"><a href="index.html">Accueil</a> › <a href="index.html#fonctionnalites">Fonctionnalités</a> › Les bibliothèques</p>
+
+  <section class="page-hero">
+    <p class="eyebrow">Les bibliothèques</p>
+    <h1>Votre serveur, présenté comme une vitrine.</h1>
+    <p class="lead">Grandes affiches, logos officiels, fonds en haute définition : Maku donne à votre collection l'allure d'une plateforme de streaming, et la range pour que vous trouviez toujours quoi regarder.</p>
+    <img class="shot-big" src="screenshots/films.png" alt="Une bibliothèque de films dans Maku, onglet Recommandé" width="1600" height="1000">
+  </section>
+
+  <section class="feature">
+    <div>
+      <p class="eyebrow">L'accueil</p>
+      <h2>Ce que vous regardiez, en grand</h2>
+      <p>Un bandeau fait défiler cinq titres à la une. Juste dessous, <strong>Continuer à regarder</strong> présente vos lectures en cours en grandes affiches : celle que vous survolez s'ouvre avec sa scène, son épisode, sa progression et le bouton <strong>Reprendre</strong>.</p>
+      <ul class="points">
+        <li>De grands panneaux <strong>À la une</strong>, puis les rangées de votre serveur.</li>
+        <li><strong>Un accueil à votre goût</strong> : rangées à masquer ou à réordonner, bibliothèques à épingler avec leurs derniers ajouts, pour chaque appareil.</li>
+        <li>Au survol d'une affiche, un simple triangle blanc lance la lecture.</li>
+      </ul>
+    </div>
+    <div class="media"><img loading="lazy" src="screenshots/accueil.png" alt="L'accueil : bandeau à la une et Continuer à regarder" width="1600" height="1000"></div>
+  </section>
+
+  <section id="fiche" class="feature flip">
+    <div>
+      <p class="eyebrow">Les fiches</p>
+      <h2>Chaque film plonge dans son ambiance</h2>
+      <p>Le fond du film sur toute la largeur, son logo en grand au centre, le titre d'origine et l'heure à laquelle il se terminera si vous le lancez maintenant.</p>
+      <ul class="points">
+        <li><strong>Les notes qui comptent</strong> : IMDb, Rotten Tomatoes (presse et public), TMDB et Allociné (presse et spectateurs), et vos propres étoiles de 1 à 5. Chacune se masque si vous préférez.</li>
+        <li><strong>Deux panneaux</strong> : l'équipe d'un côté, la vidéo, l'audio et les sous-titres de l'autre.</li>
+        <li><strong>La distribution</strong> : un acteur ouvre tous ses films et séries présents sur votre serveur.</li>
+        <li><strong>Logos officiels</strong> : celui du serveur, sinon celui du service en ligne de Plex, dans votre langue d'abord, ou celui de TMDB avec votre clé gratuite. À défaut, une typographie de cinéma choisie selon le genre.</li>
+        <li><strong>Plus de ce genre</strong>, pour enchaîner.</li>
+      </ul>
+    </div>
+    <div class="media"><img loading="lazy" src="screenshots/fiche.png" alt="La fiche d'un film : fond, logo, notes et panneaux" width="1600" height="1000"></div>
+  </section>
+
+  <section class="feature">
+    <div>
+      <p class="eyebrow">Les séries</p>
+      <h2>Une saison, tous ses épisodes d'un regard</h2>
+      <p>Une saison montre ses épisodes de haut en bas, chacun avec sa vignette et ses informations à droite : titre, durée, temps restant, note et résumé. L'épisode en cours est mis en avant, et le bouton principal le reprend : <strong>Reprendre S1 · E2</strong>.</p>
+      <ul class="points">
+        <li>La fiche d'une série vous emmène directement au prochain épisode à voir.</li>
+        <li>Une petite coche discrète marque les épisodes vus.</li>
+        <li>Vu, non vu et la note s'appliquent sur place, sans recharger la page.</li>
+      </ul>
+    </div>
+    <div class="media"><img loading="lazy" src="screenshots/series.png" alt="Une bibliothèque de séries dans Maku" width="1600" height="1000"></div>
+  </section>
+
+  <section id="categories" class="feature flip">
+    <div>
+      <p class="eyebrow">Les catégories</p>
+      <h2>Un genre, une grande carte colorée</h2>
+      <p>Chaque genre de votre bibliothèque devient une carte à sa couleur, avec un éventail de ses affiches les mieux notées. Un clic, et la bibliothèque n'affiche plus que ce genre.</p>
+      <ul class="points">
+        <li>Les mêmes grandes cartes sur ordinateur, téléphone et TV.</li>
+        <li>En revenant d'une fiche, vous retrouvez la catégorie, la position et l'affiche quittées.</li>
+      </ul>
+    </div>
+    <div class="media"><img loading="lazy" src="screenshots/categories.png" alt="Les catégories en grandes cartes colorées" width="1600" height="1000"></div>
+  </section>
+
+  <section id="lettres" class="feature">
+    <div>
+      <p class="eyebrow">Trier, filtrer, sauter</p>
+      <h2>Trouver un titre parmi des milliers</h2>
+      <p>L'onglet <strong>Bibliothèque</strong> a son menu <strong>Tout</strong> (non vus, en cours, HDR… ou un genre, une année, un acteur, un réalisateur, un studio) et son menu de <strong>tri</strong> (titre, année, date de sortie, notes, durée, date d'ajout, au hasard…). Votre choix est gardé pour la prochaine visite.</p>
+      <ul class="points">
+        <li><strong>Le bandeau des lettres</strong>, sur ordinateur : « # A…Z » sur le côté mène directement à la première entrée d'une lettre, même loin dans une très grande bibliothèque, filtres compris (avec Plex).</li>
+        <li><strong>La recherche</strong> trouve films, séries et artistes d'un coup, puis les titres absents que vous pouvez demander.</li>
+      </ul>
+    </div>
+    <div class="media"><img loading="lazy" src="screenshots/lettres.png" alt="L'onglet Bibliothèque avec le bandeau des lettres sur la droite" width="1600" height="1000"></div>
+  </section>
+
+  <section class="feature flip">
+    <div>
+      <p class="eyebrow">Les collections</p>
+      <h2>Les sagas dans l'ordre</h2>
+      <p>Les bibliothèques de films ont leurs <strong>collections</strong> : une saga, un univers, une sélection. Chacune ouvre sa page, avec ses films dans l'ordre de sortie et un bouton qui lance le premier que vous n'avez pas encore vu.</p>
+      <ul class="points">
+        <li>L'onglet n'apparaît que dans une bibliothèque qui a des collections.</li>
+        <li>Le bandeau des lettres y mène aussi directement à une collection.</li>
+        <li>L'administrateur peut en créer, les ranger dans l'ordre de l'histoire en glissant les jaquettes, ou composer une <a href="administration.html">collection intelligente</a> qui se remplit seule.</li>
+      </ul>
+    </div>
+    <div class="media">
+      <div class="card" style="gap: 14px;">
+        <h3>À vos couleurs</h3>
+        <p>Jaune, rouge, vert ou violet : toute l'interface change de teinte, et l'icône de l'application suit, dans la barre des tâches comme sur l'écran d'accueil du téléphone et de la TV.</p>
+        <p>Le menu de gauche se replie en icônes ; ses bibliothèques se réordonnent en les glissant, ou se masquent.</p>
+        <p>Maku parle français, anglais, espagnol, allemand et néerlandais, et les rangées du serveur arrivent dans la même langue.</p>
+      </div>
+    </div>
+  </section>
+
+  <aside class="callout">
+    <div>
+      <h3>Votre bibliothèque mérite mieux</h3>
+      <p>Maku est gratuit, et se connecte à Plex, Jellyfin ou Emby en quelques secondes.</p>
+    </div>
+    <a class="btn btn-primary" href="index.html#telecharger">Télécharger Maku</a>
+  </aside>
+
+  <section class="section">
+    <h2 style="font-size: 30px;">Les autres espaces</h2>
+    <div class="next">
+      <a class="card" href="lecture.html"><h3>Le lecteur</h3><p>La vidéo d'origine, le son jusqu'à l'ampli.</p><span class="more">Voir →</span></a>
+      <a class="card" href="musique.html"><h3>Musique</h3><p>Playlists, Mix of Three, paroles et radio.</p><span class="more">Voir →</span></a>
+      <a class="card" href="demandes.html"><h3>Demandes</h3><p>Trouver et demander ce qui manque.</p><span class="more">Voir →</span></a>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <span>© Maku · Logiciel libre sous licence GPL-3.0</span>
+    <nav aria-label="Liens du bas de page">
+      <a href="installer.html">Installer</a>
+      <a href="configurer.html">Configurer</a>
+      <a href="faq.html">Questions</a>
+      <a href="https://github.com/yanutros/maku/blob/main/PRIVACY.md">Confidentialité</a>
+      <a href="https://github.com/yanutros/maku/blob/main/LICENSE">Licence</a>
+      <a href="https://github.com/yanutros/maku">GitHub</a>
+    </nav>
+  </div>
+</footer>
+
+</body>
+</html>

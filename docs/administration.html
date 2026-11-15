@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pour l'administrateur — Maku</title>
+<meta name="description" content="Maku pour l'administrateur du serveur : tableau de bord en direct, débit, utilisateurs, réglages du serveur, fiches à modifier, collections intelligentes et invitations en QR code.">
+<meta name="theme-color" content="#0c0c0c">
+<link rel="icon" type="image/png" href="logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&amp;family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap nav">
+    <a class="brand" href="index.html"><img src="logo.png" alt=""><span>Maku</span></a>
+    <nav class="nav-links" aria-label="Navigation principale">
+      <a href="index.html#fonctionnalites" aria-current="page">Fonctionnalités</a>
+      <a href="installer.html">Installer</a>
+      <a href="configurer.html">Configurer</a>
+      <a href="faq.html">Questions</a>
+      <a href="https://github.com/yanutros/maku">GitHub</a>
+      <a class="btn btn-primary btn-sm" href="index.html#telecharger">Télécharger</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <p class="crumbs"><a href="index.html">Accueil</a> › <a href="index.html#fonctionnalites">Fonctionnalités</a> › Pour l'administrateur</p>
+
+  <section class="page-hero">
+    <p class="eyebrow">Pour l'administrateur du serveur</p>
+    <h1>Votre serveur, piloté depuis la même application.</h1>
+    <p class="lead">Si vous êtes le propriétaire du serveur Plex, Maku vous donne en plus une catégorie <strong style="color: var(--text);">Admin</strong> : ce qui se lit en ce moment, qui consomme quoi, vos utilisateurs et les réglages du serveur. Sur ordinateur, tablette et téléphone, sans ouvrir de navigateur.</p>
+    <img class="shot-big" src="screenshots/admin.png" alt="Le tableau de bord : lectures en cours, débit et historique de lecture" width="1600" height="1000">
+  </section>
+
+  <section class="feature">
+    <div>
+      <p class="eyebrow">Le tableau de bord</p>
+      <h2>Tout ce qui se passe, en direct</h2>
+      <ul class="points">
+        <li><strong>Lectures en cours</strong> de tous les utilisateurs : jaquette, appareil, réseau local ou à distance, lecture directe ou conversion, et la position qui avance chaque seconde.</li>
+        <li><strong>Arrêter une lecture</strong> avec un message pour la personne (Plex Pass).</li>
+        <li><strong>Le débit</strong> en temps réel, ou sur 24 heures et 30 jours, distant et local.</li>
+        <li><strong>Le top des utilisateurs</strong>, avec leur temps par type (films, séries, musique, photos).</li>
+        <li><strong>L'historique de lecture</strong> par semaine et par type, et <strong>les plus lus</strong> : films, séries et artistes.</li>
+        <li><strong>L'entretien</strong> de chaque bibliothèque : rechercher les nouveaux fichiers, vider la corbeille.</li>
+      </ul>
+    </div>
+    <div class="media"><img loading="lazy" src="screenshots/admin.png" alt="Les lectures en cours sur le tableau de bord" width="1600" height="1000"></div>
+  </section>
+
+  <section class="section" style="padding-bottom: 24px;">
+    <div class="cards pairs">
+      <div class="card">
+        <h3>Les utilisateurs</h3>
+        <p>La liste des comptes avec qui le serveur est partagé, et pour chacun trois onglets : ses <strong style="color: var(--text);">bibliothèques</strong>, une par une ; ses <strong style="color: var(--text);">autorisations</strong> (téléchargements, sous-titres…) ; ses <strong style="color: var(--text);">restrictions</strong> de contenu. Invitez un ami par son adresse ou son nom d'utilisateur, ou retirez un accès.</p>
+      </div>
+      <div class="card">
+        <h3>Les réglages du serveur</h3>
+        <p>Général, Bibliothèque, Réseau, Transcodeur, DLNA, Bonus et Tâches planifiées : chaque rubrique a son bandeau et ses réglages en tuiles, avec les réglages avancés sur demande.</p>
+      </div>
+      <div class="card">
+        <h3>Les fiches à modifier</h3>
+        <p>Titre, résumé, dates, genres, affiche et fond d'écran d'un film, d'une série ou d'un album : parmi les images proposées, depuis une adresse web, ou glissées depuis l'ordinateur. Un champ modifié est verrouillé, pour que l'actualisation des métadonnées ne l'écrase pas. Sur ordinateur.</p>
+      </div>
+      <div class="card">
+        <h3>Les collections intelligentes</h3>
+        <p>Composez une collection avec des règles (titre contient « nuit », année après 2000, genre est…) et voyez dans la grille les titres qu'elle contiendra. Le serveur la tient ensuite à jour. Rangez une saga dans l'ordre de son histoire en glissant les jaquettes. Sur ordinateur.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="feature flip">
+    <div>
+      <p class="eyebrow">Invitations</p>
+      <h2>Vos proches configurés en un QR code</h2>
+      <p>Dans <strong>Réglages → Services</strong>, <strong>Inviter des utilisateurs</strong> produit un QR code, et le code équivalent, qui contiennent les adresses de Seerr et de Tracearr, <strong>sans aucun identifiant</strong>. Envoyez-le par message.</p>
+      <ul class="points">
+        <li><strong>Sur ordinateur</strong>, la personne colle le code ou importe l'image.</li>
+        <li><strong>Sur téléphone</strong>, elle choisit la capture dans ses photos.</li>
+        <li><strong>Sur la télé</strong>, Maku affiche son propre QR code : scanné par le téléphone, il ouvre une page où prendre en photo l'invitation. La télé se configure aussitôt.</li>
+        <li>Maku enregistre les adresses, se connecte à Seerr et lance la connexion à Tracearr.</li>
+      </ul>
+    </div>
+    <div class="media">
+      <div class="card" style="gap: 14px;">
+        <h3>Seerr et Tracearr, sans les exposer</h3>
+        <p><strong style="color: var(--text);">Maku Server</strong> est un petit relais à installer à côté de votre serveur, en une commande Docker. Seerr et Tracearr restent sur votre réseau local : seul le relais est joignable, et il ne laisse passer que les utilisateurs de votre serveur.</p>
+        <a class="btn btn-sm" href="configurer.html#maku-server" style="align-self: flex-start;">Installer Maku Server →</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" style="padding-top: 24px; padding-bottom: 0;">
+    <div class="note">
+      <p><strong>Qui voit la catégorie Admin ?</strong> Seulement le propriétaire du serveur Plex selon plex.tv : ni les membres du Plex Home, ni les amis. Chaque action est vérifiée par le serveur lui-même. La catégorie est dans le menu de gauche sur ordinateur et tablette, et sous les bibliothèques de l'onglet Bibliothèques sur téléphone ; elle n'est pas sur la télé.</p>
+    </div>
+  </section>
+
+  <aside class="callout">
+    <div>
+      <h3>Gérez votre serveur autrement</h3>
+      <p>Maku est gratuit, et la catégorie Admin apparaît d'elle-même pour le propriétaire du serveur Plex.</p>
+    </div>
+    <a class="btn btn-primary" href="index.html#telecharger">Télécharger Maku</a>
+  </aside>
+
+  <section class="section">
+    <h2 style="font-size: 30px;">Les autres espaces</h2>
+    <div class="next">
+      <a class="card" href="demandes.html"><h3>Demandes</h3><p>Ce que vos utilisateurs veulent voir.</p><span class="more">Voir →</span></a>
+      <a class="card" href="statistiques.html"><h3>Statistiques</h3><p>Le récit personnel de chacun.</p><span class="more">Voir →</span></a>
+      <a class="card" href="configurer.html"><h3>Configurer</h3><p>Seerr, Tracearr et Maku Server.</p><span class="more">Voir →</span></a>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <span>© Maku · Logiciel libre sous licence GPL-3.0</span>
+    <nav aria-label="Liens du bas de page">
+      <a href="installer.html">Installer</a>
+      <a href="configurer.html">Configurer</a>
+      <a href="faq.html">Questions</a>
+      <a href="https://github.com/yanutros/maku/blob/main/PRIVACY.md">Confidentialité</a>
+      <a href="https://github.com/yanutros/maku/blob/main/LICENSE">Licence</a>
+      <a href="https://github.com/yanutros/maku">GitHub</a>
+    </nav>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Configurer Maku</title>
+<meta name="description" content="Configurer Maku : se connecter à Plex, Jellyfin ou Emby, ajouter Seerr et Tracearr, inviter ses proches, installer Maku Server, personnaliser l'interface et les raccourcis.">
+<meta name="theme-color" content="#0c0c0c">
+<link rel="icon" type="image/png" href="logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&amp;family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap nav">
+    <a class="brand" href="index.html"><img src="logo.png" alt=""><span>Maku</span></a>
+    <nav class="nav-links" aria-label="Navigation principale">
+      <a href="index.html#fonctionnalites">Fonctionnalités</a>
+      <a href="installer.html">Installer</a>
+      <a href="configurer.html" aria-current="page">Configurer</a>
+      <a href="faq.html">Questions</a>
+      <a href="https://github.com/yanutros/maku">GitHub</a>
+      <a class="btn btn-primary btn-sm" href="index.html#telecharger">Télécharger</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <p class="crumbs"><a href="index.html">Accueil</a> › Guide › Configurer</p>
+  <section class="page-hero" style="padding-bottom: 8px;">
+    <p class="eyebrow">Guide</p>
+    <h1>Configurer Maku</h1>
+    <p class="lead">Connectez votre serveur, ajoutez les demandes et les statistiques, et faites de Maku votre application.</p>
+  </section>
+
+  <div class="doc">
+    <nav class="toc" aria-label="Sommaire">
+      <strong>Sur cette page</strong>
+      <a href="#plex">Se connecter à Plex</a>
+      <a href="#jellyfin">Jellyfin et Emby</a>
+      <a href="#serveurs">Changer de serveur</a>
+      <a href="#seerr">Seerr</a>
+      <a href="#tracearr">Tracearr</a>
+      <a href="#invitation">Invitation en QR code</a>
+      <a href="#maku-server">Maku Server</a>
+      <a href="#tmdb">Logos et bandes-annonces</a>
+      <a href="#personnaliser">Personnaliser</a>
+      <a href="#raccourcis">Raccourcis et télécommande</a>
+    </nav>
+
+    <article class="prose">
+      <h2 id="plex">Se connecter à Plex</h2>
+      <p>Au premier lancement, Maku vous demande votre service : Plex, Jellyfin ou Emby.</p>
+      <ol class="steps">
+        <li>Choisissez <strong>Plex</strong>, puis <strong>Se connecter avec Plex</strong> : votre navigateur s'ouvre, validez le code affiché.</li>
+        <li>Choisissez votre serveur, présenté comme un profil avec la photo de son propriétaire. Maku teste ses adresses et garde la plus rapide (locale, distante, puis relais), et la revérifie à chaque lancement et à chaque changement de réseau.</li>
+        <li>C'est prêt : parcourez vos bibliothèques et lancez une lecture.</li>
+      </ol>
+      <p><strong>Sur la télé</strong>, il n'y a pas de navigateur : Maku affiche un code à quatre caractères. Allez sur <a href="https://plex.tv/link">plex.tv/link</a> depuis un téléphone ou un ordinateur et saisissez-le ; la connexion se fait toute seule. Ce mode est aussi proposé sur ordinateur et tablette, avec <strong>Avec un code</strong>.</p>
+      <p><strong>Plex Home</strong> : si votre compte a plusieurs profils, « Qui regarde ? » s'affiche au lancement, avec les profils gérés et leur code PIN. Préférez-vous retrouver toujours le même ? <strong>Réglages → Compte</strong> active la connexion automatique au dernier profil. La carte du profil, en bas du menu, change d'utilisateur à tout moment.</p>
+      <div class="note">
+        <p><strong>Votre box bloque les adresses locales de Plex ?</strong> Certains routeurs refusent les adresses <code>*.plex.direct</code> par sécurité. Maku utilise alors directement l'adresse IP locale du serveur, plutôt que de faire le tour par Internet.</p>
+      </div>
+
+      <h2 id="jellyfin">Jellyfin et Emby</h2>
+      <p>Choisissez <strong>Jellyfin</strong> ou <strong>Emby</strong>, puis saisissez l'adresse du serveur, votre identifiant et votre mot de passe. Un œil affiche le mot de passe en clair pour vérifier la saisie.</p>
+      <ul>
+        <li><strong>Quick Connect</strong> (Jellyfin) : un code à valider depuis une autre application Jellyfin déjà connectée. Pratique sur la télé.</li>
+        <li><strong>Sur la télé</strong>, un QR code s'affiche à côté du formulaire : scanné par un téléphone sur le même Wi-Fi, il ouvre une page où saisir l'adresse et les identifiants, sans le clavier de la télécommande. Le mot de passe n'est pas enregistré.</li>
+      </ul>
+      <p>Accueil, bibliothèques, fiches, séries, recherche, lecture, progression et musique fonctionnent comme avec Plex. Quelques fonctions restent propres à Plex : le bandeau des lettres, la musique dans la voiture et la catégorie Admin du propriétaire du serveur.</p>
+
+      <h2 id="serveurs">Changer de serveur</h2>
+      <p>Maku retient les services que vous utilisez (<strong>Réglages → Compte → Serveurs de médias</strong>). Avec Plex seul, il ne repose plus la question. Sinon, <strong>Changer de serveur</strong> ramène au choix sans rien perdre : le compte Plex reste connecté, et les connexions Jellyfin et Emby sont gardées 30 jours sans utilisation. <strong>Se déconnecter</strong>, lui, efface tout.</p>
+      <p>Seerr et Tracearr sont propres à chaque serveur : en passant de l'un à l'autre, Maku retrouve les adresses et les sessions de chacun, sans rien ressaisir.</p>
+
+      <h2 id="seerr">Seerr : les demandes</h2>
+      <ol class="steps">
+        <li>Ouvrez <strong>Réglages → Services</strong>.</li>
+        <li>Indiquez l'adresse de votre Seerr (Overseerr ou Jellyseerr conviennent aussi), par exemple <code>https://seerr.mondomaine.fr</code>.</li>
+        <li>Appuyez sur <strong>Se connecter avec Plex</strong>. Les demandes se font à votre nom, avec vos droits et vos quotas.</li>
+      </ol>
+      <p>Il n'y a pas de clé d'API à saisir. Votre compte doit simplement avoir été importé dans Seerr par l'administrateur. Avec <strong>Jellyfin ou Emby</strong>, Maku demande une fois votre identifiant et votre mot de passe (ceux de Jellyfin, ou du compte local Seerr) ; seule la session est gardée.</p>
+
+      <h2 id="tracearr">Tracearr : les statistiques</h2>
+      <ol class="steps">
+        <li>Dans <strong>Réglages → Services</strong>, indiquez l'adresse de votre Tracearr.</li>
+        <li>Appuyez sur <strong>Se connecter avec Plex</strong> : votre navigateur s'ouvre une fois pour autoriser la connexion.</li>
+        <li><strong>Mes statistiques</strong> s'ouvre dès la connexion validée. La session dure 30 jours.</li>
+      </ol>
+      <p>Sur la télé, le lien d'autorisation s'affiche en QR code, à scanner avec votre téléphone. Tracearr se connecte toujours avec un compte plex.tv, même si vous regardez sur Jellyfin. Seules vos propres données sont affichées.</p>
+
+      <h2 id="invitation">L'invitation en QR code</h2>
+      <p>Le plus simple pour vos proches : l'administrateur leur envoie une invitation, et Maku se configure tout seul.</p>
+      <h3>Côté administrateur</h3>
+      <p>Dans <strong>Réglages → Services → Inviter des utilisateurs</strong>, vérifiez les adresses de Seerr et de Tracearr à partager. Maku affiche un QR code et le code équivalent (<code>MAKU-INVITE:…</code>), qui ne contiennent <strong>aucun identifiant</strong>. Copiez le code ou l'image pour l'envoyer par message ; sur Android, <strong>Partager l'image</strong> ouvre le partage du téléphone.</p>
+      <h3>Côté utilisateur</h3>
+      <p>Dans <strong>Réglages → Services → Configuration rapide</strong> :</p>
+      <ul>
+        <li><strong>sur ordinateur</strong>, collez le code ou importez l'image du QR code ;</li>
+        <li><strong>sur téléphone</strong>, <strong>Choisir le QR code dans mes photos</strong> lit la capture reçue ;</li>
+        <li><strong>sur la télé et la tablette</strong>, Maku affiche son propre QR code : scanné par un téléphone sur le même Wi-Fi, il ouvre une page où prendre en photo l'invitation. La télé se configure aussitôt.</li>
+      </ul>
+      <p>Maku enregistre les adresses, se connecte à Seerr avec votre compte et lance la connexion à Tracearr.</p>
+
+      <h2 id="maku-server">Maku Server : Seerr et Tracearr sans les exposer</h2>
+      <p><strong>Maku Server</strong> est un petit relais que l'administrateur installe à côté de son serveur Plex, Jellyfin ou Emby. Seerr et Tracearr restent sur le réseau local : seul le relais est joignable, sur un seul port (32700), et il ne laisse passer que les utilisateurs du serveur. Il ne transmet que l'API de Seerr et de Tracearr, jamais leurs pages d'administration.</p>
+      <h3>L'installer avec Docker</h3>
+      <pre><code># docker-compose.yml
+services:
+  maku-server:
+    image: ghcr.io/yanutros/maku-server:latest
+    container_name: maku-server
+    restart: unless-stopped
+    ports:
+      - "32700:32700"
+    environment:
+      # Un seul des trois : l'adresse du serveur, vue depuis le conteneur.
+      PLEX_URL: http://192.168.1.10:32400
+      # JELLYFIN_URL: http://192.168.1.10:8096
+      # EMBY_URL: http://192.168.1.10:8096
+      # L'un, l'autre ou les deux.
+      SEERR_URL: http://192.168.1.10:5055
+      TRACEARR_URL: http://192.168.1.10:3000</code></pre>
+      <p>L'image fonctionne sur les ordinateurs (amd64) et sur les serveurs ARM 64 bits (Raspberry Pi, NAS). Elle ne garde rien sur disque.</p>
+      <h3>Côté Maku</h3>
+      <ul>
+        <li><strong>Sur le réseau de la maison</strong>, Maku trouve le relais tout seul, vérifie que c'est bien celui de son serveur, et remplit les adresses de Seerr et de Tracearr. Réglages → Services affiche alors « Maku Server local détecté ».</li>
+        <li><strong>Depuis Internet</strong>, placez le relais derrière un proxy inverse HTTPS (Caddy, Nginx Proxy Manager, Traefik…) ou un VPN, et utilisez ses adresses : <code>https://maku.mondomaine.fr/seerr</code> et <code>https://maku.mondomaine.fr/tracearr</code>, dans les Réglages ou dans l'invitation.</li>
+      </ul>
+      <p>Le <a href="https://github.com/yanutros/maku/blob/main/server/README.md">guide complet de Maku Server</a> détaille les variables, le HTTPS et un tunnel sans port à ouvrir.</p>
+
+      <h2 id="tmdb">Logos et bandes-annonces : la clé TMDB</h2>
+      <p>Pour les films et séries dont votre serveur n'a ni logo ni bande-annonce, Maku peut les chercher sur TMDB avec votre propre clé d'API, gratuite : créez un compte sur <a href="https://www.themoviedb.org">themoviedb.org</a>, demandez une clé dans ses réglages API, puis collez-la dans <strong>Réglages → Services</strong>. Sur la télé, un QR code permet de la coller depuis le téléphone.</p>
+
+      <h2 id="personnaliser">Personnaliser</h2>
+      <h3>Réglages → Interface</h3>
+      <ul>
+        <li><strong>Couleur</strong> : jaune, rouge, vert ou violet. L'icône de l'application suit.</li>
+        <li><strong>Langue</strong> : automatique (celle du système), français, anglais, espagnol, allemand ou néerlandais.</li>
+        <li><strong>Accueil</strong> : rangées à masquer ou à réordonner, bibliothèques à épingler.</li>
+        <li><strong>Notes</strong> : chaque site de notes s'affiche ou se masque sur les fiches.</li>
+        <li><strong>Barre de lecture minimaliste</strong>, et sur la télé, une <strong>barre de navigation simplifiée</strong> en pilule d'icônes.</li>
+      </ul>
+      <p>Sur ordinateur, le crayon à côté de « Bibliothèques », dans le menu, permet de les réordonner en les glissant et d'en masquer. Ces choix sont gardés sur chaque appareil.</p>
+      <h3>Réglages → Lecteur</h3>
+      <ul>
+        <li><strong>Son vers l'ampli</strong> (Android) : automatique, ou « Décodé ici » si un film reste muet ou se fige.</li>
+        <li><strong>Épisode suivant</strong> : un compte à rebours de 5 à 30 secondes, ou aucun.</li>
+        <li><strong>Paroles</strong> de la musique, à afficher ou non.</li>
+        <li><strong>Journal de diagnostic</strong> (Android), à partager en cas de souci.</li>
+      </ul>
+
+      <h2 id="raccourcis">Raccourcis et télécommande</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Touche</th><th>Pendant une vidéo</th><th>Pendant la musique</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>Espace</kbd></td><td>lecture / pause (<kbd>K</kbd> aussi)</td><td>lecture / pause</td></tr>
+            <tr><td><kbd>←</kbd> <kbd>→</kbd></td><td>reculer / avancer de 10 s</td><td></td></tr>
+            <tr><td><kbd>↑</kbd> <kbd>↓</kbd></td><td>volume</td><td></td></tr>
+            <tr><td><kbd>M</kbd></td><td>couper le son</td><td></td></tr>
+            <tr><td><kbd>F</kbd></td><td>plein écran (double-clic aussi)</td><td></td></tr>
+            <tr><td>Touches multimédia</td><td>lecture / pause, épisode suivant / précédent</td><td>lecture / pause, suivant, précédent</td></tr>
+            <tr><td><kbd>Échap</kbd></td><td>quitter le plein écran, puis le lecteur</td><td>fermer la file d'attente ou la vue En cours de lecture</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p><strong>À la télécommande</strong> : les flèches déplacent la sélection, <strong>OK</strong> ouvre ou lance, <strong>Retour</strong> ferme ce qui est ouvert puis revient à la page précédente. Un <strong>appui long sur OK</strong> (ou la touche Menu) ouvre le menu d'un titre. Les champs de saisie se traversent aux flèches sans ouvrir le clavier : OK l'ouvre. Dans la recherche, OK sur le champ le vide pour une nouvelle recherche.</p>
+
+      <div class="callout" style="margin-top: 48px;">
+        <div>
+          <h3>Une question ?</h3>
+          <p>Les réponses aux soucis les plus fréquents sont rassemblées au même endroit.</p>
+        </div>
+        <a class="btn btn-primary" href="faq.html">Questions fréquentes →</a>
+      </div>
+    </article>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <span>© Maku · Logiciel libre sous licence GPL-3.0</span>
+    <nav aria-label="Liens du bas de page">
+      <a href="installer.html">Installer</a>
+      <a href="configurer.html">Configurer</a>
+      <a href="faq.html">Questions</a>
+      <a href="https://github.com/yanutros/maku/blob/main/PRIVACY.md">Confidentialité</a>
+      <a href="https://github.com/yanutros/maku/blob/main/LICENSE">Licence</a>
+      <a href="https://github.com/yanutros/maku">GitHub</a>
+    </nav>
+  </div>
+</footer>
+
+</body>
+</html>

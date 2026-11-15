@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TV, téléphone et voiture — Maku</title>
+<meta name="description" content="Maku sur chaque écran : une interface pour la télécommande sur Android TV et Fire TV, une interface mobile sur téléphone, la musique sur Android Auto, et l'ordinateur.">
+<meta name="theme-color" content="#0c0c0c">
+<link rel="icon" type="image/png" href="logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&amp;family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap nav">
+    <a class="brand" href="index.html"><img src="logo.png" alt=""><span>Maku</span></a>
+    <nav class="nav-links" aria-label="Navigation principale">
+      <a href="index.html#fonctionnalites" aria-current="page">Fonctionnalités</a>
+      <a href="installer.html">Installer</a>
+      <a href="configurer.html">Configurer</a>
+      <a href="faq.html">Questions</a>
+      <a href="https://github.com/yanutros/maku">GitHub</a>
+      <a class="btn btn-primary btn-sm" href="index.html#telecharger">Télécharger</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <p class="crumbs"><a href="index.html">Accueil</a> › <a href="index.html#fonctionnalites">Fonctionnalités</a> › TV, téléphone et voiture</p>
+
+  <section class="page-hero">
+    <p class="eyebrow">Sur chaque écran</p>
+    <h1>Une interface pour la télécommande, une autre pour le pouce.</h1>
+    <p class="lead">Maku ne se contente pas d'agrandir ou de rétrécir la même page. Sur la télé, sur le téléphone et dans la voiture, il change de forme pour s'utiliser naturellement, et reste fluide même sur un matériel modeste.</p>
+    <img class="shot-big" src="screenshots/tv.png" alt="L'accueil de Maku sur Android TV : la fiche en haut, les rangées en dessous" width="1600" height="1000">
+  </section>
+
+  <section id="tv" class="feature">
+    <div>
+      <p class="eyebrow">Android TV, Google TV et Fire TV</p>
+      <h2>Fait pour la télécommande</h2>
+      <p>La fiche du titre sélectionné en haut, des rangées de jaquettes en dessous, un menu qui se déplie quand on y entre. La sélection, entourée d'or, est toujours visible en entier, loin des bords de l'écran.</p>
+      <ul class="points">
+        <li><strong>OK</strong> ouvre ou lance, <strong>Retour</strong> ramène exactement à la jaquette quittée, et ne quitte Maku que depuis l'accueil.</li>
+        <li><strong>Appui long sur OK</strong> : le menu du titre (reprendre ou recommencer, vu, note, liste de suivi…).</li>
+        <li><strong>Pendant un film</strong>, le premier appui ne fait que réafficher les commandes, sans mettre en pause : on voit le temps restant sans couper le film. Les touches lecture, pause, suivant et précédent fonctionnent.</li>
+        <li><strong>Une interface allégée</strong> : pas de flou ni d'animation coûteuse, pour rester fluide sur les téléviseurs les plus modestes.</li>
+        <li><strong>Sans clavier</strong> : la connexion à Plex se fait avec un code à saisir sur plex.tv/link depuis le téléphone, et celle à Jellyfin ou Emby par un QR code à scanner.</li>
+      </ul>
+    </div>
+    <div class="media"><img loading="lazy" src="screenshots/tv-musique.png" alt="Le lecteur musique plein écran de la TV" width="1600" height="1000"></div>
+  </section>
+
+  <section id="telephone" class="feature flip">
+    <div>
+      <p class="eyebrow">Téléphone</p>
+      <h2>Une vraie application mobile</h2>
+      <p>Sur téléphone, Maku prend la forme d'une application mobile : un en-tête compact, des onglets en bas (Accueil, Bibliothèques, Découvrir, Stats, Réglages), le bandeau et « Continuer à regarder » à la taille de l'écran.</p>
+      <ul class="points">
+        <li><strong>Un appui long</strong> sur une affiche ouvre son menu.</li>
+        <li><strong>Les vidéos</strong> passent d'elles-mêmes en paysage et en plein écran.</li>
+        <li><strong>La musique en arrière-plan</strong>, pilotable depuis la notification, l'écran de verrouillage et un casque Bluetooth.</li>
+        <li><strong>Hors ligne</strong> : films, épisodes, albums et playlists à télécharger pour le train ou l'avion.</li>
+      </ul>
+    </div>
+    <div class="media phones">
+      <img loading="lazy" src="screenshots/telephone.png" alt="L'accueil de Maku sur téléphone" width="412" height="839">
+      <img loading="lazy" src="screenshots/telephone-musique.png" alt="La musique sur téléphone" width="412" height="839">
+    </div>
+  </section>
+
+  <section class="section" style="padding-bottom: 24px;">
+    <div class="cards">
+      <div class="card" id="voiture">
+        <h3>Dans la voiture</h3>
+        <p>Maku apparaît parmi les applications de musique d'Android Auto, avec quatre onglets illustrés de leurs pochettes : <strong style="color: var(--text);">Accueil</strong>, <strong style="color: var(--text);">Artistes</strong> (avec une lecture aléatoire de toute la bibliothèque), <strong style="color: var(--text);">Albums</strong> et <strong style="color: var(--text);">Playlists</strong>.</p>
+        <p>« Joue … sur Maku » lance un artiste, un album ou un morceau à la voix. La voiture lit elle-même la musique, même si Maku n'est pas ouvert sur le téléphone, et passe par l'adresse distante du serveur hors du Wi-Fi (avec Plex).</p>
+        <a href="faq.html#android-auto">Maku n'apparaît pas dans la voiture ?</a>
+      </div>
+      <div class="card" id="tablette">
+        <h3>Sur tablette</h3>
+        <p>L'interface de l'ordinateur, adaptée au toucher : grandes affiches, fiches immersives, menu de gauche. La musique continue en arrière-plan comme sur le téléphone, et les téléchargements y sont aussi.</p>
+        <p>Pour l'administrateur du serveur, le <a href="administration.html">tableau de bord</a> y est disponible.</p>
+      </div>
+      <div class="card" id="ordinateur">
+        <h3>Sur ordinateur</h3>
+        <p>Sous Windows, la vidéo s'affiche directement dans la fenêtre de Maku. Sous Linux et macOS, elle s'ouvre dans une fenêtre mpv en plein écran, que Maku pilote à distance.</p>
+        <p>Les touches multimédia du clavier fonctionnent, et sous Linux, ce qui joue apparaît dans les commandes du bureau. La musique s'envoie sur une enceinte Chromecast en un clic.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="feature">
+    <div>
+      <p class="eyebrow">Toujours à jour</p>
+      <h2>Les nouveautés arrivent toutes seules</h2>
+      <p>Au lancement, une fenêtre présente la nouvelle version, ses nouveautés et ses corrections, dans votre langue. Un clic télécharge et installe le bon paquet, y compris sur Android TV, où installer une application à la main est fastidieux.</p>
+      <ul class="points">
+        <li>Maku vérifie que le paquet vient bien des versions publiées, et que son empreinte est exactement celle annoncée.</li>
+        <li>Version du Microsoft Store ou de l'Amazon Appstore : c'est le magasin qui s'en charge.</li>
+      </ul>
+    </div>
+    <div class="media">
+      <div class="card" style="gap: 14px;">
+        <h3>Vos réglages vous suivent</h3>
+        <p>Couleur, langue, accueil personnalisé et ordre des bibliothèques se règlent sur chaque appareil, pour que la télé du salon et le téléphone aient chacun leurs habitudes.</p>
+        <a class="btn btn-sm" href="installer.html" style="align-self: flex-start;">Le guide d'installation →</a>
+      </div>
+    </div>
+  </section>
+
+  <aside class="callout">
+    <div>
+      <h3>Sur la télé ce soir ?</h3>
+      <p>Maku est sur l'Amazon Appstore, et en APK pour Android TV et Google TV.</p>
+    </div>
+    <a class="btn btn-primary" href="index.html#telecharger">Télécharger Maku</a>
+  </aside>
+
+  <section class="section">
+    <h2 style="font-size: 30px;">Les autres espaces</h2>
+    <div class="next">
+      <a class="card" href="lecture.html"><h3>Le lecteur</h3><p>La vidéo d'origine, le son jusqu'à l'ampli.</p><span class="more">Voir →</span></a>
+      <a class="card" href="musique.html"><h3>Musique</h3><p>Playlists, Mix of Three, paroles et radio.</p><span class="more">Voir →</span></a>
+      <a class="card" href="bibliotheques.html"><h3>Bibliothèques</h3><p>Affiches, fiches, catégories et collections.</p><span class="more">Voir →</span></a>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <span>© Maku · Logiciel libre sous licence GPL-3.0</span>
+    <nav aria-label="Liens du bas de page">
+      <a href="installer.html">Installer</a>
+      <a href="configurer.html">Configurer</a>
+      <a href="faq.html">Questions</a>
+      <a href="https://github.com/yanutros/maku/blob/main/PRIVACY.md">Confidentialité</a>
+      <a href="https://github.com/yanutros/maku/blob/main/LICENSE">Licence</a>
+      <a href="https://github.com/yanutros/maku">GitHub</a>
+    </nav>
+  </div>
+</footer>
+
+</body>
+</html>

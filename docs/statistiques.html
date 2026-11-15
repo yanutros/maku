@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Les statistiques — Maku</title>
+<meta name="description" content="Mes statistiques dans Maku, avec Tracearr : votre temps devant l'écran, votre top 10 du mois, vos genres préférés, votre plus longue série et votre plus gros marathon.">
+<meta name="theme-color" content="#0c0c0c">
+<link rel="icon" type="image/png" href="logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&amp;family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap nav">
+    <a class="brand" href="index.html"><img src="logo.png" alt=""><span>Maku</span></a>
+    <nav class="nav-links" aria-label="Navigation principale">
+      <a href="index.html#fonctionnalites" aria-current="page">Fonctionnalités</a>
+      <a href="installer.html">Installer</a>
+      <a href="configurer.html">Configurer</a>
+      <a href="faq.html">Questions</a>
+      <a href="https://github.com/yanutros/maku">GitHub</a>
+      <a class="btn btn-primary btn-sm" href="index.html#telecharger">Télécharger</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <p class="crumbs"><a href="index.html">Accueil</a> › <a href="index.html#fonctionnalites">Fonctionnalités</a> › Les statistiques</p>
+
+  <section class="page-hero">
+    <p class="eyebrow">Mes statistiques, avec Tracearr</p>
+    <h1>Votre vie devant l'écran, racontée.</h1>
+    <p class="lead">Combien d'heures ce mois-ci ? Quelle série vous a tenu en haleine ? Quel genre revient toujours ? <strong style="color: var(--text);">Mes statistiques</strong> répond en une page, sur un fond aux couleurs de votre titre le plus regardé, qui couvre toute la fenêtre.</p>
+    <img class="shot-big" src="screenshots/stats.png" alt="La page Mes statistiques : les 30 derniers jours, le top 10 et les records" width="1600" height="1000">
+  </section>
+
+  <section class="section" style="padding-top: 40px; padding-bottom: 24px;">
+    <div class="section-head">
+      <p class="eyebrow">Ce que vous y verrez</p>
+      <h2>Une page, cinq histoires</h2>
+      <p class="lead">Tout est calculé à partir de vos propres lectures. Personne d'autre que vous n'apparaît.</p>
+    </div>
+    <div class="cards">
+      <div class="card">
+        <h3>Vos 30 derniers jours</h3>
+        <p>« Bonjour », puis l'essentiel en une phrase : votre temps devant l'écran et le nombre de titres découverts ou revus. Trois chiffres suivent, chacun comparé aux 30 jours d'avant :</p>
+        <ul class="points" style="margin-top: 4px;">
+          <li><strong>le temps devant l'écran</strong>, dont la part de musique ;</li>
+          <li><strong>le nombre de lectures</strong> ;</li>
+          <li><strong>les titres différents</strong> regardés.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>En ce moment</h3>
+        <p>Ce que vous êtes en train de regarder ou d'écouter, sur n'importe lequel de vos appareils : en lecture ou en pause, sur le réseau de la maison ou à distance, en lecture directe ou converti par le serveur. Le bloc se met à jour tout seul.</p>
+      </div>
+      <div class="card">
+        <h3>Votre top 10</h3>
+        <p>Vos dix titres des 30 derniers jours, en grandes affiches, avec le nombre de lectures, ou d'épisodes vus pour une série. Sur ordinateur, ses flèches le font défiler.</p>
+      </div>
+      <div class="card">
+        <h3>Depuis toujours</h3>
+        <p>Votre temps de visionnage total, en heures et réparti sur le nombre de jours où vous avez regardé quelque chose. Et vos <strong style="color: var(--text);">genres préférés</strong>, en barres, pour voir enfin si vous êtes plutôt thriller ou comédie.</p>
+      </div>
+      <div class="card">
+        <h3>Vos records</h3>
+        <p>Votre <strong style="color: var(--text);">plus longue série</strong> de jours d'affilée devant l'écran, et celle en cours. Votre <strong style="color: var(--text);">plus gros marathon</strong> : le plus d'épisodes en une seule journée, avec l'affiche de la série coupable.</p>
+      </div>
+      <div class="card">
+        <h3>Votre toute première lecture</h3>
+        <p>Le tout premier titre lancé sur le serveur, sa date et le temps écoulé depuis : « il y a 1 an et 10 mois ». Une petite madeleine.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="feature">
+    <div>
+      <p class="eyebrow">Comment ça marche</p>
+      <h2>Tracearr enregistre, Maku raconte</h2>
+      <p><strong>Tracearr</strong> est un outil que l'administrateur installe à côté de son serveur : il note chaque lecture de chaque utilisateur. Maku s'y connecte avec <strong>votre compte Plex</strong> et n'affiche que vos données, mises en page pour être lues d'un coup d'œil.</p>
+      <ul class="points">
+        <li><strong>Aucune clé d'API</strong> : votre navigateur s'ouvre une seule fois pour autoriser la connexion, puis la session dure 30 jours.</li>
+        <li><strong>Sur la télé</strong>, pas de navigateur : le lien d'autorisation s'affiche en QR code, à scanner avec votre téléphone.</li>
+        <li><strong>En un QR code</strong> : l'invitation de l'administrateur remplit l'adresse de Tracearr et lance la connexion.</li>
+        <li><strong>Sans exposer Tracearr sur Internet</strong>, grâce au relais <a href="configurer.html#maku-server">Maku Server</a>.</li>
+      </ul>
+    </div>
+    <div class="media">
+      <div class="card" style="gap: 14px;">
+        <h3>Pour l'activer</h3>
+        <p>Dans <strong style="color: var(--text);">Réglages → Services</strong>, indiquez l'adresse de Tracearr puis appuyez sur <strong style="color: var(--text);">Se connecter avec Plex</strong>. Mes statistiques s'ouvre dès la connexion validée.</p>
+        <a class="btn btn-sm" href="configurer.html#tracearr" style="align-self: flex-start;">Le guide de configuration →</a>
+      </div>
+    </div>
+  </section>
+
+  <aside class="callout">
+    <div>
+      <h3>Curieux de vos chiffres ?</h3>
+      <p>Maku est gratuit, et Tracearr se connecte avec votre compte Plex.</p>
+    </div>
+    <a class="btn btn-primary" href="index.html#telecharger">Télécharger Maku</a>
+  </aside>
+
+  <section class="section">
+    <h2 style="font-size: 30px;">Les autres espaces</h2>
+    <div class="next">
+      <a class="card" href="demandes.html"><h3>Demandes</h3><p>Trouver et demander ce qui manque.</p><span class="more">Voir →</span></a>
+      <a class="card" href="administration.html"><h3>Administration</h3><p>Le tableau de bord du serveur.</p><span class="more">Voir →</span></a>
+      <a class="card" href="musique.html"><h3>Musique</h3><p>Playlists, Mix of Three, paroles et radio.</p><span class="more">Voir →</span></a>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <span>© Maku · Logiciel libre sous licence GPL-3.0</span>
+    <nav aria-label="Liens du bas de page">
+      <a href="installer.html">Installer</a>
+      <a href="configurer.html">Configurer</a>
+      <a href="faq.html">Questions</a>
+      <a href="https://github.com/yanutros/maku/blob/main/PRIVACY.md">Confidentialité</a>
+      <a href="https://github.com/yanutros/maku/blob/main/LICENSE">Licence</a>
+      <a href="https://github.com/yanutros/maku">GitHub</a>
+    </nav>
+  </div>
+</footer>
+
+</body>
+</html>
