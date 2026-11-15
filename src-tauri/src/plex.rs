@@ -27,7 +27,7 @@ pub fn with_plex_headers(rb: RequestBuilder, client_id: &str, token: Option<&str
 
 // ---------- plex.tv : authentification par code PIN ----------
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 struct Pin {
     id: u64,
@@ -420,6 +420,9 @@ pub async fn servers(http: &Client, client_id: &str, token: &str) -> Result<Vec<
         .collect())
 }
 
+/// Demandes simultanées pour remplir les genres d'une bibliothèque (affiches et nombre de titres de chacun).
+pub(crate) const GENRES_AT_ONCE: usize = 6;
+
 /// La réponse à `/identity` est-elle celle du serveur d'identifiant `machine_id` ?
 fn is_server(identity: &serde_json::Value, machine_id: &str) -> bool {
     !machine_id.is_empty() && identity["MediaContainer"]["machineIdentifier"].as_str() == Some(machine_id)
@@ -446,6 +449,10 @@ pub async fn answers_as(http: &Client, client_id: &str, uri: &str, machine_id: &
 /// La question (`/identity`) part sans jeton, et une adresse n'est retenue que si c'est bien ce serveur qui y
 /// répond : sur un autre réseau, la même adresse locale peut être celle d'une autre machine, qui ne doit ni
 /// recevoir le jeton ni être prise pour le serveur.
+/// Demandes de fiche en cours, par serveur, compte et titre (voir `raw_metadata`).
+type RawCell = std::sync::Arc<tokio::sync::OnceCell<std::result::Result<RawMetadata, String>>>;
+static RAW_IN_FLIGHT: std::sync::LazyLock<std::sync::Mutex<std::collections::HashMap<String, RawCell>>> = std::sync::LazyLock::new(Default::default);
+
 pub async fn pick_connection(http: &Client, client_id: &str, res: &Resource) -> Result<String> {
     let mut candidates: Vec<(u8, String)> = Vec::new();
     for c in &res.connections {
@@ -462,26 +469,46 @@ pub async fn pick_connection(http: &Client, client_id: &str, res: &Resource) -> 
     }
     candidates.sort();
     candidates.dedup_by(|a, b| a.1 == b.1);
-    let checks = candidates.iter().map(|(_, uri)| async move {
-        (uri.clone(), answers_as(http, client_id, uri, &res.client_identifier, Duration::from_secs(4)).await)
-    });
-    join_all(checks)
-        .await
-        .into_iter()
-        .find(|(_, ok)| *ok)
-        .map(|(uri, _)| uri)
-        .ok_or_else(|| anyhow!(crate::i18n::tr_with("plex.noReachableAddress", &[("name", &res.name)])))
+    // Toutes les adresses sont essayées en même temps, et la meilleure est retenue dès qu'elle est connue : sans
+    // attendre une adresse moins bonne qui ne répond pas (distante ou relais, jusqu'à 4 s).
+    use futures::stream::{FuturesUnordered, StreamExt};
+    let mut checks: FuturesUnordered<_> = candidates
+        .iter()
+        .enumerate()
+        .map(|(i, (_, uri))| async move { (i, answers_as(http, client_id, uri, &res.client_identifier, Duration::from_secs(4)).await) })
+        .collect();
+    let mut answers: Vec<Option<bool>> = vec![None; candidates.len()];
+    while let Some((i, ok)) = checks.next().await {
+        answers[i] = Some(ok);
+        if let Some(best) = best_answer(&answers) {
+            return Ok(candidates[best].1.clone());
+        }
+    }
+    Err(anyhow!(crate::i18n::tr_with("plex.noReachableAddress", &[("name", &res.name)])))
+}
+
+/// Adresse à retenir parmi celles essayées, de la meilleure à la moins bonne (`None` : pas encore de réponse) : la
+/// première qui répond, une fois que toutes celles d'avant ont dit non. Rien tant qu'une meilleure peut encore répondre.
+fn best_answer(answers: &[Option<bool>]) -> Option<usize> {
+    for (i, answer) in answers.iter().enumerate() {
+        match answer {
+            Some(true) => return Some(i),
+            Some(false) => {}
+            None => return None,
+        }
+    }
+    None
 }
 
 // ---------- Format JSON des serveurs Plex ----------
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 struct Envelope {
     #[serde(rename = "MediaContainer")]
     media_container: MediaContainer,
 }
 
-#[derive(Deserialize, Default)]
+#[derive(Deserialize, Default, Clone)]
 #[serde(default)]
 struct MediaContainer {
     #[serde(rename = "Directory")]
@@ -494,7 +521,7 @@ struct MediaContainer {
     total_size: Option<u32>,
 }
 
-#[derive(Deserialize, Default)]
+#[derive(Deserialize, Default, Clone)]
 #[serde(default)]
 struct RawDirectory {
     key: String,
@@ -505,7 +532,7 @@ struct RawDirectory {
     size: u32,
 }
 
-#[derive(Deserialize, Default)]
+#[derive(Deserialize, Default, Clone)]
 #[serde(default)]
 #[serde(rename_all = "camelCase")]
 struct RawHub {
@@ -516,7 +543,7 @@ struct RawHub {
     metadata: Vec<RawMetadata>,
 }
 
-#[derive(Deserialize, Default)]
+#[derive(Deserialize, Default, Clone)]
 #[serde(default, rename_all = "camelCase")]
 struct RawMetadata {
     rating_key: String,
@@ -597,7 +624,7 @@ struct RawMetadata {
     extras: Option<RawExtras>,
 }
 
-#[derive(Deserialize, Default)]
+#[derive(Deserialize, Default, Clone)]
 #[serde(default)]
 struct RawRating {
     /// « imdb://image.rating », « rottentomatoes://image.rating.ripe », « themoviedb://image.rating »…
@@ -608,13 +635,13 @@ struct RawRating {
     kind: String,
 }
 
-#[derive(Deserialize, Default)]
+#[derive(Deserialize, Default, Clone)]
 #[serde(default)]
 struct RawGuid {
     id: String,
 }
 
-#[derive(Deserialize, Default)]
+#[derive(Deserialize, Default, Clone)]
 #[serde(default, rename_all = "camelCase")]
 struct RawMarker {
     #[serde(rename = "type")]
@@ -623,14 +650,14 @@ struct RawMarker {
     end_time_offset: u64,
 }
 
-#[derive(Deserialize, Default)]
+#[derive(Deserialize, Default, Clone)]
 #[serde(default)]
 struct RawExtras {
     #[serde(rename = "Metadata")]
     metadata: Vec<RawExtra>,
 }
 
-#[derive(Deserialize, Default)]
+#[derive(Deserialize, Default, Clone)]
 #[serde(default, rename_all = "camelCase")]
 struct RawExtra {
     rating_key: String,
@@ -638,7 +665,7 @@ struct RawExtra {
     title: String,
 }
 
-#[derive(Deserialize, Default)]
+#[derive(Deserialize, Default, Clone)]
 #[serde(default)]
 struct RawImage {
     #[serde(rename = "type")]
@@ -646,7 +673,7 @@ struct RawImage {
     url: String,
 }
 
-#[derive(Deserialize, Default)]
+#[derive(Deserialize, Default, Clone)]
 #[serde(default, rename_all = "camelCase")]
 struct RawMedia {
     video_resolution: Option<String>,
@@ -657,7 +684,7 @@ struct RawMedia {
     part: Vec<RawPart>,
 }
 
-#[derive(Deserialize, Default)]
+#[derive(Deserialize, Default, Clone)]
 #[serde(default)]
 struct RawPart {
     id: u64,
@@ -670,7 +697,7 @@ struct RawPart {
 
 /// Piste d'un fichier : 1 = vidéo, 2 = audio, 3 = sous-titres.
 /// Une piste avec `key` est un sous-titre externe servi à part par Plex.
-#[derive(Deserialize, Default)]
+#[derive(Deserialize, Default, Clone)]
 #[serde(default, rename_all = "camelCase")]
 struct RawStream {
     id: u64,
@@ -684,13 +711,13 @@ struct RawStream {
     language_code: Option<String>,
 }
 
-#[derive(Deserialize, Default)]
+#[derive(Deserialize, Default, Clone)]
 #[serde(default)]
 struct RawTag {
     tag: String,
 }
 
-#[derive(Deserialize, Default)]
+#[derive(Deserialize, Default, Clone)]
 #[serde(default)]
 struct RawRole {
     /// Identifiant de la personne sur le serveur (filtre « actor=… »).
@@ -1564,7 +1591,9 @@ impl PlexServer {
     /// Genres d'une bibliothèque, chacun avec ses affiches les mieux notées et son nombre de titres.
     pub async fn genres(&self, key: &str) -> Result<Vec<Genre>> {
         let list = self.container(&format!("/library/sections/{key}/genre")).await?.directory;
-        let filled = join_all(list.into_iter().map(|g| async move {
+        // Six demandes à la fois : une bibliothèque de 200 genres en lançait 200 d'un coup.
+        use futures::stream::StreamExt;
+        let filled: Vec<Option<Genre>> = futures::stream::iter(list.into_iter().map(|g| async move {
             let path = format!(
                 "/library/sections/{key}/all?genre={}&sort=audienceRating:desc&X-Plex-Container-Start=0&X-Plex-Container-Size=4",
                 urlencoding::encode(&g.key)
@@ -1579,6 +1608,8 @@ impl PlexServer {
                 count,
             })
         }))
+        .buffered(GENRES_AT_ONCE)
+        .collect()
         .await;
         Ok(filled.into_iter().flatten().collect())
     }
@@ -1777,10 +1808,29 @@ impl PlexServer {
         })
     }
 
+    /// La fiche brute d'un titre. Au lancement d'une lecture, cinq parties la veulent en même temps (le fichier, les
+    /// épisodes voisins, les repères, les aperçus, les pistes) : elles partagent la même demande au serveur. Rien
+    /// n'est gardé ensuite : la demande suivante relit le serveur (état « vu », reprise).
     async fn raw_metadata(&self, rating_key: &str) -> Result<RawMetadata> {
+        let id = format!("{}|{}|{rating_key}", self.base, self.token);
+        let cell = RAW_IN_FLIGHT.lock().unwrap().entry(id.clone()).or_default().clone();
+        let found = cell.get_or_init(|| async { self.fetch_raw_metadata(rating_key).await.map_err(|e| format!("{e:#}")) }).await.clone();
+        {
+            let mut map = RAW_IN_FLIGHT.lock().unwrap();
+            if map.get(&id).is_some_and(|c| std::sync::Arc::ptr_eq(c, &cell)) {
+                map.remove(&id);
+            }
+        }
+        found.map_err(|e| anyhow!(e))
+    }
+
+    async fn fetch_raw_metadata(&self, rating_key: &str) -> Result<RawMetadata> {
         // Avec les repères (intro, générique) et les extras (bande-annonce).
         let found = match self.container(&format!("/library/metadata/{rating_key}?includeMarkers=1&includeExtras=1")).await {
             Ok(c) => c.metadata.into_iter().next(),
+            // Le serveur n'a pas répondu (injoignable, délai dépassé) : c'est cette erreur qu'il faut montrer, et non
+            // « introuvable » après un second essai parmi les playlists.
+            Err(e) if e.downcast_ref::<reqwest::Error>().is_some_and(|e| e.status().is_none()) => return Err(e),
             Err(_) => None,
         };
         // Les playlists ne sont pas des éléments de bibliothèque.
@@ -2285,6 +2335,90 @@ mod tests {
             }
         });
         (port, seen)
+    }
+
+    #[test]
+    fn meilleure_adresse_sans_attendre_les_moins_bonnes() {
+        // Dans l'ordre : locale, IP locale, distante, relais.
+        assert_eq!(best_answer(&[Some(true), None, None, None]), Some(0));
+        // La locale n'a pas encore répondu : on l'attend, même si la distante répond déjà.
+        assert_eq!(best_answer(&[None, None, Some(true), None]), None);
+        // Les meilleures ont dit non : la distante est retenue sans attendre le relais.
+        assert_eq!(best_answer(&[Some(false), Some(false), Some(true), None]), Some(2));
+        assert_eq!(best_answer(&[Some(false), Some(false), Some(false), Some(false)]), None);
+        assert_eq!(best_answer(&[]), None);
+    }
+
+    #[tokio::test]
+    async fn adresse_locale_retenue_sans_attendre_la_distante_muette() {
+        let (local, _) = fake_identity("le-serveur").await;
+        // Adresse distante qui accepte la connexion et ne répond jamais.
+        let silent = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let silent_port = silent.local_addr().unwrap().port();
+        tokio::spawn(async move {
+            let mut held = Vec::new();
+            while let Ok((conn, _)) = silent.accept().await {
+                held.push(conn);
+            }
+        });
+        let conn = |port: u16, local: bool| Connection { uri: format!("http://127.0.0.1:{port}"), local, relay: false, address: String::new(), port: 0 };
+        let res = Resource {
+            name: "s".into(),
+            client_identifier: "le-serveur".into(),
+            provides: "server".into(),
+            access_token: Some("jeton".into()),
+            owned: true,
+            owner_id: None,
+            source_title: None,
+            connections: vec![conn(silent_port, false), conn(local, true)],
+        };
+        let started = std::time::Instant::now();
+        let picked = pick_connection(&Client::new(), "client", &res).await.unwrap();
+        assert_eq!(picked, format!("http://127.0.0.1:{local}"));
+        assert!(started.elapsed() < Duration::from_secs(2), "{:?}", started.elapsed());
+    }
+
+    #[tokio::test]
+    async fn fiche_demandee_une_fois_par_plusieurs_parties() {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let base = format!("http://{}", listener.local_addr().unwrap());
+        let hits = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let count = hits.clone();
+        tokio::spawn(async move {
+            while let Ok((mut s, _)) = listener.accept().await {
+                let count = count.clone();
+                tokio::spawn(async move {
+                    let mut buf = [0u8; 4096];
+                    let _ = s.read(&mut buf).await;
+                    count.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                    // Le serveur met un peu de temps à répondre : les demandes se chevauchent.
+                    tokio::time::sleep(Duration::from_millis(150)).await;
+                    let body = r#"{"MediaContainer":{"Metadata":[{"ratingKey":"42","type":"movie","title":"Un film"}]}}"#;
+                    let resp = format!("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}", body.len());
+                    let _ = s.write_all(resp.as_bytes()).await;
+                });
+            }
+        });
+        let server = PlexServer { http: Client::new(), base, token: "t".into(), client_id: "c".into() };
+        // Cinq parties veulent la fiche en même temps : une seule demande au serveur.
+        let all = join_all((0..5).map(|_| server.raw_metadata("42"))).await;
+        assert!(all.iter().all(|m| m.as_ref().is_ok_and(|m| m.title == "Un film")));
+        assert_eq!(hits.load(std::sync::atomic::Ordering::SeqCst), 1);
+        // Plus tard, la fiche est relue : rien n'est gardé en mémoire.
+        assert!(server.raw_metadata("42").await.is_ok());
+        assert_eq!(hits.load(std::sync::atomic::Ordering::SeqCst), 2);
+        // Un autre titre a sa propre demande.
+        let _ = tokio::join!(server.raw_metadata("42"), server.raw_metadata("43"));
+        assert_eq!(hits.load(std::sync::atomic::Ordering::SeqCst), 4);
+    }
+
+    #[tokio::test]
+    async fn serveur_injoignable_signale_tel_quel() {
+        // Port fermé : l'erreur de connexion remonte, au lieu de « introuvable » après un essai parmi les playlists.
+        let server = PlexServer { http: Client::new(), base: "http://127.0.0.1:9".into(), token: "t".into(), client_id: "c".into() };
+        let e = format!("{:#}", server.raw_metadata("42").await.err().unwrap());
+        assert!(!e.contains(&crate::i18n::tr_with("plex.notFound", &[("id", "42")])), "{e}");
     }
 
     #[tokio::test]

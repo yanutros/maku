@@ -251,11 +251,16 @@ function markTranscoded() {
 }
 
 /** Relance la vidéo en cours au même endroit, avec d'autres pistes ou une autre qualité. */
+/** La vidéo est relancée au même endroit (autre piste, autre qualité) : ce n'est pas la fin d'une lecture. */
+let restarting = false;
+
 function restart(streams = player.streams) {
   if (!player.video || !player.ratingKey) return;
   const { ratingKey, prevKey, nextKey, upNext, markers, mediaIndex, previews } = player;
   const startMs = Math.round(player.position * 1000);
+  restarting = true;
   const done = play(ratingKey, { ...streams, startMs, mediaIndex });
+  restarting = false;
   // Les épisodes voisins, les repères et les aperçus ne changent pas : pas de clignotement.
   Object.assign(player, { prevKey, nextKey, upNext, markers, previews });
   return done;
@@ -876,7 +881,8 @@ const web = (() => {
         const wasVideo = player.video;
         const sent = report("stopped", reportedKey);
         // Une vidéo terminée : les pages relisent l'état « vu » et la reprise, une fois le serveur prévenu.
-        if (wasVideo) sent.finally(notifyPlaybackEnded);
+        // Pas pour une simple relance : les pages rechargeaient tout à chaque changement de piste ou de qualité.
+        if (wasVideo && !restarting) sent.finally(notifyPlaybackEnded);
       }
       reportedKey = "";
       clearInterval(reportTimer);

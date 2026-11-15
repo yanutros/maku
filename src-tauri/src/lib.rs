@@ -47,6 +47,8 @@ struct AppState {
     seerr_stale: std::sync::atomic::AtomicBool,
     tracearr_stale: std::sync::atomic::AtomicBool,
     player: Mutex<Option<PlayerControl>>,
+    /// Le compte Plex connecté possède-t-il le serveur en cours ? Dernière réponse de plex.tv.
+    owner: Mutex<OwnerCache>,
     /// Lecture en préparation : une lecture arrêtée ou remplacée pendant l'attente du serveur ne démarre pas.
     play_turn: commands::PlayTurn,
     relay: Mutex<Option<relay::Relay>>,
@@ -108,17 +110,28 @@ impl AppState {
 
     /// Le compte Plex connecté possède-t-il le serveur en cours ? D'après plex.tv (« owned ») : les
     /// membres d'un Plex Home lisent eux aussi les réglages du serveur, ce n'est donc pas un critère.
+    ///
+    /// La réponse est gardée cinq minutes par compte et par serveur : chaque action d'administration, et le tableau
+    /// de bord toutes les trois secondes, redemandaient la liste des serveurs à plex.tv. Si plex.tv ne répond pas,
+    /// la dernière réponse connue vaut encore : un serveur local reste administrable sans Internet.
     async fn owns_plex_server(&self) -> bool {
         let c = self.cfg();
         let (Some(token), Some(saved)) = (c.plex_token, c.server) else { return false };
         if saved.is_jellyfin() {
             return false;
         }
-        plex::servers(&self.http, &c.client_id, &token)
-            .await
-            .ok()
-            .and_then(|list| list.into_iter().find(|r| r.client_identifier == saved.machine_id))
-            .is_some_and(|r| r.owned)
+        let key = format!("{}|{token}", saved.machine_id);
+        if let Some(owned) = self.owner.lock().unwrap().fresh(&key, std::time::Instant::now()) {
+            return owned;
+        }
+        match plex::servers(&self.http, &c.client_id, &token).await {
+            Ok(list) => {
+                let owned = list.into_iter().find(|r| r.client_identifier == saved.machine_id).is_some_and(|r| r.owned);
+                self.owner.lock().unwrap().put(key, owned, std::time::Instant::now());
+                owned
+            }
+            Err(_) => self.owner.lock().unwrap().last(&key).unwrap_or(false),
+        }
     }
 
     /// Le serveur Plex, pour une action réservée à son propriétaire (fiches, collections, réglages…).
@@ -185,6 +198,28 @@ impl AppState {
     }
 }
 
+/// Dernière réponse de plex.tv à « ce compte possède-t-il ce serveur ? », pour un compte et un serveur.
+#[derive(Default)]
+struct OwnerCache(Option<(String, bool, std::time::Instant)>);
+
+impl OwnerCache {
+    const FRESH_FOR: Duration = Duration::from_secs(300);
+
+    /// La réponse, si elle a moins de cinq minutes et vaut pour ce compte et ce serveur.
+    fn fresh(&self, key: &str, now: std::time::Instant) -> Option<bool> {
+        self.0.as_ref().filter(|(k, _, at)| k == key && now.duration_since(*at) < Self::FRESH_FOR).map(|(_, owned, _)| *owned)
+    }
+
+    /// La dernière réponse pour ce compte et ce serveur, quel que soit son âge (plex.tv injoignable).
+    fn last(&self, key: &str) -> Option<bool> {
+        self.0.as_ref().filter(|(k, _, _)| k == key).map(|(_, owned, _)| *owned)
+    }
+
+    fn put(&mut self, key: String, owned: bool, now: std::time::Instant) {
+        self.0 = Some((key, owned, now));
+    }
+}
+
 mod commands;
 use commands::*;
 
@@ -205,6 +240,7 @@ pub fn run() {
                 seerr_stale: Default::default(),
                 tracearr_stale: Default::default(),
                 player: Mutex::new(None),
+                owner: Default::default(),
                 play_turn: Default::default(),
                 relay: Mutex::new(None),
                 remote_logos: Mutex::new(Default::default()),
@@ -409,6 +445,32 @@ pub fn run() {
                 }
             }
         });
+}
+
+#[cfg(test)]
+mod owner_cache_tests {
+    use super::OwnerCache;
+    use std::time::{Duration, Instant};
+
+    #[test]
+    fn droit_d_administration_garde_cinq_minutes() {
+        let mut cache = OwnerCache::default();
+        let t0 = Instant::now();
+        assert_eq!(cache.fresh("serveur|compte", t0), None);
+        cache.put("serveur|compte".into(), true, t0);
+        // Pendant cinq minutes : pas de nouvelle demande à plex.tv.
+        assert_eq!(cache.fresh("serveur|compte", t0 + Duration::from_secs(299)), Some(true));
+        assert_eq!(cache.fresh("serveur|compte", t0 + Duration::from_secs(301)), None);
+        // plex.tv injoignable : la dernière réponse vaut encore, même ancienne.
+        assert_eq!(cache.last("serveur|compte"), Some(true));
+        // Un autre compte ou un autre serveur n'hérite de rien.
+        assert_eq!(cache.fresh("serveur|autre-compte", t0), None);
+        assert_eq!(cache.last("autre-serveur|compte"), None);
+        // Un refus est gardé aussi.
+        cache.put("serveur|invite".into(), false, t0);
+        assert_eq!(cache.fresh("serveur|invite", t0), Some(false));
+        assert_eq!(cache.last("serveur|compte"), None);
+    }
 }
 
 #[cfg(test)]

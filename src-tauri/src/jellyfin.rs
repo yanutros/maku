@@ -606,7 +606,8 @@ impl JellyfinServer {
     pub async fn genres(&self, key: &str) -> Result<Vec<Genre>> {
         let v = self.json(&format!("/Genres?ParentId={key}&UserId={}&Fields=ItemCounts", self.uid())).await?;
         let list = v["Items"].as_array().cloned().unwrap_or_default();
-        let out = futures::future::join_all(list.iter().map(|g| async move {
+        use futures::stream::StreamExt;
+        let out: Vec<Option<Genre>> = futures::stream::iter(list.into_iter().map(|g| async move {
             let id = g["Id"].as_str().unwrap_or_default().to_string();
             let page = self.section_items(key, 0, 4, None, Some(&id), Some("audienceRating:desc"), &[]).await.ok()?;
             (page.total > 0).then(|| Genre {
@@ -617,6 +618,8 @@ impl JellyfinServer {
                 backdrop: page.items.iter().find_map(|i| i.backdrop.clone()),
             })
         }))
+        .buffered(crate::plex::GENRES_AT_ONCE)
+        .collect()
         .await;
         Ok(out.into_iter().flatten().collect())
     }

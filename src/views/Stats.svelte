@@ -5,6 +5,7 @@
   import { api, errorText, formatClock, formatLongDuration, tracearrLogin, type Session, type TracearrDashboard } from "../lib/api";
   import { genreLabel } from "../lib/genres";
   import { go, nav } from "../lib/nav.svelte";
+  import { player } from "../lib/player.svelte";
   import { device } from "../lib/device";
   import { useAmbient } from "../lib/ambient.svelte";
   import Icon from "../components/Icon.svelte";
@@ -25,10 +26,21 @@
   /** La lecture en cours se rafraîchit toutes les 15 s, tant que la session Tracearr est ouverte. */
   function watch() {
     clearInterval(timer);
-    timer = setInterval(load, 15000);
+    timer = setInterval(tick, 15000);
+  }
+
+  /** Une demande à la fois : un Tracearr lent ne voit pas les demandes s'empiler. */
+  let loading = false;
+
+  /** Rafraîchissement périodique : pas pendant une vidéo ni quand Maku n'est pas à l'écran, où personne ne le voit. */
+  function tick() {
+    if (document.hidden || (player.active && player.video)) return;
+    load();
   }
 
   async function load() {
+    if (loading) return;
+    loading = true;
     try {
       data = await api.tracearrDashboard();
       needsLogin = false;
@@ -47,6 +59,8 @@
       } else {
         error = message;
       }
+    } finally {
+      loading = false;
     }
   }
 

@@ -46,7 +46,13 @@
     return Math.max(0, Math.min(s.durationMs || Infinity, pos));
   }
 
+  /** Une demande à la fois : un serveur lent ne voit pas les demandes s'empiler toutes les trois secondes. */
+  let loading = false;
+
   async function load() {
+    // Rien à rafraîchir quand Maku n'est pas à l'écran.
+    if (loading || document.hidden) return;
+    loading = true;
     try {
       const list = await api.sessions();
       reanchor(list);
@@ -54,6 +60,8 @@
       error = null;
     } catch (e) {
       error = errorText(e);
+    } finally {
+      loading = false;
     }
   }
 

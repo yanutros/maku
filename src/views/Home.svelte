@@ -19,9 +19,11 @@
   import { device } from "../lib/device";
   import { t } from "../lib/i18n";
 
+  /** Bibliothèques du serveur, déjà demandées par l'application : l'accueil ne les redemande pas. */
+  let { sections = [] }: { sections?: Section[] } = $props();
+
   let home = $state<Home | null>(null);
   let trending = $state<SeerrMedia[]>([]);
-  let sections = $state<Section[]>([]);
   // Derniers ajouts des bibliothèques épinglées, chargés à la demande.
   let libItems = $state<Record<string, Item[]>>({});
   let error = $state<string | null>(null);
@@ -57,7 +59,6 @@
 
   onMount(() => {
     load();
-    api.sections().then((s) => (sections = s ?? []), () => {});
     // Seerr est facultatif : la rangée n'apparaît que s'il répond.
     api.seerrTrending().then((r) => (trending = r.filter((m) => m.status !== 5)), () => {});
     // Fin d'une lecture : mpv sur ordinateur, lecteur du système sur Android / TV.

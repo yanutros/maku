@@ -62,6 +62,11 @@
   async function refresh() {
     session = await api.session();
     nav.serverKind = session.serverKind;
+    // Bibliothèques et droit d'administration : demandés tout de suite, en même temps que les profils du compte, au
+    // lieu de l'un après l'autre (le menu attendait deux allers-retours de plus).
+    const wanted = session.serverName
+      ? { sections: api.sections().catch(() => [] as Section[]), admin: api.isAdmin().catch(() => false) }
+      : null;
     if (session.loggedIn && session.plexRemembered && session.serverKind === "plex") {
       const home = await api.homeUsers().catch(() => null);
       nav.homeProfiles = home?.users.length ?? 0;
@@ -72,15 +77,15 @@
       }
       profileAsked = true;
     }
-    if (session.serverName) {
-      sections = await api.sections().catch(() => []);
+    if (wanted) {
+      sections = await wanted.sections;
       // Serveur joignable : la progression jouée hors ligne lui est renvoyée, les téléchargements reprennent.
       if (sections.length) {
         checkOfflineAllowed();
         syncOffline();
       }
       // Édition des métadonnées et réglages du serveur : réservés à son administrateur.
-      nav.admin = await api.isAdmin().catch(() => false);
+      nav.admin = await wanted.admin;
       // Administrateur de Seerr : la gestion des demandes (Admin › Demandes).
       checkSeerrManager(!!session.seerrUrl);
       // Seerr ou Tracearr sans adresse : le relais Maku Server du serveur, s'il y en a un, les fournit.
@@ -282,7 +287,7 @@
       <div class="content" bind:this={content}>
         {#key nav.view}
           {#if nav.view.name === "home"}
-            <Home />
+            <Home {sections} />
           {:else if nav.view.name === "libraries"}
             <Libraries {sections} />
           {:else if nav.view.name === "section" && nav.view.kind === "artist"}
