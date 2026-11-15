@@ -13,6 +13,7 @@
   "player": {
     "noPlayback": "Nothing is playing",
     "mpvNotAtPath": "mpv not found at the location set in Settings: {{path}}",
+    "notMpv": "This file isn't mpv: set the path to the mpv program ({{path}})",
     "mpvNotFound": "mpv not found: install it (https://mpv.io) or set its path in Settings",
     "ipcUnavailable": "mpv IPC unavailable",
     "queueWriteFailed": "Couldn't write the play queue",

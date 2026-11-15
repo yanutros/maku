@@ -13,6 +13,7 @@
   "player": {
     "noPlayback": "No hay ninguna reproducción en curso",
     "mpvNotAtPath": "No se encuentra mpv en la ruta indicada en Ajustes: {{path}}",
+    "notMpv": "Este archivo no es mpv: indica la ruta del programa mpv ({{path}})",
     "mpvNotFound": "No se encuentra mpv: instálalo (https://mpv.io) o indica su ruta en Ajustes",
     "ipcUnavailable": "IPC de mpv no disponible",
     "queueWriteFailed": "No se puede escribir la cola de reproducción",

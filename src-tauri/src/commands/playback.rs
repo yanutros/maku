@@ -382,18 +382,52 @@ pub fn player_stop(state: State<'_, AppState>) {
 /// Linux : ce qui joue, pour les touches multimédia et les commandes du bureau (MPRIS) ; `None`
 /// quand plus rien ne joue. Ailleurs, rien à faire : les touches arrivent directement à la page.
 #[tauri::command]
-pub fn media_update(app: AppHandle, json: Option<String>) -> CmdResult<()> {
+pub async fn media_update(app: AppHandle, state: State<'_, AppState>, json: Option<String>) -> CmdResult<()> {
     #[cfg(target_os = "linux")]
     if let Some(keys) = app.try_state::<MediaKeys>() {
         let update = match json.as_deref().map(serde_json::from_str::<mpris::State>) {
-            Some(Ok(state)) => mpris::Update::State(state),
+            Some(Ok(mut playing)) => {
+                // La pochette est publiée à tout le bureau : une copie locale, pas l'adresse du serveur et son jeton.
+                let dir = app.path().app_cache_dir().map_err(anyhow::Error::from)?.join("mpris");
+                playing.art = local_art(&state.http, &dir, &playing.art).await.unwrap_or_default();
+                mpris::Update::State(playing)
+            }
             _ => mpris::Update::Stop,
         };
         let _ = keys.0.send(update);
     }
     #[cfg(not(target_os = "linux"))]
-    let _ = (app, json);
+    let _ = (app, state, json);
     Ok(())
+}
+
+/// Pochette publiée par MPRIS (Linux) : tout programme de la session la lit. L'adresse du serveur porte son jeton ;
+/// l'image est donc copiée dans `dir`, et c'est l'adresse de ce fichier (« file://… ») qui est publiée. Une seule
+/// pochette est gardée ; sans image (serveur injoignable, trop grosse), rien n'est publié.
+#[cfg_attr(not(any(target_os = "linux", test)), allow(dead_code))]
+pub(crate) async fn local_art(http: &reqwest::Client, dir: &std::path::Path, url: &str) -> Option<String> {
+    use sha2::{Digest, Sha256};
+    const MAX_BYTES: usize = 8 * 1024 * 1024;
+    if !url.starts_with("http://") && !url.starts_with("https://") {
+        return None;
+    }
+    let digest = Sha256::digest(url.as_bytes());
+    let name = format!("{}.img", digest.iter().take(12).map(|b| format!("{b:02x}")).collect::<String>());
+    let path = dir.join(&name);
+    if !path.is_file() {
+        let resp = http.get(url).timeout(Duration::from_secs(8)).send().await.ok()?.error_for_status().ok()?;
+        let bytes = resp.bytes().await.ok()?;
+        if bytes.is_empty() || bytes.len() > MAX_BYTES {
+            return None;
+        }
+        std::fs::create_dir_all(dir).ok()?;
+        // La pochette du titre précédent ne sert plus.
+        for old in std::fs::read_dir(dir).ok()?.flatten() {
+            let _ = std::fs::remove_file(old.path());
+        }
+        std::fs::write(&path, &bytes).ok()?;
+    }
+    reqwest::Url::from_file_path(&path).ok().map(|u| u.to_string())
 }
 
 /// Linux : le lecteur MPRIS, à qui l'interface envoie ce qui joue.

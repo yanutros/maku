@@ -909,6 +909,7 @@
   },
   "update": {
     "allowInstall": "Erlaube Maku, Apps zu installieren, und starte das Update dann erneut.",
+    "refused": "Diese Datei ist kein Maku-Update: Die Installation wurde abgebrochen.",
     "confirmInstall": "Bestätige die Installation: Maku startet danach in der neuen Version.",
     "installStarted": "Installation gestartet.",
     "title": "Neue Version verfügbar",

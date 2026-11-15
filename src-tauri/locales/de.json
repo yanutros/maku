@@ -13,6 +13,7 @@
   "player": {
     "noPlayback": "Es wird nichts abgespielt",
     "mpvNotAtPath": "mpv nicht am in den Einstellungen angegebenen Ort gefunden: {{path}}",
+    "notMpv": "Diese Datei ist nicht mpv: Gib den Pfad zum Programm mpv an ({{path}})",
     "mpvNotFound": "mpv nicht gefunden: Installiere es (https://mpv.io) oder gib den Pfad in den Einstellungen an",
     "ipcUnavailable": "mpv-IPC nicht verfügbar",
     "queueWriteFailed": "Die Wiedergabeliste konnte nicht geschrieben werden",

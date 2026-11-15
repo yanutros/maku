@@ -58,6 +58,8 @@
         const result = device?.installApk(apk);
         if (result === "permission") {
           message = t("update.allowInstall");
+        } else if (result === "refused") {
+          error = t("update.refused");
         } else {
           message = t("update.confirmInstall");
         }

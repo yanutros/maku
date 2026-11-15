@@ -909,6 +909,7 @@
   },
   "update": {
     "allowInstall": "Sta Maku toe apps te installeren en start de update opnieuw.",
+    "refused": "Dit bestand is geen update van Maku: de installatie is geannuleerd.",
     "confirmInstall": "Bevestig de installatie: Maku start opnieuw in de nieuwe versie.",
     "installStarted": "Installatie gestart.",
     "title": "Nieuwe versie beschikbaar",

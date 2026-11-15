@@ -171,9 +171,20 @@ struct PropEvent<'a> {
 }
 
 /// Cherche mpv : chemin des réglages, à côté de l'exécutable, puis dans le PATH.
+/// Le chemin indiqué dans les Réglages désigne-t-il mpv ? D'après le nom du fichier : Maku lance ce programme à
+/// chaque lecture, et ne doit pas pouvoir être amené à en lancer un autre.
+pub fn is_mpv_name(path: &std::path::Path) -> bool {
+    let name = path.file_name().and_then(|n| n.to_str()).unwrap_or_default().to_ascii_lowercase();
+    // « io.mpv.Mpv » : le lanceur de mpv installé en Flatpak.
+    matches!(name.as_str(), "mpv" | "mpv.exe" | "mpv.com" | "io.mpv.mpv")
+}
+
 pub fn find_mpv(configured: Option<&str>) -> Result<PathBuf> {
     if let Some(p) = configured.filter(|p| !p.trim().is_empty()) {
         let path = PathBuf::from(p.trim());
+        if !is_mpv_name(&path) {
+            bail!(crate::i18n::tr_with("player.notMpv", &[("path", &path.display().to_string())]));
+        }
         if path.is_file() {
             return Ok(path);
         }
@@ -292,18 +303,41 @@ pub enum Source {
     Music { urls: Vec<String>, start: usize },
 }
 
-/// Lance mpv puis suit la lecture en tâche de fond. À la fin, l'événement
-/// `player-stopped` porte `session_id`, pour ignorer une lecture déjà remplacée.
-pub fn launch(
-    app: AppHandle,
-    server: MediaServer,
-    mpv: PathBuf,
-    session_id: String,
-    entries: Vec<Entry>,
-    source: Source,
-) -> Result<PlayerControl> {
-    let pipe = ipc_path();
-    let mut cmd = Command::new(&mpv);
+/// Fichier temporaire lisible par son seul propriétaire (Linux, macOS) : il contient des adresses avec leur jeton.
+fn private_temp(name: &str, text: &str) -> Result<PathBuf> {
+    use std::io::Write;
+    let path = std::env::temp_dir().join(format!("plexr-{name}-{}", uuid::Uuid::new_v4().simple()));
+    let mut options = std::fs::OpenOptions::new();
+    options.create_new(true).write(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        options.mode(0o600);
+    }
+    options.open(&path)?.write_all(text.as_bytes())?;
+    Ok(path)
+}
+
+/// Sous-titres externes, dans un fichier de réglages pour mpv (`--include`). La forme « %longueur%valeur » prend
+/// l'adresse telle quelle, quels que soient ses caractères.
+fn sub_files_conf(files: &[String]) -> String {
+    files.iter().map(|f| format!("sub-files-append=%{}%{f}\n", f.len())).collect()
+}
+
+/// La commande mpv prête à être lancée, et ce qu'il faut pour suivre la lecture.
+struct Prepared {
+    cmd: Command,
+    start: usize,
+    offset_ms: u64,
+    parent: Option<isize>,
+    /// Fichiers temporaires à supprimer quand mpv s'arrête.
+    temp: Vec<PathBuf>,
+}
+
+/// Prépare la commande mpv. Les adresses des fichiers portent le jeton du serveur : elles passent par des fichiers
+/// temporaires privés, jamais par la ligne de commande, que les autres comptes de la machine peuvent lire.
+fn prepare(mpv: &std::path::Path, pipe: &str, source: &Source) -> Result<Prepared> {
+    let mut cmd = Command::new(mpv);
     cmd.arg(format!("--input-ipc-server={pipe}"))
         .arg("--keep-open=no")
         .arg("--idle=no")
@@ -313,10 +347,12 @@ pub fn launch(
     let mut start = 0;
     let mut offset_ms = 0;
     let mut parent = None;
-    let mut playlist_file = None;
-    match &source {
+    let mut temp = Vec::new();
+    let queue_failed = || crate::i18n::tr("player.queueWriteFailed");
+    match source {
         Source::Video { info, parent: wid } => {
-            cmd.arg(&info.url)
+            let playlist = private_temp("video.m3u", &format!("#EXTM3U\n{}\n", info.url)).with_context(queue_failed)?;
+            cmd.arg(format!("--playlist={}", playlist.display()))
                 .arg(format!("--title={}", info.title))
                 .arg("--force-window=yes")
                 .arg("--hwdec=auto-safe")
@@ -342,17 +378,26 @@ pub fn launch(
             if let Some(aid) = info.aid {
                 cmd.arg(format!("--aid={aid}"));
             }
-            for file in &info.sub_files {
-                cmd.arg(format!("--sub-file={file}"));
+            temp.push(playlist);
+            if !info.sub_files.is_empty() {
+                let conf = private_temp("subs.conf", &sub_files_conf(&info.sub_files)).with_context(queue_failed);
+                match conf {
+                    Ok(conf) => {
+                        cmd.arg(format!("--include={}", conf.display()));
+                        temp.push(conf);
+                    }
+                    Err(e) => {
+                        remove_all(&temp);
+                        return Err(e);
+                    }
+                }
             }
             offset_ms = info.offset_ms;
             parent = *wid;
         }
         Source::Music { urls, start: first } => {
             // Une longue file dépasserait la limite de la ligne de commande : on passe par une playlist.
-            let path = std::env::temp_dir().join(format!("plexr-queue-{}.m3u", uuid::Uuid::new_v4().simple()));
-            std::fs::write(&path, format!("#EXTM3U\n{}\n", urls.join("\n")))
-                .with_context(|| crate::i18n::tr("player.queueWriteFailed"))?;
+            let path = private_temp("queue.m3u", &format!("#EXTM3U\n{}\n", urls.join("\n"))).with_context(queue_failed)?;
             cmd.arg(format!("--playlist={}", path.display()))
                 .arg(format!("--playlist-start={first}"))
                 .arg("--vid=no")
@@ -363,16 +408,35 @@ pub fn launch(
                 .arg("--gapless-audio=weak")
                 .arg("--prefetch-playlist=yes");
             start = *first;
-            playlist_file = Some(path);
+            temp.push(path);
         }
     }
+    Ok(Prepared { cmd, start, offset_ms, parent, temp })
+}
+
+fn remove_all(files: &[PathBuf]) {
+    for path in files {
+        let _ = std::fs::remove_file(path);
+    }
+}
+
+/// Lance mpv puis suit la lecture en tâche de fond. À la fin, l'événement
+/// `player-stopped` porte `session_id`, pour ignorer une lecture déjà remplacée.
+pub fn launch(
+    app: AppHandle,
+    server: MediaServer,
+    mpv: PathBuf,
+    session_id: String,
+    entries: Vec<Entry>,
+    source: Source,
+) -> Result<PlayerControl> {
+    let pipe = ipc_path();
+    let Prepared { mut cmd, start, offset_ms, parent, temp } = prepare(&mpv, &pipe, &source)?;
     let child = cmd.spawn().with_context(|| crate::i18n::tr_with("player.launchFailed", &[("path", &mpv.display().to_string())]));
     let child = match child {
         Ok(c) => c,
         Err(e) => {
-            if let Some(path) = &playlist_file {
-                let _ = std::fs::remove_file(path);
-            }
+            remove_all(&temp);
             return Err(e);
         }
     };
@@ -387,9 +451,7 @@ pub fn launch(
         if let Err(e) = session.follow(child, stop_rx, command_rx, &pipe, start, offset_ms).await {
             eprintln!("Suivi de lecture interrompu : {e:#}");
         }
-        if let Some(path) = playlist_file {
-            let _ = std::fs::remove_file(path);
-        }
+        remove_all(&temp);
         let _ = app.emit("player-stopped", &session_id);
     });
     Ok(PlayerControl { commands, _stop: stop, pid })
@@ -641,6 +703,65 @@ fn moved_index(current: usize, from: usize, to: usize) -> usize {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn seul_mpv_est_accepte_comme_lecteur() {
+        for ok in ["mpv", "/usr/bin/mpv", "/var/lib/flatpak/exports/bin/io.mpv.Mpv", "/Applications/mpv.app/Contents/MacOS/mpv"] {
+            assert!(is_mpv_name(std::path::Path::new(ok)), "{ok}");
+        }
+        assert!(is_mpv_name(&PathBuf::from("dossier").join("MPV.EXE")));
+        assert!(is_mpv_name(&PathBuf::from("dossier").join("mpv.com")));
+        for refused in ["", "/bin/sh", "cmd.exe", "powershell.exe", "/tmp/mpv.sh", "mpv.exe.bat", "/usr/bin/mpv/../sh", "notmpv"] {
+            assert!(!is_mpv_name(std::path::Path::new(refused)), "{refused}");
+        }
+        // Un chemin enregistré qui ne désigne pas mpv n'est jamais lancé.
+        assert!(find_mpv(Some(std::env::current_exe().unwrap().to_str().unwrap())).is_err());
+    }
+
+    /// Arguments de la commande, et contenu des fichiers temporaires (supprimés ensuite).
+    fn prepared(source: &Source) -> (Vec<String>, Vec<String>) {
+        let p = prepare(std::path::Path::new("mpv"), "pipe", source).unwrap();
+        let args = p.cmd.as_std().get_args().map(|a| a.to_string_lossy().into_owned()).collect();
+        let files = p.temp.iter().map(|f| std::fs::read_to_string(f).unwrap()).collect();
+        #[cfg(unix)]
+        for f in &p.temp {
+            use std::os::unix::fs::PermissionsExt;
+            assert_eq!(std::fs::metadata(f).unwrap().permissions().mode() & 0o777, 0o600, "{}", f.display());
+        }
+        remove_all(&p.temp);
+        (args, files)
+    }
+
+    #[test]
+    fn aucun_jeton_sur_la_ligne_de_commande_de_mpv() {
+        let info = PlayInfo {
+            url: "http://10.0.0.2:32400/library/parts/1/file.mkv?X-Plex-Token=SECRET".into(),
+            title: "Un film".into(),
+            subtitle: None,
+            offset_ms: 90_000,
+            duration_ms: 3_600_000,
+            aid: Some(2),
+            sid: "no".into(),
+            sub_files: vec!["http://10.0.0.2:32400/library/streams/7?X-Plex-Token=SECRET".into(), "http://10.0.0.2:32400/library/streams/8?X-Plex-Token=SECRET&a=b c".into()],
+            sub_tracks: Vec::new(),
+        };
+        let (args, files) = prepared(&Source::Video { info, parent: None });
+        assert!(args.iter().all(|a| !a.contains("SECRET") && !a.contains("10.0.0.2")), "{args:?}");
+        assert!(args.iter().any(|a| a.starts_with("--playlist=")) && args.iter().any(|a| a.starts_with("--include=")), "{args:?}");
+        assert!(args.contains(&"--start=90".to_string()) && args.contains(&"--aid=2".to_string()) && args.contains(&"--sid=no".to_string()), "{args:?}");
+        // Le fichier et ses sous-titres sont dans les fichiers privés, la longueur de chaque adresse devant elle.
+        assert_eq!(files[0], "#EXTM3U\nhttp://10.0.0.2:32400/library/parts/1/file.mkv?X-Plex-Token=SECRET\n");
+        assert_eq!(
+            files[1],
+            "sub-files-append=%59%http://10.0.0.2:32400/library/streams/7?X-Plex-Token=SECRET\nsub-files-append=%65%http://10.0.0.2:32400/library/streams/8?X-Plex-Token=SECRET&a=b c\n"
+        );
+
+        let urls = vec!["http://10.0.0.2:32400/a.flac?X-Plex-Token=SECRET".to_string(), "http://10.0.0.2:32400/b.flac?X-Plex-Token=SECRET".to_string()];
+        let (args, files) = prepared(&Source::Music { urls, start: 1 });
+        assert!(args.iter().all(|a| !a.contains("SECRET")), "{args:?}");
+        assert!(args.contains(&"--playlist-start=1".to_string()), "{args:?}");
+        assert_eq!(files[0].lines().count(), 3);
+    }
 
     /// Serveur qui accepte la connexion et ne répond jamais.
     async fn silent_server() -> String {

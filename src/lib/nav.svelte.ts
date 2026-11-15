@@ -280,12 +280,23 @@ function handleBack(): string | null {
   return rootBack();
 }
 
-/** Journal de diagnostic (Android) : l'élément sélectionné, en quelques mots. */
+/**
+ * Journal de diagnostic (Android) : l'élément sélectionné, en quelques mots. Sa zone, sa balise et sa classe, jamais
+ * son texte : le libellé d'une jaquette ou d'un profil est un titre de la bibliothèque ou un prénom, qui n'ont rien à
+ * faire dans un journal que l'on transmet.
+ */
 const diagLog = (message: string) => (globalThis as { PlexrDevice?: { diagLog?(m: string): void } }).PlexrDevice?.diagLog?.(message);
 function describe(el: Element | null): string {
   if (!el || el === document.body) return "rien";
-  const label = (el.getAttribute("aria-label") ?? el.getAttribute("title") ?? el.textContent ?? "").trim().replace(/\s+/g, " ").slice(0, 40);
-  return `${el.closest("aside") ? "menu" : el.closest("main") ? "page" : "autre"} : ${el.tagName.toLowerCase()} « ${label} »`;
+  return describeElement(el);
+}
+
+/** Zone (menu, page, autre), balise et classes de mise en page d'un élément, sans rien de son contenu. */
+export function describeElement(el: Element): string {
+  const zone = el.closest("aside") ? "menu" : el.closest("main") ? "page" : "autre";
+  // Les classes de Svelte (« svelte-1abc ») n'apprennent rien ; les autres sont des noms du code, pas des données.
+  const classes = [...el.classList].filter((c) => !c.startsWith("svelte-")).slice(0, 3);
+  return `${zone} : ${el.tagName.toLowerCase()}${classes.map((c) => "." + c).join("")}`;
 }
 
 /** Après un Retour, note dans le journal ce qui reprend la sélection pendant 1,5 s (et d'où, s'il ne s'agit pas de nous). */

@@ -146,11 +146,6 @@ object DiagLog {
       " · Maku peut utiliser ${am.memoryClass}/${am.largeMemoryClass} Mo$webView$mode$hdr"
   }
 
-  private val URL = Regex("""https?://[^/\s"'<>]+(/[^\s"'<>?]*)?(\?[^\s"'<>]*)?""")
-  private val SECRET = Regex("""(?i)(api_key|x-plex-token|token|accesstoken|deviceid|userid|playsessionid|mediasourceid)=[^&\s"']+""")
-  private val IP = Regex("""\b\d{1,3}(\.\d{1,3}){3}\b""")
-  private val ID = Regex("""\b[0-9a-f]{32}\b""", RegexOption.IGNORE_CASE)
-
   /** Noms de serveur vus dans les lectures, masqués aussi dans les messages d’erreur (« Unable to resolve host … »). */
   private val hosts = java.util.concurrent.CopyOnWriteArraySet<String>()
 
@@ -158,11 +153,6 @@ object DiagLog {
     if (!host.isNullOrBlank()) hosts.add(host)
   }
 
-  /** Masque ce qui pourrait identifier l'utilisateur ou son serveur ; garde le chemin (il dit si le serveur convertit). */
-  fun clean(text: String): String = text
-    .replace(URL) { "<serveur>" + (it.groupValues[1].ifEmpty { "/" }) }
-    .let { t -> hosts.fold(t) { acc, h -> acc.replace(h, "<serveur>", ignoreCase = true) } }
-    .replace(SECRET) { it.value.substringBefore('=') + "=…" }
-    .replace(IP, "<ip>")
-    .replace(ID, "<id>")
+  /** Masque ce qui pourrait identifier l'utilisateur ou son serveur (règles dans `DiagClean`, PlaybackRules.kt). */
+  fun clean(text: String): String = DiagClean.clean(text, hosts)
 }

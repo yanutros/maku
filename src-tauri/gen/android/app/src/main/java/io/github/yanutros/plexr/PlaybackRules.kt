@@ -179,4 +179,60 @@ object MediaActions {
 
   /** Script qui transmet l'action à la page, ou rien si elle n'est pas reconnue. */
   fun script(action: String?): String? = valid(action)?.let { "window.__plexrMedia && window.__plexrMedia('$it')" }
+
+  /**
+   * L'application `client` peut-elle parcourir la bibliothèque et y lancer une lecture ? Maku lui-même, celles de la
+   * liste (Android Auto, l'Assistant) et le système. Les autres gardent les commandes de la lecture en cours
+   * (pause, suivant…), comme un casque, mais ne font rien jouer.
+   */
+  fun trusted(client: String?, own: String, allowed: Collection<String>, uid: Int, systemUid: Int): Boolean =
+    uid == systemUid || (client != null && (client == own || client in allowed))
+}
+
+/**
+ * Ce que la page peut demander à l'appareil (MainActivity.kt) : un nom d'image à partager, un APK à installer.
+ * L'objet `PlexrDevice` est visible de toute page affichée dans Maku, dont la bande-annonce d'un autre site : rien
+ * de ce qu'il reçoit ne doit pouvoir désigner un autre fichier que ceux prévus.
+ */
+object BridgeRules {
+  private val NAME = Regex("[A-Za-z0-9_-]{1,40}")
+
+  /** Nom de l'image partagée : lettres, chiffres et tirets ; sinon un nom fixe (jamais un chemin). */
+  fun shareName(name: String?): String = name?.takeIf { NAME.matches(it) } ?: "maku"
+
+  /** L'APK à installer est-il bien une mise à jour téléchargée par Maku (dossier `updates` de son cache) ? */
+  fun isUpdateApk(path: String?, cacheDir: java.io.File): Boolean {
+    if (path.isNullOrEmpty() || !path.endsWith(".apk", ignoreCase = true)) return false
+    val updates = runCatching { java.io.File(cacheDir, "updates").canonicalFile }.getOrNull() ?: return false
+    val file = runCatching { java.io.File(path).canonicalFile }.getOrNull() ?: return false
+    return file.parentFile == updates
+  }
+}
+
+/**
+ * Ce que le journal de diagnostic (DiagLog.kt) retire d'une ligne avant de l'écrire : adresses de serveur (le chemin
+ * est gardé, il dit si le serveur convertit), jetons, adresses IP, identifiants et chemins de fichiers.
+ */
+object DiagClean {
+  private val URL = Regex("""https?://[^/\s"'<>]+(/[^\s"'<>?]*)?(\?[^\s"'<>]*)?""")
+  private val FILE = Regex("""file://[^\s"'<>]+""")
+  private val SECRET = Regex("""(?i)(api_key|x-plex-token|token|accesstoken|deviceid|userid|playsessionid|mediasourceid)=[^&\s"']+""")
+  /** Un jeton écrit autrement qu'en « clé=valeur » : en-tête (« X-Plex-Token: … ») ou JSON (« "AccessToken":"…" »). */
+  private val HEADER = Regex("""(?i)(x-plex-token|x-emby-token|x-mediabrowser-token|x-maku-token|access_?token|api_?key|authorization)["']?\s*:\s*["']?[^\s"',;}]+""")
+  private val IP = Regex("""\b\d{1,3}(\.\d{1,3}){3}\b""")
+  /** IPv6 : au moins quatre groupes (une heure « 20:12:34 » n'en a que trois), ou la forme abrégée « :: ». */
+  private val IP6 = Regex("""(?i)(?<![0-9a-f:.])(?:(?:[0-9a-f]{1,4}:){3,7}[0-9a-f]{1,4}|(?:[0-9a-f]{1,4}:){1,6}:(?:[0-9a-f]{1,4}(?::[0-9a-f]{1,4}){0,5})?)(?![0-9a-f:])""")
+  /** Identifiants : de 32 à 64 chiffres hexadécimaux (Jellyfin, Plex), ou un UUID avec ses tirets. */
+  private val ID = Regex("""(?i)\b[0-9a-f]{32,64}\b|\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b""")
+
+  /** `hosts` : noms de serveur déjà vus, masqués aussi hors d'une adresse (« Unable to resolve host … »). */
+  fun clean(text: String, hosts: Collection<String> = emptyList()): String = text
+    .replace(URL) { "<serveur>" + (it.groupValues[1].ifEmpty { "/" }) }
+    .replace(FILE, "<fichier>")
+    .let { t -> hosts.fold(t) { acc, h -> acc.replace(h, "<serveur>", ignoreCase = true) } }
+    .replace(SECRET) { it.value.substringBefore('=') + "=…" }
+    .replace(HEADER) { it.groupValues[1] + ": …" }
+    .replace(ID, "<id>")
+    .replace(IP, "<ip>")
+    .replace(IP6, "<ip>")
 }

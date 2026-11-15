@@ -909,6 +909,7 @@
   },
   "update": {
     "allowInstall": "Allow Maku to install apps, then restart the update.",
+    "refused": "This file isn't a Maku update: the installation was cancelled.",
     "confirmInstall": "Confirm the installation: Maku will restart in its new version.",
     "installStarted": "Installation started.",
     "title": "New version available",

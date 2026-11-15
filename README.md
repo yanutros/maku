@@ -143,7 +143,7 @@ Il se tient à jour avec l'application : chaque nouvelle fonctionnalité y a sa 
 **Tests de l'interface.** `npm test` ouvre Maku en mode démo avec [Playwright](https://playwright.dev) et le pilote
 comme un utilisateur, sur quatre appareils simulés : ordinateur, téléviseur (flèches, OK, Retour), téléphone et
 moteur de Safari (iPad, Mac). Les parcours (`tests/`) couvrent l'accueil, les fiches (série, saison, épisode),
-les acteurs, le lecteur, la lecture (une lecture arrêtée ou remplacée pendant l'attente du serveur ne démarre pas,
+les acteurs, le lecteur, le journal de diagnostic (un élément y est décrit sans son texte), la lecture (une lecture arrêtée ou remplacée pendant l'attente du serveur ne démarre pas,
 le plein écran se quitte à la fermeture de la vidéo, une session Tracearr expirée ne recharge pas l'application en
 boucle), les Réglages et la barre simplifiée. Pour jouer un serveur lent ou une erreur, un test retarde ou fait
 échouer une commande de la démo (`window.__demoHooks`, voir `src/lib/demo.ts`). Ils vérifient des règles tirées des bugs déjà
@@ -158,7 +158,8 @@ construction des paquets d'une version (les images de référence, prises sous W
 (`#[cfg(test)]`) : commandes que l'interface peut envoyer à mpv, redirections suivies, jetons retirés des messages
 d'erreur, écriture de la configuration, adresse d'un serveur Plex retenue seulement si c'est lui qui répond, relais
 cherché en `https` d'abord, lecture arrêtée ou remplacée pendant sa préparation qui ne lance pas mpv, progression
-abandonnée quand le serveur ne répond pas… `cargo test` dans `src-tauri` les lance (après `npm install`, la page du téléphone
+abandonnée quand le serveur ne répond pas, aucun jeton sur la ligne de commande de mpv, seul mpv accepté comme
+lecteur, pochette publiée au bureau sans l'adresse du serveur… `cargo test` dans `src-tauri` les lance (après `npm install`, la page du téléphone
 intégrant jsQR). Sur GitHub, ils passent à chaque envoi sur `main` et avant la construction des paquets d'une
 version, comme ceux de Maku Server (`cargo test` dans `server`).
 
@@ -167,7 +168,9 @@ figée (prête, en lecture, avec de l'avance, mais immobile 5 s ; reprise ou sau
 l'ampli, format de l'image à l'écran, type des sous-titres externes, erreurs qui demandent la conversion,
 numérotation des pistes et mémoire des formats de l'ampli au démarrage de la TV. S'y ajoutent les commandes
 acceptées par le service de musique (`MediaActions`) : lecture, pause, suivant, précédent, arrêt et position, rien
-d'autre, même envoyé par une autre application. Des tests ordinaires
+d'autre, même envoyé par une autre application ; les applications qui peuvent y faire jouer la bibliothèque ; ce que
+la page peut demander à l'appareil (`BridgeRules` : nom d'une image partagée, APK à installer) ; et ce que le journal
+de diagnostic retire de chaque ligne (`DiagClean`). Des tests ordinaires
 (`src-tauri/gen/android/app/src/test/`) les vérifient sans appareil : dans `src-tauri/gen/android`,
 `./gradlew :app:testUniversalDebugUnitTest`, après une première construction de l'APK (Tauri y génère des
 fichiers du projet). Sur GitHub, ils passent à chaque envoi sur `main`, après la construction de l'APK.
@@ -345,9 +348,17 @@ La politique de confidentialité complète, en français et en anglais, est dans
 - Un serveur ne peut rediriger Maku que vers lui-même (de `http` vers `https`, par exemple) : jamais vers une autre
   adresse, où partiraient ses jetons. Seul le téléchargement des mises à jour suit les redirections de GitHub vers son stockage.
 - L'interface ne transmet à mpv que des commandes de lecture (pause, position, volume, pistes, file d'attente) ;
-  celles qui lancent un programme ou écrivent un fichier sont refusées.
+  celles qui lancent un programme ou écrivent un fichier sont refusées. Le chemin de mpv indiqué dans les Réglages
+  doit désigner mpv : Maku n'enregistre et ne lance aucun autre programme.
+- Les adresses que mpv lit portent le jeton de votre serveur : elles lui sont données dans des fichiers temporaires
+  lisibles par votre seul compte, supprimés à la fin de la lecture, et non sur sa ligne de commande.
+- Sous Linux, la pochette publiée au bureau (MPRIS) est une copie locale de l'image, pas l'adresse de votre serveur.
 - Sur Android, le journal de diagnostic reste sur l'appareil tant que vous ne l'envoyez pas vous-même. Les adresses
-  de serveur, adresses IP, jetons et identifiants en sont retirés avant l'écriture ; il ne pèse pas plus de 600 Ko.
+  de serveur, adresses IP, jetons, identifiants et chemins de fichiers en sont retirés avant l'écriture, et il ne
+  note ni titre de votre bibliothèque ni nom de profil ; il ne pèse pas plus de 600 Ko.
+- Sur Android, l'installateur du système ne reçoit de Maku qu'une mise à jour qu'il a lui-même téléchargée, et seules
+  les applications reconnues (Android Auto, l'Assistant, le système) peuvent faire jouer votre bibliothèque par le
+  service de musique ; les autres n'ont que les commandes de la lecture en cours, comme un casque.
 
 ## 🔏 Signature du code
 

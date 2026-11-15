@@ -909,6 +909,7 @@
   },
   "update": {
     "allowInstall": "Autorise Maku à installer des applications, puis relance la mise à jour.",
+    "refused": "Ce fichier n'est pas une mise à jour de Maku : l'installation est annulée.",
     "confirmInstall": "Valide l'installation : Maku redémarrera dans sa nouvelle version.",
     "installStarted": "L'installation est lancée.",
     "title": "Nouvelle version disponible",

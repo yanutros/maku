@@ -162,7 +162,9 @@ class MainActivity : TauriActivity() {
        * ou « Copier »). Le presse-papiers de la page ne sait pas y mettre une image : elle n'arrivait nulle part.
        */
       @JavascriptInterface
-      fun shareImage(base64: String, name: String) {
+      fun shareImage(base64: String, shared: String) {
+        // Le nom vient de la page : jamais un chemin, qui écrirait ailleurs que dans le dossier du partage.
+        val name = BridgeRules.shareName(shared)
         val file = File(cacheDir, "partage/$name.png")
         file.parentFile?.mkdirs()
         file.writeBytes(android.util.Base64.decode(base64, android.util.Base64.DEFAULT))
@@ -244,6 +246,8 @@ class MainActivity : TauriActivity() {
        */
       @JavascriptInterface
       fun installApk(path: String): String {
+        // Seule une mise à jour téléchargée par Maku s'installe : pas un autre fichier de l'appareil.
+        if (!BridgeRules.isUpdateApk(path, cacheDir)) return "refused"
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !packageManager.canRequestPackageInstalls()) {
           runOnUiThread {
             try {

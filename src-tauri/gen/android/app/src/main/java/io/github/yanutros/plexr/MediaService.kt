@@ -25,6 +25,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
 import androidx.media.MediaBrowserServiceCompat
+import androidx.media.MediaSessionManager
 import androidx.media.app.NotificationCompat.MediaStyle
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
@@ -120,8 +121,12 @@ class MediaService : MediaBrowserServiceCompat() {
         override fun onSkipToQueueItem(id: Long) {
           player?.seekTo(id.toInt(), 0)
         }
-        override fun onPlayFromMediaId(mediaId: String, extras: Bundle?) = playNative { library.queue(mediaId) }
-        override fun onPlayFromSearch(query: String?, extras: Bundle?) = playNative { library.search(query.orEmpty()) }
+        override fun onPlayFromMediaId(mediaId: String, extras: Bundle?) {
+          if (fromTrustedController()) playNative { library.queue(mediaId) }
+        }
+        override fun onPlayFromSearch(query: String?, extras: Bundle?) {
+          if (fromTrustedController()) playNative { library.search(query.orEmpty()) }
+        }
       })
       setSessionActivity(
         PendingIntent.getActivity(
@@ -175,8 +180,19 @@ class MediaService : MediaBrowserServiceCompat() {
 
   // ---------- Android Auto : bibliothèque ----------
 
+  /**
+   * La commande reçue par la session vient-elle d'une application reconnue ? Un client quelconque peut se relier au
+   * service (il y trouve une bibliothèque vide) et garde les commandes de la lecture en cours, mais ne fait rien
+   * jouer. Avant Android 9, l'appelant n'est pas connu : la commande passe, comme avant.
+   */
+  private fun fromTrustedController(): Boolean {
+    val info = runCatching { session.currentControllerInfo }.getOrNull() ?: return true
+    if (info.packageName == MediaSessionManager.RemoteUserInfo.LEGACY_CONTROLLER) return true
+    return MediaActions.trusted(info.packageName, packageName, BROWSERS, info.uid, Process.SYSTEM_UID)
+  }
+
   override fun onGetRoot(clientPackageName: String, clientUid: Int, rootHints: Bundle?): BrowserRoot {
-    val trusted = clientPackageName == packageName || clientPackageName in BROWSERS || clientUid == Process.SYSTEM_UID
+    val trusted = MediaActions.trusted(clientPackageName, packageName, BROWSERS, clientUid, Process.SYSTEM_UID)
     return BrowserRoot(
       if (trusted) "root" else "empty",
       Bundle().apply {

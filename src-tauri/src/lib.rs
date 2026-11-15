@@ -412,6 +412,58 @@ pub fn run() {
 }
 
 #[cfg(test)]
+mod local_art_tests {
+    use super::commands::local_art;
+
+    /// Faux serveur : une image à l'adresse `/art`, une erreur ailleurs ; compte les demandes.
+    async fn fake_server() -> (String, std::sync::Arc<std::sync::atomic::AtomicUsize>) {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let base = format!("http://{}", listener.local_addr().unwrap());
+        let hits = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let count = hits.clone();
+        tokio::spawn(async move {
+            while let Ok((mut s, _)) = listener.accept().await {
+                let mut buf = [0u8; 2048];
+                let n = s.read(&mut buf).await.unwrap_or(0);
+                count.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                let found = String::from_utf8_lossy(&buf[..n]).starts_with("GET /art");
+                let resp = if found { "HTTP/1.1 200 OK\r\nContent-Length: 5\r\nConnection: close\r\n\r\nIMAGE" } else { "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n" };
+                let _ = s.write_all(resp.as_bytes()).await;
+            }
+        });
+        (base, hits)
+    }
+
+    #[tokio::test]
+    async fn pochette_publiee_sans_adresse_ni_jeton() {
+        let (base, hits) = fake_server().await;
+        let dir = std::env::temp_dir().join(format!("maku-art-{}", uuid::Uuid::new_v4().simple()));
+        let http = reqwest::Client::new();
+        let url = format!("{base}/art?X-Plex-Token=SECRET");
+        let published = local_art(&http, &dir, &url).await.unwrap();
+        // Un fichier de l'appareil : ni le serveur ni son jeton.
+        assert!(published.starts_with("file://"), "{published}");
+        assert!(!published.contains("SECRET") && !published.contains("127.0.0.1"), "{published}");
+        let file = reqwest::Url::parse(&published).unwrap().to_file_path().unwrap();
+        assert_eq!(std::fs::read(&file).unwrap(), b"IMAGE");
+        // Même pochette : pas de nouveau téléchargement.
+        assert_eq!(local_art(&http, &dir, &url).await.unwrap(), published);
+        assert_eq!(hits.load(std::sync::atomic::Ordering::SeqCst), 1);
+        // Titre suivant : sa pochette remplace la précédente.
+        let next = local_art(&http, &dir, &format!("{base}/absent?X-Plex-Token=SECRET")).await;
+        assert!(next.is_none());
+        let other = local_art(&http, &dir, &format!("{base}/art?X-Plex-Token=SECRET&v=2")).await.unwrap();
+        assert_ne!(other, published);
+        assert_eq!(std::fs::read_dir(&dir).unwrap().count(), 1);
+        // Rien à publier sans image, et jamais une adresse qui n'est pas celle d'un serveur.
+        assert!(local_art(&http, &dir, "").await.is_none());
+        assert!(local_art(&http, &dir, "file:///etc/passwd").await.is_none());
+        let _ = std::fs::remove_dir_all(dir);
+    }
+}
+
+#[cfg(test)]
 mod play_turn_tests {
     use super::commands::PlayTurn;
 

@@ -13,6 +13,7 @@
   "player": {
     "noPlayback": "Aucune lecture en cours",
     "mpvNotAtPath": "mpv introuvable à l'emplacement indiqué dans les Réglages : {{path}}",
+    "notMpv": "Ce fichier n'est pas mpv : indique le chemin du programme mpv ({{path}})",
     "mpvNotFound": "mpv introuvable : installe-le (https://mpv.io) ou indique son chemin dans les Réglages",
     "ipcUnavailable": "IPC mpv indisponible",
     "queueWriteFailed": "Impossible d'écrire la file de lecture",

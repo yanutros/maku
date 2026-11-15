@@ -271,3 +271,95 @@ class MediaActionsTest {
     assertNull(MediaActions.valid(null))
   }
 }
+
+/** Applications qui peuvent faire jouer la bibliothèque par le service de musique. */
+class TrustedClientTest {
+  private val allowed = listOf("com.google.android.projection.gearhead")
+  private fun trusted(client: String?, uid: Int = 10123) = MediaActions.trusted(client, "io.github.yanutros.plexr", allowed, uid, 1000)
+
+  @Test
+  fun `Maku, Android Auto et le système sont reconnus`() {
+    assertTrue(trusted("io.github.yanutros.plexr"))
+    assertTrue(trusted("com.google.android.projection.gearhead"))
+    assertTrue(trusted("android", uid = 1000))
+  }
+
+  @Test
+  fun `une autre application ne fait rien jouer`() {
+    assertFalse(trusted("com.exemple.autre"))
+    assertFalse(trusted("io.github.yanutros.plexr.faux"))
+    assertFalse(trusted(null))
+    assertFalse(trusted(""))
+  }
+}
+
+/** Ce que la page (ou une page d'un autre site affichée dans Maku) peut demander à l'appareil. */
+class BridgeRulesTest {
+  @Test
+  fun `le nom d'une image partagée n'est jamais un chemin`() {
+    assertEquals("maku-invitation", BridgeRules.shareName("maku-invitation"))
+    for (name in listOf("../../files/x", "a/b", "a\\b", "..", "", "nom avec espace", "x".repeat(41), null)) {
+      assertEquals(name, "maku", BridgeRules.shareName(name))
+    }
+  }
+
+  @Test
+  fun `seule une mise à jour téléchargée par Maku s'installe`() {
+    val cache = java.io.File(System.getProperty("java.io.tmpdir"), "maku-test-cache-" + System.nanoTime())
+    val updates = java.io.File(cache, "updates").apply { mkdirs() }
+    try {
+      assertTrue(BridgeRules.isUpdateApk(java.io.File(updates, "Maku_0.31.0_android.apk").path, cache))
+      // Ailleurs dans le cache, hors du cache, en remontant d'un dossier, ou un autre type de fichier.
+      assertFalse(BridgeRules.isUpdateApk(java.io.File(cache, "autre.apk").path, cache))
+      assertFalse(BridgeRules.isUpdateApk(java.io.File(updates, "../autre.apk").path, cache))
+      assertFalse(BridgeRules.isUpdateApk(java.io.File(updates, "sous/dossier.apk").path, cache))
+      assertFalse(BridgeRules.isUpdateApk(java.io.File(System.getProperty("java.io.tmpdir"), "telecharge.apk").path, cache))
+      assertFalse(BridgeRules.isUpdateApk(java.io.File(updates, "Maku.txt").path, cache))
+      assertFalse(BridgeRules.isUpdateApk("", cache))
+      assertFalse(BridgeRules.isUpdateApk(null, cache))
+    } finally {
+      cache.deleteRecursively()
+    }
+  }
+}
+
+/** Journal de diagnostic : rien de personnel n'y est écrit. */
+class DiagCleanTest {
+  private fun clean(text: String) = DiagClean.clean(text, listOf("monserveur.exemple"))
+
+  @Test
+  fun `adresses de serveur masquées, chemin gardé`() {
+    assertEquals("Lecture de <serveur>/video/:/transcode/universal/start.m3u8", clean("Lecture de https://monserveur.exemple:32400/video/:/transcode/universal/start.m3u8?X-Plex-Token=abc123&session=9"))
+    assertEquals("Unable to resolve host <serveur>", clean("Unable to resolve host monserveur.exemple"))
+    assertEquals("Fichier <fichier> introuvable", clean("Fichier file:///data/user/0/app/files/offline/Un%20film.mkv introuvable"))
+  }
+
+  @Test
+  fun `jetons masqués sous toutes leurs formes`() {
+    for (line in listOf("api_key=abc123SECRET", "X-Plex-Token=abc123SECRET&x=1", "X-Plex-Token: abc123SECRET", "{\"AccessToken\":\"abc123SECRET\"}", "Authorization: abc123SECRET", "X-Emby-Token : 'abc123SECRET'")) {
+      assertFalse(line, clean(line).contains("abc123SECRET"))
+    }
+  }
+
+  @Test
+  fun `adresses IP et identifiants masqués`() {
+    assertEquals("Failed to connect to /<ip>:8096", clean("Failed to connect to /192.168.1.10:8096"))
+    for (ip in listOf("2a01:e0a:1b2:c3d0:1234:5678:9abc:def0", "fe80::1c2d:3e4f:5a6b:7c8d", "2001:db8::1")) {
+      val line = clean("Failed to connect to /$ip (port 8096)")
+      assertFalse(line, line.contains(ip.take(9)))
+      assertTrue(line, line.contains("<ip>"))
+    }
+    // Identifiant Jellyfin (32), UUID avec tirets, identifiant de machine Plex (40).
+    for (id in listOf("0123456789abcdef0123456789abcdef", "01234567-89ab-cdef-0123-456789abcdef", "0123456789abcdef0123456789abcdef01234567")) {
+      assertEquals("utilisateur <id> connecté", clean("utilisateur $id connecté"))
+    }
+  }
+
+  @Test
+  fun `ce qui n'est pas personnel reste lisible`() {
+    // Une heure, une durée, une taille d'image ou un code d'erreur ne sont pas des adresses.
+    for (line in listOf("Lecture commencée à 20:12:34", "position 1:02:03 sur 2:15:00", "image 3840x2160 à 23.976 i/s", "erreur 0x80000003", "décodeur c2.android.hevc.decoder", "Retour (item, sélection page : button.play) : page précédente")) {
+      assertEquals(line, clean(line))
+    }
+  }
+}

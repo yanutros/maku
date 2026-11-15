@@ -138,6 +138,10 @@ pub fn open_url(app: AppHandle, url: String) -> CmdResult<()> {
 #[tauri::command]
 pub fn set_mpv_path(state: State<'_, AppState>, path: Option<String>) -> CmdResult<()> {
     let path = path.map(|p| p.trim().to_string()).filter(|p| !p.is_empty());
+    // Ce programme sera lancé à chaque lecture : rien d'autre que mpv n'est enregistré.
+    if let Some(p) = path.as_deref().filter(|p| !player::is_mpv_name(std::path::Path::new(p))) {
+        return Err(anyhow!(crate::i18n::tr_with("player.notMpv", &[("path", p)])).into());
+    }
     state.update_cfg(|c| c.mpv_path = path)?;
     Ok(())
 }

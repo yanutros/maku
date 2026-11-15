@@ -13,6 +13,7 @@
   "player": {
     "noPlayback": "Er wordt niets afgespeeld",
     "mpvNotAtPath": "mpv niet gevonden op de locatie uit Instellingen: {{path}}",
+    "notMpv": "Dit bestand is niet mpv: geef het pad naar het programma mpv op ({{path}})",
     "mpvNotFound": "mpv niet gevonden: installeer het (https://mpv.io) of stel het pad in bij Instellingen",
     "ipcUnavailable": "mpv-IPC niet beschikbaar",
     "queueWriteFailed": "Kan de afspeelwachtrij niet opslaan",
