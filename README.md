@@ -117,6 +117,10 @@ Tout est expliqué pas à pas dans le [guide de configuration](https://yanutros.
 L'administrateur qui ne veut pas exposer Seerr et Tracearr sur Internet installe le relais [Maku Server](server/README.md)
 (image Docker `ghcr.io/yanutros/maku-server`, amd64 et arm64).
 
+Avec Jellyfin 12, le [plugin Maku](plugins/jellyfin/) fait la même chose depuis Jellyfin lui-même, par l'adresse du
+serveur, sans Docker ni port en plus ; Seerr s'y utilise sans mot de passe (dépôt à ajouter dans Jellyfin :
+`https://github.com/yanutros/maku/releases/download/jellyfin-plugin/manifest.json`).
+
 ## 🛠️ Développer
 
 ```bash
@@ -264,6 +268,7 @@ traduisez les valeurs sans toucher aux clés ni aux `{{variables}}`, puis décla
 | `src-tauri/src/seerr.rs` | Seerr : connexion Plex ou Jellyfin, découverte, fiches détaillées, demandes, et leur gestion par l'administrateur (liste, validation, modification, suppression) |
 | `src-tauri/src/tracearr.rs` | Tracearr : connexion Plex et tableau de bord personnel |
 | `src-tauri/src/maku_server.rs` | relais Maku Server : recherche sur la machine du serveur, vérification (`/maku/info`) et jeton joint aux appels |
+| `plugins/jellyfin/` | plugin Maku pour Jellyfin 12 (C#, .NET 10) : relais de Seerr (clé d'API, au nom du compte Seerr de chaque utilisateur, retrouvé par son identifiant Jellyfin ou lié à la main ; jeton CSRF de Seerr géré) et de Tracearr (cookies de session) à l'adresse du serveur (`/Maku/…`), `/Maku/maku/info` pour que Maku le reconnaisse, page de réglages ; tests xUnit des règles du relais. Compilé par `.github/workflows/plugin-jellyfin.yml` ; un tag `jellyfin-v1.2.3` publie le catalogue Jellyfin (version GitHub `jellyfin-plugin`) |
 | `server/` | Maku Server, le relais lui-même (Rust, axum) : vérification du jeton auprès de Plex, Jellyfin ou Emby, transmission de l'API de Seerr et de Tracearr ; image Docker |
 | `src-tauri/src/plex_admin.rs`, `src/components/FixMatchDialog.svelte` | administration : édition des métadonnées, images, association d'un film ou d'une série (« Corriger l'association » : titres proposés par l'agent de Plex ou recherche par titre et année ; « Dissocier »), réglages et lectures du serveur |
 | `src-tauri/src/net.rs` | règles de redirection des clients HTTP : même machine pour les serveurs, domaines GitHub pour les mises à jour |

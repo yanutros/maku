@@ -82,7 +82,8 @@
       "novel": "Roman",
       "producer": "Productie"
     },
-    "sessionExpired": "Seerr-sessie verlopen: meld je opnieuw aan in Instellingen."
+    "sessionExpired": "Seerr-sessie verlopen: meld je opnieuw aan in Instellingen.",
+    "pluginNoAccount": "Je account heeft geen Seerr-account. De beheerder moet het in Seerr importeren of koppelen in de instellingen van de Maku-plugin in Jellyfin."
   },
   "tracearr": {
     "invalidUrl": "Ongeldig Tracearr-adres: {{url}}",
@@ -92,7 +93,12 @@
     "error": "Tracearr: {{message}}",
     "notSetUp": "Deze Tracearr is nog niet ingesteld: de beheerder moet eerst inloggen",
     "replied": "Tracearr antwoordde {{status}} voor {{path}}",
-    "episodeLine": "S{{season}} · E{{episode}} — {{title}}"
+    "episodeLine": "S{{season}} · E{{episode}} — {{title}}",
+    "memberLoginOff": "Tracearr staat aanmelden van leden via Jellyfin nog niet toe. De beheerder moet het in Tracearr inschakelen: Instellingen → Aanmelden (en bij de Jellyfin-server onder Verbindingen).",
+    "memberLoginServer": "Tracearr biedt geen aanmelding via de server ‘{{server}}’.",
+    "quickConnectOff": "Quick Connect staat uit op de Jellyfin-server: de beheerder moet het inschakelen (Dashboard → Algemeen) om bij Tracearr aan te melden.",
+    "quickConnectRefused": "Jellyfin weigerde de code van Tracearr goed te keuren ({{status}}).",
+    "jellyfinOnly": "Deze aanmelding is alleen voor Jellyfin-accounts."
   },
   "update": {
     "invalidName": "ongeldige pakketnaam",

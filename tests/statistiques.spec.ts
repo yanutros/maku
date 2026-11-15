@@ -27,3 +27,15 @@ test("statistiques : une connexion à Tracearr faite dans les Réglages suffit, 
   await expect(page.locator(".top")).toBeVisible({ timeout: 10_000 });
   await expect(page.getByRole("button", { name: "Se connecter avec Plex" })).toHaveCount(0);
 });
+
+test("statistiques : avec un compte Jellyfin, la connexion à Tracearr passe par Jellyfin, sans navigateur", async ({ page }, info) => {
+  test.skip(appareil(info) !== "pc" && appareil(info) !== "telephone", "même parcours ailleurs");
+  await ouvrir(page, info, "stats&plugin&tracearrlogin");
+  await expect(page.getByText("Connecte-toi à Tracearr avec ton compte Jellyfin")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Se connecter avec Plex" })).toHaveCount(0);
+  const popups: string[] = [];
+  page.on("popup", (p) => popups.push(p.url()));
+  await page.getByRole("button", { name: "Se connecter avec Jellyfin" }).click();
+  await expect(page.locator(".top")).toBeVisible({ timeout: 10_000 });
+  expect(popups).toEqual([]);
+});

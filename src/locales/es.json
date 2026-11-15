@@ -58,7 +58,12 @@
       "seerrIntroJellyfin": "Las solicitudes se hacen a tu nombre, con tu cuenta de Jellyfin (o tu correo de Seerr si Seerr está vinculado a Plex). La contraseña se usa una sola vez: solo se guarda la sesión.",
       "connectWithJellyfin": "Iniciar sesión con Jellyfin",
       "relayTitle": "Maku Server local detectado",
-      "relayFound": "Maku Server encontrado en {{url}}: Seerr y Tracearr pasan por él, sin quedar expuestos en Internet."
+      "relayFound": "Maku Server encontrado en {{url}}: Seerr y Tracearr pasan por él, sin quedar expuestos en Internet.",
+      "pluginTitle": "Plugin Maku detectado",
+      "pluginFound": "El plugin Maku de tu servidor Jellyfin transmite Seerr y Tracearr, sin exponerlos en Internet.",
+      "seerrIntroPlugin": "Mediante el plugin Maku de tu servidor Jellyfin: las solicitudes se hacen con tu cuenta de Seerr, sin contraseña que escribir.",
+      "connectViaPlugin": "Conectar",
+      "tracearrIntroJellyfin": "Tus estadísticas personales. La conexión pasa por tu cuenta de Jellyfin (Quick Connect, aprobado por Maku) y la sesión dura 30 días."
     },
     "invite": {
       "invalid": "Este código de invitación no es válido.",
@@ -615,7 +620,10 @@
       "biggestBinge": "Mayor maratón",
       "episodesInADay": "episodios en un día",
       "firstPlay": "Tu primerísima reproducción"
-    }
+    },
+    "loginPromptJellyfin": "Conéctate a Tracearr con tu cuenta de Jellyfin: Maku aprueba el acceso por sí solo.",
+    "loginWithJellyfin": "Conectar con Jellyfin",
+    "connecting": "Conectando…"
   },
   "common": {
     "c1": {

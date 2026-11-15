@@ -35,6 +35,19 @@ pub async fn tracearr_start_login(app: AppHandle, state: State<'_, AppState>, op
     Ok(TracearrLogin { handle: login.handle, auth_url: login.auth_url })
 }
 
+/// Connexion à Tracearr avec le compte Jellyfin (Quick Connect validé par Maku), sans navigateur.
+#[tauri::command]
+pub async fn tracearr_jellyfin_login(state: State<'_, AppState>) -> CmdResult<()> {
+    let t = state.tracearr().await?;
+    let name = state.cfg().server.map(|s| s.name).unwrap_or_default();
+    let crate::media::MediaServer::Jellyfin(jellyfin) = state.server()? else {
+        return Err(anyhow::anyhow!(crate::i18n::tr("tracearr.jellyfinOnly")).into());
+    };
+    t.jellyfin_login(&name, &jellyfin).await?;
+    state.save_tracearr_cookies(&t)?;
+    Ok(())
+}
+
 #[tauri::command]
 pub async fn tracearr_poll_login(state: State<'_, AppState>, handle: String) -> CmdResult<LoginState> {
     let t = state.tracearr().await?;
@@ -48,8 +61,9 @@ pub async fn tracearr_poll_login(state: State<'_, AppState>, handle: String) -> 
 #[tauri::command]
 pub async fn tracearr_dashboard(state: State<'_, AppState>, timezone: String) -> CmdResult<Dashboard> {
     let t = state.tracearr().await?;
-    let plex = state.plex().ok();
-    match t.dashboard(plex.as_ref(), &timezone).await {
+    let media = state.server().ok();
+    let saved = state.cfg().server;
+    match t.dashboard(media.as_ref(), saved.as_ref(), &timezone).await {
         Ok(d) => {
             state.save_tracearr_cookies(&t)?;
             Ok(d)

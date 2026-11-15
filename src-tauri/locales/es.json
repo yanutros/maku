@@ -82,7 +82,8 @@
       "novel": "Novela",
       "producer": "Producción"
     },
-    "sessionExpired": "La sesión de Seerr ha caducado: vuelve a iniciar sesión en Ajustes."
+    "sessionExpired": "La sesión de Seerr ha caducado: vuelve a iniciar sesión en Ajustes.",
+    "pluginNoAccount": "Tu cuenta no tiene cuenta de Seerr. El administrador debe importarla en Seerr o vincularla en los ajustes del plugin Maku de Jellyfin."
   },
   "tracearr": {
     "invalidUrl": "Dirección de Tracearr no válida: {{url}}",
@@ -92,7 +93,12 @@
     "error": "Tracearr: {{message}}",
     "notSetUp": "Este Tracearr aún no está configurado: su administrador tiene que iniciar sesión en él primero",
     "replied": "Tracearr ha respondido {{status}} para {{path}}",
-    "episodeLine": "S{{season}} · E{{episode}} — {{title}}"
+    "episodeLine": "S{{season}} · E{{episode}} — {{title}}",
+    "memberLoginOff": "Tracearr aún no acepta la conexión de miembros por Jellyfin. El administrador debe activarla en Tracearr: Ajustes → Iniciar sesión (y en el servidor Jellyfin, en Conexiones).",
+    "memberLoginServer": "Tracearr no ofrece la conexión por el servidor «{{server}}».",
+    "quickConnectOff": "Quick Connect está desactivado en el servidor Jellyfin: el administrador debe activarlo (Panel → General) para conectarse a Tracearr.",
+    "quickConnectRefused": "Jellyfin se negó a aprobar el código de Tracearr ({{status}}).",
+    "jellyfinOnly": "Esta conexión es solo para cuentas de Jellyfin."
   },
   "update": {
     "invalidName": "nombre de paquete no válido",

@@ -58,7 +58,12 @@
       "seerrIntroJellyfin": "Anfragen laufen in deinem Namen über dein Jellyfin-Konto (oder deine Seerr-E-Mail, wenn Seerr mit Plex verbunden ist). Das Passwort wird nur einmal verwendet: Nur die Sitzung wird gespeichert.",
       "connectWithJellyfin": "Mit Jellyfin anmelden",
       "relayTitle": "Lokaler Maku Server erkannt",
-      "relayFound": "Maku Server gefunden unter {{url}}: Seerr und Tracearr laufen über ihn, ohne im Internet erreichbar zu sein."
+      "relayFound": "Maku Server gefunden unter {{url}}: Seerr und Tracearr laufen über ihn, ohne im Internet erreichbar zu sein.",
+      "pluginTitle": "Maku-Plugin erkannt",
+      "pluginFound": "Das Maku-Plugin deines Jellyfin-Servers leitet Seerr und Tracearr weiter, ohne sie im Internet freizugeben.",
+      "seerrIntroPlugin": "Über das Maku-Plugin deines Jellyfin-Servers: Anfragen laufen über dein Seerr-Konto, ohne Passworteingabe.",
+      "connectViaPlugin": "Verbinden",
+      "tracearrIntroJellyfin": "Deine persönlichen Statistiken. Die Anmeldung läuft über dein Jellyfin-Konto (Quick Connect, von Maku bestätigt), danach hält die Sitzung 30 Tage."
     },
     "invite": {
       "invalid": "Dieser Einladungscode ist ungültig.",
@@ -615,7 +620,10 @@
       "biggestBinge": "Größter Binge",
       "episodesInADay": "Folgen an einem Tag",
       "firstPlay": "Deine allererste Wiedergabe"
-    }
+    },
+    "loginPromptJellyfin": "Melde dich mit deinem Jellyfin-Konto bei Tracearr an: Maku bestätigt den Zugriff selbst.",
+    "loginWithJellyfin": "Mit Jellyfin anmelden",
+    "connecting": "Anmeldung…"
   },
   "common": {
     "c1": {

@@ -69,6 +69,22 @@ test("services : le relais Maku Server trouvé a son panneau, comme Seerr et Tra
   await expect(titre.locator("xpath=following-sibling::section[1]")).toContainText("Maku Server trouvé sur http://serveur.local:32700");
 });
 
+test("services : le plugin Maku de Jellyfin a son panneau, et Seerr s'y connecte sans mot de passe", async ({ page }, info) => {
+  test.skip(appareil(info) !== "pc" && appareil(info) !== "telephone", "même page sur les autres appareils");
+  await ouvrir(page, info, "reglages&plugin");
+  if (appareil(info) === "telephone") await page.locator(".settings .menu button", { hasText: "Services" }).click();
+  else await page.getByRole("tab", { name: "Services" }).click();
+  const titre = page.locator("h2.group-title", { hasText: "Plugin Maku détecté" });
+  await expect(titre).toContainText("Connecté");
+  await expect(titre.locator("xpath=following-sibling::section[1]")).toContainText("Le plugin Maku de votre serveur Jellyfin");
+  await expect(page.locator("h2.group-title", { hasText: "Maku Server local détecté" })).toHaveCount(0);
+  // Seerr par le plugin : ni identifiant ni mot de passe, un simple « Se connecter ».
+  const seerr = page.locator("h2.group-title", { hasText: "Seerr" }).first().locator("xpath=following-sibling::section[1]");
+  await expect(seerr).toContainText("sans mot de passe à saisir");
+  await expect(seerr.locator("input[type=password]")).toHaveCount(0);
+  await expect(seerr.getByRole("button", { name: "Se connecter", exact: true })).toBeVisible();
+});
+
 test("interface : le fond se choisit parmi cinq teintes, et reste sur l'appareil", async ({ page }, info) => {
   await ouvrir(page, info, "reglages-interface");
   // Téléviseur : la rubrique suit la sélection du menu des réglages ; on la pose sur Interface.

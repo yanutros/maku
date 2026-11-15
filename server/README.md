@@ -1,6 +1,7 @@
 # Maku Server
 
-Maku Server est un petit relais à installer à côté d'un serveur **Plex**, **Jellyfin** ou **Emby**. Il
+Maku Server est un petit relais à installer à côté d'un serveur **Plex**, **Jellyfin** ou **Emby**. Avec Jellyfin 12, le
+[plugin Maku](../plugins/jellyfin/) fait la même chose depuis Jellyfin lui-même, sans Docker ni port en plus. Il
 permet aux utilisateurs de Maku de faire leurs demandes avec **Seerr** (Overseerr, Jellyseerr) et de
 suivre leurs statistiques **Tracearr**, sans que Seerr et Tracearr soient exposés sur Internet.
 

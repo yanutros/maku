@@ -127,10 +127,14 @@ impl AppState {
         self.plex()
     }
 
-    /// Jeton à joindre aux appels vers `url`, quand elle passe par le relais Maku Server du serveur.
-    async fn relay_token(&self, url: &str) -> Option<String> {
-        let server = self.cfg().server;
-        self.relays.token_for(&self.http, url, server.as_ref()).await
+    /// Ce qu'il faut joindre aux appels vers `url`, quand elle passe par le relais du serveur (Maku Server ou le
+    /// plugin Maku de Jellyfin).
+    async fn relay_token(&self, url: &str) -> Option<maku_server::Relay> {
+        let c = self.cfg();
+        let client_id = c.client_id.clone();
+        self.relays
+            .token_for(&self.http, url, c.server.as_ref(), |token| jellyfin::authorization(&client_id, Some(token)))
+            .await
     }
 
     /// Session Seerr ouverte à la demande, puis réutilisée.
@@ -346,6 +350,7 @@ pub fn run() {
             tracearr_start_login,
             tracearr_poll_login,
             tracearr_dashboard,
+            tracearr_jellyfin_login,
             tracearr_logout,
             update_check,
             release_notes,

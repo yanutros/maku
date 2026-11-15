@@ -1,9 +1,11 @@
 //! Maku Server (dossier `server/` du dépôt) : relais Seerr et Tracearr installé par l'administrateur
-//! à côté de son serveur, pour ne pas exposer Seerr et Tracearr sur Internet.
+//! à côté de son serveur, pour ne pas exposer Seerr et Tracearr sur Internet. Avec Jellyfin, le plugin Maku
+//! (dossier `plugins/jellyfin/`) fait de même depuis le serveur lui-même, à son adresse (`…/Maku`).
 //!
 //! Ses adresses se terminent par `/seerr` ou `/tracearr`. Chaque appel y porte le jeton de
-//! l'utilisateur auprès du serveur multimédia (`X-Maku-Token`), que le relais vérifie. Le jeton n'est
-//! joint qu'après avoir vérifié, par `/maku/info`, que l'adresse est bien celle du relais de ce serveur.
+//! l'utilisateur auprès du serveur multimédia (`X-Maku-Token` pour Maku Server, l'en-tête de Jellyfin pour
+//! le plugin), que le relais vérifie. Le jeton n'est joint qu'après avoir vérifié, par `/maku/info`, que
+//! l'adresse est bien celle du relais de ce serveur.
 
 use crate::config::SavedServer;
 use reqwest::{Client, Url};
@@ -23,14 +25,39 @@ pub struct Info {
     pub id: Option<String>,
     pub seerr: bool,
     pub tracearr: bool,
+    /// Le plugin Maku de Jellyfin (et non Maku Server) : Seerr s'y utilise sans mot de passe.
+    #[serde(default)]
+    pub plugin: bool,
 }
 
-/// En-têtes de chaque appel : le jeton du serveur quand l'adresse passe par Maku Server.
-pub fn relay_headers(relay: Option<String>) -> reqwest::header::HeaderMap {
+/// Ce qu'il faut joindre aux appels qui passent par un relais.
+#[derive(Debug, Clone, PartialEq)]
+pub enum Relay {
+    /// Maku Server : le jeton du serveur dans `X-Maku-Token`.
+    Server(String),
+    /// Plugin Maku de Jellyfin : l'en-tête d'authentification de Jellyfin, jeton compris.
+    Plugin(String),
+}
+
+impl Relay {
+    pub fn is_plugin(&self) -> bool {
+        matches!(self, Relay::Plugin(_))
+    }
+}
+
+/// En-têtes de chaque appel : le jeton du serveur quand l'adresse passe par Maku Server ou le plugin.
+pub fn relay_headers(relay: Option<Relay>) -> reqwest::header::HeaderMap {
     let mut h = reqwest::header::HeaderMap::new();
-    if let Some(mut v) = relay.and_then(|t| reqwest::header::HeaderValue::from_str(&t).ok()) {
+    let (names, value): (&[&str], String) = match relay {
+        Some(Relay::Server(token)) => (&[TOKEN_HEADER], token),
+        Some(Relay::Plugin(authorization)) => (&["Authorization", "X-Emby-Authorization"], authorization),
+        None => return h,
+    };
+    if let Ok(mut v) = reqwest::header::HeaderValue::from_str(&value) {
         v.set_sensitive(true);
-        h.insert(crate::maku_server::TOKEN_HEADER, v);
+        for name in names {
+            h.insert(*name, v.clone());
+        }
     }
     h
 }
@@ -58,8 +85,9 @@ fn serves(info: &Info, server: &SavedServer) -> bool {
 pub struct Known(Mutex<HashMap<String, Info>>);
 
 impl Known {
-    /// Jeton à joindre aux appels vers `url` : celui du serveur, si `url` passe par son relais.
-    pub async fn token_for(&self, http: &Client, url: &str, server: Option<&SavedServer>) -> Option<String> {
+    /// Ce qu'il faut joindre aux appels vers `url` : le jeton du serveur, si `url` passe par son relais.
+    /// `authorization` : l'en-tête de Jellyfin de ce compte, pour le plugin.
+    pub async fn token_for(&self, http: &Client, url: &str, server: Option<&SavedServer>, authorization: impl FnOnce(&str) -> String) -> Option<Relay> {
         let server = server?;
         let base = relay_base(url)?.to_owned();
         let cached = self.0.lock().unwrap().get(&base).cloned();
@@ -72,7 +100,10 @@ impl Known {
                 i
             }
         };
-        serves(&found, server).then(|| server.token.clone())
+        if !serves(&found, server) {
+            return None;
+        }
+        Some(if found.plugin { Relay::Plugin(authorization(&server.token)) } else { Relay::Server(server.token.clone()) })
     }
 
 }
@@ -81,6 +112,13 @@ impl Known {
 /// autres adresses connues du serveur (`others` : celles du réseau local d'abord). Avec Plex, l'adresse
 /// enregistrée est souvent l'adresse distante, que le port du relais ne traverse pas.
 pub async fn discover(http: &Client, server: &SavedServer, others: Vec<String>) -> Option<(String, Info)> {
+    // Jellyfin : le plugin Maku, à l'adresse même du serveur (sur le réseau local comme depuis Internet).
+    if server.is_jellyfin() {
+        let base = format!("{}/Maku", server.uri.trim_end_matches('/'));
+        if let Some(i) = info(http, &base).await.filter(|i| i.plugin && serves(i, server)) {
+            return Some((base, i));
+        }
+    }
     let saved = Url::parse(&server.uri).ok().and_then(|u| u.host_str().map(str::to_owned));
     let mut hosts: Vec<String> = Vec::new();
     for h in others.into_iter().chain(saved) {
@@ -116,12 +154,33 @@ mod tests {
     #[test]
     fn relais_du_bon_serveur() {
         let server = SavedServer { name: "s".into(), machine_id: "abc".into(), uri: "http://h:32400".into(), token: "t".into(), kind: String::new(), user_id: None };
-        let mut info = Info { app: "maku-server".into(), server: "plex".into(), id: Some("abc".into()), seerr: true, tracearr: false };
+        let mut info = Info { app: "maku-server".into(), server: "plex".into(), id: Some("abc".into()), seerr: true, tracearr: false, plugin: false };
         assert!(serves(&info, &server));
         info.id = Some("autre".into());
         assert!(!serves(&info, &server));
         info.id = Some("abc".into());
         info.server = "jellyfin".into();
         assert!(!serves(&info, &server));
+    }
+
+    #[test]
+    fn en_tetes_du_relais() {
+        let server = relay_headers(Some(Relay::Server("jeton".into())));
+        assert_eq!(server.get(TOKEN_HEADER).unwrap(), "jeton");
+        assert!(server.get("Authorization").is_none());
+        // Plugin : l'en-tête de Jellyfin, sous ses deux noms, et jamais X-Maku-Token.
+        let plugin = relay_headers(Some(Relay::Plugin(r#"MediaBrowser Token="jeton""#.into())));
+        assert_eq!(plugin.get("Authorization").unwrap(), r#"MediaBrowser Token="jeton""#);
+        assert_eq!(plugin.get("X-Emby-Authorization").unwrap(), r#"MediaBrowser Token="jeton""#);
+        assert!(plugin.get(TOKEN_HEADER).is_none());
+        assert!(relay_headers(None).is_empty());
+    }
+
+    #[test]
+    fn info_du_plugin_et_de_maku_server() {
+        let server: Info = serde_json::from_str(r#"{"app":"maku-server","server":"plex","id":"a","seerr":true,"tracearr":true}"#).unwrap();
+        assert!(!server.plugin);
+        let plugin: Info = serde_json::from_str(r#"{"app":"maku-server","plugin":true,"version":"1.0.0","server":"jellyfin","id":"a","seerr":true,"tracearr":false}"#).unwrap();
+        assert!(plugin.plugin);
     }
 }

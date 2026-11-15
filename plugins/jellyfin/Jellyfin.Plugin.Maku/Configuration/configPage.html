@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Maku</title>
+</head>
+<body>
+    <div id="MakuConfigPage" data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-input,emby-button,emby-select">
+        <div data-role="content">
+            <div class="content-primary">
+                <form id="MakuConfigForm">
+                    <div class="verticalSection">
+                        <h2 class="sectionTitle">Maku</h2>
+                        <p data-t="intro"></p>
+                    </div>
+
+                    <div class="verticalSection">
+                        <h3 class="sectionTitle">Seerr</h3>
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="SeerrUrl" data-t="seerrUrl"></label>
+                            <input id="SeerrUrl" type="url" is="emby-input" placeholder="http://192.168.1.10:5055" />
+                            <div class="fieldDescription" data-t="seerrUrlHint"></div>
+                        </div>
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="SeerrApiKey" data-t="seerrKey"></label>
+                            <input id="SeerrApiKey" type="password" is="emby-input" autocomplete="off" />
+                            <div class="fieldDescription" data-t="seerrKeyHint"></div>
+                        </div>
+                    </div>
+
+                    <div class="verticalSection">
+                        <h3 class="sectionTitle">Tracearr</h3>
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="TracearrUrl" data-t="tracearrUrl"></label>
+                            <input id="TracearrUrl" type="url" is="emby-input" placeholder="http://192.168.1.10:3000" />
+                            <div class="fieldDescription" data-t="tracearrUrlHint"></div>
+                        </div>
+                    </div>
+
+                    <div class="verticalSection">
+                        <h3 class="sectionTitle" data-t="usersTitle"></h3>
+                        <p class="fieldDescription" data-t="usersHint"></p>
+                        <p id="MakuSeerrStatus" class="fieldDescription"></p>
+                        <div id="MakuUsers"></div>
+                    </div>
+
+                    <div>
+                        <button is="emby-button" type="submit" class="raised button-submit block emby-button">
+                            <span data-t="save"></span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <script type="text/javascript">
+            (function () {
+                var pluginId = '662e5017-18be-4b27-9def-d03d195ba88e';
+                var page = document.querySelector('#MakuConfigPage');
+                var texts = {
+                    fr: {
+                        intro: 'Les utilisateurs de Maku font leurs demandes dans Seerr et suivent leurs statistiques Tracearr par l\'adresse de ce serveur Jellyfin : Seerr et Tracearr restent sur le réseau local, et seuls les utilisateurs de Jellyfin passent. Maku trouve le plugin tout seul.',
+                        seerrUrl: 'Adresse de Seerr',
+                        seerrUrlHint: 'Vue depuis le serveur Jellyfin. Vide : pas de Seerr.',
+                        seerrKey: 'Clé d\'API de Seerr',
+                        seerrKeyHint: 'Dans Seerr : Paramètres → Général. Chaque utilisateur agit sous son propre compte Seerr (ses droits, ses quotas), sans mot de passe à saisir.',
+                        tracearrUrl: 'Adresse de Tracearr',
+                        tracearrUrlHint: 'Vue depuis le serveur Jellyfin. Vide : pas de Tracearr.',
+                        usersTitle: 'Comptes Seerr des utilisateurs',
+                        usersHint: 'Par défaut, chaque utilisateur Jellyfin utilise le compte Seerr importé de Jellyfin. Choisissez un autre compte ici si besoin (par exemple si Seerr est relié à un autre serveur).',
+                        auto: 'Automatique',
+                        autoFound: 'Automatique : {name}',
+                        autoMissing: 'Automatique : aucun compte importé',
+                        seerrOk: 'Seerr répond : {count} comptes.',
+                        seerrKo: 'Seerr ne répond pas avec ces réglages (enregistrez-les d\'abord) : {error}',
+                        save: 'Enregistrer'
+                    },
+                    en: {
+                        intro: 'Maku users make their Seerr requests and follow their Tracearr stats through this Jellyfin server\'s address: Seerr and Tracearr stay on the local network, and only Jellyfin users get through. Maku finds the plugin by itself.',
+                        seerrUrl: 'Seerr address',
+                        seerrUrlHint: 'As seen from the Jellyfin server. Empty: no Seerr.',
+                        seerrKey: 'Seerr API key',
+                        seerrKeyHint: 'In Seerr: Settings → General. Each user acts under their own Seerr account (their permissions, their quotas), with no password to type.',
+                        tracearrUrl: 'Tracearr address',
+                        tracearrUrlHint: 'As seen from the Jellyfin server. Empty: no Tracearr.',
+                        usersTitle: 'Users\' Seerr accounts',
+                        usersHint: 'By default, each Jellyfin user uses the Seerr account imported from Jellyfin. Pick another account here if needed (for example when Seerr is linked to another server).',
+                        auto: 'Automatic',
+                        autoFound: 'Automatic: {name}',
+                        autoMissing: 'Automatic: no imported account',
+                        seerrOk: 'Seerr answers: {count} accounts.',
+                        seerrKo: 'Seerr does not answer with these settings (save them first): {error}',
+                        save: 'Save'
+                    }
+                };
+                var lang = (navigator.language || 'en').toLowerCase().indexOf('fr') === 0 ? 'fr' : 'en';
+                function t(key, values) {
+                    var s = texts[lang][key] || texts.en[key] || key;
+                    Object.keys(values || {}).forEach(function (k) { s = s.replace('{' + k + '}', values[k]); });
+                    return s;
+                }
+                page.querySelectorAll('[data-t]').forEach(function (el) { el.textContent = t(el.getAttribute('data-t')); });
+
+                var config = null;
+                var seerrAccounts = [];
+
+                function normalize(id) { return (id || '').replace(/-/g, '').toLowerCase(); }
+
+                function renderUsers(users) {
+                    var box = page.querySelector('#MakuUsers');
+                    box.innerHTML = '';
+                    users.forEach(function (u) {
+                        var id = normalize(u.Id);
+                        var imported = seerrAccounts.filter(function (a) { return normalize(a.jellyfinUserId) === id; })[0];
+                        var link = (config.UserLinks || []).filter(function (l) { return normalize(l.JellyfinUserId) === id; })[0];
+                        var row = document.createElement('div');
+                        row.className = 'selectContainer';
+                        var label = document.createElement('label');
+                        label.className = 'selectLabel';
+                        label.textContent = u.Name;
+                        var select = document.createElement('select');
+                        select.setAttribute('is', 'emby-select');
+                        select.className = 'emby-select-withcolor emby-select';
+                        select.dataset.jellyfinUser = id;
+                        var auto = document.createElement('option');
+                        auto.value = '0';
+                        auto.textContent = imported ? t('autoFound', { name: imported.name }) : t('autoMissing');
+                        select.appendChild(auto);
+                        seerrAccounts.forEach(function (a) {
+                            var o = document.createElement('option');
+                            o.value = String(a.id);
+                            o.textContent = a.name;
+                            select.appendChild(o);
+                        });
+                        select.value = link ? String(link.SeerrUserId) : '0';
+                        row.appendChild(label);
+                        row.appendChild(select);
+                        box.appendChild(row);
+                    });
+                }
+
+                function loadUsers() {
+                    var status = page.querySelector('#MakuSeerrStatus');
+                    var accounts = ApiClient.getJSON(ApiClient.getUrl('Maku/admin/seerr-users')).then(function (list) {
+                        seerrAccounts = list || [];
+                        status.textContent = t('seerrOk', { count: seerrAccounts.length });
+                    }, function (e) {
+                        seerrAccounts = [];
+                        status.textContent = t('seerrKo', { error: (e && e.status) || '?' });
+                    });
+                    Promise.all([ApiClient.getUsers(), accounts]).then(function (r) { renderUsers(r[0] || []); });
+                }
+
+                page.addEventListener('pageshow', function () {
+                    Dashboard.showLoadingMsg();
+                    ApiClient.getPluginConfiguration(pluginId).then(function (c) {
+                        config = c;
+                        page.querySelector('#SeerrUrl').value = c.SeerrUrl || '';
+                        page.querySelector('#SeerrApiKey').value = c.SeerrApiKey || '';
+                        page.querySelector('#TracearrUrl').value = c.TracearrUrl || '';
+                        Dashboard.hideLoadingMsg();
+                        loadUsers();
+                    });
+                });
+
+                page.querySelector('#MakuConfigForm').addEventListener('submit', function (e) {
+                    e.preventDefault();
+                    Dashboard.showLoadingMsg();
+                    ApiClient.getPluginConfiguration(pluginId).then(function (c) {
+                        c.SeerrUrl = page.querySelector('#SeerrUrl').value.trim();
+                        c.SeerrApiKey = page.querySelector('#SeerrApiKey').value.trim();
+                        c.TracearrUrl = page.querySelector('#TracearrUrl').value.trim();
+                        c.UserLinks = [];
+                        page.querySelectorAll('#MakuUsers select').forEach(function (s) {
+                            if (s.value !== '0') c.UserLinks.push({ JellyfinUserId: s.dataset.jellyfinUser, SeerrUserId: parseInt(s.value, 10) });
+                        });
+                        ApiClient.updatePluginConfiguration(pluginId, c).then(function (result) {
+                            config = c;
+                            Dashboard.processPluginConfigurationUpdateResult(result);
+                            loadUsers();
+                        });
+                    });
+                    return false;
+                });
+            })();
+        </script>
+    </div>
+</body>
+</html>

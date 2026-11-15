@@ -20,6 +20,8 @@ pub struct Seerr {
     base: String,
     /// Pour rouvrir la session Plex quand elle expire ; sans lui (Jellyfin), il faut se reconnecter.
     plex_token: Option<String>,
+    /// Par le plugin Maku de Jellyfin : pas de session, le plugin agit sous le compte Seerr de l'utilisateur.
+    plugin: bool,
 }
 
 #[derive(Deserialize)]
@@ -113,7 +115,8 @@ pub struct SeerrSeason {
 }
 
 impl Seerr {
-    fn new(base: &str, plex_token: Option<String>, saved_cookies: Option<&str>, relay: Option<String>) -> Result<Self> {
+    fn new(base: &str, plex_token: Option<String>, saved_cookies: Option<&str>, relay: Option<crate::maku_server::Relay>) -> Result<Self> {
+        let plugin = relay.as_ref().is_some_and(|r| r.is_plugin());
         let base = base.trim_end_matches('/').to_string();
         let cookies = Arc::new(Jar::default());
         if let Ok(url) = Url::parse(&base) {
@@ -127,11 +130,18 @@ impl Seerr {
             .timeout(Duration::from_secs(20))
             .redirect(crate::net::same_host())
             .build()?;
-        Ok(Seerr { http, cookies, base, plex_token })
+        Ok(Seerr { http, cookies, base, plex_token, plugin })
     }
 
-    /// Session enregistrée (compte Jellyfin) si elle existe, sinon connexion avec le jeton Plex.
-    pub async fn connect(base: &str, plex_token: Option<String>, saved_cookies: Option<&str>, relay: Option<String>) -> Result<Self> {
+    /// Session enregistrée (compte Jellyfin) si elle existe, sinon connexion avec le jeton Plex. Par le plugin Maku de
+    /// Jellyfin, ni l'un ni l'autre : le plugin agit sous le compte Seerr de l'utilisateur.
+    pub async fn connect(base: &str, plex_token: Option<String>, saved_cookies: Option<&str>, relay: Option<crate::maku_server::Relay>) -> Result<Self> {
+        if relay.as_ref().is_some_and(|r| r.is_plugin()) {
+            let seerr = Self::new(base, None, None, relay)?;
+            // Vérifie tout de suite que le compte est reconnu (sinon l'erreur viendrait à la première demande).
+            seerr.request(Method::GET, "/auth/me", None).await?;
+            return Ok(seerr);
+        }
         if saved_cookies.is_some() {
             return Self::new(base, plex_token, saved_cookies, relay);
         }
@@ -145,7 +155,7 @@ impl Seerr {
 
     /// Connexion sans Plex (compte Jellyfin, ou compte local de Seerr) : le mot de passe sert une fois, la session est gardée
     /// (`saved_cookies`).
-    pub async fn connect_jellyfin(base: &str, username: &str, password: &str, relay: Option<String>) -> Result<Self> {
+    pub async fn connect_jellyfin(base: &str, username: &str, password: &str, relay: Option<crate::maku_server::Relay>) -> Result<Self> {
         let seerr = Self::new(base, None, None, relay)?;
         let public = seerr.prepare().await?;
         // Seerr ne gère qu'un type de serveur : 2 Jellyfin, 3 Emby. Un Seerr prévu pour Plex
@@ -226,16 +236,21 @@ impl Seerr {
             }
             let resp = rb.send().await?;
             let status = resp.status();
-            if (status == StatusCode::UNAUTHORIZED || status == StatusCode::FORBIDDEN) && !relogged {
+            // Par le plugin, pas de session à rouvrir : le refus est définitif (compte Seerr introuvable…).
+            if (status == StatusCode::UNAUTHORIZED || status == StatusCode::FORBIDDEN) && !relogged && !self.plugin {
                 relogged = true;
                 self.login().await?;
                 continue;
             }
             if !status.is_success() {
                 let text = resp.text().await.unwrap_or_default();
-                let message = serde_json::from_str::<Value>(&text)
-                    .ok()
-                    .and_then(|v| v["message"].as_str().map(str::to_owned))
+                let json = serde_json::from_str::<Value>(&text).ok();
+                // Le plugin Maku répond {"error": …} ; Seerr, {"message": …}.
+                if self.plugin && json.as_ref().and_then(|v| v["error"].as_str()) == Some("no seerr account for this user") {
+                    bail!(crate::i18n::tr("seerr.pluginNoAccount"));
+                }
+                let message = json
+                    .and_then(|v| v["message"].as_str().or(v["error"].as_str()).map(str::to_owned))
                     .unwrap_or(text);
                 bail!(crate::i18n::tr_with("seerr.replied", &[("status", &status.to_string()), ("message", &message)]));
             }

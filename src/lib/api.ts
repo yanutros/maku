@@ -526,7 +526,8 @@ export interface Account {
 }
 
 /** Maku Server trouvé sur la machine du serveur : son adresse, ses services, et s'il les a configurés tout seul. */
-export type RelayFound = { url: string; seerr: boolean; tracearr: boolean; applied: boolean };
+/** `plugin` : le plugin Maku de Jellyfin (et non Maku Server) ; Seerr s'y utilise sans mot de passe. */
+export type RelayFound = { url: string; seerr: boolean; tracearr: boolean; plugin?: boolean; applied: boolean };
 
 export const api = {
   session: () => invoke<Session>("get_session"),
@@ -681,6 +682,7 @@ export const api = {
   tmdbConfigure: (key: string) => invoke<void>("tmdb_configure", { key }),
   tracearrStartLogin: (open = true) => invoke<{ handle: string; authUrl: string }>("tracearr_start_login", { open }),
   tracearrPollLogin: (handle: string) => invoke<"waiting" | "done" | "expired">("tracearr_poll_login", { handle }),
+  tracearrJellyfinLogin: () => invoke<void>("tracearr_jellyfin_login"),
   tracearrDashboard: () =>
     invoke<TracearrDashboard>("tracearr_dashboard", { timezone: Intl.DateTimeFormat().resolvedOptions().timeZone }),
   tracearrLogout: () => invoke<void>("tracearr_logout"),
@@ -700,6 +702,8 @@ export const api = {
  * lien n'est pas ouvert dans le navigateur : l'appelant le montre autrement (QR code, téléphone).
  */
 export async function tracearrLogin(onAuthUrl?: (url: string) => void): Promise<void> {
+  // Serveur Jellyfin : Quick Connect, validé par Maku lui-même ; ni navigateur ni QR code.
+  if (nav.serverKind === "jellyfin") return api.tracearrJellyfinLogin();
   // Sur téléviseur, pas de navigateur : le lien s'affiche en QR code (voir App.svelte).
   const show = onAuthUrl ?? (device.tv ? (url: string) => (nav.authUrl = url) : undefined);
   const { handle, authUrl } = await api.tracearrStartLogin(!show);

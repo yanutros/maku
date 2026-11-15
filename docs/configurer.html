@@ -45,6 +45,7 @@
       <a href="#tracearr">Tracearr</a>
       <a href="#invitation">Invitation en QR code</a>
       <a href="#maku-server">Maku Server</a>
+      <a href="#plugin-jellyfin">Plugin Jellyfin</a>
       <a href="#tmdb">Logos et bandes-annonces</a>
       <a href="#personnaliser">Personnaliser</a>
       <a href="#raccourcis">Raccourcis et télécommande</a>
@@ -82,15 +83,16 @@
         <li>Indiquez l'adresse de votre Seerr (Overseerr ou Jellyseerr conviennent aussi), par exemple <code>https://seerr.mondomaine.fr</code>.</li>
         <li>Appuyez sur <strong>Se connecter avec Plex</strong>. Les demandes se font à votre nom, avec vos droits et vos quotas.</li>
       </ol>
-      <p>Il n'y a pas de clé d'API à saisir. Votre compte doit simplement avoir été importé dans Seerr par l'administrateur. Avec <strong>Jellyfin ou Emby</strong>, Maku demande une fois votre identifiant et votre mot de passe (ceux de Jellyfin, ou du compte local Seerr) ; seule la session est gardée.</p>
+      <p>Il n'y a pas de clé d'API à saisir. Votre compte doit simplement avoir été importé dans Seerr par l'administrateur. Avec <strong>Jellyfin ou Emby</strong>, Maku demande une fois votre identifiant et votre mot de passe (ceux de Jellyfin, ou du compte local Seerr) ; seule la session est gardée. Avec le <a href="#plugin-jellyfin">plugin Maku pour Jellyfin</a>, il n'y a même plus rien à saisir : Seerr se connecte tout seul.</p>
 
       <h2 id="tracearr">Tracearr : les statistiques</h2>
       <ol class="steps">
         <li>Dans <strong>Réglages → Services</strong>, indiquez l'adresse de votre Tracearr.</li>
-        <li>Appuyez sur <strong>Se connecter avec Plex</strong> : votre navigateur s'ouvre une fois pour autoriser la connexion.</li>
+        <li>Avec Plex, appuyez sur <strong>Se connecter avec Plex</strong> : votre navigateur s'ouvre une fois pour autoriser la connexion. Sur la télé, le lien s'affiche en QR code, à scanner avec votre téléphone.</li>
+        <li>Avec Jellyfin, appuyez sur <strong>Se connecter avec Jellyfin</strong> : Maku valide lui-même le code Quick Connect de Tracearr avec votre session Jellyfin, sans mot de passe ni navigateur.</li>
         <li><strong>Mes statistiques</strong> s'ouvre dès la connexion validée. La session dure 30 jours.</li>
       </ol>
-      <p>Sur la télé, le lien d'autorisation s'affiche en QR code, à scanner avec votre téléphone. Tracearr se connecte toujours avec un compte plex.tv, même si vous regardez sur Jellyfin. Seules vos propres données sont affichées.</p>
+      <p>Seules vos propres données sont affichées, et seulement celles du serveur ouvert dans Maku : si Tracearr suit aussi votre compte sur un autre serveur, ses lectures ne s'ajoutent pas à vos 30 derniers jours ni à votre top 10. Avec Jellyfin, l'administrateur doit avoir autorisé la connexion des membres dans Tracearr (Réglages → Se connecter, et sur le serveur dans Connexions), et Quick Connect doit être actif sur Jellyfin.</p>
 
       <h2 id="invitation">L'invitation en QR code</h2>
       <p>Le plus simple pour vos proches : l'administrateur leur envoie une invitation, et Maku se configure tout seul.</p>
@@ -131,6 +133,18 @@ services:
         <li><strong>Depuis Internet</strong>, placez le relais derrière un proxy inverse HTTPS (Caddy, Nginx Proxy Manager, Traefik…) ou un VPN, et utilisez ses adresses : <code>https://maku.mondomaine.fr/seerr</code> et <code>https://maku.mondomaine.fr/tracearr</code>, dans les Réglages ou dans l'invitation.</li>
       </ul>
       <p>Le <a href="https://github.com/yanutros/maku/blob/main/server/README.md">guide complet de Maku Server</a> détaille les variables, le HTTPS et un tunnel sans port à ouvrir.</p>
+
+      <h2 id="plugin-jellyfin">Le plugin Maku pour Jellyfin</h2>
+      <p>Avec <strong>Jellyfin</strong>, pas besoin de Docker ni d'un port de plus : le <strong>plugin Maku</strong> s'installe dans Jellyfin et relaie Seerr et Tracearr par l'adresse même du serveur. Seerr et Tracearr restent sur le réseau local, et seuls les utilisateurs connectés à Jellyfin passent. En prime, chacun fait ses demandes sous son propre compte Seerr, <strong>sans mot de passe à saisir</strong>. Il demande Jellyfin 12.</p>
+      <h3>L'installer</h3>
+      <ol class="steps">
+        <li>Dans Jellyfin : <strong>Tableau de bord → Extensions → Gérer les dépôts</strong>, ajoutez ce dépôt : <code>https://github.com/yanutros/maku/releases/download/jellyfin-plugin/manifest.json</code></li>
+        <li>Dans le catalogue, installez <strong>Maku</strong>, puis redémarrez Jellyfin.</li>
+        <li>Ouvrez les réglages du plugin : l'adresse de Seerr (vue depuis le serveur Jellyfin) et sa <strong>clé d'API</strong> (dans Seerr : Paramètres → Général), puis l'adresse de Tracearr si vous l'utilisez.</li>
+        <li>Chaque utilisateur Jellyfin utilise le compte Seerr importé de Jellyfin. Si Seerr est relié à un autre serveur, choisissez dans la même page le compte Seerr de chacun.</li>
+      </ol>
+      <h3>Côté Maku</h3>
+      <p>Rien à faire : connecté à ce serveur Jellyfin, Maku trouve le plugin tout seul, sur le réseau de la maison comme depuis Internet. Réglages → Services affiche « Plugin Maku détecté », et Seerr se connecte sans identifiant ni mot de passe. Pour Tracearr, <strong>Se connecter avec Jellyfin</strong> suffit.</p>
 
       <h2 id="tmdb">Logos et bandes-annonces : la clé TMDB</h2>
       <p>Pour les films et séries dont votre serveur n'a ni logo ni bande-annonce, Maku peut les chercher sur TMDB avec votre propre clé d'API, gratuite : créez un compte sur <a href="https://www.themoviedb.org">themoviedb.org</a>, demandez une clé dans ses réglages API, puis collez-la dans <strong>Réglages → Services</strong>. Sur la télé, un QR code permet de la coller depuis le téléphone.</p>

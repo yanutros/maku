@@ -23,6 +23,8 @@ pub(crate) struct RelayFound {
     url: String,
     seerr: bool,
     tracearr: bool,
+    /// Le plugin Maku de Jellyfin, et non Maku Server.
+    plugin: bool,
     /// Des adresses manquantes ont été remplies par celles du relais.
     applied: bool,
 }
@@ -49,9 +51,15 @@ pub async fn relay_discover(state: State<'_, AppState>) -> CmdResult<Option<Rela
     }
     let Some((base, info)) = maku_server::discover(&state.http, &server, others).await else { return Ok(None) };
     let mut applied = false;
-    if info.seerr && c.seerr_url.is_none() && !server.is_jellyfin() {
+    // Avec Jellyfin, Seerr demande un mot de passe, sauf par le plugin Maku (il agit sous le compte de l'utilisateur).
+    if info.seerr && c.seerr_url.is_none() && (!server.is_jellyfin() || info.plugin) {
         let url = format!("{base}/seerr");
-        if let Ok(seerr) = Seerr::connect(&url, c.plex_token.clone(), None, Some(server.token.clone())).await {
+        let relay = if info.plugin {
+            maku_server::Relay::Plugin(crate::jellyfin::authorization(&c.client_id, Some(&server.token)))
+        } else {
+            maku_server::Relay::Server(server.token.clone())
+        };
+        if let Ok(seerr) = Seerr::connect(&url, c.plex_token.clone(), None, Some(relay)).await {
             let mut slot = state.seerr.lock().await;
             state.update_cfg(|c| {
                 c.seerr_url = Some(url);
@@ -69,5 +77,5 @@ pub async fn relay_discover(state: State<'_, AppState>) -> CmdResult<Option<Rela
         })?;
         applied = true;
     }
-    Ok(Some(RelayFound { url: base, seerr: info.seerr, tracearr: info.tracearr, applied }))
+    Ok(Some(RelayFound { url: base, seerr: info.seerr, tracearr: info.tracearr, plugin: info.plugin, applied }))
 }

@@ -12,7 +12,7 @@ use serde::Deserialize;
 use crate::plex::{FilterField, FilterValue, LetterCount, Marker, PRODUCT, Section, SectionFilters, SortField, TrailerSource};
 
 /// En-tête d'authentification de Jellyfin : l'application, l'appareil et, une fois connecté, le jeton.
-fn authorization(client_id: &str, token: Option<&str>) -> String {
+pub(crate) fn authorization(client_id: &str, token: Option<&str>) -> String {
     let device = if cfg!(target_os = "android") { "Maku (Android)" } else { "Maku (PC)" };
     let mut value = format!(
         r#"MediaBrowser Client="{PRODUCT}", Device="{device}", DeviceId="{client_id}", Version="{}""#,
@@ -196,6 +196,20 @@ impl JellyfinServer {
         self.http
             .get(format!("{}{}", self.base, path))
             .headers(auth(&self.client_id, Some(&self.token)))
+    }
+
+    /// Valide un code Quick Connect au nom de l'utilisateur connecté (Tracearr le demande pour ouvrir sa session).
+    pub async fn authorize_quick_connect(&self, code: &str) -> Result<()> {
+        let resp = self
+            .http
+            .post(format!("{}/QuickConnect/Authorize?code={}&userId={}", self.base, urlencoding::encode(code), self.user_id))
+            .headers(auth(&self.client_id, Some(&self.token)))
+            .send()
+            .await?;
+        if !resp.status().is_success() {
+            bail!(crate::i18n::tr_with("tracearr.quickConnectRefused", &[("status", &resp.status().to_string())]));
+        }
+        Ok(())
     }
 
     /// Compte connecté : nom, photo de profil et rôle d'administrateur.

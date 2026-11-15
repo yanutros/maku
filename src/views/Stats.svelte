@@ -4,7 +4,7 @@
   import { onDestroy, untrack } from "svelte";
   import { api, errorText, formatClock, formatLongDuration, tracearrLogin, type Session, type TracearrDashboard } from "../lib/api";
   import { genreLabel } from "../lib/genres";
-  import { go } from "../lib/nav.svelte";
+  import { go, nav } from "../lib/nav.svelte";
   import { device } from "../lib/device";
   import { useAmbient } from "../lib/ambient.svelte";
   import Icon from "../components/Icon.svelte";
@@ -143,9 +143,9 @@
       </div>
     {:else if needsLogin}
       <div class="empty">
-        <p>{t("stats.loginPrompt")}</p>
+        <p>{nav.serverKind === "jellyfin" ? t("stats.loginPromptJellyfin") : t("stats.loginPrompt")}</p>
         <button class="btn primary" disabled={connecting} onclick={connect}>
-          {connecting ? t("stats.waitingBrowser") : t("stats.loginWithPlex")}
+          {connecting ? (nav.serverKind === "jellyfin" ? t("stats.connecting") : t("stats.waitingBrowser")) : nav.serverKind === "jellyfin" ? t("stats.loginWithJellyfin") : t("stats.loginWithPlex")}
         </button>
         {#if error}<ErrorCard message={error} />{/if}
       </div>

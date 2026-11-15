@@ -5,7 +5,8 @@
 //! navigateur, puis la session tient dans des cookies valables 30 jours,
 //! conservés dans la configuration.
 
-use crate::plex::PlexServer;
+use crate::config::SavedServer;
+use crate::media::MediaServer;
 use anyhow::{anyhow, bail, Result};
 use reqwest::cookie::{CookieStore, Jar};
 use reqwest::{Client, Method, RequestBuilder, StatusCode, Url};
@@ -101,9 +102,9 @@ pub struct Art {
 }
 
 /// Cherche un titre dans la bibliothèque Plex pour en récupérer les images.
-async fn find_art(plex: Option<&PlexServer>, title: Option<&str>) -> Option<Art> {
-    let (plex, title) = (plex?, title?);
-    let found = plex.search(title).await.ok()?;
+async fn find_art(media: Option<&MediaServer>, title: Option<&str>) -> Option<Art> {
+    let (media, title) = (media?, title?);
+    let found = media.search(title).await.ok()?;
     let wanted = title.to_lowercase();
     let item = found
         .iter()
@@ -113,8 +114,37 @@ async fn find_art(plex: Option<&PlexServer>, title: Option<&str>) -> Option<Art>
     Some(Art { rating_key: item.rating_key.clone(), poster: item.poster.clone(), backdrop: item.backdrop.clone() })
 }
 
+/// Le serveur de Tracearr qui correspond au serveur de Maku : même identifiant (machineIdentifier), sinon même
+/// type et même nom. Tracearr peut en suivre plusieurs pour une même personne (Plex et Jellyfin, par exemple).
+fn tracearr_server_id(servers: &Value, server: &SavedServer) -> Option<String> {
+    let list = servers["data"].as_array().or(servers.as_array())?;
+    let kind = if server.kind.is_empty() { "plex" } else { server.kind.as_str() };
+    let by_id = list.iter().find(|s| {
+        s["machineIdentifier"].as_str().is_some_and(|m| !m.is_empty() && m.eq_ignore_ascii_case(&server.machine_id))
+    });
+    let by_name = || {
+        list.iter().find(|s| {
+            s["type"].as_str() == Some(kind) && s["name"].as_str().is_some_and(|n| n.eq_ignore_ascii_case(server.name.trim()))
+        })
+    };
+    by_id.or_else(by_name)?["id"].as_str().map(str::to_owned)
+}
+
+/// Le serveur Jellyfin de Tracearr ouvert à la connexion des membres : celui du même nom, ou le seul.
+fn pick_member_server<'a>(servers: &[&'a Value], name: &str) -> Result<&'a Value> {
+    if servers.is_empty() {
+        bail!(crate::i18n::tr("tracearr.memberLoginOff"));
+    }
+    let named = servers.iter().find(|s| s["name"].as_str().is_some_and(|n| n.eq_ignore_ascii_case(name.trim())));
+    match (named, servers.len()) {
+        (Some(s), _) => Ok(s),
+        (None, 1) => Ok(servers[0]),
+        _ => bail!(crate::i18n::tr_with("tracearr.memberLoginServer", &[("server", name)])),
+    }
+}
+
 impl Tracearr {
-    pub fn new(base: &str, saved_cookies: Option<&str>, relay: Option<String>) -> Result<Self> {
+    pub fn new(base: &str, saved_cookies: Option<&str>, relay: Option<crate::maku_server::Relay>) -> Result<Self> {
         let base = Url::parse(base.trim_end_matches('/')).map_err(|_| anyhow!(crate::i18n::tr_with("tracearr.invalidUrl", &[("url", base)])))?;
         let cookies = Arc::new(Jar::default());
         for pair in saved_cookies.unwrap_or_default().split("; ").filter(|p| p.contains('=')) {
@@ -160,6 +190,64 @@ impl Tracearr {
         Ok(resp.json().await?)
     }
 
+    /// Connexion d'un compte Jellyfin, sans mot de passe ni navigateur : Tracearr demande un code Quick Connect au
+    /// serveur, Maku le valide avec la session Jellyfin de l'utilisateur, puis Tracearr ouvre la sienne.
+    /// `server_name` : nom du serveur Jellyfin, pour le retrouver parmi ceux de Tracearr.
+    pub async fn jellyfin_login(&self, server_name: &str, jellyfin: &crate::jellyfin::JellyfinServer) -> Result<()> {
+        let status = self.post_or_get(Method::GET, "/setup/status?all=true", None).await?;
+        let servers: Vec<&Value> = status["memberLoginServers"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter(|s| s["type"].as_str() == Some("jellyfin"))
+            .collect();
+        let server = pick_member_server(&servers, server_name)?;
+        if server["quickConnect"].as_bool() != Some(true) {
+            bail!(crate::i18n::tr("tracearr.quickConnectOff"));
+        }
+        let server_id = server["id"].as_str().unwrap_or_default();
+        let started = self
+            .post_or_get(Method::POST, "/auth/jellyfin/quick-connect/initiate", Some(json!({ "serverId": server_id })))
+            .await?;
+        let (Some(handle), Some(code)) = (started["handle"].as_str(), started["code"].as_str()) else {
+            bail!(crate::i18n::tr("tracearr.refused"));
+        };
+        jellyfin.authorize_quick_connect(code).await?;
+        // Le code vient d'être validé : Tracearr le voit à la première vérification, ou peu après.
+        for attempt in 0..10 {
+            if attempt > 0 {
+                tokio::time::sleep(Duration::from_millis(800)).await;
+            }
+            let check = self.post_or_get(Method::POST, "/auth/jellyfin/quick-connect/check", Some(json!({ "handle": handle }))).await?;
+            if check["authorized"].as_bool() == Some(true) {
+                return Ok(());
+            }
+            if check["expired"].as_bool() == Some(true) {
+                break;
+            }
+        }
+        bail!(crate::i18n::tr("tracearr.refused"))
+    }
+
+    /// Appel de connexion : la réponse en JSON, ou le message d'erreur de Tracearr.
+    async fn post_or_get(&self, method: Method, path: &str, body: Option<Value>) -> Result<Value> {
+        let mut rb = self.builder(method, path);
+        if let Some(b) = body {
+            rb = rb.json(&b);
+        }
+        let resp = rb
+            .send()
+            .await
+            .map_err(|e| anyhow!(crate::i18n::tr_with("tracearr.unreachable", &[("error", &e.to_string())])))?;
+        let status = resp.status();
+        let body: Value = resp.json().await.unwrap_or_default();
+        if !status.is_success() {
+            let message = body["message"].as_str().or(body["error"].as_str()).map(str::to_owned).unwrap_or_else(|| crate::i18n::tr("tracearr.refused"));
+            bail!(crate::i18n::tr_with("tracearr.error", &[("message", &message)]));
+        }
+        Ok(body)
+    }
+
     pub async fn check_login(&self, handle: &str) -> Result<LoginState> {
         let resp = self
             .builder(Method::POST, "/auth/plex/check-pin")
@@ -195,19 +283,27 @@ impl Tracearr {
     }
 
     /// Tableau de bord personnel : lecture en cours, 30 derniers jours, top titres, tous les temps.
-    pub async fn dashboard(&self, plex: Option<&PlexServer>, timezone: &str) -> Result<Dashboard> {
+    /// `media` et `server` : le serveur ouvert dans Maku. Les lectures en cours, les 30 derniers jours et le top 10
+    /// ne comptent que celles de ce serveur (Tracearr peut en suivre d'autres pour la même personne).
+    pub async fn dashboard(&self, media: Option<&MediaServer>, server: Option<&SavedServer>, timezone: &str) -> Result<Dashboard> {
         let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis() as u64;
         let tz = urlencoding::encode(timezone);
+        let server_id = match server {
+            Some(s) => self.get("/servers").await.ok().and_then(|list| tracearr_server_id(&list, s)),
+            None => None,
+        };
+        let only = server_id.map(|id| format!("&serverId={}", urlencoding::encode(&id))).unwrap_or_default();
         let window = |from: u64, to: u64| {
-            format!("/sessions/history/aggregates?self=true&startDate={}&endDate={}", iso(from), iso(to))
+            format!("/sessions/history/aggregates?self=true&startDate={}&endDate={}{only}", iso(from), iso(to))
         };
         let month_path = window(now - 30 * DAY_MS, now);
         let previous_path = window(now - 60 * DAY_MS, now - 30 * DAY_MS);
-        let titles_path = format!("/stats/me/titles?period=month&timezone={tz}");
+        let titles_path = format!("/stats/me/titles?period=month&timezone={tz}{only}");
         let stats_path = format!("/stats/me?timezone={tz}");
+        let active_path = format!("/sessions/active?self=true{only}");
         let (me, active, month, previous, titles, stats) = tokio::join!(
             self.get("/auth/me"),
-            self.get("/sessions/active?self=true"),
+            self.get(&active_path),
             self.get(&month_path),
             self.get(&previous_path),
             self.get(&titles_path),
@@ -216,12 +312,21 @@ impl Tracearr {
         let me = me?;
         let image = |path: Option<&str>| -> Option<String> {
             let path = path?;
-            // Tracearr renvoie ses propres adresses de proxy : on remonte au chemin Plex d'origine.
-            let plex_path = match path.find("url=") {
+            // Tracearr renvoie ses propres adresses de proxy : on remonte au chemin d'origine sur le serveur.
+            let server_path = match path.find("url=") {
                 Some(i) => urlencoding::decode(path[i + 4..].split('&').next()?).ok()?.into_owned(),
                 None => path.to_owned(),
             };
-            plex.filter(|_| plex_path.starts_with('/')).map(|p| p.image_url(&plex_path, 300, 450))
+            if !server_path.starts_with('/') {
+                return None;
+            }
+            match media? {
+                MediaServer::Plex(p) => Some(p.image_url(&server_path, 300, 450)),
+                MediaServer::Jellyfin(j) => {
+                    let sep = if server_path.contains('?') { '&' } else { '?' };
+                    Some(format!("{}{server_path}{sep}maxWidth=400&quality=90", j.base))
+                }
+            }
         };
         let totals = |v: Result<Value>| -> Totals {
             let v = v.unwrap_or_default();
@@ -307,8 +412,8 @@ impl Tracearr {
         let all_time = stats.unwrap_or_default();
         let first = &all_time["firstPlay"];
         let (binge_art, first_play_art) = tokio::join!(
-            find_art(plex, all_time["biggestBinge"]["showTitle"].as_str()),
-            find_art(plex, first["grandparentTitle"].as_str().or(first["mediaTitle"].as_str())),
+            find_art(media, all_time["biggestBinge"]["showTitle"].as_str()),
+            find_art(media, first["grandparentTitle"].as_str().or(first["mediaTitle"].as_str())),
         );
 
         Ok(Dashboard {
@@ -359,6 +464,39 @@ fn iso(ms: u64) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn serveur_de_maku_dans_tracearr() {
+        let servers = json!({ "data": [
+            { "id": "p", "name": "maison", "type": "plex", "machineIdentifier": "abc123" },
+            { "id": "j", "name": "Maison", "type": "jellyfin", "machineIdentifier": "0f1e2d3c4b5a69788796a5b4c3d2e1f0" },
+            { "id": "e", "name": "Salon", "type": "emby", "machineIdentifier": null }
+        ]});
+        let saved = |kind: &str, id: &str, name: &str| SavedServer {
+            name: name.into(), machine_id: id.into(), uri: String::new(), token: String::new(), kind: kind.into(), user_id: None,
+        };
+        // Par l'identifiant, même quand les noms se ressemblent.
+        assert_eq!(tracearr_server_id(&servers, &saved("jellyfin", "0F1E2D3C4B5A69788796A5B4C3D2E1F0", "Maison")).as_deref(), Some("j"));
+        assert_eq!(tracearr_server_id(&servers, &saved("", "abc123", "maison")).as_deref(), Some("p"));
+        // Sans identifiant connu de Tracearr : par le type et le nom.
+        assert_eq!(tracearr_server_id(&servers, &saved("emby", "zzz", "salon")).as_deref(), Some("e"));
+        // Inconnu : pas de filtre (tout le compte).
+        assert_eq!(tracearr_server_id(&servers, &saved("jellyfin", "zzz", "Autre")), None);
+        // Tracearr peut aussi rendre une simple liste.
+        assert_eq!(tracearr_server_id(&json!([{ "id": "x", "name": "N", "type": "plex", "machineIdentifier": "m" }]), &saved("", "m", "")).as_deref(), Some("x"));
+    }
+
+    #[test]
+    fn serveur_jellyfin_de_tracearr() {
+        let a = json!({ "id": "a", "name": "Maison", "type": "jellyfin", "quickConnect": true });
+        let b = json!({ "id": "b", "name": "Salon", "type": "jellyfin", "quickConnect": false });
+        // Celui du même nom (sans tenir compte de la casse), sinon le seul.
+        assert_eq!(pick_member_server(&[&a, &b], "maison").unwrap()["id"], "a");
+        assert_eq!(pick_member_server(&[&b], "Autre").unwrap()["id"], "b");
+        // Plusieurs sans le bon nom, ou aucun : refusé, avec la raison.
+        assert!(pick_member_server(&[&a, &b], "Autre").is_err());
+        assert!(pick_member_server(&[], "Maison").is_err());
+    }
 
     #[test]
     fn iso_dates() {

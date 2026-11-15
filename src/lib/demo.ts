@@ -567,25 +567,36 @@ let tracearrLoggedIn = false;
 
 function handle(cmd: string, a: Args): unknown {
   switch (cmd) {
-    case "get_session":
+    // `?demo=…&plugin` : un serveur Jellyfin avec le plugin Maku, par lequel passe Seerr.
+    case "get_session": {
+      const plugin = new URLSearchParams(location.search).has("plugin");
       return {
         loggedIn: true,
         serverName: "Maison",
-        seerrUrl: "https://seerr.exemple.fr",
+        ...(plugin ? { serverKind: "jellyfin" } : {}),
+        seerrUrl: plugin ? "http://jellyfin.local:8096/Maku/seerr" : "https://seerr.exemple.fr",
         mpvPath: null,
         tracearrUrl: "https://tracearr.exemple.fr",
         tracearrConnected: !new URLSearchParams(location.search).has("tracearrlogin") || tracearrLoggedIn,
       };
+    }
     // `?demo=…&tracearrlogin` : Tracearr pas encore connecté ; la connexion Plex aboutit au premier relevé.
     case "tracearr_start_login":
+      // Un compte Jellyfin ne passe jamais par Plex.
+      if (new URLSearchParams(location.search).has("plugin")) throw new Error("Tracearr : pas de connexion Plex pour un compte Jellyfin");
       return { handle: "demo", authUrl: "https://app.plex.tv/auth" };
     case "tracearr_poll_login":
       tracearrLoggedIn = true;
       return "done";
+    // Compte Jellyfin (`?demo=…&plugin`) : Quick Connect validé par Maku, sans navigateur.
+    case "tracearr_jellyfin_login":
+      tracearrLoggedIn = true;
+      return null;
     case "tracearr_configure":
       return null;
     // `?demo=…&relay` : un relais Maku Server trouvé à côté du serveur (Réglages › Services).
     case "relay_discover":
+      if (new URLSearchParams(location.search).has("plugin")) return { url: "http://jellyfin.local:8096/Maku", seerr: true, tracearr: true, plugin: true, applied: false };
       return new URLSearchParams(location.search).has("relay")
         ? { url: "http://serveur.local:32700", seerr: true, tracearr: true, applied: false }
         : null;

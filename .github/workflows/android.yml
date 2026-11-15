@@ -4,13 +4,14 @@
 # l'installerait pas : elle est jointe à l'exécution 14 jours, pour vérification (contenu, taille).
 name: Android
 
-# Un envoi qui ne touche que le README ou le site (docs/) ne change rien à l'APK : pas de construction.
+# Un envoi qui ne touche que le README, le site (docs/) ou le plugin Jellyfin (plugins/) ne change rien à l'APK :
+# pas de construction.
 on:
   push:
     branches: [main]
-    paths-ignore: ["README.md", "docs/**"]
+    paths-ignore: ["README.md", "docs/**", "plugins/**", ".github/workflows/plugin-jellyfin.yml"]
   pull_request:
-    paths-ignore: ["README.md", "docs/**"]
+    paths-ignore: ["README.md", "docs/**", "plugins/**", ".github/workflows/plugin-jellyfin.yml"]
   workflow_dispatch:
 
 permissions:

@@ -76,11 +76,14 @@
     api.relayStatus(ok ? { step: "done" } : { step: "error", error: tmdbError }, true).catch(() => {});
   }
 
+  // Seerr par le plugin Maku de Jellyfin : le plugin agit sous le compte Seerr de l'utilisateur, sans mot de passe.
+  const viaPlugin = $derived(!!relay?.plugin && !!seerrUrl && seerrUrl.startsWith(relay.url));
+
   async function saveSeerr() {
     seerrBusy = true;
     seerrError = null;
     try {
-      if (session.serverKind === "jellyfin" && seerrUrl) {
+      if (session.serverKind === "jellyfin" && seerrUrl && !viaPlugin) {
         await api.seerrConfigureJellyfin(seerrUrl, seerrUser, seerrPassword);
         seerrPassword = "";
       } else {
@@ -316,9 +319,9 @@
 <!-- Relais Maku Server trouvé : un panneau comme ceux de Seerr et Tracearr, qui passent par lui. -->
 {#if relayFound}
   <div class="tile">
-    <h2 class="group-title">{t("settings.services.relayTitle")} <span class="ok">● {t("settings.services.connected")}</span></h2>
+    <h2 class="group-title">{relay?.plugin ? t("settings.services.pluginTitle") : t("settings.services.relayTitle")} <span class="ok">● {t("settings.services.connected")}</span></h2>
     <section class="card">
-      <p class="muted">{t("settings.services.relayFound", { url: relayFound })}</p>
+      <p class="muted">{relay?.plugin ? t("settings.services.pluginFound") : t("settings.services.relayFound", { url: relayFound })}</p>
     </section>
   </div>
 {/if}
@@ -327,10 +330,10 @@
 <h2 class="group-title">Seerr {#if session.seerrUrl}<span class="ok">● {t("settings.services.connected")}</span>{/if}</h2>
 <section class="card">
   <p class="muted">
-    {session.serverKind === "jellyfin" ? t("settings.services.seerrIntroJellyfin") : t("settings.services.seerrIntro")}
+    {viaPlugin ? t("settings.services.seerrIntroPlugin") : session.serverKind === "jellyfin" ? t("settings.services.seerrIntroJellyfin") : t("settings.services.seerrIntro")}
   </p>
   <label>{t("settings.services.seerrAddress")} <input bind:value={seerrUrl} placeholder="https://seerr.mondomaine.fr" /></label>
-  {#if session.serverKind === "jellyfin"}
+  {#if session.serverKind === "jellyfin" && !viaPlugin}
     <label>{t("login.username")} <input bind:value={seerrUser} autocomplete="username" spellcheck="false" /></label>
     <label>{t("login.password")} <PasswordInput bind:value={seerrPassword} /></label>
   {/if}
@@ -338,7 +341,9 @@
     <button class="btn primary" disabled={seerrBusy} onclick={saveSeerr}>
       {seerrBusy
         ? t("settings.services.connecting")
-        : session.serverKind === "jellyfin"
+        : viaPlugin
+          ? t("settings.services.connectViaPlugin")
+          : session.serverKind === "jellyfin"
           ? t("settings.services.connectWithJellyfin")
           : t("settings.services.connectWithPlex")}
     </button>
@@ -350,11 +355,13 @@
 <div class="tile">
 <h2 class="group-title">Tracearr {#if session.tracearrConnected}<span class="ok">● {t("settings.services.connected")}</span>{/if}</h2>
 <section class="card">
-  <p class="muted">{t("settings.services.tracearrIntro")}</p>
+  <p class="muted">{session.serverKind === "jellyfin" ? t("settings.services.tracearrIntroJellyfin") : t("settings.services.tracearrIntro")}</p>
   <label>{t("settings.services.tracearrAddress")} <input bind:value={tracearrUrl} placeholder="https://tracearr.mondomaine.fr" /></label>
   <div class="row">
     <button class="btn primary" disabled={tracearrBusy} onclick={connectTracearr}>
-      {tracearrBusy ? t("settings.services.waitingBrowser") : t("settings.services.connectWithPlex")}
+      {tracearrBusy
+        ? session.serverKind === "jellyfin" ? t("settings.services.connecting") : t("settings.services.waitingBrowser")
+        : session.serverKind === "jellyfin" ? t("settings.services.connectWithJellyfin") : t("settings.services.connectWithPlex")}
     </button>
     {#if session.tracearrConnected}
       <button class="btn" onclick={disconnectTracearr}>{t("settings.services.logout")}</button>
