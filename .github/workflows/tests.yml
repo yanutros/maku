@@ -52,3 +52,35 @@ jobs:
 
       - name: Tests du relais
         run: cargo test --locked
+
+  # Le Rust de l'application (src-tauri) : commandes acceptées par mpv, redirections, jetons retirés des erreurs,
+  # configuration, adresses des serveurs… Compilé pour Linux, comme le paquet.
+  client:
+    name: Application (cargo test)
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Dépendances système
+        timeout-minutes: 20
+        run: |
+          sudo apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 update
+          sudo apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev
+
+      # La page du téléphone intègre jsQR (node_modules), et Tauri veut le dossier de l'interface construite.
+      - run: npm ci
+
+      - run: mkdir -p dist
+
+      - name: Tests de l'application
+        working-directory: src-tauri
+        run: cargo test --locked

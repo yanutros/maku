@@ -38,6 +38,7 @@ Maku trouve le plugin tout seul : Réglages → Services affiche « Plugin Maku 
 ```sh
 cd plugins/jellyfin
 dotnet test Jellyfin.Plugin.Maku.Tests
+node --test catalogue.test.mjs                 # le catalogue publié à chaque version
 dotnet build Jellyfin.Plugin.Maku -c Release   # bin/Release/net10.0 : le .dll, meta.json et l'image
 ```
 

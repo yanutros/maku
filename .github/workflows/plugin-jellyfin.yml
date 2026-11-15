@@ -31,6 +31,10 @@ jobs:
       - name: Tests
         run: dotnet test plugins/jellyfin/Jellyfin.Plugin.Maku.Tests
 
+      # Le catalogue publié à chaque version (catalogue.mjs) : versions précédentes gardées, ancien catalogue illisible refusé.
+      - name: Tests du catalogue
+        run: node --test plugins/jellyfin/catalogue.test.mjs
+
       - name: Version
         id: version
         shell: bash
@@ -84,50 +88,37 @@ jobs:
           name: maku-jellyfin
           path: dist
 
-      # La version « jellyfin-plugin » existe-t-elle ? Sinon, elle est créée (jamais « Latest »).
+      # La version « jellyfin-plugin » existe-t-elle ? Sinon, elle est créée (jamais « Latest »). Le catalogue déjà
+      # publié est repris : s'il existe et ne se télécharge pas (panne du réseau), la publication s'arrête ici, au
+      # lieu de le remplacer par un catalogue qui n'aurait plus que la nouvelle version.
       - name: Version GitHub du catalogue
+        shell: bash
         run: |
-          gh release view jellyfin-plugin >/dev/null 2>&1 || gh release create jellyfin-plugin \
-            --title "Plugin Maku pour Jellyfin" \
-            --notes "Catalogue du plugin Maku pour Jellyfin. Dans Jellyfin : Tableau de bord → Extensions → Dépôts → ajouter https://github.com/yanutros/maku/releases/download/jellyfin-plugin/manifest.json" \
-            --latest=false
-          gh release download jellyfin-plugin --pattern manifest.json --dir old || true
+          set -euo pipefail
+          if gh release view jellyfin-plugin >/dev/null 2>&1; then
+            assets=$(gh release view jellyfin-plugin --json assets --jq '.assets[].name')
+          else
+            gh release create jellyfin-plugin \
+              --title "Plugin Maku pour Jellyfin" \
+              --notes "Catalogue du plugin Maku pour Jellyfin. Dans Jellyfin : Tableau de bord → Extensions → Dépôts → ajouter https://github.com/yanutros/maku/releases/download/jellyfin-plugin/manifest.json" \
+              --latest=false
+            assets=""
+          fi
+          if grep -qx manifest.json <<<"$assets"; then
+            gh release download jellyfin-plugin --pattern manifest.json --dir old
+            test -s old/manifest.json
+          else
+            echo "Pas encore de catalogue : celui-ci sera le premier."
+          fi
 
-      # Le catalogue : la nouvelle version en tête, les précédentes gardées (somme MD5 de chaque archive).
+      # Le catalogue : la nouvelle version en tête, les précédentes gardées (somme MD5 de chaque archive). Un ancien
+      # catalogue illisible arrête la publication (voir plugins/jellyfin/catalogue.mjs).
       - name: Catalogue
+        shell: bash
         run: |
+          set -euo pipefail
           zip=$(ls dist/*.zip)
-          node -e '
-            const fs = require("fs");
-            const crypto = require("crypto");
-            const [zip, tag] = process.argv.slice(1);
-            const version = tag.replace(/^jellyfin-v/, "") + ".0";
-            const meta = JSON.parse(fs.readFileSync("plugins/jellyfin/Jellyfin.Plugin.Maku/meta.json", "utf8"));
-            const name = zip.split("/").pop();
-            let catalog = [];
-            try { catalog = JSON.parse(fs.readFileSync("old/manifest.json", "utf8")); } catch {}
-            let entry = catalog.find((p) => p.guid === meta.guid);
-            if (!entry) { entry = { versions: [] }; catalog.push(entry); }
-            Object.assign(entry, {
-              guid: meta.guid,
-              name: meta.name,
-              description: meta.description,
-              overview: meta.overview,
-              owner: meta.owner,
-              category: meta.category,
-              imageUrl: "https://yanutros.github.io/maku/jellyfin/maku.png",
-            });
-            entry.versions = [
-              {
-                version,
-                changelog: meta.changelog,
-                targetAbi: meta.targetAbi,
-                sourceUrl: `https://github.com/yanutros/maku/releases/download/jellyfin-plugin/${name}`,
-                checksum: crypto.createHash("md5").update(fs.readFileSync(zip)).digest("hex"),
-                timestamp: new Date().toISOString(),
-              },
-              ...entry.versions.filter((v) => v.version !== version),
-            ];
-            fs.writeFileSync("dist/manifest.json", JSON.stringify(catalog, null, 2));
-          ' "$zip" "$GITHUB_REF_NAME"
+          old=""
+          if [ -f old/manifest.json ]; then old=old/manifest.json; fi
+          node plugins/jellyfin/catalogue.mjs "$zip" "$GITHUB_REF_NAME" plugins/jellyfin/Jellyfin.Plugin.Maku/meta.json "$old" dist/manifest.json
           gh release upload jellyfin-plugin "$zip" dist/manifest.json --clobber
