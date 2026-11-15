@@ -272,6 +272,8 @@
     radial-gradient(60% 160% at 0% 0%, color-mix(in srgb, var(--accent) 32%, transparent), transparent 70%),
     linear-gradient(120deg, color-mix(in srgb, var(--accent) 14%, transparent), transparent 60%),
     #ffffff05;
+  /* Les dégradés couvrent aussi la bordure : sans cela, ils se répètent dedans et le bord opposé y laisse un liseré. */
+  background-origin: border-box;
 }
 
 .settings .banner-icon {

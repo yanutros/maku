@@ -741,6 +741,8 @@
     background:
       radial-gradient(120% 140% at 100% 0%, color-mix(in srgb, var(--accent) 33%, transparent) 0%, transparent 55%),
       linear-gradient(135deg, #2a2216, #1a1b1f);
+    /* Les dégradés couvrent aussi la bordure : sans cela, ils se répètent dedans et le bord opposé y laisse un liseré. */
+    background-origin: border-box;
   }
 
   .total .huge {
@@ -754,6 +756,8 @@
     background:
       radial-gradient(120% 120% at 0% 100%, #ff6b3555 0%, transparent 60%),
       linear-gradient(160deg, #2a1a17, #1a1b1f);
+    /* Les dégradés couvrent aussi la bordure : sans cela, ils se répètent dedans et le bord opposé y laisse un liseré. */
+    background-origin: border-box;
   }
 
   .flame {
