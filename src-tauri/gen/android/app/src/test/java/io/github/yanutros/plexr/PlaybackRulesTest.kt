@@ -363,3 +363,32 @@ class DiagCleanTest {
     }
   }
 }
+
+/** L'écran pendant une vidéo, et la mémoire tampon du lecteur. */
+class ScreenAndBufferTest {
+  @Test
+  fun `l'écran reste allumé pendant la lecture et le chargement, pas en pause ni à la fin`() {
+    assertTrue(keepsScreenOn(true, androidx.media3.common.Player.STATE_READY))
+    assertTrue(keepsScreenOn(true, androidx.media3.common.Player.STATE_BUFFERING))
+    // En pause : l'économiseur d'écran du téléviseur peut démarrer, le téléphone peut s'éteindre.
+    assertFalse(keepsScreenOn(false, androidx.media3.common.Player.STATE_READY))
+    assertFalse(keepsScreenOn(false, androidx.media3.common.Player.STATE_BUFFERING))
+    assertFalse(keepsScreenOn(true, androidx.media3.common.Player.STATE_ENDED))
+    assertFalse(keepsScreenOn(true, androidx.media3.common.Player.STATE_IDLE))
+  }
+
+  @Test
+  fun `la mémoire tampon suit la mémoire accordée à Maku`() {
+    val mb = { memoryClass: Int -> videoBufferBytes(memoryClass) / (1024 * 1024) }
+    // Téléviseur à 192 Mo : moins de la moitié, au lieu des 144 Mo du réglage par défaut.
+    assertEquals(86, mb(192))
+    assertEquals(115, mb(256))
+    // Beaucoup de mémoire : le réglage par défaut, jamais plus.
+    assertEquals(DEFAULT_VIDEO_BUFFER_MB, mb(384))
+    assertEquals(DEFAULT_VIDEO_BUFFER_MB, mb(512))
+    // Très peu de mémoire : un minimum, pour ne pas hacher la lecture.
+    assertEquals(MIN_VIDEO_BUFFER_MB, mb(48))
+    assertEquals(57, mb(128))
+    for (memoryClass in listOf(64, 96, 128, 192, 256, 320)) assertTrue("$memoryClass", mb(memoryClass) <= memoryClass / 2)
+  }
+}

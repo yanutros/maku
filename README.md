@@ -167,7 +167,7 @@ d'erreur, écriture de la configuration, adresse d'un serveur Plex retenue seule
 cherché en `https` d'abord, lecture arrêtée ou remplacée pendant sa préparation qui ne lance pas mpv, progression
 abandonnée quand le serveur ne répond pas, aucun jeton sur la ligne de commande de mpv, seul mpv accepté comme
 lecteur, pochette publiée au bureau sans l'adresse du serveur, reprise d'un téléchargement (fichier d'origine ou
-converti), adresse Plex enregistrée pour le seul serveur qu'elle concerne… `cargo test` dans `src-tauri` les lance (après `npm install`, la page du téléphone
+converti), longue file Chromecast envoyée par lots, adresse Plex enregistrée pour le seul serveur qu'elle concerne… `cargo test` dans `src-tauri` les lance (après `npm install`, la page du téléphone
 intégrant jsQR). Sur GitHub, ils passent à chaque envoi sur `main` et avant la construction des paquets d'une
 version, comme ceux de Maku Server (`cargo test` dans `server`).
 
@@ -177,8 +177,9 @@ l'ampli, format de l'image à l'écran, type des sous-titres externes, erreurs q
 numérotation des pistes et mémoire des formats de l'ampli au démarrage de la TV. S'y ajoutent les commandes
 acceptées par le service de musique (`MediaActions`) : lecture, pause, suivant, précédent, arrêt et position, rien
 d'autre, même envoyé par une autre application ; les applications qui peuvent y faire jouer la bibliothèque ; ce que
-la page peut demander à l'appareil (`BridgeRules` : nom d'une image partagée, APK à installer) ; et ce que le journal
-de diagnostic retire de chaque ligne (`DiagClean`). Des tests ordinaires
+la page peut demander à l'appareil (`BridgeRules` : nom d'une image partagée, APK à installer) ; ce que le journal
+de diagnostic retire de chaque ligne (`DiagClean`) ; quand l'écran reste allumé (`keepsScreenOn` : pendant la lecture,
+pas en pause) ; et la mémoire tampon du lecteur d'après la mémoire accordée à Maku (`videoBufferBytes`). Des tests ordinaires
 (`src-tauri/gen/android/app/src/test/`) les vérifient sans appareil : dans `src-tauri/gen/android`,
 `./gradlew :app:testUniversalDebugUnitTest`, après une première construction de l'APK (Tauri y génère des
 fichiers du projet). Sur GitHub, ils passent à chaque envoi sur `main`, après la construction de l'APK.
@@ -314,7 +315,7 @@ traduisez les valeurs sans toucher aux clés ni aux `{{variables}}`, puis décla
 | `src/components/TvRows.svelte`, `TvGrid.svelte`, `src/lib/tvcards.ts` | interface TV : rangées avec fiche en haut, grilles légères ; menu d'un titre à l'appui long (`TvMenu.svelte`, `src/lib/longpress.ts`), choix des pistes sous le champ (`TrackSelect.svelte`) |
 | `src-tauri/src/offline.rs`, `src/lib/offline.svelte.ts`, `src/views/Downloads.svelte` | lecture hors ligne : file de téléchargements (fichier d'origine repris par `Range`, seulement s'il n'a pas changé sur le serveur, `If-Range` ; ou version convertie récupérée morceau par morceau en HLS et mise bout à bout, reprise au dernier morceau enregistré, le surplus d'un arrêt brutal étant coupé), page Téléchargements, progression renvoyée au serveur à chaque retour du réseau |
 | `src-tauri/src/plex_users.rs`, `src/components/ServerUsers.svelte` | utilisateurs du serveur Plex (administrateur) : comptes partagés, bibliothèques, autorisations et restrictions, invitation et retrait, via plex.tv |
-| `src-tauri/src/cast.rs`, `src/components/CastButton.svelte` | Chromecast : appareils trouvés par mDNS, protocole Cast v2 (TLS, messages protobuf), file confiée au lecteur de Google et pilotée ; AirPlay sur iOS |
+| `src-tauri/src/cast.rs`, `src/components/CastButton.svelte` | Chromecast : appareils trouvés par mDNS, protocole Cast v2 (TLS, messages protobuf), file confiée au lecteur de Google et pilotée (une longue file part par lots : le protocole refuse un message de plus de 64 Ko et ferme la connexion ; les messages de l'appareil sont lus dans leur propre tâche) ; AirPlay sur iOS |
 | `src/lib/player.svelte.ts`, `src/lib/player/` | lecture : mpv sur ordinateur, ExoPlayer natif sur Android (décodeur audio FFmpeg, son transmis à l'ampli ; en secours, flux du serveur qui ne convertit que le son, puis tout). L'état du lecteur (`state.svelte.ts`), le pont Android (`bridge.ts`), Chromecast (`cast.svelte.ts`) et la notification (`notification.svelte.ts`) sont à part ; `player.svelte.ts` les réexporte |
 | `src-tauri/gen/android/` | projet Android : manifeste (Android TV, bannière, icônes par couleur), signature, détection du téléviseur et du téléphone, barres système, vidéo en paysage (`MainActivity.kt`), lecteur vidéo natif sous la page (`NativeVideo.kt`, ses règles testées dans `PlaybackRules.kt`), journal de diagnostic (`DiagLog.kt`), musique en arrière-plan, notification et Android Auto (`MediaService.kt`, bibliothèque lue auprès de Plex dans `PlexLibrary.kt`, pochettes servies à la voiture par `ArtProvider.kt`) |
 | `src/components/PhoneTabs.svelte`, `src/views/Libraries.svelte` | téléphone : barre d'onglets et liste des bibliothèques |

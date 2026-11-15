@@ -25,14 +25,22 @@ import java.io.File
 
 class MainActivity : TauriActivity() {
   private var video: NativeVideo? = null
+  /** Verrou qui laisse passer les annonces des enceintes Chromecast (téléphone et tablette). */
+  private var multicast: WifiManager.MulticastLock? = null
+  private var networkCallback: ConnectivityManager.NetworkCallback? = null
 
   override fun onCreate(savedInstanceState: Bundle?) {
     enableEdgeToEdge()
     super.onCreate(savedInstanceState)
     DiagLog.init(this)
-    // Chromecast : sans ce verrou, le Wi-Fi filtre les annonces mDNS des enceintes (cast.rs les cherche).
-    runCatching {
-      (applicationContext.getSystemService(WIFI_SERVICE) as WifiManager).createMulticastLock("maku-cast").apply { setReferenceCounted(false); acquire() }
+    // Chromecast : sans ce verrou, le Wi-Fi filtre les annonces mDNS des enceintes (cast.rs les cherche). Il coûte
+    // de la batterie : il n'est pris que tant que Maku est à l'écran (onStart / onStop), et pas au téléviseur, où
+    // la diffusion n'existe pas.
+    val isTv = (getSystemService(UI_MODE_SERVICE) as android.app.UiModeManager).currentModeType == android.content.res.Configuration.UI_MODE_TYPE_TELEVISION
+    if (!isTv) {
+      multicast = runCatching {
+        (applicationContext.getSystemService(WIFI_SERVICE) as WifiManager).createMulticastLock("maku-cast").apply { setReferenceCounted(false) }
+      }.getOrNull()
     }
     // Android 17 : sans cette autorisation, les serveurs du réseau local (Jellyfin, Plex en local)
     // sont injoignables.
@@ -42,14 +50,34 @@ class MainActivity : TauriActivity() {
     // Changement de réseau (Wi-Fi ↔ données mobiles) : la page revérifie l'adresse du serveur. Le premier
     // appel, à l'inscription, ne fait que décrire le réseau du moment.
     val connectivity = getSystemService(CONNECTIVITY_SERVICE) as ConnectivityManager
-    connectivity.registerDefaultNetworkCallback(object : ConnectivityManager.NetworkCallback() {
+    val callback = object : ConnectivityManager.NetworkCallback() {
       private var current: Network? = null
       override fun onAvailable(network: Network) {
         val changed = current != null && current != network
         current = network
         if (changed) notifyPage("__makuNetwork")
       }
-    })
+    }
+    connectivity.registerDefaultNetworkCallback(callback)
+    networkCallback = callback
+  }
+
+  override fun onStart() {
+    super.onStart()
+    runCatching { multicast?.acquire() }
+  }
+
+  /**
+   * L'activité se termine (ou Android la recrée) : le lecteur vidéo et son décodeur sont rendus, le suivi du réseau
+   * arrêté, et la page oubliée par le service de musique. Sans cela, ils restaient retenus par l'ancienne activité.
+   */
+  override fun onDestroy() {
+    video?.close()
+    video = null
+    networkCallback?.let { runCatching { (getSystemService(CONNECTIVITY_SERVICE) as ConnectivityManager).unregisterNetworkCallback(it) } }
+    networkCallback = null
+    runCatching { multicast?.takeIf { it.isHeld }?.release() }
+    super.onDestroy()
   }
 
   /**
@@ -85,6 +113,7 @@ class MainActivity : TauriActivity() {
     super.onStop()
     DiagLog.log("Maku passe en arrière-plan")
     video?.command("pause", "")
+    runCatching { multicast?.takeIf { it.isHeld }?.release() }
   }
 
   /** Android demande de libérer de la mémoire : signe d'un appareil à court, noté dans le journal. */

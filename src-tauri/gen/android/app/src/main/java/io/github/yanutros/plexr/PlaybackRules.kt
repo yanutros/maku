@@ -165,6 +165,29 @@ object AudioMemory {
 }
 
 /**
+ * L'écran reste-t-il allumé ? Tant que la lecture est demandée (en cours, ou en chargement), pas en pause ni une
+ * fois le fichier fini : sur un téléviseur OLED, une image fixe ne doit pas empêcher l'économiseur d'écran, et un
+ * téléphone en pause doit pouvoir s'éteindre.
+ */
+fun keepsScreenOn(playWhenReady: Boolean, state: Int): Boolean =
+  playWhenReady && (state == androidx.media3.common.Player.STATE_READY || state == androidx.media3.common.Player.STATE_BUFFERING)
+
+/**
+ * Mémoire tampon du lecteur vidéo, en octets, d'après la mémoire que l'appareil accorde à Maku (`memoryClassMb`).
+ * Le réglage par défaut du lecteur (jusqu'à 144 Mo) est pris sur cette mémoire-là : un téléviseur qui en accorde
+ * 192 Mo y laissait les trois quarts avec un film à très haut débit, au risque de s'arrêter faute de mémoire.
+ * Jamais plus de 45 % de la mémoire accordée, jamais moins de 32 Mo, et jamais plus que le réglage par défaut.
+ */
+fun videoBufferBytes(memoryClassMb: Int): Int {
+  val mb = (memoryClassMb * 45 / 100).coerceIn(MIN_VIDEO_BUFFER_MB, DEFAULT_VIDEO_BUFFER_MB)
+  return mb * 1024 * 1024
+}
+
+const val MIN_VIDEO_BUFFER_MB = 32
+/** Réglage par défaut du lecteur : 131 Mo pour l'image et 13 Mo pour le son. */
+const val DEFAULT_VIDEO_BUFFER_MB = 144
+
+/**
  * Commandes du service de musique (MediaService.kt) : celles de la notification, de la voiture ou d'un casque.
  * Le service est visible des autres applications (Android Auto doit pouvoir s'y relier) : une action qui n'est
  * pas l'une de celles-ci est ignorée, et rien d'autre n'est jamais écrit dans le script envoyé à la page.

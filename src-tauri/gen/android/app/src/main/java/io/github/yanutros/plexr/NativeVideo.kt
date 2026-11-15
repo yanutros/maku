@@ -26,6 +26,7 @@ import androidx.media3.common.Tracks
 import androidx.media3.common.VideoSize
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.DefaultHttpDataSource
+import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.DecoderReuseEvaluation
@@ -70,6 +71,13 @@ class NativeVideo(private val activity: Activity, private val webView: WebView) 
   private var audioDecoded = false
   /** Vidéo figée (PlaybackRules.kt). */
   private val stall = StallWatch()
+  /** Relevé de l'état, toutes les 500 ms pendant une lecture. */
+  private val ticker = Runnable { if (player != null) tick() }
+  /** L'écran change de taille (rotation, fenêtre partagée, appareil pliable) : l'image est recadrée. */
+  private val refit = View.OnLayoutChangeListener { _, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom ->
+    if (right - left != oldRight - oldLeft || bottom - top != oldBottom - oldTop) player?.let { fit(it.videoSize) }
+  }
+  private var keepingScreenOn = false
 
   // ---------- Commandes de la page (appelées depuis le fil du WebView) ----------
 
@@ -101,7 +109,7 @@ class NativeVideo(private val activity: Activity, private val webView: WebView) 
     surface = sv
     subtitles = st
     webView.setBackgroundColor(Color.TRANSPARENT)
-    activity.window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+    root.addOnLayoutChangeListener(refit)
 
     val subs = o.optJSONArray("subFiles") ?: JSONArray()
     val item = MediaItem.Builder()
@@ -150,8 +158,15 @@ class NativeVideo(private val activity: Activity, private val webView: WebView) 
     }
       .setEnableDecoderFallback(true)
       .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
+    // Mémoire tampon à la mesure de la mémoire accordée à Maku (voir `videoBufferBytes`).
+    val memoryClass = (activity.getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager).memoryClass
+    val buffer = videoBufferBytes(memoryClass)
+    DiagLog.log("Mémoire tampon du lecteur : ${buffer / 1_048_576} Mo au plus (Maku peut utiliser $memoryClass Mo)")
     val p = ExoPlayer.Builder(activity, renderers)
       .setMediaSourceFactory(DefaultMediaSourceFactory(DefaultDataSource.Factory(activity, http)))
+      .setLoadControl(DefaultLoadControl.Builder().setTargetBufferBytes(buffer).build())
+      // Casque débranché ou enceinte Bluetooth coupée : la vidéo se met en pause, au lieu de continuer sur le haut-parleur.
+      .setHandleAudioBecomingNoisy(true)
       .setAudioAttributes(AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(), true)
       .setVideoChangeFrameRateStrategy(C.VIDEO_CHANGE_FRAME_RATE_STRATEGY_ONLY_IF_SEAMLESS)
       .build()
@@ -167,7 +182,9 @@ class NativeVideo(private val activity: Activity, private val webView: WebView) 
       }
       override fun onVideoSizeChanged(videoSize: VideoSize) = fit(videoSize)
       override fun onIsPlayingChanged(isPlaying: Boolean) = send()
+      override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) = screenOn(keepsScreenOn(playWhenReady, p.playbackState))
       override fun onPlaybackStateChanged(state: Int) {
+        screenOn(keepsScreenOn(p.playWhenReady, state))
         val name = when (state) {
           Player.STATE_BUFFERING -> "chargement"
           Player.STATE_READY -> "prêt"
@@ -240,8 +257,18 @@ class NativeVideo(private val activity: Activity, private val webView: WebView) 
     sv.layoutParams = FrameLayout.LayoutParams(w, h, Gravity.CENTER)
   }
 
+  /** L'écran reste allumé pendant la lecture seulement (voir `keepsScreenOn`). */
+  private fun screenOn(on: Boolean) {
+    if (on == keepingScreenOn) return
+    keepingScreenOn = on
+    if (on) activity.window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+    else activity.window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+  }
+
   fun close() {
-    handler.removeCallbacksAndMessages(null)
+    // Seul le relevé de l'état s'arrête : les commandes déjà en attente (une fermeture demandée juste après
+    // l'ouverture, par exemple) doivent encore passer. Les effacer laissait la vidéo jouer sous la page.
+    handler.removeCallbacks(ticker)
     player?.let {
       DiagLog.log("■ Lecture arrêtée à ${it.currentPosition / 1000} s sur ${it.duration.coerceAtLeast(0) / 1000} s")
       DiagLog.playbackStopped()
@@ -249,13 +276,14 @@ class NativeVideo(private val activity: Activity, private val webView: WebView) 
     player?.release()
     player = null
     val root = webView.parent as? ViewGroup
+    root?.removeOnLayoutChangeListener(refit)
     surface?.let { root?.removeView(it) }
     subtitles?.let { root?.removeView(it) }
     black?.let { root?.removeView(it) }
     black = null
     surface = null
     subtitles = null
-    activity.window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+    screenOn(false)
   }
 
   fun closeAsync() = handler.post { close() }
@@ -333,7 +361,7 @@ class NativeVideo(private val activity: Activity, private val webView: WebView) 
   private fun tick() {
     player?.let { watch(it) }
     send()
-    handler.postDelayed({ if (player != null) tick() }, 500)
+    handler.postDelayed(ticker, 500)
   }
 
   /**
