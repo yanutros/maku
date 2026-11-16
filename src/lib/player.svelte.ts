@@ -68,6 +68,7 @@ function reset(video: boolean) {
     active: true,
     video,
     embedded: true,
+    under: false,
     native: false,
     transcoded: false,
     serverAudio: [],
@@ -202,7 +203,7 @@ export async function play(ratingKey: string, opts: PlayOptions = {}) {
       web.startVideo(s.url, (startMs ?? (opts.fromStart ? 0 : s.offsetMs)) / 1000);
       return;
     }
-    const now = await invoke<{ session: string; title: string; subtitle: string | null; embedded: boolean }>("play", {
+    const now = await invoke<{ session: string; title: string; subtitle: string | null; embedded: boolean; under: boolean }>("play", {
       ratingKey,
       ...streams,
       fromStart: opts.fromStart ?? false,

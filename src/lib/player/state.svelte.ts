@@ -27,6 +27,8 @@ export const player = $state({
   video: false,
   /** Vidéo dessinée dans la fenêtre de Maku (Windows) ; sinon dans une fenêtre mpv séparée. */
   embedded: true,
+  /** Linux : mpv est en plein écran sous la fenêtre de Maku, qui passe par-dessus (réglage « vidéo dans Maku »). */
+  under: false,
   /** Lecture par le lecteur intégré du système (Android, iOS) plutôt que par mpv. */
   web: false,
   /** Vidéo lue par le lecteur natif d'Android (ExoPlayer, sous la page) plutôt que par <video>. */

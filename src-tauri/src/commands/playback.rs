@@ -7,8 +7,11 @@ pub(crate) struct NowPlaying {
     session: String,
     title: String,
     subtitle: Option<String>,
-    /// Vidéo incrustée dans la fenêtre de Maku (Windows) ; sinon, fenêtre mpv séparée.
+    /// Vidéo vue dans la fenêtre de Maku, avec ses commandes : incrustée (Windows), ou dans la fenêtre de mpv placée
+    /// dessous (`under`) ; sinon, fenêtre mpv séparée, que Maku pilote à distance.
     embedded: bool,
+    /// Linux : mpv est en plein écran sous la fenêtre de Maku, qui doit passer par-dessus (voir `overlay`).
+    under: bool,
 }
 
 #[derive(Serialize)]
@@ -127,15 +130,24 @@ pub async fn play(
     );
     #[cfg(not(windows))]
     let parent = None;
+    let under = parent.is_none() && state.overlay;
+    // Linux, plusieurs écrans : mpv ouvre sa fenêtre sur celui qui est à l'origine du bureau, pas forcément celui de
+    // Maku. On lui donne le coin de l'écran où se trouve Maku : sa fenêtre s'y ouvre, et y passe en plein écran.
+    let screen = if cfg!(target_os = "linux") && parent.is_none() {
+        app.get_webview_window("main").and_then(|w| w.current_monitor().ok().flatten()).map(|m| (m.position().x, m.position().y))
+    } else {
+        None
+    };
 
     let now = NowPlaying {
         session: session.clone(),
         title: info.title.clone(),
         subtitle: info.subtitle.clone(),
-        embedded: parent.is_some(),
+        embedded: parent.is_some() || under,
+        under,
     };
     let entries = vec![Entry { rating_key, duration_ms: info.duration_ms, url: String::new() }];
-    start_player(&state, turn, || player::launch(app, server, mpv, session, entries, Source::Video { info, parent }))?;
+    start_player(&state, turn, || player::launch(app, server, mpv, session, entries, Source::Video { info, parent, under, screen }))?;
     Ok(now)
 }
 
