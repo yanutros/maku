@@ -299,7 +299,8 @@ pub struct Entry {
 pub enum Source {
     /// Une vidéo, intégrée dans la fenêtre `parent` (HWND) ; sans elle, mpv ouvre sa propre fenêtre. `under` : cette
     /// fenêtre est placée sous celle de Maku, qui garde les commandes (Linux, voir `overlay`).
-    Video { info: PlayInfo, parent: Option<isize>, under: bool },
+    /// `screen` : le coin haut gauche de l'écran où ouvrir la fenêtre de mpv (celui de Maku), en pixels du bureau.
+    Video { info: PlayInfo, parent: Option<isize>, under: bool, screen: Option<(i32, i32)> },
     /// Une file de titres audio, sans fenêtre, en commençant par l'indice `start`.
     Music { urls: Vec<String>, start: usize },
 }
@@ -351,7 +352,7 @@ fn prepare(mpv: &std::path::Path, pipe: &str, source: &Source) -> Result<Prepare
     let mut temp = Vec::new();
     let queue_failed = || crate::i18n::tr("player.queueWriteFailed");
     match source {
-        Source::Video { info, parent: wid, under } => {
+        Source::Video { info, parent: wid, under, screen } => {
             let playlist = private_temp("video.m3u", &format!("#EXTM3U\n{}\n", info.url)).with_context(queue_failed)?;
             cmd.arg(format!("--playlist={}", playlist.display()))
                 .arg(format!("--title={}", info.title))
@@ -362,6 +363,12 @@ fn prepare(mpv: &std::path::Path, pipe: &str, source: &Source) -> Result<Prepare
                 cmd.arg(format!("--wid={hwnd}"));
             } else {
                 cmd.arg("--fullscreen");
+                // Sur l'écran de Maku : la fenêtre s'ouvre à son coin, et le bureau la met en plein écran là où elle
+                // est. Sans cela, mpv choisit l'écran placé à l'origine du bureau. (Un bureau X11 n'a pas de position
+                // négative ; mpv lirait d'ailleurs « -x » comme une distance au bord droit.)
+                if let Some((x, y)) = screen.filter(|&(x, y)| x >= 0 && y >= 0) {
+                    cmd.arg(format!("--geometry=+{x}+{y}"));
+                }
             }
             // Vidéo incrustée, ou sous la fenêtre de Maku : l'interface de Maku fournit ses propres contrôles et
             // raccourcis. Fenêtre mpv séparée (Linux, macOS) : on garde ceux de mpv, Maku la pilote aussi.
@@ -774,16 +781,31 @@ mod tests {
             sub_files: vec!["http://10.0.0.2:32400/library/streams/7?X-Plex-Token=SECRET".into(), "http://10.0.0.2:32400/library/streams/8?X-Plex-Token=SECRET&a=b c".into()],
             sub_tracks: Vec::new(),
         };
-        let (args, files) = prepared(&Source::Video { info: info.clone(), parent: None, under: false });
+        let (args, files) = prepared(&Source::Video { info: info.clone(), parent: None, under: false, screen: None });
+        assert!(!args.iter().any(|a| a.starts_with("--geometry")), "{args:?}");
+        // Plusieurs écrans : la fenêtre de mpv s'ouvre au coin de celui de Maku. Jamais avec une position négative,
+        // ni quand la vidéo est incrustée (elle suit alors la fenêtre de Maku).
+        let geometry = |parent, screen| {
+            let (args, files) = prepared(&Source::Video { info: info.clone(), parent, under: false, screen });
+            for f in files {
+                let _ = std::fs::remove_file(f);
+            }
+            args.into_iter().find(|a| a.starts_with("--geometry"))
+        };
+        assert_eq!(geometry(None, Some((1200, 0))).as_deref(), Some("--geometry=+1200+0"));
+        assert_eq!(geometry(None, Some((0, 1080))).as_deref(), Some("--geometry=+0+1080"));
+        assert_eq!(geometry(None, Some((-1920, 0))), None);
+        assert_eq!(geometry(Some(42), Some((1200, 0))), None);
         // Sous la fenêtre de Maku (Linux) : plein écran, sans les commandes ni les raccourcis de mpv, et sans « --wid ».
-        let (under, under_files) = prepared(&Source::Video { info: info.clone(), parent: None, under: true });
+        let (under, under_files) = prepared(&Source::Video { info: info.clone(), parent: None, under: true, screen: Some((1200, 0)) });
+        assert!(under.contains(&"--geometry=+1200+0".to_string()), "{under:?}");
         for f in under_files {
             let _ = std::fs::remove_file(f);
         }
         assert!(under.contains(&"--fullscreen".to_string()) && under.contains(&"--osc=no".to_string()) && under.contains(&"--input-default-bindings=no".to_string()), "{under:?}");
         assert!(!under.iter().any(|a| a.starts_with("--wid")), "{under:?}");
         // Incrustée (Windows) : dans la fenêtre donnée, sans demander le plein écran à mpv.
-        let (embedded, embedded_files) = prepared(&Source::Video { info, parent: Some(42), under: false });
+        let (embedded, embedded_files) = prepared(&Source::Video { info, parent: Some(42), under: false, screen: None });
         for f in embedded_files {
             let _ = std::fs::remove_file(f);
         }
