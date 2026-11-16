@@ -1,6 +1,6 @@
 {
   "category": "General",
-  "changelog": "Première version : Seerr et Tracearr relayés par l'adresse du serveur Jellyfin.",
+  "changelog": "Correction : un compte Seerr dont l'identifiant n'est pas un nombre n'empêche plus de retrouver les comptes des utilisateurs.",
   "description": "Les utilisateurs de Maku font leurs demandes dans Seerr et suivent leurs statistiques Tracearr par l'adresse de ce serveur Jellyfin, sans que Seerr et Tracearr soient exposés sur Internet. Seerr s'utilise sous le compte de chacun, sans mot de passe à saisir.",
   "guid": "662e5017-18be-4b27-9def-d03d195ba88e",
   "name": "Maku",
