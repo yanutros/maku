@@ -168,7 +168,7 @@ construction des paquets d'une version (les images de référence, prises sous W
 d'erreur, écriture de la configuration, adresse d'un serveur Plex retenue seulement si c'est lui qui répond, relais
 cherché en `https` d'abord et sur la seule machine du serveur, jeton envoyé au seul relais qui signe avec la clé retenue
 (autre clé, pas de clé, ou réponse qui se dit « plugin » : refusé), lecture arrêtée ou remplacée pendant sa préparation qui ne lance pas mpv, progression
-abandonnée quand le serveur ne répond pas, aucun jeton sur la ligne de commande de mpv, seul mpv accepté comme
+abandonnée quand le serveur ne répond pas, aucun jeton sur la ligne de commande de mpv, plein écran redemandé à mpv une fois le film chargé quand il a sa propre fenêtre, seul mpv accepté comme
 lecteur, pochette publiée au bureau sans l'adresse du serveur, reprise d'un téléchargement (fichier d'origine ou
 converti), longue file Chromecast envoyée par lots, fiche demandée une seule fois par les parties qui la veulent
 en même temps, meilleure adresse Plex retenue sans attendre les moins bonnes, droit d'administration gardé cinq minutes, adresse Plex enregistrée pour le seul serveur qu'elle concerne, son et sous-titres préférés (par défaut la langue de l'interface et aucun sous-titre, langue des Réglages, « Choix du serveur », choix retenu par titre ou par série, « Aucun » qui n'affiche aucun sous-titre, piste du serveur quand la langue manque) marqués à la place de ceux du serveur pour Plex comme pour Jellyfin… `cargo test` dans `src-tauri` les lance (après `npm install`, la page du téléphone
@@ -358,8 +358,9 @@ traduisez les valeurs sans toucher aux clés ni aux `{{variables}}`, puis décla
 | `docs/` | le site (GitHub Pages) : accueil, pages des fonctionnalités, guide et questions fréquentes, styles dans `docs/assets/site.css`, captures dans `docs/screenshots/` |
 
 Sous Windows, pendant une vidéo, la fenêtre Tauri devient transparente et mpv dessine l'image dessous : l'interface
-web n'affiche plus que la barre de contrôle par-dessus. Ailleurs, mpv ouvre sa propre fenêtre et Maku devient une
-télécommande, reliée à mpv par son IPC (socket Unix).
+web n'affiche plus que la barre de contrôle par-dessus. Ailleurs, mpv ouvre sa propre fenêtre, en plein écran, et Maku devient une
+télécommande, reliée à mpv par son IPC (socket Unix). Le plein écran lui est redemandé une fois le film chargé : sa
+fenêtre s'ouvre avant, et certains bureaux la laissaient alors à côté de celle de Maku.
 
 mpv ne survit jamais à Maku : il est arrêté quand l'application se ferme et, sous Windows, rattaché à
 Maku par un « Job Object » qui le fait fermer par le système même si Maku plante ou est tué.

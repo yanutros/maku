@@ -432,6 +432,7 @@ pub fn launch(
 ) -> Result<PlayerControl> {
     let pipe = ipc_path();
     let Prepared { mut cmd, start, offset_ms, parent, temp } = prepare(&mpv, &pipe, &source)?;
+    let own_window = matches!(source, Source::Video { parent: None, .. });
     let child = cmd.spawn().with_context(|| crate::i18n::tr_with("player.launchFailed", &[("path", &mpv.display().to_string())]));
     let child = match child {
         Ok(c) => c,
@@ -447,7 +448,7 @@ pub fn launch(
     let (commands, command_rx) = mpsc::unbounded_channel();
     let (stop, stop_rx) = oneshot::channel();
     tauri::async_runtime::spawn(async move {
-        let mut session = Session { app: &app, server: &server, entries, parent, id: &session_id };
+        let mut session = Session { app: &app, server: &server, entries, parent, own_window, id: &session_id };
         if let Err(e) = session.follow(child, stop_rx, command_rx, &pipe, start, offset_ms).await {
             eprintln!("Suivi de lecture interrompu : {e:#}");
         }
@@ -457,12 +458,24 @@ pub fn launch(
     Ok(PlayerControl { commands, _stop: stop, pid })
 }
 
+/// Vidéo dans la fenêtre de mpv (Linux, macOS) : faut-il lui redemander le plein écran, maintenant que `name` vient
+/// de changer ?
+///
+/// mpv est lancé avec « --fullscreen », mais sa fenêtre s'ouvre avant que le film soit chargé, et certains bureaux
+/// (mpv 0.40 sous X11, constaté sur Fedora) la laissent alors en fenêtre, à côté de Maku. La demande est donc refaite
+/// une fois, dès que mpv annonce la durée du film : il est chargé, la fenêtre a sa taille.
+fn fullscreen_again(own_window: bool, done: bool, name: &str, data: &Value) -> bool {
+    own_window && !done && name == "duration" && data.as_f64().is_some_and(|d| d > 0.0)
+}
+
 struct Session<'a> {
     app: &'a AppHandle,
     server: &'a MediaServer,
     /// Titres de la file, dans l'ordre de mpv (la file peut changer pendant la lecture).
     entries: Vec<Entry>,
     parent: Option<isize>,
+    /// Une vidéo dans la fenêtre de mpv, et non dans celle de Maku (voir `fullscreen_again`).
+    own_window: bool,
     /// Identifiant de la lecture, envoyé avec la progression (voir `PlexServer::timeline`).
     id: &'a str,
 }
@@ -520,6 +533,7 @@ impl<'a> Session<'a> {
                 // ni les commandes (pause, déplacement), qui passent par cette même boucle. Un nouvel envoi
                 // remplace celui qui n'a pas abouti.
                 let mut reporting: Option<Report<'a>> = None;
+                let mut fullscreen_asked = false;
                 loop {
                     tokio::select! {
                         _ = async { reporting.as_mut().unwrap().await }, if reporting.is_some() => {
@@ -533,6 +547,11 @@ impl<'a> Session<'a> {
                             }
                             let Some(name) = msg["name"].as_str() else { continue };
                             let data = &msg["data"];
+                            if fullscreen_again(self.own_window, fullscreen_asked, name, data) {
+                                fullscreen_asked = true;
+                                let again = json!({ "command": ["set_property", "fullscreen", true] });
+                                writer.write_all(format!("{again}\n").as_bytes()).await?;
+                            }
                             match name {
                                 "time-pos" => {
                                     position = data.as_f64().unwrap_or(position);
@@ -703,6 +722,20 @@ fn moved_index(current: usize, from: usize, to: usize) -> usize {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn plein_ecran_redemande_une_fois_le_film_charge() {
+        let (duration, nothing) = (json!(5400.5), Value::Null);
+        // Fenêtre de mpv à part : dès que la durée du film est connue, et une seule fois.
+        assert!(fullscreen_again(true, false, "duration", &duration));
+        assert!(!fullscreen_again(true, true, "duration", &duration));
+        // Pas avant que le film soit chargé (durée encore inconnue), ni sur une autre annonce.
+        assert!(!fullscreen_again(true, false, "duration", &nothing));
+        assert!(!fullscreen_again(true, false, "duration", &json!(0.0)));
+        assert!(!fullscreen_again(true, false, "time-pos", &duration));
+        // Vidéo incrustée dans la fenêtre de Maku (Windows), ou musique : jamais.
+        assert!(!fullscreen_again(false, false, "duration", &duration));
+    }
 
     #[test]
     fn seul_mpv_est_accepte_comme_lecteur() {
