@@ -18,6 +18,7 @@ mod plex;
 mod plex_admin;
 mod relay;
 mod offline;
+mod overlay;
 mod plex_users;
 mod seerr;
 mod tracearr;
@@ -42,6 +43,8 @@ use tauri_plugin_opener::OpenerExt;
 use tracearr::{Dashboard, LoginState, Tracearr};
 
 struct AppState {
+    /// Linux : la fenêtre a été créée transparente, et passe par-dessus celle de mpv pendant un film (voir `overlay`).
+    overlay: bool,
     http: reqwest::Client,
     config_path: PathBuf,
     config: Mutex<Config>,
@@ -263,9 +266,18 @@ use commands::*;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Linux, réglage « vidéo dans Maku » activé : la fenêtre est créée transparente, pour passer par-dessus celle de
+    // mpv pendant un film (voir `overlay`).
+    let mut context = tauri::generate_context!();
+    let overlay = overlay::wanted(&context.config().identifier);
+    if overlay {
+        if let Some(window) = context.config_mut().app.windows.first_mut() {
+            window.transparent = true;
+        }
+    }
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .setup(|app| {
+        .setup(move |app| {
             let config_path = app.path().app_config_dir()?.join("config.json");
             let config = Config::load(&config_path);
             config.save(&config_path)?;
@@ -292,6 +304,7 @@ pub fn run() {
                     .build()?,
                 cast: std::sync::Mutex::new(None),
                 relays: maku_server::Known::default(),
+                overlay,
             });
             let handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
@@ -474,7 +487,7 @@ pub fn run() {
             ui_prefs,
             ui_pref_set,
         ])
-        .build(tauri::generate_context!())
+        .build(context)
         .expect("erreur au lancement de Maku")
         .run(|app, event| {
             // Fermeture de Maku : mpv (vidéo ou musique) s'arrête avec lui.

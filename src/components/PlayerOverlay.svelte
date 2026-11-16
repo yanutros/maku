@@ -148,7 +148,24 @@
     poke();
   }
 
+  // Linux, vidéo dans Maku : mpv est en plein écran dans sa propre fenêtre, sans ses commandes. Dès qu'il affiche
+  // l'image, la fenêtre de Maku passe en plein écran et devant lui ; une seconde fois un peu plus tard, mpv
+  // redemandant lui-même le plein écran une fois le film chargé (ce qui peut le ramener devant).
+  $effect(() => {
+    if (!player.under || !player.videoReady) return;
+    const raise = () => {
+      fullscreen = true;
+      appWindow.setFullscreen(true).then(() => appWindow.setFocus()).catch(() => {});
+    };
+    raise();
+    const again = setTimeout(raise, 1200);
+    return () => clearTimeout(again);
+  });
+
   async function toggleFullscreen() {
+    // Sous la fenêtre de Maku, le film est toujours en plein écran : en sortir laisserait les commandes dans une
+    // petite fenêtre, loin de l'image.
+    if (player.under) return;
     try {
       fullscreen = !(await appWindow.isFullscreen());
       await appWindow.setFullscreen(fullscreen);
@@ -356,7 +373,7 @@
         break;
       case "Escape":
         if (menu) menu = null;
-        else if (fullscreen) toggleFullscreen();
+        else if (fullscreen && !player.under) toggleFullscreen();
         else close();
         break;
       default:

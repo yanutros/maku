@@ -178,6 +178,11 @@ chacun à sa façon, gardé ensuite ; serveur ou service injoignable ; envoi tro
 redirection rendue telle quelle ; avec `MAKU_KEY`, signature du nombre envoyé par Maku, que les deux programmes
 calculent de la même façon). `cargo clippy` y passe aussi, dans les deux, sans aucun signalement.
 
+**Vidéo dans Maku sous Linux.** `tests/linux.spec.ts` vérifie que le réglage n'est proposé que sous Linux, et que la
+fenêtre passe en plein écran et au premier plan quand l'image s'affiche, pas avant, et jamais sans le réglage. Les
+tests du Rust couvrent la lecture du réglage au démarrage et la ligne de commande de mpv dans ce mode. Le résultat à
+l'écran, lui, dépend du bureau et ne se vérifie que sur une machine Linux.
+
 **Pistes préférées.** `tests/pistes.spec.ts` vérifie que Réglages → Lecteur garde la langue du son et les sous-titres
 choisis (et les retire quand on revient au choix du serveur), et qu'une piste choisie dans le lecteur ou sur la fiche
 est confiée à Maku pour ce titre.
@@ -361,6 +366,11 @@ Sous Windows, pendant une vidéo, la fenêtre Tauri devient transparente et mpv 
 web n'affiche plus que la barre de contrôle par-dessus. Ailleurs, mpv ouvre sa propre fenêtre, en plein écran, et Maku devient une
 télécommande, reliée à mpv par son IPC (socket Unix). Le plein écran lui est redemandé une fois le film chargé : sa
 fenêtre s'ouvre avant, et certains bureaux la laissaient alors à côté de celle de Maku.
+
+Sous Linux, un réglage expérimental (Réglages → Lecteur, désactivé par défaut) met le film dans Maku sans dessiner
+dans la fenêtre d'un autre programme : mpv garde sa fenêtre, en plein écran et sans ses commandes, et celle de Maku,
+créée transparente, passe par-dessus en plein écran dès que l'image s'affiche. Le réglage est lu au démarrage
+([`src-tauri/src/overlay.rs`](src-tauri/src/overlay.rs)) : une fenêtre ne devient pas transparente après coup.
 
 mpv ne survit jamais à Maku : il est arrêté quand l'application se ferme et, sous Windows, rattaché à
 Maku par un « Job Object » qui le fait fermer par le système même si Maku plante ou est tué.

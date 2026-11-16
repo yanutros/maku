@@ -1116,6 +1116,7 @@ pub struct WebStream {
     pub duration_ms: u64,
 }
 
+#[derive(Clone)]
 pub struct PlayInfo {
     pub url: String,
     pub title: String,

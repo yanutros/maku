@@ -12,6 +12,7 @@
   import { toast } from "../../lib/nav.svelte";
   import { device } from "../../lib/device";
   import { locale, t } from "../../lib/i18n";
+  import { linuxEmbed, setLinuxEmbed } from "../../lib/linuxEmbed";
   import TrackSelect from "../../components/TrackSelect.svelte";
   import { SERVER, TRACK_LANGUAGES, audioLanguage, languageName, setAudioLanguage, setSubtitlePreference, subtitlePreference } from "../../lib/trackPrefs";
 
@@ -71,6 +72,14 @@
     ...languages,
   ];
 
+  // Linux : la vidéo dans la fenêtre de Maku (expérimental). Pris en compte au prochain démarrage.
+  let embed = $state(linuxEmbed());
+  function chooseEmbed(on: boolean) {
+    embed = on;
+    setLinuxEmbed(on);
+    toast(t("settings.player.linuxEmbedRestart"));
+  }
+
   async function saveMpv() {
     try {
       await api.setMpvPath(mpvPath || null);
@@ -116,6 +125,16 @@
         <button class="btn" onclick={saveMpv}>{t("settings.player.save")}</button>
       </div>
     </div>
+  {/if}
+  {#if device.os === "linux"}
+    <!-- Linux : mpv sous la fenêtre de Maku, qui garde les commandes (src-tauri/src/overlay.rs). -->
+    <label class="line" data-pref="linux-embed">
+      <span class="line-text">
+        <strong>{t("settings.player.linuxEmbed")}</strong>
+        <span class="muted small">{t("settings.player.linuxEmbedHint")}</span>
+      </span>
+      <input type="checkbox" class="switch" checked={embed} onchange={(e) => chooseEmbed(e.currentTarget.checked)} />
+    </label>
   {/if}
   <!-- Son et sous-titres préférés (src/lib/trackPrefs.ts). -->
   <div class="line" data-pref="audio">

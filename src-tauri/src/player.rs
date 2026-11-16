@@ -297,8 +297,9 @@ pub struct Entry {
 
 /// Ce que mpv doit lire.
 pub enum Source {
-    /// Une vidéo, intégrée dans la fenêtre `parent` (HWND) ; sans elle, mpv ouvre sa propre fenêtre.
-    Video { info: PlayInfo, parent: Option<isize> },
+    /// Une vidéo, intégrée dans la fenêtre `parent` (HWND) ; sans elle, mpv ouvre sa propre fenêtre. `under` : cette
+    /// fenêtre est placée sous celle de Maku, qui garde les commandes (Linux, voir `overlay`).
+    Video { info: PlayInfo, parent: Option<isize>, under: bool },
     /// Une file de titres audio, sans fenêtre, en commençant par l'indice `start`.
     Music { urls: Vec<String>, start: usize },
 }
@@ -350,27 +351,22 @@ fn prepare(mpv: &std::path::Path, pipe: &str, source: &Source) -> Result<Prepare
     let mut temp = Vec::new();
     let queue_failed = || crate::i18n::tr("player.queueWriteFailed");
     match source {
-        Source::Video { info, parent: wid } => {
+        Source::Video { info, parent: wid, under } => {
             let playlist = private_temp("video.m3u", &format!("#EXTM3U\n{}\n", info.url)).with_context(queue_failed)?;
             cmd.arg(format!("--playlist={}", playlist.display()))
                 .arg(format!("--title={}", info.title))
                 .arg("--force-window=yes")
                 .arg("--hwdec=auto-safe")
                 .arg(format!("--sid={}", info.sid));
-            match wid {
-                // Vidéo incrustée : l'interface de Maku fournit ses propres contrôles et raccourcis.
-                Some(hwnd) => {
-                    cmd.arg(format!("--wid={hwnd}"))
-                        .arg("--osc=no")
-                        .arg("--input-default-bindings=no")
-                        .arg("--osd-level=0")
-                        .arg("--input-vo-keyboard=no")
-                        .arg("--input-cursor=no");
-                }
-                // Fenêtre mpv séparée (Linux, macOS) : on garde ses contrôles, Maku la pilote aussi.
-                None => {
-                    cmd.arg("--fullscreen");
-                }
+            if let Some(hwnd) = wid {
+                cmd.arg(format!("--wid={hwnd}"));
+            } else {
+                cmd.arg("--fullscreen");
+            }
+            // Vidéo incrustée, ou sous la fenêtre de Maku : l'interface de Maku fournit ses propres contrôles et
+            // raccourcis. Fenêtre mpv séparée (Linux, macOS) : on garde ceux de mpv, Maku la pilote aussi.
+            if wid.is_some() || *under {
+                cmd.arg("--osc=no").arg("--input-default-bindings=no").arg("--osd-level=0").arg("--input-vo-keyboard=no").arg("--input-cursor=no");
             }
             if info.offset_ms > 0 {
                 cmd.arg(format!("--start={}", info.offset_ms / 1000));
@@ -778,7 +774,22 @@ mod tests {
             sub_files: vec!["http://10.0.0.2:32400/library/streams/7?X-Plex-Token=SECRET".into(), "http://10.0.0.2:32400/library/streams/8?X-Plex-Token=SECRET&a=b c".into()],
             sub_tracks: Vec::new(),
         };
-        let (args, files) = prepared(&Source::Video { info, parent: None });
+        let (args, files) = prepared(&Source::Video { info: info.clone(), parent: None, under: false });
+        // Sous la fenêtre de Maku (Linux) : plein écran, sans les commandes ni les raccourcis de mpv, et sans « --wid ».
+        let (under, under_files) = prepared(&Source::Video { info: info.clone(), parent: None, under: true });
+        for f in under_files {
+            let _ = std::fs::remove_file(f);
+        }
+        assert!(under.contains(&"--fullscreen".to_string()) && under.contains(&"--osc=no".to_string()) && under.contains(&"--input-default-bindings=no".to_string()), "{under:?}");
+        assert!(!under.iter().any(|a| a.starts_with("--wid")), "{under:?}");
+        // Incrustée (Windows) : dans la fenêtre donnée, sans demander le plein écran à mpv.
+        let (embedded, embedded_files) = prepared(&Source::Video { info, parent: Some(42), under: false });
+        for f in embedded_files {
+            let _ = std::fs::remove_file(f);
+        }
+        assert!(embedded.contains(&"--wid=42".to_string()) && embedded.contains(&"--osc=no".to_string()) && !embedded.contains(&"--fullscreen".to_string()), "{embedded:?}");
+        // Fenêtre mpv séparée : ses commandes sont gardées.
+        assert!(args.contains(&"--fullscreen".to_string()) && !args.contains(&"--osc=no".to_string()), "{args:?}");
         assert!(args.iter().all(|a| !a.contains("SECRET") && !a.contains("10.0.0.2")), "{args:?}");
         assert!(args.iter().any(|a| a.starts_with("--playlist=")) && args.iter().any(|a| a.starts_with("--include=")), "{args:?}");
         assert!(args.contains(&"--start=90".to_string()) && args.contains(&"--aid=2".to_string()) && args.contains(&"--sid=no".to_string()), "{args:?}");
