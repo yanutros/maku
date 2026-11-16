@@ -1,5 +1,7 @@
 // En tout premier : la clé du pont Android, avant les modules qui s'en servent (voir androidBridge.ts).
 import "./lib/androidBridge";
+// Puis le relevé des refus de la CSP, pour les noter dès le premier chargement (voir cspWatch.ts).
+import "./lib/cspWatch";
 import "./app.css";
 
 // `?demo=<vue>` : interface de démonstration avec une bibliothèque fictive (captures du README).

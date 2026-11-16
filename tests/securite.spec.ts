@@ -39,7 +39,12 @@ test("CSP : celle du développement n'ajoute que la connexion de Vite", () => {
   }
 });
 
-for (const vue of ["accueil", "fiche", "series", "lecteur", "musique", "stats", "telechargements", "demandes"]) {
+// Toutes les vues de la démo, l'administrateur compris (Admin › Demandes, menu de gestion d'une fiche).
+const VUES = [
+  "accueil", "films", "categories", "series", "serie", "fiche", "fiche&admin", "lecteur", "fin-episode", "musique", "ecoute",
+  "decouvrir", "seerr", "stats", "telechargements", "demandes", "demandes-admin&admin", "reglages", "reglages-interface",
+];
+for (const vue of VUES) {
   test(`CSP : rien de Maku n'est refusé (${vue})`, async ({ page }, info) => {
     test.skip(appareil(info) === "safari", "même page ; un seul moteur suffit avec l'ordinateur, la télé et le téléphone");
     await avecCsp(page, securite.devCsp);
@@ -261,4 +266,21 @@ test("pont Android : un cadre d'un autre site n'a pas la clé", async ({ page },
   });
   expect(vu).toEqual({ parent: "interdit", stockage: "interdit", sien: "null" });
   expect(Object.values(vu)).not.toContain(cle);
+});
+
+test("CSP : un refus est relevé pendant l'utilisation, sans l'hôte ni le jeton de l'adresse", async ({ page }, info) => {
+  test.skip(appareil(info) !== "pc", "même relevé partout ; l'ordinateur suffit");
+  await avecCsp(page, securite.devCsp);
+  const notes: string[] = [];
+  page.on("console", (m) => m.type() === "warning" && m.text().startsWith("CSP :") && notes.push(m.text()));
+  await ouvrir(page, info, "accueil");
+  // Une requête de la page vers un autre hôte, comme le ferait un lecteur qui télécharge un flux lui-même.
+  await page.evaluate(() => fetch("http://192.0.2.10:32400/video/index.m3u8?X-Plex-Token=secret-du-test").catch(() => {}));
+  await page.evaluate(() => fetch("http://192.0.2.10:32400/video/index.m3u8?X-Plex-Token=secret-du-test").catch(() => {}));
+  await expect.poll(() => notes.length).toBeGreaterThan(0);
+  expect(notes).toHaveLength(1);
+  expect(notes[0].startsWith("CSP : connect-src refusé pour http://…:32400"), notes[0]).toBe(true);
+  expect(notes[0]).not.toContain("192.0.2.10");
+  expect(notes[0]).not.toContain("secret-du-test");
+  expect(notes[0]).not.toContain("index.m3u8");
 });

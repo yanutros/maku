@@ -345,6 +345,7 @@ traduisez les valeurs sans toucher aux clés ni aux `{{variables}}`, puis décla
 | `src/lib/i18n.ts`, `src/locales/`, `src-tauri/src/i18n.rs`, `src-tauri/locales/` | traductions (voir ci-dessus) |
 | `src/lib/theme.ts`, `src-tauri/icons/themes/` | couleurs de l'interface et icônes assorties, fonds au choix (`data-background`, nuances dans `src/app.css`) ; `docs/logo.html?theme=…` et `docs/tv-banner.html?theme=…` les produisent |
 | `src/lib/prefs.ts` | préférences de l'interface (`plexr.*`, `maku.*` du stockage du navigateur) recopiées dans `config.json` (`ui`) et remises au démarrage, avant le chargement des modules qui les lisent : elles survivent à un stockage vidé ou non écrit à temps |
+| `src/lib/cspWatch.ts` | relevé des refus de la CSP pendant l'utilisation réelle : chaque refus noté une fois, dans la console et le journal de diagnostic d'Android, sans l'hôte ni les paramètres de l'adresse (`tests/securite.spec.ts` vérifie aussi que toutes les vues de la démo passent la CSP) |
 | `src/components/UpdateDialog.svelte`, `src/lib/markdown.ts` | fenêtre « Nouvelle version disponible » et mise en forme des nouveautés ; `src/lib/update.svelte.ts` n'en garde que les sections Nouveautés / Corrections (ou What's new en anglais), sans les paquets |
 | `src/lib/invite.ts`, `src/components/QrCode.svelte` | codes d'invitation, QR codes (qrcode-generator) et lecture d'images (jsQR) |
 | `src/lib/device.ts` | type d'appareil (ordinateur, tablette tactile, téléviseur) et échelle de l'interface sur TV |
