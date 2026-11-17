@@ -1,14 +1,14 @@
-// Barre du lecteur vidéo (Réglages → Interface) : la capsule complète (par défaut), ou la rangée minimaliste,
-// sans cadre, sur un dégradé en bas de l'image. Le choix est gardé sur l'appareil.
+// Barre du lecteur vidéo (Réglages → Interface) : la rangée minimaliste (par défaut), sans cadre, sur un dégradé en bas
+// de l'image, ou la capsule complète. Le choix est gardé sur l'appareil.
 export type PlayerBar = "full" | "minimal";
 
 const KEY = "maku.playerBar";
 
 function load(): PlayerBar {
   try {
-    return localStorage.getItem(KEY) === "minimal" ? "minimal" : "full";
+    return localStorage.getItem(KEY) === "full" ? "full" : "minimal";
   } catch {
-    return "full";
+    return "minimal";
   }
 }
 

@@ -2,8 +2,14 @@
 import { expect, test } from "@playwright/test";
 import { appareil, ouvrir } from "./outils";
 
-test("le bouton lecture / pause a la taille des autres boutons", async ({ page }, info) => {
-  await ouvrir(page, info, "lecteur");
+test("barre complète : le bouton lecture / pause a la taille des autres boutons", async ({ page }, info) => {
+  const device = { tv: "tv", telephone: "phone" }[appareil(info) as string];
+  await page.addInitScript(() => {
+    localStorage.clear();
+    localStorage.setItem("maku.playerBar", "full");
+  });
+  await page.goto(`/?demo=lecteur${device ? `&device=${device}` : ""}`);
+  await page.waitForLoadState("networkidle");
   const main = await page.locator(".overlay .icon-btn.main").boundingBox();
   const autre = await page.locator(".overlay .transport .icon-btn:not(.main)").first().boundingBox();
   expect(main!.width).toBe(autre!.width);
@@ -55,12 +61,10 @@ test("TV : en pause, les commandes partent seules ; le premier OK ne fait que le
   await expect.poll(() => page.evaluate(() => (window as unknown as { sent: unknown[] }).sent.length)).toBeGreaterThan(0);
 });
 
-test("barre minimaliste (Réglages → Interface) : une seule rangée, les pistes en icônes", async ({ page }, info) => {
+test("barre minimaliste, par défaut : une seule rangée, les pistes en icônes", async ({ page }, info) => {
   const device = { tv: "tv", telephone: "phone" }[appareil(info) as string];
-  await page.addInitScript(() => {
-    localStorage.clear();
-    localStorage.setItem("maku.playerBar", "minimal");
-  });
+  // Aucun choix enregistré : la barre minimaliste.
+  await page.addInitScript(() => localStorage.clear());
   await page.goto(`/?demo=lecteur${device ? `&device=${device}` : ""}`);
   await page.waitForLoadState("networkidle");
   await expect(page.locator(".overlay .mini-row")).toBeVisible();
