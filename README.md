@@ -180,8 +180,11 @@ calculent de la même façon). `cargo clippy` y passe aussi, dans les deux, sans
 
 **Vidéo dans Maku sous Linux.** `tests/linux.spec.ts` vérifie que le réglage n'est proposé que sous Linux, et que la
 fenêtre passe en plein écran et au premier plan quand l'image s'affiche, pas avant, et jamais sans le réglage. Les
-tests du Rust couvrent la lecture du réglage au démarrage et la ligne de commande de mpv dans ce mode. Le résultat à
-l'écran, lui, dépend du bureau et ne se vérifie que sur une machine Linux.
+tests du Rust couvrent la lecture du réglage au démarrage et la ligne de commande de mpv dans ce mode. Pour le film
+dessiné par libmpv, ils vérifient les réglages qu'elle reçoit (ceux du programme mpv, sans ce qui touche à sa fenêtre,
+la liste attendue après le démarrage, aucun jeton hors du fichier privé), le refus de tout argument qui n'est pas une
+option, et les cas où Maku garde la fenêtre de mpv. Le résultat à l'écran, lui, dépend du bureau et ne se vérifie que
+sur une machine Linux.
 
 **Pistes préférées.** `tests/pistes.spec.ts` vérifie que Réglages → Lecteur garde la langue du son et les sous-titres
 choisis (et les retire quand on revient au choix du serveur), et qu'une piste choisie dans le lecteur ou sur la fiche
@@ -325,6 +328,7 @@ traduisez les valeurs sans toucher aux clés ni aux `{{variables}}`, puis décla
 | --- | --- |
 | `src-tauri/src/plex.rs` | plex.tv (PIN, serveurs) et API du serveur Plex : bibliothèques, rangées, genres, musique |
 | `src-tauri/src/player.rs` | mpv incrusté dans la fenêtre (`--wid`, sous la page web transparente) ou en audio seul, piloté par son IPC JSON ; la progression part vers le serveur à côté du suivi de mpv, pour qu'un serveur lent ne gèle ni la barre de lecture ni les commandes |
+| `src-tauri/src/libmpv.rs` | Linux : le film dans la fenêtre de Maku. La bibliothèque de mpv (libmpv), chargée à l'exécution, dessine par son API de rendu OpenGL dans une zone GTK glissée sous la page web ; elle ouvre le même canal JSON que le programme mpv, et le suivi de `player.rs` ne change pas |
 | `src-tauri/src/seerr.rs` | Seerr : connexion Plex ou Jellyfin, découverte, fiches détaillées, demandes, et leur gestion par l'administrateur (liste, validation, modification, suppression) |
 | `src-tauri/src/tracearr.rs` | Tracearr : connexion Plex et tableau de bord personnel |
 | `src-tauri/src/maku_server.rs` | relais Maku Server : recherche sur la machine du serveur, vérification (`/maku/info`, signature du relais s'il a une clé, retenue par serveur dans la configuration) et jeton joint aux appels |
@@ -364,12 +368,18 @@ traduisez les valeurs sans toucher aux clés ni aux `{{variables}}`, puis décla
 | `docs/` | le site (GitHub Pages) : accueil, pages des fonctionnalités, guide et questions fréquentes, styles dans `docs/assets/site.css`, captures dans `docs/screenshots/` |
 
 Sous Windows, pendant une vidéo, la fenêtre Tauri devient transparente et mpv dessine l'image dessous : l'interface
-web n'affiche plus que la barre de contrôle par-dessus. Ailleurs, mpv ouvre sa propre fenêtre, en plein écran, et Maku devient une
+web n'affiche plus que la barre de contrôle par-dessus. Sous Linux, le résultat est le même par un autre chemin : la
+bibliothèque de mpv (libmpv) est chargée dans Maku et dessine l'image dans une zone OpenGL placée sous la page, dans la
+même fenêtre, en fenêtré comme en plein écran ([`src-tauri/src/libmpv.rs`](src-tauri/src/libmpv.rs)). Elle est cherchée à
+l'exécution (`libmpv.so.2`, puis `.1`) : absente, ou si une lecture y échoue, Maku lance mpv comme sous macOS. Il le fait
+aussi quand la page est rendue par un mode de repli de WebKitGTK (`WEBKIT_DISABLE_DMABUF_RENDERER`,
+`WEBKIT_DISABLE_COMPOSITING_MODE`), où elle ne s'affiche pas au-dessus de l'image, et quand Maku est lancé avec
+`MAKU_NO_LIBMPV=1`. Ailleurs, mpv ouvre sa propre fenêtre, en plein écran, et Maku devient une
 télécommande, reliée à mpv par son IPC (socket Unix). Le plein écran lui est redemandé une fois le film chargé : sa
 fenêtre s'ouvre avant, et certains bureaux la laissaient alors à côté de celle de Maku.
 
-Sous Linux, un réglage expérimental (Réglages → Lecteur, désactivé par défaut) met le film dans Maku sans dessiner
-dans la fenêtre d'un autre programme : mpv garde sa fenêtre, en plein écran et sans ses commandes, et celle de Maku,
+Sous Linux, un réglage expérimental plus ancien (Réglages → Lecteur, désactivé par défaut), gardé le temps que le mode
+ci-dessus fasse ses preuves, met le film dans Maku sans dessiner dans la fenêtre d'un autre programme : mpv garde sa fenêtre, en plein écran et sans ses commandes, et celle de Maku,
 créée transparente, passe par-dessus en plein écran dès que l'image s'affiche. Le réglage est lu au démarrage
 ([`src-tauri/src/overlay.rs`](src-tauri/src/overlay.rs)) : une fenêtre ne devient pas transparente après coup.
 

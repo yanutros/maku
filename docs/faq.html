@@ -107,9 +107,9 @@
         </div>
       </details>
       <details>
-        <summary>Sous Linux et macOS, la vidéo s'ouvre dans une autre fenêtre.</summary>
+        <summary>Sous macOS, et parfois sous Linux, la vidéo s'ouvre dans une autre fenêtre.</summary>
         <div class="answer">
-          <p>C'est normal : la vidéo s'affiche dans une fenêtre mpv en plein écran, que Maku pilote à distance (pause, avance, pistes) en suivant la progression. L'affichage de la vidéo dans la fenêtre même de Maku n'existe pour l'instant que sous Windows.</p>
+          <p>C'est normal sous macOS : la vidéo s'affiche dans une fenêtre mpv en plein écran, que Maku pilote à distance (pause, avance, pistes) en suivant la progression. Sous Windows et Linux, elle s'affiche dans la fenêtre même de Maku. Sous Linux, Maku revient à la fenêtre mpv quand la bibliothèque de mpv (<code>libmpv</code>, installée avec mpv par la plupart des distributions) est absente, quand l'affichage accéléré de la page a été désactivé (<code>WEBKIT_DISABLE_DMABUF_RENDERER</code> ou <code>WEBKIT_DISABLE_COMPOSITING_MODE</code>), ou quand vous le demandez en lançant Maku avec <code>MAKU_NO_LIBMPV=1</code>.</p>
         </div>
       </details>
       <details>

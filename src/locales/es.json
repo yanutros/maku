@@ -116,7 +116,7 @@
       "subtitlesOff": "Ninguno",
       "subtitlesAuto": "Si el audio está en otro idioma",
       "linuxEmbed": "Vídeo en la ventana de Maku (experimental)",
-      "linuxEmbedHint": "La película se muestra a pantalla completa con los controles de Maku encima, en lugar de la ventana de mpv y sus controles. Requiere un escritorio capaz de mostrar una ventana transparente. Desactívalo si la imagen no aparece.",
+      "linuxEmbedHint": "Solo se usa cuando la película no puede dibujarse dentro de la ventana de Maku (falta la biblioteca de mpv). La película se muestra entonces a pantalla completa con los controles de Maku encima, en lugar de la ventana de mpv y sus controles. Requiere un escritorio capaz de mostrar una ventana transparente. Desactívalo si la imagen no aparece.",
       "linuxEmbedRestart": "Reinicia Maku para aplicar este ajuste.",
       "autoNext": "Siguiente episodio automático",
       "autoNextHint": "Tras «Saltar los créditos» o al final de un episodio, el siguiente empieza tras esta cuenta atrás.",

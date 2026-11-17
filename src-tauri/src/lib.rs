@@ -7,6 +7,8 @@ mod error;
 mod i18n;
 mod jellyfin;
 mod allocine;
+#[cfg(target_os = "linux")]
+mod libmpv;
 mod lyrics;
 mod maku_server;
 mod media;

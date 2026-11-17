@@ -423,6 +423,37 @@ fn remove_all(files: &[PathBuf]) {
     }
 }
 
+/// mpv en cours de lecture : le programme lancé ou, sous Linux, sa bibliothèque qui dessine dans la fenêtre de Maku
+/// (voir `libmpv`).
+enum Running {
+    Process(Child),
+    #[cfg(target_os = "linux")]
+    Window(crate::libmpv::Playback),
+}
+
+impl Running {
+    async fn kill(&mut self) {
+        match self {
+            Running::Process(child) => {
+                let _ = child.kill().await;
+            }
+            #[cfg(target_os = "linux")]
+            Running::Window(playback) => playback.close().await,
+        }
+    }
+
+    /// Attend la fin de mpv. La bibliothèque, elle, ne s'arrête pas seule : son canal fermé, la lecture est finie.
+    async fn wait(&mut self) {
+        match self {
+            Running::Process(child) => {
+                let _ = child.wait().await;
+            }
+            #[cfg(target_os = "linux")]
+            Running::Window(playback) => playback.close().await,
+        }
+    }
+}
+
 /// Lance mpv puis suit la lecture en tâche de fond. À la fin, l'événement
 /// `player-stopped` porte `session_id`, pour ignorer une lecture déjà remplacée.
 pub fn launch(
@@ -452,13 +483,39 @@ pub fn launch(
     let (stop, stop_rx) = oneshot::channel();
     tauri::async_runtime::spawn(async move {
         let mut session = Session { app: &app, server: &server, entries, parent, own_window, id: &session_id };
-        if let Err(e) = session.follow(child, stop_rx, command_rx, &pipe, start, offset_ms).await {
+        if let Err(e) = session.follow(Running::Process(child), stop_rx, command_rx, &pipe, start, offset_ms).await {
             eprintln!("Suivi de lecture interrompu : {e:#}");
         }
         remove_all(&temp);
         let _ = app.emit("player-stopped", &session_id);
     });
     Ok(PlayerControl { commands, _stop: stop, pid })
+}
+
+/// Linux : lit une vidéo dans la fenêtre de Maku, par libmpv (voir `libmpv`), puis suit la lecture comme `launch`.
+/// Les réglages sont ceux préparés pour le programme mpv, et l'adresse du film reste dans son fichier privé.
+#[cfg(target_os = "linux")]
+pub fn launch_in_window(app: AppHandle, server: MediaServer, mpv: PathBuf, session_id: String, entries: Vec<Entry>, info: PlayInfo) -> Result<PlayerControl> {
+    let pipe = ipc_path();
+    // « under » : sans les commandes ni les raccourcis de mpv, ceux de Maku sont par-dessus.
+    let Prepared { cmd, start, offset_ms, temp, .. } = prepare(&mpv, &pipe, &Source::Video { info, parent: None, under: true, screen: None })?;
+    let args: Vec<String> = cmd.as_std().get_args().map(|a| a.to_string_lossy().into_owned()).collect();
+    let (commands, command_rx) = mpsc::unbounded_channel();
+    let (stop, stop_rx) = oneshot::channel();
+    tauri::async_runtime::spawn(async move {
+        match crate::libmpv::Playback::open(&app, &args).await {
+            Ok(playback) => {
+                let mut session = Session { app: &app, server: &server, entries, parent: None, own_window: false, id: &session_id };
+                if let Err(e) = session.follow(Running::Window(playback), stop_rx, command_rx, &pipe, start, offset_ms).await {
+                    eprintln!("Suivi de lecture interrompu : {e:#}");
+                }
+            }
+            Err(e) => eprintln!("Vidéo dans la fenêtre impossible, mpv reprendra la sienne : {e:#}"),
+        }
+        remove_all(&temp);
+        let _ = app.emit("player-stopped", &session_id);
+    });
+    Ok(PlayerControl { commands, _stop: stop, pid: None })
 }
 
 /// Vidéo dans la fenêtre de mpv (Linux, macOS) : faut-il lui redemander le plein écran, maintenant que `name` vient
@@ -492,7 +549,7 @@ impl<'a> Session<'a> {
 
     async fn follow(
         &mut self,
-        mut child: Child,
+        mut child: Running,
         mut stop: oneshot::Receiver<()>,
         mut commands: mpsc::UnboundedReceiver<Control>,
         pipe: &str,
@@ -624,7 +681,7 @@ impl<'a> Session<'a> {
                             reporting = self.progress(current, if paused { "paused" } else { "playing" }, position, duration);
                         }
                         _ = &mut stop => {
-                            let _ = child.kill().await;
+                            child.kill().await;
                             break;
                         }
                     }
@@ -634,11 +691,11 @@ impl<'a> Session<'a> {
                 // Sans IPC on ne suit pas la progression, mais on attend la fin du lecteur.
                 tokio::select! {
                     _ = child.wait() => {}
-                    _ = &mut stop => { let _ = child.kill().await; }
+                    _ = &mut stop => { child.kill().await; }
                 }
             }
         }
-        let _ = child.wait().await;
+        child.wait().await;
         self.finish(current, position, duration).await;
         Ok(())
     }
@@ -827,6 +884,35 @@ mod tests {
         assert!(args.iter().all(|a| !a.contains("SECRET")), "{args:?}");
         assert!(args.contains(&"--playlist-start=1".to_string()), "{args:?}");
         assert_eq!(files[0].lines().count(), 3);
+    }
+
+    /// Linux, film dans la fenêtre de Maku : libmpv reçoit les réglages préparés pour le programme, sans ce qui
+    /// touche à la fenêtre de mpv, et l'adresse du film reste dans le fichier privé.
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn film_dans_la_fenetre_memes_reglages_sans_jeton() {
+        let info = PlayInfo {
+            url: "http://10.0.0.2:32400/library/parts/1/file.mkv?X-Plex-Token=SECRET".into(),
+            title: "Un film".into(),
+            subtitle: None,
+            offset_ms: 90_000,
+            duration_ms: 3_600_000,
+            aid: Some(2),
+            sid: "no".into(),
+            sub_files: vec!["http://10.0.0.2:32400/library/streams/7?X-Plex-Token=SECRET".into()],
+            sub_tracks: Vec::new(),
+        };
+        let (args, files) = prepared(&Source::Video { info, parent: None, under: true, screen: None });
+        let plan = crate::libmpv::plan(&args).unwrap();
+        let get = |name: &str| plan.options.iter().find(|(n, _)| n == name).map(|(_, v)| v.as_str());
+        assert!(plan.options.iter().all(|(n, v)| !n.contains("SECRET") && !v.contains("SECRET") && !v.contains("10.0.0.2")), "{plan:?}");
+        assert!(files[0].contains("SECRET") && plan.playlist.is_some());
+        // Dessiné dans Maku, piloté par le canal JSON, avec les commandes de Maku et non celles de mpv.
+        assert_eq!((get("vo"), get("input-ipc-server"), get("osc"), get("input-default-bindings")), (Some("libmpv"), Some("pipe"), Some("no"), Some("no")));
+        // Reprise, pistes et sous-titres externes comme pour le programme.
+        assert_eq!((get("start"), get("aid"), get("sid"), get("hwdec")), (Some("90"), Some("2"), Some("no"), Some("auto-safe")));
+        assert!(get("include").is_some());
+        assert_eq!((get("fullscreen"), get("geometry"), get("force-window")), (None, None, None));
     }
 
     /// Serveur qui accepte la connexion et ne répond jamais.

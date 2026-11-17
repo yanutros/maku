@@ -7,8 +7,8 @@ pub(crate) struct NowPlaying {
     session: String,
     title: String,
     subtitle: Option<String>,
-    /// Vidéo vue dans la fenêtre de Maku, avec ses commandes : incrustée (Windows), ou dans la fenêtre de mpv placée
-    /// dessous (`under`) ; sinon, fenêtre mpv séparée, que Maku pilote à distance.
+    /// Vidéo vue dans la fenêtre de Maku, avec ses commandes : incrustée (Windows, ou Linux par libmpv), ou dans la
+    /// fenêtre de mpv placée dessous (`under`) ; sinon, fenêtre mpv séparée, que Maku pilote à distance.
     embedded: bool,
     /// Linux : mpv est en plein écran sous la fenêtre de Maku, qui doit passer par-dessus (voir `overlay`).
     under: bool,
@@ -131,6 +131,12 @@ pub async fn play(
     #[cfg(not(windows))]
     let parent = None;
     let under = parent.is_none() && state.overlay;
+    // Linux : le film est dessiné dans la fenêtre de Maku par libmpv, quand elle est là (voir `libmpv`). Le réglage
+    // expérimental (`under`, mpv en plein écran sous la fenêtre) ne sert plus que si elle manque.
+    #[cfg(target_os = "linux")]
+    let (in_window, under) = crate::libmpv::modes(crate::libmpv::usable(), under);
+    #[cfg(not(target_os = "linux"))]
+    let in_window = false;
     // Linux, plusieurs écrans : mpv ouvre sa fenêtre sur celui qui est à l'origine du bureau, pas forcément celui de
     // Maku. On lui donne le coin de l'écran où se trouve Maku : sa fenêtre s'y ouvre, et y passe en plein écran.
     let screen = if cfg!(target_os = "linux") && parent.is_none() {
@@ -143,10 +149,15 @@ pub async fn play(
         session: session.clone(),
         title: info.title.clone(),
         subtitle: info.subtitle.clone(),
-        embedded: parent.is_some() || under,
+        embedded: parent.is_some() || under || in_window,
         under,
     };
     let entries = vec![Entry { rating_key, duration_ms: info.duration_ms, url: String::new() }];
+    #[cfg(target_os = "linux")]
+    if in_window {
+        start_player(&state, turn, || player::launch_in_window(app, server, mpv, session, entries, info))?;
+        return Ok(now);
+    }
     start_player(&state, turn, || player::launch(app, server, mpv, session, entries, Source::Video { info, parent, under, screen }))?;
     Ok(now)
 }

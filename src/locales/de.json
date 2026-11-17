@@ -116,7 +116,7 @@
       "subtitlesOff": "Keine",
       "subtitlesAuto": "Wenn der Ton in einer anderen Sprache ist",
       "linuxEmbed": "Video im Maku-Fenster (experimentell)",
-      "linuxEmbedHint": "Der Film läuft im Vollbild mit den Bedienelementen von Maku darüber, statt im mpv-Fenster mit dessen Bedienelementen. Erfordert einen Desktop, der ein transparentes Fenster anzeigen kann. Ausschalten, wenn kein Bild erscheint.",
+      "linuxEmbedHint": "Wird nur verwendet, wenn der Film nicht im Maku-Fenster gezeichnet werden kann (mpv-Bibliothek fehlt). Der Film läuft dann im Vollbild mit den Bedienelementen von Maku darüber, statt im mpv-Fenster mit dessen Bedienelementen. Erfordert einen Desktop, der ein transparentes Fenster anzeigen kann. Ausschalten, wenn kein Bild erscheint.",
       "linuxEmbedRestart": "Starte Maku neu, um diese Einstellung anzuwenden.",
       "autoNext": "Nächste Folge automatisch",
       "autoNextHint": "Nach „Abspann überspringen“ oder am Ende einer Folge startet die nächste nach diesem Countdown.",

@@ -116,7 +116,7 @@
       "subtitlesOff": "Aucun",
       "subtitlesAuto": "Si le son est dans une autre langue",
       "linuxEmbed": "Vidéo dans la fenêtre de Maku (expérimental)",
-      "linuxEmbedHint": "Le film s'affiche en plein écran avec les commandes de Maku par-dessus, au lieu de la fenêtre de mpv et de ses commandes. Demande un bureau qui sait afficher une fenêtre transparente. À désactiver si l'image n'apparaît pas.",
+      "linuxEmbedHint": "Ne sert que si le film ne peut pas être dessiné dans la fenêtre de Maku (bibliothèque de mpv absente). Le film s'affiche alors en plein écran avec les commandes de Maku par-dessus, au lieu de la fenêtre de mpv et de ses commandes. Demande un bureau qui sait afficher une fenêtre transparente. À désactiver si l'image n'apparaît pas.",
       "linuxEmbedRestart": "Relance Maku pour appliquer ce réglage.",
       "autoNext": "Épisode suivant automatique",
       "autoNextHint": "Après « Passer le générique » ou à la fin d'un épisode, l'épisode suivant se lance après ce compte à rebours.",
