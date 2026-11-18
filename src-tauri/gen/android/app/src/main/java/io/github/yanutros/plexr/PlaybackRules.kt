@@ -293,3 +293,50 @@ object DiagClean {
     .replace(IP, "<ip>")
     .replace(IP6, "<ip>")
 }
+
+/**
+ * Maku ne répond plus : un fil (le fil principal, qui reçoit les touches et pilote le lecteur, ou celui du journal)
+ * n'a pas traité la petite tâche qu'on lui a confiée depuis `limitMs`. Appelée toutes les secondes par le fil de
+ * surveillance (DiagLog.kt) ; `answered` : la dernière tâche a été traitée. Chaque appel dit ce qui vient de changer,
+ * ou rien, et s'il faut confier une nouvelle tâche.
+ *
+ * Un écart de plus de `frozenGapMs` entre deux appels veut dire que toute l'application était suspendue (téléviseur
+ * en veille, Android qui gèle Maku en arrière-plan) : l'attente repart de zéro, ce n'est pas un blocage de Maku.
+ */
+class HangWatch(private val limitMs: Long = 5_000, private val frozenGapMs: Long = 3_000) {
+  sealed interface Event
+  /** Pas de réponse depuis `ms`. */
+  data class Hung(val ms: Long) : Event
+  /** Réponse revenue après un blocage signalé, qui a duré `ms`. */
+  data class Recovered(val ms: Long) : Event
+
+  data class Step(val event: Event?, val ask: Boolean)
+
+  private var askedAt = -1L
+  private var lastCheck = -1L
+  private var reported = false
+
+  fun check(now: Long, answered: Boolean): Step {
+    val suspended = lastCheck >= 0 && now - lastCheck > frozenGapMs
+    lastCheck = now
+    if (askedAt < 0) {
+      askedAt = now
+      return Step(null, true)
+    }
+    if (answered) {
+      val event = if (reported) Recovered(now - askedAt) else null
+      reported = false
+      askedAt = now
+      return Step(event, true)
+    }
+    if (suspended && !reported) {
+      askedAt = now
+      return Step(null, false)
+    }
+    if (!reported && now - askedAt >= limitMs) {
+      reported = true
+      return Step(Hung(now - askedAt), false)
+    }
+    return Step(null, false)
+  }
+}

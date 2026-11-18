@@ -6,6 +6,7 @@ import android.os.Build
 import android.os.Debug
 import android.os.Handler
 import android.os.HandlerThread
+import android.os.Looper
 import android.os.SystemClock
 import android.view.WindowManager
 import android.webkit.WebView
@@ -53,6 +54,58 @@ object DiagLog {
       log("⚠ La lecture précédente ne s'est pas terminée normalement (commencée le $interrupted) : Maku ou l'appareil s'est arrêté pendant la vidéo")
     }
     memory("au lancement")
+    watchHandler.post(watchTick)
+  }
+
+  // ---------- Maku qui ne répond plus (règles dans HangWatch, PlaybackRules.kt) ----------
+
+  /**
+   * Un fil à part confie chaque seconde une petite tâche au fil principal (touches, lecteur) et à celui du journal.
+   * Sans réponse depuis 5 s, il écrit lui-même au journal ce que faisaient ces fils et ceux du lecteur vidéo : un
+   * blocage se lit alors à la ligne près, même si le fil du journal est celui qui est bloqué.
+   */
+  private val watchHandler = Handler(HandlerThread("maku-watchdog").apply { start() }.looper)
+  private val watchTick = Runnable { watchStep() }
+
+  private class Watched(val name: String, val handler: Handler) {
+    val watch = HangWatch()
+    @Volatile var answered = false
+    val answer = Runnable { answered = true }
+  }
+
+  private val watched by lazy {
+    listOf(Watched("fil principal", Handler(Looper.getMainLooper())), Watched("fil du journal", handler))
+  }
+
+  private fun watchStep() {
+    val now = SystemClock.elapsedRealtime()
+    for (w in watched) {
+      val step = w.watch.check(now, w.answered)
+      when (val e = step.event) {
+        is HangWatch.Hung -> write(hangReport(w.name, e.ms))
+        is HangWatch.Recovered -> write("${stamp()}  Maku répond de nouveau (${w.name}, bloqué ${e.ms / 1000} s)\n")
+        null -> Unit
+      }
+      if (step.ask) {
+        w.answered = false
+        w.handler.post(w.answer)
+      }
+    }
+    watchHandler.postDelayed(watchTick, 1_000)
+  }
+
+  /** Ce que font le fil principal, celui du journal et ceux du lecteur vidéo (ExoPlayer) : 14 appels chacun. */
+  private fun hangReport(name: String, ms: Long): String {
+    val main = Looper.getMainLooper().thread
+    val traces = Thread.getAllStackTraces()
+      .filterKeys { it === main || it === thread || it.name.startsWith("ExoPlayer") }
+      .entries.sortedBy { if (it.key === main) 0 else 1 }.take(8)
+    val text = StringBuilder("${stamp()}  ⚠ Maku ne répond plus depuis ${ms / 1000} s (${name}). Ce que faisaient ses fils :\n")
+    for ((t, frames) in traces) {
+      text.append("      fil « ${t.name} » (${t.state}) :\n")
+      frames.take(14).forEach { text.append("        à $it\n") }
+    }
+    return clean(text.toString())
   }
 
   /** Heure prise à l'appel, pour garder les lignes dans l'ordre ; SimpleDateFormat ne se partage pas entre fils. */
@@ -117,6 +170,8 @@ object DiagLog {
   fun exportFile(context: Context): File =
     File(context.cacheDir, "maku-journal.txt").apply { writeText(text()) }
 
+  /** Depuis le fil du journal, ou celui de la surveillance quand l'autre ne répond plus : une écriture à la fois. */
+  @Synchronized
   private fun write(line: String) {
     val d = dir ?: return
     val file = File(d, "maku.log")

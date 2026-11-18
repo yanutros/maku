@@ -430,3 +430,75 @@ class BridgeGateTest {
     assertTrue(gate.allows(page))
   }
 }
+
+/** Maku qui ne répond plus (HangWatch) : un appel par seconde, comme le fil de surveillance. */
+class HangWatchTest {
+  private class Run(val watch: HangWatch = HangWatch()) {
+    var now = 0L
+    /** La tâche confiée a-t-elle été traitée ? Le fil surveillé la traite s'il répond. */
+    var answered = false
+    var asks = 0
+    val events = mutableListOf<Pair<Long, HangWatch.Event>>()
+
+    fun second(responsive: Boolean, step: Long = 1_000) {
+      val s = watch.check(now, answered)
+      s.event?.let { events += now to it }
+      if (s.ask) {
+        asks++
+        answered = false
+      }
+      if (responsive) answered = true
+      now += step
+    }
+  }
+
+  @Test
+  fun `un fil qui répond ne signale rien`() {
+    val r = Run()
+    repeat(60) { r.second(responsive = true) }
+    assertTrue(r.events.isEmpty())
+    // Une nouvelle tâche à chaque réponse.
+    assertEquals(60, r.asks)
+  }
+
+  @Test
+  fun `bloqué 5 s, signalé une seule fois, puis la reprise avec sa durée`() {
+    val r = Run()
+    repeat(3) { r.second(responsive = true) }
+    repeat(20) { r.second(responsive = false) }
+    repeat(3) { r.second(responsive = true) }
+    // Sans réponse depuis 3 s ; la réponse donnée à 23 s se voit à l'appel suivant.
+    assertEquals(listOf(8_000L to HangWatch.Hung(5_000), 24_000L to HangWatch.Recovered(21_000)), r.events)
+  }
+
+  @Test
+  fun `4 s sans réponse, pas un blocage`() {
+    val r = Run()
+    r.second(responsive = true)
+    repeat(4) { r.second(responsive = false) }
+    repeat(5) { r.second(responsive = true) }
+    assertTrue(r.events.isEmpty())
+  }
+
+  @Test
+  fun `application suspendue (TV en veille), l'attente repart de zéro`() {
+    val r = Run()
+    r.second(responsive = true)
+    // Toute l'application gelée une heure : le fil surveillé n'a pas pu répondre, le surveillant non plus.
+    r.second(responsive = false, step = 3_600_000)
+    // Au réveil, le fil répond dans les secondes qui suivent.
+    r.second(responsive = false)
+    repeat(3) { r.second(responsive = true) }
+    assertTrue(r.events.isEmpty())
+  }
+
+  @Test
+  fun `bloqué après le réveil, signalé 5 s après le réveil`() {
+    val r = Run()
+    r.second(responsive = true)
+    r.second(responsive = false, step = 3_600_000)
+    repeat(10) { r.second(responsive = false) }
+    // Réveil à 3 601 s : 5 s plus tard.
+    assertEquals(listOf(3_606_000L to HangWatch.Hung(5_000)), r.events)
+  }
+}

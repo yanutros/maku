@@ -65,6 +65,8 @@ class MainActivity : TauriActivity() {
   override fun onStart() {
     super.onStart()
     runCatching { multicast?.acquire() }
+    // Film fermé quand Maku est passé en arrière-plan (voir onStop) : rouvert au même endroit, en pause.
+    video?.resume()
   }
 
   /**
@@ -108,11 +110,14 @@ class MainActivity : TauriActivity() {
     if (MediaService.playing) MediaService.webView?.onResume()
   }
 
-  /** Maku quitté (bouton Accueil) : la vidéo se met en pause, comme dans Plex. */
+  /**
+   * Maku quitté (bouton Accueil, économiseur d'écran, TV en veille) : la vidéo s'arrête là où elle en est et rend le
+   * décodeur, puis reprend en pause au retour (voir NativeVideo.suspend).
+   */
   override fun onStop() {
     super.onStop()
     DiagLog.log("Maku passe en arrière-plan")
-    video?.command("pause", "")
+    video?.suspend()
     runCatching { multicast?.takeIf { it.isHeld }?.release() }
   }
 

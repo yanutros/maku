@@ -78,13 +78,24 @@ class NativeVideo(private val activity: Activity, private val webView: WebView) 
     if (right - left != oldRight - oldLeft || bottom - top != oldBottom - oldTop) player?.let { fit(it.videoSize) }
   }
   private var keepingScreenOn = false
+  /** Maku en arrière-plan pendant un film : la demande qui le rouvrira au même endroit (voir `suspend`). */
+  private var suspended: JSONObject? = null
+  /** Fermeture en cours : une erreur levée en libérant le lecteur est notée, pas envoyée à la page. */
+  private var closing = false
 
   // ---------- Commandes de la page (appelées depuis le fil du WebView) ----------
 
-  /** JSON : url, offsetMs, aid, sid (« no », « auto » ou numéro), subFiles [{url, codec, language, title}]. */
+  /**
+   * JSON : url, offsetMs, aid, sid (« no », « auto » ou numéro), subFiles [{url, codec, language, title}], et
+   * `paused` pour l'ouvrir en pause (retour dans Maku, voir `resume`).
+   */
   fun open(json: String) = handler.post {
     val o = JSONObject(json)
     close()
+    suspended = null
+    val paused = o.optBoolean("paused")
+    // La pause ne vaut que pour cette ouverture : une relance (son décodé ici) repart en lecture.
+    o.remove("paused")
     wantedAudio = if (o.isNull("aid")) null else o.optInt("aid")
     wantedSub = o.optString("sid", "auto")
     tracksApplied = false
@@ -196,6 +207,11 @@ class NativeVideo(private val activity: Activity, private val webView: WebView) 
       }
       override fun onPlayerError(error: PlaybackException) {
         // Format ou codec que l'appareil ne sait pas lire : la page demande alors la conversion.
+        // Pendant la fermeture (libération trop longue, par exemple) : rien à convertir, la page ne demande plus rien.
+        if (closing) {
+          DiagLog.log("✖ Erreur du lecteur pendant sa fermeture ${error.errorCodeName} : ${error.message}")
+          return
+        }
         val decoding = isDecodingError(error.errorCode)
         DiagLog.log("✖ Erreur du lecteur ${error.errorCodeName} à ${p.currentPosition / 1000} s : ${error.message} · cause : ${error.cause}")
         emit(JSONObject().put(if (decoding) "unsupported" else "error", error.message ?: error.errorCodeName))
@@ -204,9 +220,35 @@ class NativeVideo(private val activity: Activity, private val webView: WebView) 
     p.addAnalyticsListener(diagnostics)
     p.setMediaItem(item, o.optLong("offsetMs"))
     p.prepare()
-    p.play()
+    if (paused) p.playWhenReady = false else p.play()
     player = p
     tick()
+  }
+
+  /**
+   * Maku passe en arrière-plan pendant un film (économiseur d'écran, bouton Accueil, téléviseur mis en veille) : le
+   * lecteur est fermé et le décodeur rendu, la position et les pistes gardées. Laissé ouvert, le décodeur restait en
+   * pause pendant que la couche de l'image disparaissait puis revenait ; sur un téléviseur à puce MediaTek, Maku s'est
+   * ensuite figé à la fermeture du lecteur, jusqu'au redémarrage de la TV. Au retour, `resume` rouvre le film en pause.
+   */
+  fun suspend() = handler.post {
+    val p = player ?: return@post
+    val o = JSONObject((lastOpen ?: return@post).toString())
+    val audio = groups(p.currentTracks, C.TRACK_TYPE_AUDIO).indexOfFirst { it.isSelected }
+    val text = groups(p.currentTracks, C.TRACK_TYPE_TEXT).indexOfFirst { it.isSelected }
+    o.put("offsetMs", p.currentPosition).put("paused", true).put("sid", if (text >= 0) "${text + 1}" else "no")
+    if (audio >= 0) o.put("aid", audio + 1)
+    DiagLog.log("Maku en arrière-plan pendant la vidéo : lecteur fermé à ${p.currentPosition / 1000} s, rouvert au retour")
+    close()
+    suspended = o
+  }
+
+  /** Retour dans Maku : le film fermé par `suspend` est rouvert au même endroit, en pause. */
+  fun resume() = handler.post {
+    val o = suspended ?: return@post
+    suspended = null
+    DiagLog.log("Retour dans Maku : vidéo rouverte à ${o.optLong("offsetMs") / 1000} s, en pause")
+    open(o.toString())
   }
 
   /** Commandes au format mpv : pause, play, toggle, seek (ms, absolu), seekBy (ms), volume (0-100), mute, aid / sid (numéro ou « no »). */
@@ -273,7 +315,14 @@ class NativeVideo(private val activity: Activity, private val webView: WebView) 
       DiagLog.log("■ Lecture arrêtée à ${it.currentPosition / 1000} s sur ${it.duration.coerceAtLeast(0) / 1000} s")
       DiagLog.playbackStopped()
     }
-    player?.release()
+    val started = SystemClock.elapsedRealtime()
+    val released = player != null
+    closing = true
+    try {
+      player?.release()
+    } finally {
+      closing = false
+    }
     player = null
     val root = webView.parent as? ViewGroup
     root?.removeOnLayoutChangeListener(refit)
@@ -284,9 +333,15 @@ class NativeVideo(private val activity: Activity, private val webView: WebView) 
     surface = null
     subtitles = null
     screenOn(false)
+    // Durée de la libération du décodeur et du retrait de l'image : un blocage à cet endroit se verra au journal.
+    if (released) DiagLog.log("Lecteur libéré en ${SystemClock.elapsedRealtime() - started} ms")
   }
 
-  fun closeAsync() = handler.post { close() }
+  /** La page ferme la vidéo : rien à rouvrir au retour dans Maku. */
+  fun closeAsync() = handler.post {
+    suspended = null
+    close()
+  }
 
   /** Journal de diagnostic : décodeurs choisis, format de l'image et du son, images perdues, erreurs. */
   private val diagnostics = object : AnalyticsListener {
