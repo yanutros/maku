@@ -529,3 +529,67 @@ class SoftwareFirstTest {
     }
   }
 }
+
+/** Mémoire de l'appareil qui s'effondre pendant une vidéo (MemoryGuard), relevée toutes les 5 s. */
+class MemoryGuardTest {
+  /** Relevés à partir de 30 s après l'ouverture (fin de la mise en route), un toutes les 5 s. */
+  private fun run(free: List<Long>, own: (Int) -> Long = { 60 }): List<Pair<Long, MemoryGuard.Collapse>> {
+    val g = MemoryGuard()
+    g.reset(0)
+    return free.mapIndexedNotNull { i, f ->
+      val now = 30_000L + i * 5_000L
+      g.update(now, f, own(i))?.let { now to it }
+    }
+  }
+
+  @Test
+  fun `la chute du téléviseur MediaTek est signalée sous 200 Mo, une seule fois`() {
+    // 626 → 164 Mo en une minute, Maku stable : relevés toutes les 5 s, puis la chute continue.
+    val free = listOf(626L, 590, 550, 510, 470, 430, 412, 370, 330, 290, 250, 210, 180, 164, 150, 140)
+    val events = run(free)
+    assertEquals(1, events.size)
+    val (at, c) = events[0]
+    assertEquals(90_000L, at)
+    assertEquals(MemoryGuard.Collapse(freeMb = 180, droppedMb = 446, overMs = 60_000, ownGrowthMb = 0), c)
+  }
+
+  @Test
+  fun `peu de mémoire libre mais stable, rien`() {
+    assertTrue(run(List(40) { 150L }).isEmpty())
+  }
+
+  @Test
+  fun `une chute lente, sur plusieurs minutes, rien`() {
+    // 400 → 150 Mo en 5 minutes : jamais 200 Mo de moins en une minute.
+    assertTrue(run(List(61) { 400L - it * 250 / 60 }).isEmpty())
+  }
+
+  @Test
+  fun `Maku qui grossit lui-même, rien (ce n'est pas un décodeur du système)`() {
+    val free = listOf(500L, 450, 400, 350, 300, 250, 200, 150, 120)
+    assertTrue(run(free) { i -> 60L + i * 40 }.isEmpty())
+  }
+
+  @Test
+  fun `la mise en route du décodeur est ignorée`() {
+    val g = MemoryGuard()
+    g.reset(0)
+    // Ouverture d'un film 4K : 300 Mo réservés d'un coup dans les 30 premières secondes.
+    assertNull(g.update(5_000, 450, 60))
+    assertNull(g.update(10_000, 150, 60))
+    assertNull(g.update(25_000, 140, 60))
+    // Ensuite, stable : rien.
+    for (t in 30_000L..120_000L step 5_000L) assertNull(g.update(t, 140, 60))
+  }
+
+  @Test
+  fun `nouvelle lecture, la surveillance repart`() {
+    val g = MemoryGuard()
+    g.reset(0)
+    for ((i, f) in listOf(600L, 400, 190).withIndex()) g.update(30_000L + i * 20_000L, f, 60)
+    g.reset(100_000)
+    assertNull(g.update(135_000, 600, 60))
+    assertNull(g.update(155_000, 400, 60))
+    assertTrue(g.update(175_000, 190, 60) != null)
+  }
+}

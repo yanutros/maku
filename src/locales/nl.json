@@ -813,7 +813,13 @@
     "stalledSkip": "10 s overslaan",
     "stalledDecode": "Geluid op dit apparaat decoderen",
     "stalledTranscode": "Laten omzetten door de server",
-    "decodeRemembered": "Het afspelen liep vast: het geluid wordt nu door het apparaat gedecodeerd (Instellingen → Speler → “Hier gedecodeerd”)."
+    "decodeRemembered": "Het afspelen liep vast: het geluid wordt nu door het apparaat gedecodeerd (Instellingen → Speler → “Hier gedecodeerd”).",
+    "memoryTitle": "Het apparaat had bijna geen geheugen meer",
+    "memoryConverted": "De video speelt verder, omgezet door de server. Dit bestand wordt op dit apparaat voortaan altijd omgezet.",
+    "memoryStopped": "Het afspelen is gestopt zodat het apparaat niet vastloopt.",
+    "qualityConverted": "Omgezet",
+    "qualityConvertedHint": "Dit apparaat kan dit bestand niet rechtstreeks afspelen: de server zet het om.",
+    "playOriginal": "Origineel bestand afspelen"
   },
   "request": {
     "sent": "Verzoek verstuurd: {{title}}",

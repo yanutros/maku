@@ -72,6 +72,9 @@ class NativeVideo(private val activity: Activity, private val webView: WebView) 
   private var audioDecoded = false
   /** Vidéo figée (PlaybackRules.kt). */
   private val stall = StallWatch()
+  /** Mémoire de l'appareil qui s'effondre (PlaybackRules.kt), relevée toutes les 5 s (un relevé de l'état sur 10). */
+  private val memoryGuard = MemoryGuard()
+  private var ticks = 0
   /** Relevé de l'état, toutes les 500 ms pendant une lecture. */
   private val ticker = Runnable { if (player != null) tick() }
   /** L'écran change de taille (rotation, fenêtre partagée, appareil pliable) : l'image est recadrée. */
@@ -105,6 +108,7 @@ class NativeVideo(private val activity: Activity, private val webView: WebView) 
     audioMime = null
     audioDecoded = false
     stall.reset()
+    memoryGuard.reset(SystemClock.elapsedRealtime())
 
     val root = webView.parent as ViewGroup
     val sv = SurfaceView(activity)
@@ -420,8 +424,27 @@ class NativeVideo(private val activity: Activity, private val webView: WebView) 
 
   private fun tick() {
     player?.let { watch(it) }
+    if (++ticks % 10 == 0) watchMemory()
     send()
     handler.postDelayed(ticker, 500)
+  }
+
+  /**
+   * La mémoire de l'appareil s'effondre alors que Maku reste stable (règles dans MemoryGuard) : noté au journal et
+   * signalé à la page, qui passe à la conversion du serveur (un autre décodeur) avant que l'appareil ne se fige.
+   */
+  private fun watchMemory() {
+    val am = activity.getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
+    val info = android.app.ActivityManager.MemoryInfo().also { am.getMemoryInfo(it) }
+    val runtime = Runtime.getRuntime()
+    val own = (runtime.totalMemory() - runtime.freeMemory() + android.os.Debug.getNativeHeapAllocatedSize()) / 1_048_576
+    val c = memoryGuard.update(SystemClock.elapsedRealtime(), info.availMem / 1_048_576, own) ?: return
+    DiagLog.log(
+      "⚠ Mémoire de l'appareil en chute pendant la vidéo : ${c.freeMb} Mo libres (${c.droppedMb} Mo de moins en ${c.overMs / 1000} s)," +
+        " Maku stable (${if (c.ownGrowthMb >= 0) "+" else ""}${c.ownGrowthMb} Mo) : le décodeur de l'appareil est en cause",
+    )
+    DiagLog.memory("chute")
+    emit(JSONObject().put("memory", JSONObject().put("free", c.freeMb).put("dropped", c.droppedMb)))
   }
 
   /**

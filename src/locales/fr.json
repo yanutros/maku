@@ -813,7 +813,13 @@
     "stalledSkip": "Passer 10 s",
     "stalledDecode": "Son décodé par l'appareil",
     "stalledTranscode": "Conversion par le serveur",
-    "decodeRemembered": "La lecture était bloquée : le son est désormais décodé par l'appareil (Réglages → Lecteur → « Décodé ici »)."
+    "decodeRemembered": "La lecture était bloquée : le son est désormais décodé par l'appareil (Réglages → Lecteur → « Décodé ici »).",
+    "memoryTitle": "La mémoire de l'appareil s'épuisait",
+    "memoryConverted": "La vidéo continue, convertie par le serveur. Ce fichier le sera d'office sur cet appareil.",
+    "memoryStopped": "La lecture est arrêtée pour que l'appareil ne se fige pas.",
+    "qualityConverted": "Convertie",
+    "qualityConvertedHint": "Cet appareil ne lit pas ce fichier tel quel : le serveur le convertit.",
+    "playOriginal": "Lire le fichier d'origine"
   },
   "request": {
     "sent": "Demande envoyée : {{title}}",

@@ -4,7 +4,8 @@ import { listen } from "@tauri-apps/api/event";
 import type { QueueTrack, Track } from "./api";
 import { t } from "./i18n";
 import { device } from "./device";
-import { notify, toast } from "./nav.svelte";
+import { nav, notify, toast } from "./nav.svelte";
+import { conversionFor, fileKey, forgetConversion, rememberConversion } from "./player/converted";
 import { hasEndScreen, loadUpNext, player, type MpvTrack, type NativeInfo, type PlayOptions, type Previews } from "./player/state.svelte";
 import { bridge, diag, nativeVideo, passthroughMode, setPassthroughMode } from "./player/bridge";
 import { cast, castCommand, sendToCast, type CastDevice } from "./player/cast.svelte";
@@ -71,6 +72,7 @@ function reset(video: boolean) {
     under: false,
     native: false,
     transcoded: false,
+    autoConverted: false,
     serverAudio: [],
     serverSubs: [],
     session: "",
@@ -187,6 +189,17 @@ export async function play(ratingKey: string, opts: PlayOptions = {}) {
       web.startNativeStream(s.url, startMs ?? (opts.fromStart ? 0 : s.offsetMs), streams);
       return;
     }
+    // Android, fichier que cet appareil n'a déjà pas pu lire tel quel : la conversion d'office, sans nouvel essai.
+    const remembered = player.web && nativeVideo ? conversionFor(fileKey(nav.serverId, ratingKey, mediaIndex)) : null;
+    if (remembered) {
+      const s = await invoke<WebStreamInfo>("video_stream", { ratingKey, ...streams, maxKbps: null, mediaIndex, copyVideo: remembered === "audio" });
+      if (stale(s.session)) return;
+      Object.assign(player, { session: s.session, title: s.title, subtitle: s.subtitle, duration: s.durationMs / 1000, native: true, autoConverted: true });
+      markTranscoded();
+      diag(`Maku : fichier déjà converti sur cet appareil (${remembered === "audio" ? "son seulement" : "image et son"}), le serveur convertit d'office`);
+      web.startNativeStream(s.url, startMs ?? (opts.fromStart ? 0 : s.offsetMs), streams, remembered === "audio");
+      return;
+    }
     // Android : le fichier d'origine, lu par le lecteur natif (le serveur ne convertit qu'en secours).
     if (player.web && nativeVideo) {
       const s = await invoke<NativeInfo>("native_video", { ratingKey, ...streams, fromStart: opts.fromStart ?? false, startMs, mediaIndex });
@@ -276,6 +289,17 @@ export function setQuality(kbps: number) {
   } catch {
     // Stockage indisponible : le choix vaut pour cette session.
   }
+  return restart();
+}
+
+/**
+ * Vidéo convertie parce que cet appareil ne lisait pas le fichier tel quel : on l'oublie, et la vidéo repart au même
+ * endroit avec le fichier d'origine (« Originale » dans le menu de qualité).
+ */
+export function playOriginal() {
+  if (!player.video || !player.ratingKey) return;
+  forgetConversion(fileKey(nav.serverId, player.ratingKey, player.mediaIndex));
+  diag("Maku : retour au fichier d'origine, demandé dans le menu de qualité");
   return restart();
 }
 
@@ -667,10 +691,29 @@ const web = (() => {
     unsupported?: string;
     error?: string;
     stalled?: { at: number; passthrough: boolean; bitstream?: boolean } | false;
+    /** La mémoire de l'appareil s'effondre, Maku restant stable (MemoryGuard, PlaybackRules.kt). */
+    memory?: { free: number; dropped: number };
   };
+
+  /**
+   * Mémoire de l'appareil qui s'effondre : un décodeur de l'appareil la consomme, et l'appareil va se figer. La vidéo
+   * passe à la conversion complète du serveur (lue par un autre décodeur), sans rien demander ; si elle était déjà
+   * convertie en entier, ou si c'est un téléchargement, elle s'arrête.
+   */
+  function memoryCollapse(m: { free: number; dropped: number }) {
+    diag(`Maku : mémoire de l'appareil en chute (${m.free} Mo libres, ${m.dropped} Mo de moins)`);
+    if (player.offline || (transcoding && !copyTried)) {
+      notify({ kind: "error", title: t("player.memoryTitle"), text: t("player.memoryStopped") });
+      stop();
+      return;
+    }
+    notify({ kind: "info", title: t("player.memoryTitle"), text: t("player.memoryConverted") });
+    fallback(false);
+  }
 
   (globalThis as { __plexrVideo?: (e: NativeEvent) => void }).__plexrVideo = (e) => {
     if (!player.native) return;
+    if (e.memory) return memoryCollapse(e.memory);
     if (e.stalled !== undefined) onStalled(e.stalled);
     if (e.ended) return videoEnded();
     if (e.unsupported !== undefined || e.error !== undefined) {
@@ -724,6 +767,12 @@ const web = (() => {
       player.session = s.session;
       transcoding = true;
       markTranscoded();
+      // Fichier que cet appareil ne lit pas tel quel : retenu, la prochaine lecture part directement en conversion. Une
+      // qualité réduite choisie, ou un téléchargement, n'en disent rien.
+      if (!player.quality && !player.offline) {
+        rememberConversion(fileKey(nav.serverId, key, player.mediaIndex), copyVideo ? "audio" : "full");
+        player.autoConverted = true;
+      }
       bridge!.videoOpen!(JSON.stringify({ passthrough: passthroughMode(),  url: s.url, offsetMs: Math.round(player.position * 1000), aid: null, sid: "auto", subFiles: [] }));
     } catch (e) {
       diag(`Maku : secours impossible (${String(e).slice(0, 300)})`);
@@ -794,12 +843,16 @@ const web = (() => {
       reportTimer = setInterval(() => report(player.paused ? "paused" : "playing"), 10000);
     },
 
-    /** Flux converti par le serveur (qualité réduite), lu par le lecteur natif d'Android. */
-    startNativeStream(url: string, offsetMs: number, streams: { audioStream: number | null; subtitleStream: number | null }) {
+    /**
+     * Flux converti par le serveur (qualité réduite, ou fichier retenu), lu par le lecteur natif d'Android ;
+     * `copyVideo` : seul le son est converti, l'image d'origine est gardée (une erreur passe alors à la conversion
+     * complète).
+     */
+    startNativeStream(url: string, offsetMs: number, streams: { audioStream: number | null; subtitleStream: number | null }, copyVideo = false) {
       reportedKey = player.ratingKey;
       nativeStreams = streams;
       fallbackTried = true;
-      copyTried = false;
+      copyTried = copyVideo;
       transcoding = true;
       bridge!.videoOpen!(JSON.stringify({ passthrough: passthroughMode(),  url, offsetMs, aid: null, sid: "auto", subFiles: [] }));
       clearInterval(reportTimer);

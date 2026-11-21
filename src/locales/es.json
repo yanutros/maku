@@ -813,7 +813,13 @@
     "stalledSkip": "Saltar 10 s",
     "stalledDecode": "Decodificar el audio en este dispositivo",
     "stalledTranscode": "Convertir en el servidor",
-    "decodeRemembered": "La reproducción se bloqueó: ahora el audio lo decodifica el dispositivo (Ajustes → Reproductor → «Decodificado aquí»)."
+    "decodeRemembered": "La reproducción se bloqueó: ahora el audio lo decodifica el dispositivo (Ajustes → Reproductor → «Decodificado aquí»).",
+    "memoryTitle": "El dispositivo se estaba quedando sin memoria",
+    "memoryConverted": "El vídeo continúa, convertido por el servidor. Este archivo se convertirá siempre en este dispositivo.",
+    "memoryStopped": "La reproducción se ha detenido para que el dispositivo no se bloquee.",
+    "qualityConverted": "Convertida",
+    "qualityConvertedHint": "Este dispositivo no puede reproducir este archivo tal cual: el servidor lo convierte.",
+    "playOriginal": "Reproducir el archivo original"
   },
   "request": {
     "sent": "Solicitud enviada: {{title}}",

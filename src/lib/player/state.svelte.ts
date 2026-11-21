@@ -39,6 +39,11 @@ export const player = $state({
   quality: loadQuality(),
   /** La vidéo en cours est convertie par le serveur (qualité réduite, ou format non lu). */
   transcoded: false,
+  /**
+   * Android : la vidéo en cours est convertie parce que cet appareil ne lit pas le fichier tel quel (format refusé,
+   * mémoire qui s'effondre, image figée), maintenant ou une fois précédente (voir converted.ts).
+   */
+  autoConverted: false,
   /** Pistes du serveur demandées pour la vidéo en cours (identifiants Plex ou Jellyfin). */
   streams: { audioStream: null as number | null, subtitleStream: null as number | null },
   /** Version lue (voir `ItemDetail.versions`) ; 0 : la première. */

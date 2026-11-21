@@ -855,6 +855,13 @@ function handle(cmd: string, a: Args): unknown {
       return [...movies, ...shows].filter((m) => m.title.toLowerCase().includes(String(a.query).toLowerCase()));
     case "play":
       return { session: "demo", title: findItem(a.ratingKey)?.title ?? "", subtitle: null };
+    // `?demo=…&android` : Android, avec son lecteur natif (les tests fournissent le pont, `MakuBridge`).
+    case "platform":
+      return new URLSearchParams(location.search).has("android") ? "android" : null;
+    case "native_video":
+      return { session: "demo-native", url: "demo://original", title: findItem(a.ratingKey)?.title ?? "", subtitle: null, offsetMs: 0, durationMs: 128 * 60_000, aid: null, sid: "auto", subFiles: [] };
+    case "video_stream":
+      return { session: "demo-conversion", url: `demo://conversion?copy=${a.copyVideo ? 1 : 0}`, title: findItem(a.ratingKey)?.title ?? "", subtitle: null, offsetMs: 0, durationMs: 128 * 60_000 };
     case "play_music":
       return { session: "demo-music", tracks: queue(a.ratingKey), index: 2 };
     case "seerr_trending":

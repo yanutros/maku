@@ -12,6 +12,7 @@
     mpv,
     play,
     player,
+    playOriginal,
     qualityLabel,
     setQuality,
     setServerStream,
@@ -300,8 +301,17 @@
 
   function selectQuality(kbps: number) {
     menu = null;
+    // Converti parce que l'appareil ne lisait pas le fichier : « Originale » le relit tel quel.
+    if (kbps === 0 && player.autoConverted) {
+      playOriginal()?.catch((e) => toast(errorText(e), true));
+      return;
+    }
     setQuality(kbps)?.catch((e) => toast(errorText(e), true));
   }
+
+  /** La qualité affichée : « Convertie » quand l'appareil ne lit pas le fichier tel quel. */
+  const shownQuality = (kbps: number) => (kbps === 0 && player.autoConverted ? t("player.qualityConverted") : qualityLabel(kbps));
+  const qualitySelected = (kbps: number) => player.quality === kbps && !(kbps === 0 && player.autoConverted);
 
   // Hauteur des commandes du bas : « Passer » se pose juste au-dessus quand elles sont affichées.
   let controlsHeight = $state(0);
@@ -415,15 +425,18 @@
         title={t("player.quality")}
       >
         <Icon name="sliders" size={16} />
-        {#if !compact}<span>{qualityLabel(player.quality)}</span>{/if}
+        {#if !compact}<span>{shownQuality(player.quality)}</span>{/if}
       </button>
       {#if menu === "quality"}
         <div class="menu">
           <div class="menu-title">{t("player.quality")}</div>
+          {#if player.autoConverted && !player.quality}
+            <div class="menu-note">{t("player.qualityConvertedHint")}</div>
+          {/if}
           {#each QUALITIES as kbps (kbps)}
-            <button class:selected={player.quality === kbps} onclick={() => selectQuality(kbps)}>
-              <span class="tick">{#if player.quality === kbps}<Icon name="check" size={16} />{/if}</span>
-              {qualityLabel(kbps)}
+            <button class:selected={qualitySelected(kbps)} onclick={() => selectQuality(kbps)}>
+              <span class="tick">{#if qualitySelected(kbps)}<Icon name="check" size={16} />{/if}</span>
+              {kbps === 0 && player.autoConverted ? t("player.playOriginal") : qualityLabel(kbps)}
             </button>
           {/each}
         </div>
@@ -1226,6 +1239,15 @@
     border: 1px solid #ffffff1a;
     box-shadow: 0 16px 40px #000a;
   }
+  /* Sous le titre : pourquoi la vidéo est convertie. */
+  .menu-note {
+    max-width: 260px;
+    padding: 0 10px 8px;
+    font-size: 13px;
+    line-height: 1.35;
+    color: #fffa;
+  }
+
   .menu-title {
     padding: 6px 10px 8px;
     font-size: 12px;

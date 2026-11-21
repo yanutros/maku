@@ -350,3 +350,49 @@ class HangWatch(private val limitMs: Long = 5_000, private val frozenGapMs: Long
  */
 fun <T> softwareFirst(mime: String?, decoders: List<T>, software: (T) -> Boolean): List<T> =
   if (mime != MimeTypes.VIDEO_MP4V) decoders else decoders.sortedBy { if (software(it)) 0 else 1 }
+
+/**
+ * Mémoire de l'appareil qui s'effondre pendant une vidéo, alors que celle de Maku reste stable : c'est le système
+ * (un décodeur de la puce, le plus souvent) qui la consomme, et l'appareil finit par se figer. Sur un téléviseur
+ * MediaTek, la mémoire libre est passée de 626 à 164 Mo en une minute avant que la TV ne redémarre d'elle-même.
+ *
+ * Signalé une fois par lecture quand il reste moins de `floorMb` libres, après une chute d'au moins `dropMb` en
+ * `windowMs` au plus, pendant laquelle Maku a grossi de moins de `ownGrowthMb`. Les relevés des `warmUpMs` premières
+ * millisecondes sont ignorés : les décodeurs réservent leur mémoire à l'ouverture du fichier.
+ */
+class MemoryGuard(
+  private val floorMb: Long = 200,
+  private val dropMb: Long = 200,
+  private val windowMs: Long = 60_000,
+  private val ownGrowthMb: Long = 50,
+  private val warmUpMs: Long = 30_000,
+) {
+  data class Collapse(val freeMb: Long, val droppedMb: Long, val overMs: Long, val ownGrowthMb: Long)
+
+  private data class Sample(val at: Long, val freeMb: Long, val ownMb: Long)
+
+  private val samples = ArrayDeque<Sample>()
+  private var openedAt = -1L
+  private var fired = false
+
+  /** Nouvelle lecture (ou relance par le serveur) : la surveillance repart de zéro. */
+  fun reset(now: Long) {
+    samples.clear()
+    openedAt = now
+    fired = false
+  }
+
+  /** `freeMb` : mémoire libre de l'appareil ; `ownMb` : mémoire utilisée par Maku (Java et natif). */
+  fun update(now: Long, freeMb: Long, ownMb: Long): Collapse? {
+    if (fired || openedAt < 0 || now - openedAt < warmUpMs) return null
+    samples.addLast(Sample(now, freeMb, ownMb))
+    while (now - samples.first().at > windowMs) samples.removeFirst()
+    if (freeMb >= floorMb) return null
+    val top = samples.maxBy { it.freeMb }
+    val dropped = top.freeMb - freeMb
+    val grown = ownMb - top.ownMb
+    if (dropped < dropMb || grown >= ownGrowthMb) return null
+    fired = true
+    return Collapse(freeMb, dropped, now - top.at, grown)
+  }
+}

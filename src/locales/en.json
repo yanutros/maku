@@ -813,7 +813,13 @@
     "stalledSkip": "Skip 10 s",
     "stalledDecode": "Decode audio on this device",
     "stalledTranscode": "Convert on the server",
-    "decodeRemembered": "Playback was stuck: sound is now decoded by this device (Settings → Player → “Decoded here”)."
+    "decodeRemembered": "Playback was stuck: sound is now decoded by this device (Settings → Player → “Decoded here”).",
+    "memoryTitle": "The device was running out of memory",
+    "memoryConverted": "The video continues, converted by the server. This file will be converted from now on on this device.",
+    "memoryStopped": "Playback was stopped so the device does not freeze.",
+    "qualityConverted": "Converted",
+    "qualityConvertedHint": "This device cannot play this file as is: the server converts it.",
+    "playOriginal": "Play the original file"
   },
   "request": {
     "sent": "Request sent: {{title}}",

@@ -813,7 +813,13 @@
     "stalledSkip": "10 s überspringen",
     "stalledDecode": "Ton auf diesem Gerät dekodieren",
     "stalledTranscode": "Vom Server umwandeln",
-    "decodeRemembered": "Die Wiedergabe hing: Der Ton wird jetzt vom Gerät dekodiert (Einstellungen → Player → „Hier dekodiert“)."
+    "decodeRemembered": "Die Wiedergabe hing: Der Ton wird jetzt vom Gerät dekodiert (Einstellungen → Player → „Hier dekodiert“).",
+    "memoryTitle": "Dem Gerät ging der Speicher aus",
+    "memoryConverted": "Das Video läuft weiter, vom Server umgewandelt. Diese Datei wird auf diesem Gerät künftig immer umgewandelt.",
+    "memoryStopped": "Die Wiedergabe wurde gestoppt, damit das Gerät nicht einfriert.",
+    "qualityConverted": "Umgewandelt",
+    "qualityConvertedHint": "Dieses Gerät kann diese Datei nicht direkt abspielen: Der Server wandelt sie um.",
+    "playOriginal": "Originaldatei abspielen"
   },
   "request": {
     "sent": "Anfrage gesendet: {{title}}",
