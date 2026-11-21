@@ -32,6 +32,7 @@ import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.DecoderReuseEvaluation
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.analytics.AnalyticsListener
+import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
 import androidx.media3.exoplayer.source.LoadEventInfo
 import androidx.media3.exoplayer.source.MediaLoadData
 import androidx.media3.exoplayer.audio.AudioCapabilities
@@ -169,6 +170,10 @@ class NativeVideo(private val activity: Activity, private val webView: WebView) 
     }
       .setEnableDecoderFallback(true)
       .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
+      // MPEG-4 Part 2 (DivX, Xvid) : décodeur logiciel d'Android avant celui de la puce (règle dans softwareFirst).
+      .setMediaCodecSelector { mime, secure, tunneling ->
+        softwareFirst(mime, MediaCodecSelector.DEFAULT.getDecoderInfos(mime, secure, tunneling)) { it.softwareOnly }
+      }
     // Mémoire tampon à la mesure de la mémoire accordée à Maku (voir `videoBufferBytes`).
     val memoryClass = (activity.getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager).memoryClass
     val buffer = videoBufferBytes(memoryClass)

@@ -340,3 +340,13 @@ class HangWatch(private val limitMs: Long = 5_000, private val frozenGapMs: Long
     return Step(null, false)
   }
 }
+
+/**
+ * Décodeurs vidéo proposés à ExoPlayer, dans l'ordre d'essai. Pour le MPEG-4 « Part 2 » (anciennes vidéos DivX et
+ * Xvid, souvent en petite définition), le décodeur logiciel d'Android passe avant celui de la puce : sur un
+ * téléviseur MediaTek, le décodeur de la puce vidait la mémoire de l'appareil (200 Mo toutes les 30 s) sur un fichier
+ * de ce type, jusqu'à figer la TV. Celui de la puce reste en secours, si le logiciel ne s'ouvre pas. Les autres
+ * formats gardent l'ordre d'Android (décodeur de la puce d'abord).
+ */
+fun <T> softwareFirst(mime: String?, decoders: List<T>, software: (T) -> Boolean): List<T> =
+  if (mime != MimeTypes.VIDEO_MP4V) decoders else decoders.sortedBy { if (software(it)) 0 else 1 }

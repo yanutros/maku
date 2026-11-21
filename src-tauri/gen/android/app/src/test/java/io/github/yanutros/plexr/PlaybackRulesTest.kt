@@ -502,3 +502,30 @@ class HangWatchTest {
     assertEquals(listOf(3_606_000L to HangWatch.Hung(5_000)), r.events)
   }
 }
+
+/** Ordre des décodeurs vidéo (softwareFirst). */
+class SoftwareFirstTest {
+  private data class Codec(val name: String, val software: Boolean)
+
+  private val mtk = Codec("c2.mtk.mpeg4.decoder", false)
+  private val mtk2 = Codec("c2.mtk.mpeg4.decoder.secure", false)
+  private val android = Codec("c2.android.mpeg4.decoder", true)
+
+  @Test
+  fun `MPEG-4 Part 2, le décodeur logiciel d'abord, celui de la puce en secours`() {
+    assertEquals(listOf(android, mtk, mtk2), softwareFirst(MimeTypes.VIDEO_MP4V, listOf(mtk, android, mtk2)) { it.software })
+  }
+
+  @Test
+  fun `MPEG-4 Part 2 sans décodeur logiciel, la puce comme avant`() {
+    assertEquals(listOf(mtk, mtk2), softwareFirst(MimeTypes.VIDEO_MP4V, listOf(mtk, mtk2)) { it.software })
+  }
+
+  @Test
+  fun `les autres formats gardent l'ordre d'Android`() {
+    val hevc = listOf(Codec("c2.mtk.hevc.decoder", false), Codec("c2.android.hevc.decoder", true))
+    for (mime in listOf(MimeTypes.VIDEO_H265, MimeTypes.VIDEO_H264, MimeTypes.VIDEO_DOLBY_VISION, MimeTypes.AUDIO_AC3, null)) {
+      assertEquals(hevc, softwareFirst(mime, hevc) { it.software })
+    }
+  }
+}

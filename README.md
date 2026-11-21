@@ -211,7 +211,8 @@ d'autre, même envoyé par une autre application ; les applications qui peuvent 
 la page peut demander à l'appareil (`BridgeRules` : nom d'une image partagée, APK à installer) ; ce que le journal
 de diagnostic retire de chaque ligne (`DiagClean`) ; quand l'écran reste allumé (`keepsScreenOn` : pendant la lecture,
 pas en pause) ; Maku qui ne répond plus (`HangWatch` : fil principal ou fil du journal sans réponse depuis 5 s, une
-application gelée par la veille de la TV n'en étant pas un) ; et la mémoire tampon du lecteur d'après la mémoire accordée à Maku (`videoBufferBytes`). Des tests ordinaires
+application gelée par la veille de la TV n'en étant pas un) ; l'ordre des décodeurs vidéo (`softwareFirst` : MPEG-4 Part 2, DivX et
+Xvid, au décodeur logiciel d'Android avant celui de la puce) ; et la mémoire tampon du lecteur d'après la mémoire accordée à Maku (`videoBufferBytes`). Des tests ordinaires
 (`src-tauri/gen/android/app/src/test/`) les vérifient sans appareil : dans `src-tauri/gen/android`,
 `./gradlew :app:testUniversalDebugUnitTest`, après une première construction de l'APK (Tauri y génère des
 fichiers du projet). Sur GitHub, ils passent à chaque envoi sur `main`, après la construction de l'APK.
