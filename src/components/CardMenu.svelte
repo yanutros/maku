@@ -98,8 +98,9 @@
     }, t("tvMenu.removedContinue"));
   }
 
-  // « Corriger l'association » et « Dissocier » : Plex, film ou série.
-  const matchable = $derived(nav.serverKind !== "jellyfin" && (item.kind === "movie" || item.kind === "show"));
+  // « Corriger l'association » et « Dissocier » : Plex, film, série, artiste ou album (saisons, épisodes et morceaux
+  // suivent leur série ou leur album, comme dans Plex).
+  const matchable = $derived(nav.serverKind !== "jellyfin" && ["movie", "show", "artist", "album"].includes(item.kind));
 
   function unmatch() {
     const title = item.title;
@@ -185,7 +186,7 @@
     <button role="menuitem" onclick={() => run(() => api.analyze(item.ratingKey), t("cardMenu.analyzeStarted"))}>
       <Icon name="search" size={16} /> {t("cardMenu.analyze")}
     </button>
-    <!-- Association (Plex) : sur un film ou une série seulement ; saisons et épisodes suivent leur série. -->
+    <!-- Association (Plex) : film, série, artiste ou album ; saisons, épisodes et morceaux suivent leur parent. -->
     {#if matchable}
       <button role="menuitem" onclick={() => ((nav.matching = item), close())}><Icon name="link" size={16} /> {t("fixMatch.open")}</button>
       <button role="menuitem" onclick={unmatch}><Icon name="unlink" size={16} /> {t("fixMatch.unmatch")}</button>

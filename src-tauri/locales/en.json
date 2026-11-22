@@ -68,7 +68,9 @@
     "badImage": "Image not recognised: choose a JPEG, PNG or WebP file of 25 MB at most.",
     "convertFailed": "The regular collection could not be created: the smart collection is kept.",
     "sessionGone": "This playback has already ended.",
-    "matchOnlyMovieShow": "Only a movie or a series can be matched"
+    "matchOnlyMovieShow": "Only a movie, a series, an artist or an album can be matched",
+    "ownerUnknown": "plex.tv is not responding: cannot tell whether this account manages the server",
+    "trackCover": "Track"
   },
   "seerr": {
     "plexRequired": "A Plex sign-in is required to connect to Seerr",

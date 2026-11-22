@@ -342,6 +342,8 @@ export interface MatchResult {
   score: number | null;
   thumb: string | null;
   summary: string | null;
+  /** Album : son artiste chez l'agent. */
+  artist: string | null;
 }
 
 export type RequestFilter = "pending" | "processing" | "available" | "failed" | "all";
@@ -637,7 +639,8 @@ export const api = {
     invoke<void>("plex_set_image", { ratingKey, kind, url }),
   refreshMetadata: (ratingKey: string) => invoke<void>("plex_refresh_metadata", { ratingKey }),
   analyze: (ratingKey: string) => invoke<void>("plex_analyze", { ratingKey }),
-  plexMatches: (ratingKey: string, title: string | null, year: number | null) => invoke<MatchResult[]>("plex_matches", { ratingKey, title, year }),
+  plexMatches: (ratingKey: string, title: string | null, year: number | null, artist: string | null = null) =>
+    invoke<MatchResult[]>("plex_matches", { ratingKey, title, year, artist }),
   plexFixMatch: (ratingKey: string, guid: string, name: string, year: number | null) => invoke<void>("plex_fix_match", { ratingKey, guid, name, year }),
   plexUnmatch: (ratingKey: string) => invoke<void>("plex_unmatch", { ratingKey }),
   prefs: () => invoke<Pref[]>("plex_prefs"),

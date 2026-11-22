@@ -68,7 +68,9 @@
     "badImage": "Bild nicht erkannt: wähle eine JPEG-, PNG- oder WebP-Datei mit höchstens 25 MB.",
     "convertFailed": "Die normale Sammlung konnte nicht erstellt werden: die intelligente Sammlung bleibt erhalten.",
     "sessionGone": "Diese Wiedergabe ist bereits beendet.",
-    "matchOnlyMovieShow": "Nur ein Film oder eine Serie kann zugeordnet werden"
+    "matchOnlyMovieShow": "Nur ein Film, eine Serie, ein Künstler oder ein Album kann zugeordnet werden",
+    "ownerUnknown": "plex.tv antwortet nicht: Es ist nicht bekannt, ob dieses Konto den Server verwaltet",
+    "trackCover": "Titel"
   },
   "seerr": {
     "plexRequired": "Für die Verbindung mit Seerr ist eine Plex-Anmeldung nötig",

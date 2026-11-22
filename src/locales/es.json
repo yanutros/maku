@@ -1257,6 +1257,7 @@
     "apply": "Asociar",
     "applying": "Asociando…",
     "done": "Asociado a «{{title}}»: Plex está actualizando su información",
-    "unmatched": "«{{title}}» desvinculado: corrige la coincidencia para recuperar su información"
+    "unmatched": "«{{title}}» desvinculado: corrige la coincidencia para recuperar su información",
+    "artist": "Artista"
   }
 }

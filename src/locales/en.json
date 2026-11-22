@@ -1257,6 +1257,7 @@
     "apply": "Match",
     "applying": "Matching…",
     "done": "Matched to “{{title}}”: Plex is updating its details",
-    "unmatched": "“{{title}}” unmatched: fix the match to restore its details"
+    "unmatched": "“{{title}}” unmatched: fix the match to restore its details",
+    "artist": "Artist"
   }
 }

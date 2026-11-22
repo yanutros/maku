@@ -68,7 +68,9 @@
     "badImage": "Image non reconnue : choisis un fichier JPEG, PNG ou WebP de 25 Mo au plus.",
     "convertFailed": "La collection ordinaire n'a pas pu être créée : la collection intelligente est conservée.",
     "sessionGone": "Cette lecture est déjà terminée.",
-    "matchOnlyMovieShow": "Seuls un film ou une série s’associent"
+    "matchOnlyMovieShow": "Seuls un film, une série, un artiste ou un album s’associent",
+    "ownerUnknown": "plex.tv ne répond pas : impossible de savoir si ce compte administre le serveur",
+    "trackCover": "Morceau"
   },
   "seerr": {
     "plexRequired": "Connexion Plex requise pour se connecter à Seerr",

@@ -1373,6 +1373,31 @@ impl PlexServer {
         list.into_iter().map(|m| self.to_item(m)).collect()
     }
 
+    /// Albums sans pochette (fichiers que Plex n'a pas identifiés) : celle du premier de leurs morceaux qui en a une,
+    /// image souvent intégrée au fichier, plutôt qu'une case vide. Une demande par album concerné, 24 au plus.
+    async fn fill_album_posters(&self, items: &mut [Item]) {
+        let missing: Vec<usize> = items
+            .iter()
+            .enumerate()
+            .filter(|(_, i)| i.kind == "album" && i.poster.is_none())
+            .map(|(n, _)| n)
+            .take(24)
+            .collect();
+        if missing.is_empty() {
+            return;
+        }
+        let found = join_all(missing.iter().map(|&n| self.track_poster(&items[n].rating_key))).await;
+        for (n, poster) in missing.into_iter().zip(found) {
+            items[n].poster = poster;
+        }
+    }
+
+    /// Pochette du premier morceau illustré d'un album.
+    async fn track_poster(&self, album: &str) -> Option<String> {
+        let c = self.container(&format!("/library/metadata/{album}/children")).await.ok()?;
+        c.metadata.iter().find_map(|t| t.thumb.as_ref()).map(|p| self.image(p, 400, 400))
+    }
+
     pub async fn sections(&self) -> Result<Vec<Section>> {
         let c = self.container("/library/sections").await?;
         Ok(c.directory
@@ -1407,7 +1432,9 @@ impl PlexServer {
             ))
             .await?;
         let total = c.total_size.unwrap_or(c.metadata.len() as u32);
-        Ok(Page { items: self.to_items(c.metadata), total })
+        let mut items = self.to_items(c.metadata);
+        self.fill_album_posters(&mut items).await;
+        Ok(Page { items, total })
     }
 
     /// Titres d'une bibliothèque par première lettre de leur titre de tri, dans l'ordre alphabétique, avec le même
@@ -1635,6 +1662,7 @@ impl PlexServer {
                 (!items.is_empty()).then(|| Hub { title: h.title, identifier: h.hub_identifier, items: self.to_items(items) })
             })
             .collect();
+        join_all(hubs.iter_mut().map(|h| self.fill_album_posters(&mut h.items))).await;
         // Les playlists ne font pas partie des rangées du serveur : on les place en troisième, comme Plex.
         if let Ok(items) = playlists {
             if !items.is_empty() {
@@ -2027,7 +2055,7 @@ impl PlexServer {
         let backdrop_hd = m.art.as_ref().map(|p| self.image(p, 2560, 1440));
         let site_ratings = site_ratings(&m.site_ratings);
         let imdb_id = imdb_of(&m.guids);
-        Ok(ItemDetail {
+        let mut detail = ItemDetail {
             site_ratings,
             imdb_id,
             tagline: m.tagline.take(),
@@ -2043,7 +2071,10 @@ impl PlexServer {
             subtitle_tracks,
             versions,
             item: self.to_item(m),
-        })
+        };
+        // Album sans pochette : celle d'un de ses morceaux (voir `fill_album_posters`).
+        self.fill_album_posters(std::slice::from_mut(&mut detail.item)).await;
+        Ok(detail)
     }
 
     /// Collections d'une bibliothèque (« 28 … plus tard », « Batman »…), par titre.
@@ -2076,7 +2107,9 @@ impl PlexServer {
 
     pub async fn children(&self, rating_key: &str) -> Result<Vec<Item>> {
         let c = self.container(&format!("/library/metadata/{rating_key}/children")).await?;
-        Ok(self.to_items(c.metadata))
+        let mut items = self.to_items(c.metadata);
+        self.fill_album_posters(&mut items).await;
+        Ok(items)
     }
 
     pub async fn search(&self, query: &str) -> Result<Vec<Item>> {
@@ -2089,7 +2122,9 @@ impl PlexServer {
             .flat_map(|h| h.metadata)
             .filter(|m| matches!(m.kind.as_str(), "movie" | "show" | "season" | "episode") || is_music(&m.kind))
             .collect();
-        Ok(self.to_items(found))
+        let mut items = self.to_items(found);
+        self.fill_album_posters(&mut items).await;
+        Ok(items)
     }
 
     /// Flux HLS du transcodeur Plex, lisible par le lecteur vidéo du système (Android, iOS).
@@ -2466,6 +2501,121 @@ mod tests {
         // Un autre titre a sa propre demande.
         let _ = tokio::join!(server.raw_metadata("42"), server.raw_metadata("43"));
         assert_eq!(hits.load(std::sync::atomic::Ordering::SeqCst), 4);
+    }
+
+    /// Album que Plex n'a pas identifié (sans pochette) : celle de son premier morceau illustré, souvent intégrée au
+    /// fichier. Un album qui a la sienne la garde, sans demande au serveur ; un album dont aucun morceau n'a d'image
+    /// reste sans pochette.
+    #[tokio::test]
+    async fn album_sans_pochette_celle_de_son_morceau() {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let base = format!("http://{}", listener.local_addr().unwrap());
+        let asked = std::sync::Arc::new(std::sync::Mutex::new(Vec::<String>::new()));
+        let log = asked.clone();
+        tokio::spawn(async move {
+            while let Ok((mut s, _)) = listener.accept().await {
+                let log = log.clone();
+                tokio::spawn(async move {
+                    let mut buf = [0u8; 4096];
+                    let n = s.read(&mut buf).await.unwrap_or(0);
+                    let path = String::from_utf8_lossy(&buf[..n]).split_whitespace().nth(1).unwrap_or_default().to_owned();
+                    log.lock().unwrap().push(path.split('?').next().unwrap_or_default().to_owned());
+                    let body = if path.starts_with("/library/metadata/10/children") {
+                        r#"{"MediaContainer":{"Metadata":[{"ratingKey":"11","type":"track","title":"Sans image"},{"ratingKey":"12","type":"track","title":"Illustré","thumb":"/library/metadata/12/thumb/99"}]}}"#
+                    } else {
+                        r#"{"MediaContainer":{"Metadata":[{"ratingKey":"21","type":"track","title":"Sans image"}]}}"#
+                    };
+                    let resp = format!("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}", body.len());
+                    let _ = s.write_all(resp.as_bytes()).await;
+                });
+            }
+        });
+        let server = PlexServer { http: Client::new(), base, token: "t".into(), client_id: "c".into(), tracks: Default::default() };
+        let album = |key: &str, thumb: Option<&str>| {
+            let m: RawMetadata = serde_json::from_value(serde_json::json!({ "ratingKey": key, "type": "album", "title": "Un album", "thumb": thumb })).unwrap();
+            server.to_item(m)
+        };
+        let mut items = vec![album("10", None), album("20", None), album("30", Some("/library/metadata/30/thumb/1"))];
+        server.fill_album_posters(&mut items).await;
+        assert!(items[0].poster.as_deref().is_some_and(|p| p.contains(&*urlencoding::encode("/library/metadata/12/thumb/99"))), "{:?}", items[0].poster);
+        assert_eq!(items[1].poster, None);
+        assert!(items[2].poster.as_deref().is_some_and(|p| p.contains(&*urlencoding::encode("/library/metadata/30/thumb/1"))));
+        let mut asked = asked.lock().unwrap().clone();
+        asked.sort();
+        assert_eq!(asked, ["/library/metadata/10/children", "/library/metadata/20/children"]);
+    }
+
+    /// « Modifier › Pochette » d'un album sans pochette : l'image de son morceau illustré est proposée (une seule, le
+    /// morceau sans image ne l'est pas), et la choisir l'envoie à Plex comme pochette de l'album.
+    #[tokio::test]
+    async fn pochette_d_album_copiee_depuis_un_morceau() {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let base = format!("http://{}", listener.local_addr().unwrap());
+        let sent = std::sync::Arc::new(std::sync::Mutex::new(Vec::<(String, Vec<u8>)>::new()));
+        let log = sent.clone();
+        tokio::spawn(async move {
+            while let Ok((mut s, _)) = listener.accept().await {
+                let log = log.clone();
+                tokio::spawn(async move {
+                    // La demande entière : en-têtes, puis le corps annoncé.
+                    let mut data = Vec::new();
+                    let mut buf = [0u8; 8192];
+                    loop {
+                        let n = s.read(&mut buf).await.unwrap_or(0);
+                        if n == 0 {
+                            break;
+                        }
+                        data.extend_from_slice(&buf[..n]);
+                        let text = String::from_utf8_lossy(&data).to_string();
+                        if let Some(end) = text.find("\r\n\r\n") {
+                            let length = text
+                                .lines()
+                                .find_map(|l| l.to_ascii_lowercase().strip_prefix("content-length:").map(|v| v.trim().parse::<usize>().unwrap_or(0)))
+                                .unwrap_or(0);
+                            if data.len() >= end + 4 + length {
+                                break;
+                            }
+                        }
+                    }
+                    let text = String::from_utf8_lossy(&data).to_string();
+                    let mut first = text.split_whitespace();
+                    let (method, target) = (first.next().unwrap_or_default().to_owned(), first.next().unwrap_or_default().to_owned());
+                    let path = target.split('?').next().unwrap_or_default().to_owned();
+                    let body_start = text.find("\r\n\r\n").map_or(data.len(), |e| e + 4);
+                    if method == "POST" {
+                        log.lock().unwrap().push((path.clone(), data[body_start..].to_vec()));
+                    }
+                    let (kind, body): (&str, Vec<u8>) = match path.as_str() {
+                        "/library/metadata/50" => ("application/json", br#"{"MediaContainer":{"Metadata":[{"ratingKey":"50","type":"album","title":"Album"}]}}"#.to_vec()),
+                        "/library/metadata/50/posters" => ("application/json", br#"{"MediaContainer":{"size":0}}"#.to_vec()),
+                        "/library/metadata/50/children" => (
+                            "application/json",
+                            br#"{"MediaContainer":{"Metadata":[{"ratingKey":"51","type":"track","title":"Illustre","thumb":"/library/metadata/51/thumb/7"},{"ratingKey":"52","type":"track","title":"Sans image"}]}}"#.to_vec(),
+                        ),
+                        "/library/metadata/51" => ("application/json", br#"{"MediaContainer":{"Metadata":[{"ratingKey":"51","type":"track","title":"Illustre","thumb":"/library/metadata/51/thumb/7"}]}}"#.to_vec()),
+                        "/library/metadata/51/thumb/7" => ("image/jpeg", b"IMAGE-DU-MORCEAU".to_vec()),
+                        _ => ("application/json", b"{}".to_vec()),
+                    };
+                    let head = format!("HTTP/1.1 200 OK\r\nContent-Type: {kind}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n", body.len());
+                    let _ = s.write_all(head.as_bytes()).await;
+                    let _ = s.write_all(&body).await;
+                });
+            }
+        });
+        let server = PlexServer { http: Client::new(), base, token: "t".into(), client_id: "c".into(), tracks: Default::default() };
+        let choices = server.images("50", "posters").await.unwrap();
+        assert_eq!(choices.len(), 1, "seul le morceau illustré est proposé");
+        assert_eq!(choices[0].key, "track:51");
+        assert!(choices[0].preview.contains(&*urlencoding::encode("/library/metadata/51/thumb/7")));
+        // Le fond d'écran n'en propose pas.
+        assert!(server.images("50", "arts").await.unwrap().is_empty());
+        server.set_image("50", "posters", &choices[0].key).await.unwrap();
+        assert_eq!(*sent.lock().unwrap(), vec![("/library/metadata/50/posters".to_owned(), b"IMAGE-DU-MORCEAU".to_vec())]);
+        // Une clé qui n'est pas un numéro de morceau est refusée, sans rien envoyer.
+        assert!(server.set_image("50", "posters", "track:../51").await.is_err());
+        assert_eq!(sent.lock().unwrap().len(), 1);
     }
 
     /// Faux serveur Plex : un épisode (série 7) avec une version originale anglaise, marquée par le serveur avec ses

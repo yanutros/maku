@@ -67,8 +67,14 @@
   async function chooseImage(kind: "posters" | "arts", key: string) {
     try {
       await api.setImage(item.ratingKey, kind, key);
-      images[kind] = (images[kind] ?? []).map((i) => ({ ...i, selected: i.key === key }));
       imageChanged = true;
+      // Image d'un morceau : copiée chez Plex, elle devient une nouvelle pochette de l'album ; la liste est relue.
+      if (key.startsWith("track:")) {
+        images[kind] = null;
+        await loadImages(kind);
+      } else {
+        images[kind] = (images[kind] ?? []).map((i) => ({ ...i, selected: i.key === key }));
+      }
       toast(kind === "posters" ? t("editDialog.posterUpdated") : t("editDialog.backgroundUpdated"));
     } catch (e) {
       toast(errorText(e), true);

@@ -1,8 +1,8 @@
 <script lang="ts">
-  // « Corriger l'association » d'un film ou d'une série (administrateur du serveur Plex), comme dans Plex Web : les
-  // titres que l'agent de Plex propose, une recherche par titre et année si le bon n'y est pas, puis « Associer ».
-  // Plex télécharge alors les informations et les images du titre choisi. Pas pour une saison ou un épisode : ils
-  // suivent l'association de leur série.
+  // « Corriger l'association » d'un film, d'une série, d'un artiste ou d'un album (administrateur du serveur Plex),
+  // comme dans Plex Web : les titres que l'agent de Plex propose, une recherche par titre et année (et artiste, pour un
+  // album) si le bon n'y est pas, puis « Associer ». Plex télécharge alors les informations et les images du titre
+  // choisi. Pas pour une saison, un épisode ou un morceau : ils suivent l'association de leur série ou de leur album.
   import ErrorCard from "./ErrorCard.svelte";
   import Icon from "./Icon.svelte";
   import { onMount } from "svelte";
@@ -14,6 +14,10 @@
 
   let title = $state(item.title);
   let year = $state(item.year ? String(item.year) : "");
+  // Album : son artiste, pour une recherche plus juste.
+  const album = item.kind === "album";
+  let artist = $state(album ? (item.showTitle ?? "") : "");
+  const icon = item.kind === "show" ? "tv" : item.kind === "artist" ? "user" : album ? "music" : "film";
   let results = $state<MatchResult[] | null>(null);
   let searching = $state(false);
   let error = $state<string | null>(null);
@@ -27,7 +31,7 @@
     chosen = null;
     try {
       const y = Number.parseInt(year, 10);
-      results = await api.plexMatches(item.ratingKey, manual ? title : null, manual && !Number.isNaN(y) ? y : null);
+      results = await api.plexMatches(item.ratingKey, manual ? title : null, manual && !Number.isNaN(y) ? y : null, manual && album ? artist : null);
     } catch (e) {
       error = errorText(e);
       results = [];
@@ -76,6 +80,12 @@
         <span>{t("fixMatch.searchTitle")}</span>
         <input bind:value={title} />
       </label>
+      {#if album}
+        <label class="field grow">
+          <span>{t("fixMatch.artist")}</span>
+          <input bind:value={artist} />
+        </label>
+      {/if}
       <label class="field year">
         <span>{t("fixMatch.year")}</span>
         <input bind:value={year} inputmode="numeric" maxlength="4" />
@@ -94,9 +104,10 @@
         <div class="list" role="listbox" aria-label={t("fixMatch.results")}>
           {#each results as r (r.guid)}
             <button class="result" class:chosen={chosen?.guid === r.guid} role="option" aria-selected={chosen?.guid === r.guid} onclick={() => (chosen = r)}>
-              <span class="thumb">{#if r.thumb}<img src={r.thumb} alt="" loading="lazy" />{:else}<Icon name={item.kind === "show" ? "tv" : "film"} size={20} />{/if}</span>
+              <span class="thumb">{#if r.thumb}<img src={r.thumb} alt="" loading="lazy" />{:else}<Icon name={icon} size={20} />{/if}</span>
               <span class="text">
                 <span class="name">{r.name}{#if r.year}{" "}<span class="muted">({r.year})</span>{/if}</span>
+                {#if r.artist}<span class="summary">{r.artist}</span>{/if}
                 {#if r.summary}<span class="summary">{r.summary}</span>{/if}
               </span>
               {#if r.score !== null}<span class="score" title={t("fixMatch.score")}>{r.score} %</span>{/if}

@@ -5,7 +5,8 @@
   import Icon from "./Icon.svelte";
   import { t } from "../lib/i18n";
 
-  let { item, wide = false }: { item: Item; wide?: boolean } = $props();
+  // `menu` : le bouton ⋮ sur la jaquette (le clic droit ouvre le menu dans tous les cas).
+  let { item, wide = false, menu = true }: { item: Item; wide?: boolean; menu?: boolean } = $props();
 
   const image = $derived(wide ? (item.thumb ?? item.backdrop ?? item.poster) : item.poster);
   const progress = $derived(
@@ -67,7 +68,9 @@
         <Icon name="play" size={40} filled />
       </button>
     {/if}
-    <button class="more" onclick={openMenu} aria-label={t("common.c1.moreActions")}><Icon name="more" size={18} /></button>
+    {#if menu}
+      <button class="more" onclick={openMenu} aria-label={t("common.c1.moreActions")}><Icon name="more" size={18} /></button>
+    {/if}
   </div>
   <button class="meta" onclick={open} tabindex="-1">
     <span class="title">{title}</span>

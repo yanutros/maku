@@ -127,22 +127,28 @@ impl AppState {
     /// de bord toutes les trois secondes, redemandaient la liste des serveurs à plex.tv. Si plex.tv ne répond pas,
     /// la dernière réponse connue vaut encore : un serveur local reste administrable sans Internet.
     async fn owns_plex_server(&self) -> bool {
+        self.plex_ownership().await.unwrap_or(false)
+    }
+
+    /// Comme `owns_plex_server`, mais `None` quand on ne sait pas : plex.tv n'a pas répondu et aucune réponse
+    /// n'est connue. L'interface redemande alors plus tard, au lieu de cacher l'administration jusqu'au redémarrage.
+    async fn plex_ownership(&self) -> Option<bool> {
         let c = self.cfg();
-        let (Some(token), Some(saved)) = (c.plex_token, c.server) else { return false };
+        let (Some(token), Some(saved)) = (c.plex_token, c.server) else { return Some(false) };
         if saved.is_jellyfin() {
-            return false;
+            return Some(false);
         }
         let key = format!("{}|{token}", saved.machine_id);
         if let Some(owned) = self.owner.lock().unwrap().fresh(&key, std::time::Instant::now()) {
-            return owned;
+            return Some(owned);
         }
         match plex::servers(&self.http, &c.client_id, &token).await {
             Ok(list) => {
                 let owned = list.into_iter().find(|r| r.client_identifier == saved.machine_id).is_some_and(|r| r.owned);
                 self.owner.lock().unwrap().put(key, owned, std::time::Instant::now());
-                owned
+                Some(owned)
             }
-            Err(_) => self.owner.lock().unwrap().last(&key).unwrap_or(false),
+            Err(_) => self.owner.lock().unwrap().last(&key),
         }
     }
 

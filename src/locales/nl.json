@@ -1257,6 +1257,7 @@
     "apply": "Koppelen",
     "applying": "Bezig met koppelen…",
     "done": "Gekoppeld aan ‘{{title}}’: Plex werkt de informatie bij",
-    "unmatched": "‘{{title}}’ ontkoppeld: corrigeer de koppeling om de informatie terug te krijgen"
+    "unmatched": "‘{{title}}’ ontkoppeld: corrigeer de koppeling om de informatie terug te krijgen",
+    "artist": "Artiest"
   }
 }

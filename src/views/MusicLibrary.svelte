@@ -307,8 +307,9 @@
         </Row>
       {/if}
       {#each otherHubs as hub, i (i)}
+        <!-- « Musique lue récemment » : des portraits d'artistes ronds, sans bouton ⋮ par-dessus (le clic droit l'ouvre). -->
         <Row title={hub.title} large>
-          {#each hub.items as item (item.ratingKey)}<PosterCard {item} />{/each}
+          {#each hub.items as item (item.ratingKey)}<PosterCard {item} menu={!/recent\.played/.test(hub.identifier)} />{/each}
         </Row>
       {/each}
     {/if}

@@ -59,6 +59,19 @@
   let choosingProfile = $state(false);
   let profileAsked = false;
 
+  /** Droit d'administration inconnu (plex.tv injoignable) : redemandé toutes les 30 s, tant que le serveur est le même. */
+  let adminRetry: ReturnType<typeof setTimeout> | undefined;
+  function retryAdmin(serverId: string, delay = 30_000) {
+    clearTimeout(adminRetry);
+    adminRetry = setTimeout(async () => {
+      if (nav.serverId !== serverId) return;
+      const admin = await api.isAdmin().catch(() => null);
+      if (nav.serverId !== serverId) return;
+      if (admin === null) retryAdmin(serverId, Math.min(delay * 2, 300_000));
+      else nav.admin = admin;
+    }, delay);
+  }
+
   async function refresh() {
     session = await api.session();
     nav.serverKind = session.serverKind;
@@ -72,7 +85,7 @@
     // Bibliothèques et droit d'administration : demandés tout de suite, en même temps que les profils du compte, au
     // lieu de l'un après l'autre (le menu attendait deux allers-retours de plus).
     const wanted = session.serverName
-      ? { sections: api.sections().catch(() => [] as Section[]), admin: api.isAdmin().catch(() => false) }
+      ? { sections: api.sections().catch(() => [] as Section[]), admin: api.isAdmin().catch(() => null) }
       : null;
     if (session.loggedIn && session.plexRemembered && session.serverKind === "plex") {
       const home = await api.homeUsers().catch(() => null);
@@ -91,8 +104,11 @@
         checkOfflineAllowed();
         syncOffline();
       }
-      // Édition des métadonnées et réglages du serveur : réservés à son administrateur.
-      nav.admin = await wanted.admin;
+      // Édition des métadonnées et réglages du serveur : réservés à son administrateur. Si plex.tv n'a pas répondu
+      // (on ne sait pas), Maku redemande un peu plus tard, au lieu de cacher l'administration jusqu'au redémarrage.
+      const admin = await wanted.admin;
+      nav.admin = admin ?? false;
+      if (admin === null) retryAdmin(session.serverId ?? "");
       // Administrateur de Seerr : la gestion des demandes (Admin › Demandes).
       checkSeerrManager(!!session.seerrUrl);
       // Seerr ou Tracearr sans adresse : le relais Maku Server du serveur, s'il y en a un, les fournit.

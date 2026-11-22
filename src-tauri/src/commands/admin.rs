@@ -3,8 +3,9 @@
 use crate::*;
 
 #[tauri::command]
+/// Erreur quand plex.tv ne répond pas et qu'aucune réponse n'est connue : l'interface redemande plus tard.
 pub async fn plex_is_admin(state: State<'_, AppState>) -> CmdResult<bool> {
-    Ok(state.owns_plex_server().await)
+    Ok(state.plex_ownership().await.ok_or_else(|| anyhow!(crate::i18n::tr("admin.ownerUnknown")))?)
 }
 
 #[tauri::command]
@@ -131,8 +132,8 @@ pub async fn plex_stop_session(state: State<'_, AppState>, session_id: String, r
 
 /// « Corriger l'association » : titres proposés par l'agent de Plex (film ou série).
 #[tauri::command]
-pub async fn plex_matches(state: State<'_, AppState>, rating_key: String, title: Option<String>, year: Option<u32>) -> CmdResult<Vec<MatchResult>> {
-    Ok(state.admin_plex().await?.matches(&rating_key, title.as_deref(), year).await?)
+pub async fn plex_matches(state: State<'_, AppState>, rating_key: String, title: Option<String>, year: Option<u32>, artist: Option<String>) -> CmdResult<Vec<MatchResult>> {
+    Ok(state.admin_plex().await?.matches(&rating_key, title.as_deref(), year, artist.as_deref()).await?)
 }
 
 #[tauri::command]

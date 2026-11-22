@@ -1257,6 +1257,7 @@
     "apply": "Zuordnen",
     "applying": "Wird zugeordnet…",
     "done": "„{{title}}“ zugeordnet: Plex aktualisiert die Informationen",
-    "unmatched": "Zuordnung von „{{title}}“ aufgehoben: korrigiere die Zuordnung, um die Informationen wiederherzustellen"
+    "unmatched": "Zuordnung von „{{title}}“ aufgehoben: korrigiere die Zuordnung, um die Informationen wiederherzustellen",
+    "artist": "Künstler"
   }
 }

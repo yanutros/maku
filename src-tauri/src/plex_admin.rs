@@ -448,7 +448,7 @@ impl PlexServer {
         let kind = if kind == "arts" { "arts" } else { "posters" };
         let c = self.json(Method::GET, &format!("/library/metadata/{rating_key}/{kind}")).await?;
         let (w, h) = if kind == "arts" { (480, 270) } else { (240, 360) };
-        Ok(c["MediaContainer"]["Metadata"]
+        let mut list: Vec<ImageChoice> = c["MediaContainer"]["Metadata"]
             .as_array()
             .into_iter()
             .flatten()
@@ -464,11 +464,46 @@ impl PlexServer {
                 })
             })
             .take(60)
-            .collect())
+            .collect();
+        list.extend(self.track_covers(rating_key, kind).await);
+        Ok(list)
+    }
+
+    /// Album : les images de ses morceaux (souvent intégrées aux fichiers), proposées comme pochette. Un album que
+    /// Plex n'a pas identifié n'en a pas d'autre ; choisie, l'image est envoyée à Plex comme pochette de l'album.
+    async fn track_covers(&self, rating_key: &str, kind: &str) -> Vec<ImageChoice> {
+        if kind != "posters" {
+            return Vec::new();
+        }
+        let Ok((_, item)) = self.metadata_value(rating_key).await else { return Vec::new() };
+        if item["type"].as_str() != Some("album") {
+            return Vec::new();
+        }
+        let Ok(c) = self.json(Method::GET, &format!("/library/metadata/{rating_key}/children")).await else { return Vec::new() };
+        c["MediaContainer"]["Metadata"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(|t| {
+                let key = t["ratingKey"].as_str()?;
+                let thumb = t["thumb"].as_str().filter(|p| p.starts_with('/'))?;
+                Some(ImageChoice {
+                    key: format!("{TRACK_COVER}{key}"),
+                    preview: self.image(thumb, 240, 240),
+                    selected: false,
+                    provider: Some(crate::i18n::tr("admin.trackCover")),
+                })
+            })
+            .take(6)
+            .collect()
     }
 
     /// Choisit une image proposée, ou en ajoute une depuis une adresse web.
     pub async fn set_image(&self, rating_key: &str, kind: &str, url: &str) -> Result<()> {
+        // Image d'un morceau choisie comme pochette d'album : elle est copiée chez Plex, comme une image envoyée.
+        if let Some(track) = url.strip_prefix(TRACK_COVER) {
+            return self.copy_track_cover(rating_key, track).await;
+        }
         let (list, one) = if kind == "arts" { ("arts", "art") } else { ("posters", "poster") };
         let url = urlencoding::encode(url);
         if url.starts_with("http") {
@@ -476,6 +511,18 @@ impl PlexServer {
             self.send(Method::POST, &format!("/library/metadata/{rating_key}/{list}?url={url}")).await?;
         }
         self.send(Method::PUT, &format!("/library/metadata/{rating_key}/{one}?url={url}")).await
+    }
+
+    /// L'image du morceau `track`, envoyée à Plex comme pochette de l'album `album`.
+    async fn copy_track_cover(&self, album: &str, track: &str) -> Result<()> {
+        if !digits(album) || !digits(track) {
+            bail!(crate::i18n::tr("admin.badImage"));
+        }
+        let (_, item) = self.metadata_value(track).await?;
+        let thumb = item["thumb"].as_str().filter(|p| p.starts_with('/')).ok_or_else(|| anyhow!(crate::i18n::tr("admin.badImage")))?;
+        let resp = self.request(Method::GET, thumb).send().await?.error_for_status()?;
+        let bytes = resp.bytes().await?.to_vec();
+        self.upload_image(album, "posters", bytes).await
     }
 
     /// Envoie une image (affiche ou fond d'écran) depuis l'ordinateur, comme « Choisir une image » de Plex :
@@ -752,6 +799,9 @@ pub async fn account(http: &reqwest::Client, client_id: &str, token: &str) -> Re
 
 // ---------- Corriger l'association, dissocier (films et séries) ----------
 
+/// Clé d'une image de morceau proposée comme pochette d'album (voir `track_covers`).
+const TRACK_COVER: &str = "track:";
+
 /// Titre proposé par l'agent de Plex pour « Corriger l'association ».
 #[derive(Serialize)]
 pub struct MatchResult {
@@ -763,6 +813,18 @@ pub struct MatchResult {
     pub score: Option<u32>,
     pub thumb: Option<String>,
     pub summary: Option<String>,
+    /// Album : son artiste chez l'agent.
+    pub artist: Option<String>,
+}
+
+/// Ce qui distingue un résultat : son résumé (film, série) ou, pour un artiste, sa description et son pays.
+fn match_summary(r: &Value) -> Option<String> {
+    let text = |k: &str| r[k].as_str().map(str::trim).filter(|s| !s.is_empty());
+    if let Some(summary) = text("summary") {
+        return Some(summary.to_owned());
+    }
+    let parts: Vec<&str> = [text("disambiguation"), text("area")].into_iter().flatten().collect();
+    (!parts.is_empty()).then(|| parts.join(" · "))
 }
 
 fn number(v: &Value) -> Option<u64> {
@@ -770,12 +832,13 @@ fn number(v: &Value) -> Option<u64> {
 }
 
 impl PlexServer {
-    /// Titres qui pourraient correspondre à un film ou une série. Sans titre : ceux que Plex propose d'après le
-    /// titre actuel ; avec un titre (et une année), une recherche avec l'agent et la langue de la bibliothèque.
-    pub async fn matches(&self, rating_key: &str, title: Option<&str>, year: Option<u32>) -> Result<Vec<MatchResult>> {
+    /// Titres qui pourraient correspondre à un film, une série, un artiste ou un album. Sans titre : ceux que Plex
+    /// propose d'après le titre actuel ; avec un titre (une année, et l'artiste d'un album), une recherche avec
+    /// l'agent et la langue de la bibliothèque. Morceaux, saisons et épisodes suivent leur album ou leur série.
+    pub async fn matches(&self, rating_key: &str, title: Option<&str>, year: Option<u32>, artist: Option<&str>) -> Result<Vec<MatchResult>> {
         let (container, item) = self.metadata_value(rating_key).await?;
         let kind = item["type"].as_str().unwrap_or_default();
-        if kind != "movie" && kind != "show" {
+        if !matches!(kind, "movie" | "show" | "artist" | "album") {
             bail!(crate::i18n::tr("admin.matchOnlyMovieShow"));
         }
         let mut query = String::from("manual=1");
@@ -783,6 +846,10 @@ impl PlexServer {
             query.push_str(&format!("&title={}", urlencoding::encode(title)));
             if let Some(year) = year {
                 query.push_str(&format!("&year={year}"));
+            }
+            // Album : son artiste aussi, comme Plex Web.
+            if let Some(artist) = artist.map(str::trim).filter(|a| !a.is_empty() && kind == "album") {
+                query.push_str(&format!("&parentTitle={}", urlencoding::encode(artist)));
             }
             // L'agent et la langue de la bibliothèque, comme Plex Web.
             let section = number(&item["librarySectionID"]).or_else(|| number(&container["librarySectionID"]));
@@ -822,7 +889,8 @@ impl PlexServer {
                     year: number(&r["year"]).map(|y| y as u32),
                     score: number(&r["score"]).map(|s| s as u32),
                     thumb,
-                    summary: r["summary"].as_str().filter(|s| !s.is_empty()).map(str::to_owned),
+                    summary: match_summary(r),
+                    artist: r["parentName"].as_str().filter(|s| !s.is_empty()).map(str::to_owned),
                 })
             })
             .take(30)

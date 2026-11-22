@@ -824,6 +824,14 @@ function handle(cmd: string, a: Args): unknown {
       const it = findItem(a.ratingKey);
       const name = (a.title as string | null)?.trim() || it?.title || "";
       const year = (a.year as number | null) ?? it?.year ?? 2024;
+      // Artiste ou album : MusicBrainz, sans image ; l'album avec son artiste, comme Plex.
+      if (it?.kind === "album" || it?.kind === "artist") {
+        const artist = (a.artist as string | null)?.trim() || it.showTitle || null;
+        return [
+          [name, 2026, 50, "Album · 12 titres"],
+          [`${name} (édition deluxe)`, 2027, 44, "Album · 18 titres"],
+        ].map(([n, y, score, summary], i) => ({ guid: `mbid://demo/${a.ratingKey}/${i}`, name: n, year: y, score, thumb: null, summary, artist: it.kind === "album" ? artist : null }));
+      }
       const kind = it?.kind === "show" ? "Série" : "Film";
       return [
         [name, year, 98, "La version exacte du fichier, d'après son nom et son année."],

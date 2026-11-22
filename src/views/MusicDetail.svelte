@@ -80,6 +80,13 @@
         <!-- Mix : les pochettes de ses trois playlists, la première en grand. -->
         {#each mix.playlists as p, i (p.key)}<span class="tile" class:lead={i === 0}>{#if p.poster}<img src={p.poster} alt="" />{/if}</span>{/each}
       {:else if item.poster}<img src={item.poster} alt="" />{:else}<Icon name="music" size={64} />{/if}
+      <!-- La pochette lance la lecture, comme dans Plex (au téléviseur, le bouton « Lire » reste le premier choix). -->
+      {#if !device.tv}
+        <!-- Doublon du bouton « Lire » : hors du parcours au clavier et des lecteurs d'écran, qui ont déjà celui-là. -->
+        <button class="cover-play" onclick={() => start()} title={t("music.detail.play")} tabindex="-1" aria-hidden="true">
+          <span><Icon name="play" size={26} filled /></span>
+        </button>
+      {/if}
     </div>
     <div class="info">
       <div class="eyebrow">{mix ? t("mix.eyebrow") : (label[item.kind] ?? "")}</div>
@@ -230,6 +237,7 @@
   }
 
   .cover {
+    position: relative;
     display: grid;
     place-items: center;
     flex: none;
@@ -240,6 +248,52 @@
     background: var(--bg-elev);
     color: var(--text-faint);
     box-shadow: 0 20px 50px #000c;
+  }
+
+  /* Survol de la pochette : un voile et le bouton de lecture, comme dans Plex. */
+  .cover-play {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: none;
+    border-radius: inherit;
+    background: transparent;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s, background 0.15s;
+  }
+
+  .cover-play span {
+    display: grid;
+    place-items: center;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: var(--accent-text);
+    box-shadow: 0 8px 24px #0008;
+  }
+
+  .cover:hover .cover-play {
+    opacity: 1;
+    background: #0006;
+  }
+
+  /* Écran tactile : pas de survol, le bouton reste visible sans voile. */
+  @media (hover: none) {
+    .cover-play {
+      opacity: 1;
+      align-items: end;
+      justify-items: end;
+      padding: 12px;
+    }
+
+    .cover-play span {
+      width: 48px;
+      height: 48px;
+    }
   }
 
   .cover.round {
