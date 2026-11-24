@@ -1,4 +1,4 @@
-//! Maku Server : relais Seerr et Tracearr, installé à côté d'un serveur Plex, Jellyfin ou Emby.
+//! Maku Server : relais Seerr, Tracearr et Kavita, installé à côté d'un serveur Plex, Jellyfin ou Emby.
 //!
 //! Seerr et Tracearr restent sur le réseau local ; seul ce relais est joignable, et il ne laisse passer
 //! que les utilisateurs du serveur multimédia : chaque appel porte le jeton de l'utilisateur
@@ -8,18 +8,21 @@
 //! - `GET /maku/info` : ce que le relais propose (sans jeton), pour que Maku le reconnaisse. Avec `MAKU_KEY`,
 //!   il y prouve aussi son identité : Maku lui envoie un nombre au hasard, qu'il signe (voir `proof`).
 //! - `/seerr/api/v1/…` et `/tracearr/api/v1/…` : l'API de chacun, et rien d'autre (ni leur site web).
+//! - `/maku/kavita…` et `/kavita/api/…` : un compte Kavita par utilisateur, et l'API de Kavita (voir `kavita`).
 
 mod auth;
+mod kavita;
 mod proof;
 mod proxy;
 
 use anyhow::{bail, Context, Result};
 use axum::extract::{Query, State};
-use axum::routing::get;
+use axum::routing::{get, put};
 use axum::{Json, Router};
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::net::SocketAddr;
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -33,7 +36,7 @@ pub enum Kind {
 }
 
 impl Kind {
-    fn name(self) -> &'static str {
+    pub fn name(self) -> &'static str {
         match self {
             Kind::Plex => "plex",
             Kind::Jellyfin => "jellyfin",
@@ -48,6 +51,12 @@ pub struct Config {
     pub media: String,
     pub seerr: Option<String>,
     pub tracearr: Option<String>,
+    /// Kavita, et la clé d'API de son administrateur (`KAVITA_URL`, `KAVITA_KEY`).
+    pub kavita: Option<(String, String)>,
+    /// Dossier où le relais garde les comptes Kavita (`MAKU_DATA`, par défaut `/data`).
+    pub data: PathBuf,
+    /// plex.tv, qui dit à qui appartient un jeton Plex (remplacé dans les tests).
+    pub plextv: String,
     pub listen: SocketAddr,
     /// Graine de la clé du relais, tirée de `MAKU_KEY` (voir `proof`). Sans elle, le relais ne prouve rien.
     pub key: Option<[u8; 32]>,
@@ -55,7 +64,8 @@ pub struct Config {
 
 impl Config {
     /// Lue dans l'environnement : `PLEX_URL`, `JELLYFIN_URL` ou `EMBY_URL` (un seul), `SEERR_URL`,
-    /// `TRACEARR_URL`, `MAKU_LISTEN` (par défaut `0.0.0.0:32700`) et `MAKU_KEY` (phrase secrète, facultative).
+    /// `TRACEARR_URL`, `KAVITA_URL` et `KAVITA_KEY`, `MAKU_DATA` (par défaut `/data`), `MAKU_LISTEN` (par
+    /// défaut `0.0.0.0:32700`) et `MAKU_KEY` (phrase secrète, facultative).
     pub fn from_env(get: impl Fn(&str) -> Option<String>) -> Result<Self> {
         let url = |key: &str| -> Result<Option<String>> {
             let Some(v) = get(key).map(|v| v.trim().trim_end_matches('/').to_owned()).filter(|v| !v.is_empty()) else {
@@ -78,9 +88,18 @@ impl Config {
         };
         let seerr = url("SEERR_URL")?;
         let tracearr = url("TRACEARR_URL")?;
-        if seerr.is_none() && tracearr.is_none() {
-            bail!("rien à relayer : indiquez SEERR_URL, TRACEARR_URL, ou les deux");
+        let kavita_key = get("KAVITA_KEY").map(|v| v.trim().to_owned()).filter(|v| !v.is_empty());
+        let kavita = match (url("KAVITA_URL")?, kavita_key) {
+            (Some(u), Some(k)) if k.len() <= 256 && k.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_') => Some((u, k)),
+            (Some(_), Some(_)) => bail!("KAVITA_KEY : clé invalide (lettres, chiffres et tirets)"),
+            (Some(_), None) => bail!("KAVITA_KEY : indiquez la clé d'API de l'administrateur de Kavita"),
+            (None, Some(_)) => bail!("KAVITA_URL : indiquez l'adresse de Kavita"),
+            (None, None) => None,
+        };
+        if seerr.is_none() && tracearr.is_none() && kavita.is_none() {
+            bail!("rien à relayer : indiquez SEERR_URL, TRACEARR_URL ou KAVITA_URL");
         }
+        let data = PathBuf::from(get("MAKU_DATA").map(|v| v.trim().to_owned()).filter(|v| !v.is_empty()).unwrap_or_else(|| "/data".into()));
         let listen = get("MAKU_LISTEN").unwrap_or_else(|| "0.0.0.0:32700".into());
         let listen = listen.parse().with_context(|| format!("MAKU_LISTEN : adresse invalide ({listen})"))?;
         let key = match get("MAKU_KEY").map(|v| v.trim().to_owned()).filter(|v| !v.is_empty()) {
@@ -90,7 +109,7 @@ impl Config {
             Some(phrase) => Some(proof::seed(&phrase)),
             None => None,
         };
-        Ok(Config { kind, media, seerr, tracearr, listen, key })
+        Ok(Config { kind, media, seerr, tracearr, kavita, data, plextv: "https://plex.tv".into(), listen, key })
     }
 }
 
@@ -100,6 +119,8 @@ pub struct App {
     pub auth: auth::Cache,
     /// Clé du relais, s'il en a une (`MAKU_KEY`).
     pub signer: Option<proof::Signer>,
+    /// Kavita, s'il est relayé : ses comptes par utilisateur.
+    pub kavita: Option<kavita::Kavita>,
 }
 
 pub type Shared = Arc<App>;
@@ -112,10 +133,14 @@ pub fn app(cfg: Config) -> Result<Router> {
         .redirect(reqwest::redirect::Policy::none())
         .build()?;
     let signer = cfg.key.as_ref().map(proof::Signer::new).transpose()?;
-    let state = Arc::new(App { cfg, http, auth: auth::Cache::default(), signer });
+    let kavita = cfg.kavita.clone().map(|(url, key)| kavita::Kavita::open(url, key, cfg.data.clone())).transpose()?;
+    let state = Arc::new(App { cfg, http, auth: auth::Cache::default(), signer, kavita });
     Ok(Router::new()
         .route("/", get(|| async { format!("Maku Server {VERSION}\n") }))
         .route("/maku/info", get(info))
+        .route("/maku/kavita", get(kavita::session))
+        .route("/maku/kavita/admin", get(kavita::admin_list))
+        .route("/maku/kavita/admin/users/{id}", put(kavita::admin_set))
         .fallback(proxy::forward)
         .with_state(state))
 }
@@ -135,6 +160,7 @@ async fn info(State(app): State<Shared>, Query(q): Query<HashMap<String, String>
         "id": id,
         "seerr": app.cfg.seerr.is_some(),
         "tracearr": app.cfg.tracearr.is_some(),
+        "kavita": app.cfg.kavita.is_some(),
     });
     if let Some(signer) = &app.signer {
         out["key"] = json!(signer.public());
@@ -156,11 +182,12 @@ async fn main() {
     };
     let listen = cfg.listen;
     println!(
-        "Maku Server {VERSION} : {} {} ; Seerr {} ; Tracearr {} ; écoute sur {listen}",
+        "Maku Server {VERSION} : {} {} ; Seerr {} ; Tracearr {} ; Kavita {} ; écoute sur {listen}",
         cfg.kind.name(),
         cfg.media,
         cfg.seerr.as_deref().unwrap_or("non"),
         cfg.tracearr.as_deref().unwrap_or("non"),
+        cfg.kavita.as_ref().map(|(u, _)| u.as_str()).unwrap_or("non"),
     );
     if cfg.key.is_none() {
         println!("Maku Server : sans MAKU_KEY, le relais ne prouve pas son identité à Maku (voir le README).");
@@ -210,3 +237,5 @@ async fn shutdown() {
 
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod tests_kavita;

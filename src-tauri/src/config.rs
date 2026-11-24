@@ -35,6 +35,8 @@ pub struct Config {
     /// Kavita (livres, BD, mangas) du serveur en cours : son adresse et la clé d'API du compte de l'utilisateur.
     pub kavita_url: Option<String>,
     pub kavita_key: Option<String>,
+    /// Kavita fourni par Maku Server (un compte par utilisateur, géré par l'administrateur), et non saisi à la main.
+    pub kavita_relay: bool,
     /// Clé d'API TMDB de l'utilisateur (facultative) : logos des titres que Plex n'a pas.
     pub tmdb_key: Option<String>,
     /// Seerr et Tracearr de chacun des autres serveurs (clé : voir `SavedServer::key`). Les champs
@@ -63,6 +65,7 @@ pub struct Services {
     pub tracearr_cookies: Option<String>,
     pub kavita_url: Option<String>,
     pub kavita_key: Option<String>,
+    pub kavita_relay: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -110,6 +113,7 @@ impl Config {
             tracearr_cookies: self.tracearr_cookies.take(),
             kavita_url: self.kavita_url.take(),
             kavita_key: self.kavita_key.take(),
+            kavita_relay: std::mem::take(&mut self.kavita_relay),
         }
     }
 
@@ -120,6 +124,7 @@ impl Config {
         self.tracearr_cookies = s.tracearr_cookies;
         self.kavita_url = s.kavita_url;
         self.kavita_key = s.kavita_key;
+        self.kavita_relay = s.kavita_relay;
     }
 
     /// Le serveur en cours a changé (`old` : celui d'avant) : ses Seerr et Tracearr sont rangés, ceux
@@ -227,11 +232,17 @@ mod tests {
     /// Kavita est rangé avec Seerr et Tracearr : chaque serveur garde le sien.
     #[test]
     fn each_server_keeps_its_own_kavita() {
-        let mut c = Config { server: Some(server("", "plex1")), kavita_url: Some("http://kavita-a".into()), kavita_key: Some("cle-a".into()), ..Default::default() };
+        let mut c = Config {
+            server: Some(server("", "plex1")),
+            kavita_url: Some("http://kavita-a".into()),
+            kavita_key: Some("cle-a".into()),
+            kavita_relay: true,
+            ..Default::default()
+        };
         switch(&mut c, Some(server("jellyfin", "jf1")));
-        assert_eq!((c.kavita_url.as_deref(), c.kavita_key.as_deref()), (None, None));
+        assert_eq!((c.kavita_url.as_deref(), c.kavita_key.as_deref(), c.kavita_relay), (None, None, false));
         switch(&mut c, Some(server("", "plex1")));
-        assert_eq!((c.kavita_url.as_deref(), c.kavita_key.as_deref()), (Some("http://kavita-a"), Some("cle-a")));
+        assert_eq!((c.kavita_url.as_deref(), c.kavita_key.as_deref(), c.kavita_relay), (Some("http://kavita-a"), Some("cle-a"), true));
     }
 
     #[test]

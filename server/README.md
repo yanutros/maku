@@ -1,9 +1,10 @@
 # Maku Server
 
 Maku Server est un petit relais à installer à côté d'un serveur **Plex**, **Jellyfin** ou **Emby**. Avec Jellyfin 12, le
-[plugin Maku](../plugins/jellyfin/) fait la même chose depuis Jellyfin lui-même, sans Docker ni port en plus. Il
-permet aux utilisateurs de Maku de faire leurs demandes avec **Seerr** (Overseerr, Jellyseerr) et de
-suivre leurs statistiques **Tracearr**, sans que Seerr et Tracearr soient exposés sur Internet.
+[plugin Maku](../plugins/jellyfin/) fait la même chose pour Seerr et Tracearr depuis Jellyfin lui-même, sans Docker ni
+port en plus. Il permet aux utilisateurs de Maku de faire leurs demandes avec **Seerr** (Overseerr, Jellyseerr), de
+suivre leurs statistiques **Tracearr** et de lire les livres, BD et mangas de **Kavita**, sans que ces services soient
+exposés sur Internet.
 
 - Seerr et Tracearr restent sur le réseau local. Seul Maku Server est joignable, sur un seul port
   (32700 par défaut).
@@ -31,11 +32,20 @@ services:
       PLEX_URL: http://192.168.1.10:32400
       # JELLYFIN_URL: http://192.168.1.10:8096
       # EMBY_URL: http://192.168.1.10:8096
-      # Ce qu'il faut relayer : l'un, l'autre ou les deux.
+      # Ce qu'il faut relayer : un ou plusieurs de ces services.
       SEERR_URL: http://192.168.1.10:5055
       TRACEARR_URL: http://192.168.1.10:3000
+      # Kavita : son adresse et la clé d'API de son compte administrateur (voir « Kavita » plus bas).
+      # KAVITA_URL: http://192.168.1.10:5000
+      # KAVITA_KEY: "clé d'API de l'administrateur de Kavita"
       # Conseillé : une longue phrase au hasard, par laquelle le relais prouve à Maku qui il est (voir plus bas).
       # MAKU_KEY: "collez ici le résultat de : openssl rand -hex 24"
+    # Avec Kavita seulement : le dossier où le relais retient le compte Kavita de chacun.
+    volumes:
+      - maku-data:/data
+
+volumes:
+  maku-data:
 ```
 
 Ou en une ligne :
@@ -49,13 +59,17 @@ docker run -d --name maku-server --restart unless-stopped -p 32700:32700 \
 ```
 
 L'image est faite pour les ordinateurs (amd64) et les serveurs ARM 64 bits (Raspberry Pi, NAS). Elle ne
-contient que le programme, sans dossier de données : Maku Server ne garde rien sur disque.
+contient que le programme. Maku Server ne garde rien sur disque, sauf avec Kavita : le compte Kavita de chaque
+utilisateur, dans `/data`.
 
 | Variable | Par défaut | Rôle |
 |---|---|---|
 | `PLEX_URL`, `JELLYFIN_URL` ou `EMBY_URL` | (obligatoire, un seul) | adresse du serveur, vue depuis le conteneur |
 | `SEERR_URL` | | adresse de Seerr, vue depuis le conteneur |
 | `TRACEARR_URL` | | adresse de Tracearr, vue depuis le conteneur |
+| `KAVITA_URL` | | adresse de Kavita, vue depuis le conteneur |
+| `KAVITA_KEY` | (obligatoire avec Kavita) | clé d'API du compte administrateur de Kavita |
+| `MAKU_DATA` | `/data` | dossier où sont retenus les comptes Kavita (à garder d'une mise à jour à l'autre) |
 | `MAKU_LISTEN` | `0.0.0.0:32700` | adresse et port d'écoute |
 | `MAKU_KEY` | | phrase secrète (16 caractères au moins) : le relais prouve son identité à Maku |
 
@@ -63,7 +77,40 @@ Le port 32600 est évité : Plex l'utilise pour son service tuner (DVR). Si 3270
 choisissez-en un autre avec `MAKU_LISTEN` ; Maku ne le trouvera alors plus tout seul, et ses adresses se
 renseignent dans les Réglages ou l'invitation.
 
-Il faut au moins `SEERR_URL` ou `TRACEARR_URL`.
+Il faut au moins `SEERR_URL`, `TRACEARR_URL` ou `KAVITA_URL`.
+
+## Kavita : livres, BD et mangas
+
+Kavita ne connaît pas les comptes Plex, Jellyfin ou Emby. Maku Server donne donc à chaque utilisateur **son propre
+compte Kavita**, avec sa propre progression de lecture, et l'administrateur choisit qui lit quoi.
+
+1. Dans Kavita, connecté avec le compte administrateur : **Paramètres → Clés d'authentification**, créez une clé.
+2. Donnez au relais `KAVITA_URL`, cette clé (`KAVITA_KEY`) et un volume pour `/data`, puis redémarrez-le.
+3. Dans Maku, le propriétaire du serveur (Plex, Jellyfin ou Emby) trouve **Livres** dans la catégorie Admin : la liste
+   des utilisateurs du serveur, avec une case par bibliothèque Kavita.
+   - La première case cochée crée le compte Kavita de l'utilisateur (un nom tiré du sien, un mot de passe tiré au
+     hasard que personne n'a besoin de connaître, une clé d'API pour Maku).
+   - Tout décocher lui retire l'accès ; son compte et sa progression restent, s'il revient.
+   - Personne n'a accès tant que vous ne l'avez pas coché.
+4. Chez l'utilisateur, rien à régler : ses bibliothèques apparaissent dans Maku à côté des autres. Le propriétaire du
+   serveur, lui, lit avec le compte administrateur de Kavita (celui de la clé), et garde sa progression.
+
+Ce qu'il faut savoir :
+
+- **La clé administrateur ne quitte jamais le relais.** Chaque utilisateur reçoit la clé de son propre compte : Kavita
+  lui refuse tout ce que vous ne lui avez pas ouvert, même avec une application modifiée.
+- Les appels passent par le relais (`/kavita/api/…`) avec le jeton de l'utilisateur auprès du serveur, comme pour
+  Seerr. Les images (couvertures, pages) sont chargées sans ce jeton : le relais ne les laisse passer qu'avec une clé
+  Kavita qu'il a vue, depuis moins d'un jour, auprès d'un utilisateur reconnu.
+- Les comptes sont retenus dans `/data/kavita.json`, lisible par le seul relais. Gardez ce volume d'une mise à jour à
+  l'autre : sans lui, le relais créerait de nouveaux comptes, et chacun repartirait de zéro.
+- Avec un dossier de la machine plutôt qu'un volume (`- ./maku-data:/data`), donnez-le à l'utilisateur du relais :
+  `sudo chown 65532:65532 ./maku-data`.
+- Les comptes créés s'appellent comme l'utilisateur, suivis de la fin de son identifiant (`Camille.123456`) ; ils
+  sont visibles dans **Kavita → Paramètres → Utilisateurs**. Leur adresse e-mail, en `@maku.invalid`, ne mène
+  nulle part : aucune invitation n'arrive chez personne.
+- Le [plugin Maku pour Jellyfin](../plugins/jellyfin/) ne relaie pas encore Kavita : avec Jellyfin, utilisez Maku Server
+  pour Kavita.
 
 ## Côté Maku
 
@@ -98,7 +145,7 @@ openssl rand -hex 24
 À savoir :
 
 - **Gardez la même phrase** d'une mise à jour à l'autre : elle redonne la même clé, et rien ne change pour vos
-  utilisateurs. Maku Server ne garde toujours rien sur disque.
+  utilisateurs. La clé n'est pas enregistrée sur disque : elle est tirée de la phrase à chaque démarrage.
 - **Si vous la changez** (ou la retirez), Maku ne reconnaît plus le relais. Chaque utilisateur retire puis remet
   l'adresse de Seerr ou de Tracearr dans **Réglages → Services** : Maku retient alors la nouvelle clé.
 - **Sans `MAKU_KEY`**, tout fonctionne comme avant : Maku reconnaît le relais à l'identifiant du serveur.
@@ -157,6 +204,10 @@ passer les jetons : si cela vous gêne, préférez votre propre proxy inverse ou
 | `GET /maku/info` | version, type et identifiant du serveur, services relayés (sans jeton) |
 | `/seerr/api/v1/…` | API de Seerr (jeton `X-Maku-Token` obligatoire) |
 | `/tracearr/api/v1/…` | API de Tracearr (jeton `X-Maku-Token` obligatoire) |
+| `GET /maku/kavita` | clé du compte Kavita de l'utilisateur, s'il a accès (jeton obligatoire) |
+| `GET /maku/kavita/admin` | bibliothèques Kavita et accès de chacun (propriétaire du serveur) |
+| `PUT /maku/kavita/admin/users/{id}` | bibliothèques ouvertes à un utilisateur ; la première crée son compte |
+| `/kavita/api/…` | API de Kavita (jeton obligatoire ; images : clé Kavita vue récemment) |
 
 ## Construire
 

@@ -329,3 +329,61 @@ test("Réglages › Services : connecter Kavita", async ({ page }, info) => {
   // L'adresse retenue : la racine de Kavita, sans la page d'accueil.
   await expect(page.getByLabel("Adresse de Kavita")).toHaveValue("http://kavita.lan:5000");
 });
+
+// --- Kavita par Maku Server : un compte par utilisateur, l'administrateur choisit qui lit quoi ---
+
+const accords = (page: Page) => page.evaluate(() => (window as unknown as { __kavitaGrants: { id: string; libraries: number[] }[] }).__kavitaGrants.map((g) => ({ id: g.id, libraries: g.libraries })));
+
+test("Maku Server : Administration › Livres, ouvrir puis retirer des bibliothèques à un utilisateur", async ({ page }, info) => {
+  test.skip(appareil(info) === "tv", "pas de Kavita au téléviseur");
+  await ouvrir(page, info, "accueil&kavitarelay&admin");
+  // Les bibliothèques du compte arrivent sans rien régler.
+  if (appareil(info) !== "telephone") await expect(page.getByRole("navigation").getByRole("button", { name: "Mangas" })).toBeVisible();
+  // Admin › Livres : dans le menu sur ordinateur, sous les bibliothèques au téléphone.
+  if (appareil(info) === "telephone") {
+    await page.locator("nav.tabs button", { hasText: "Bibliothèques" }).click();
+    await page.locator("button.library", { hasText: "Livres" }).click();
+  } else {
+    await page.locator("button.item", { hasText: "Livres" }).click();
+  }
+  await expect(page.getByRole("heading", { name: "Livres", level: 1 })).toBeVisible();
+  // Les utilisateurs du serveur, et un ancien qui a encore un compte (pour pouvoir le lui retirer).
+  const hugo = page.getByRole("region", { name: "Hugo" });
+  await expect(hugo.getByText("Aucun accès")).toBeVisible();
+  await expect(page.getByRole("region", { name: "Ancien ami" }).getByText("n'est plus sur le serveur")).toBeVisible();
+  // Cocher : le compte est créé avec cette bibliothèque.
+  await hugo.getByRole("checkbox", { name: "Romans" }).check();
+  await expect(hugo.getByText("1 bibliothèque")).toBeVisible();
+  await expect.poll(() => accords(page)).toContainEqual({ id: "plex:102", libraries: [2] });
+  await hugo.getByRole("checkbox", { name: "Mangas" }).check();
+  await expect(hugo.getByText("2 bibliothèques")).toBeVisible();
+  await expect.poll(() => accords(page)).toContainEqual({ id: "plex:102", libraries: [1, 2] });
+  // Tout décocher : plus d'accès.
+  const ancien = page.getByRole("region", { name: "Ancien ami" });
+  await ancien.getByRole("checkbox", { name: "Mangas" }).uncheck();
+  await expect(ancien.getByText("Aucun accès")).toBeVisible();
+  await expect.poll(() => accords(page)).toContainEqual({ id: "plex:900", libraries: [] });
+});
+
+test("Maku Server : Kavita fourni, rien à saisir dans les Réglages ; pas d'onglet Livres sans lui", async ({ page }, info) => {
+  test.skip(appareil(info) === "tv", "pas de Kavita au téléviseur");
+  await ouvrir(page, info, "reglages&kavitarelay");
+  await page.evaluate(async () => {
+    const nav = await import("/src/lib/nav.svelte.ts");
+    nav.go({ name: "settings", page: "services" });
+  });
+  await expect(page.getByText("Fourni par Maku Server")).toBeVisible();
+  await expect(page.getByLabel("Clé d'API Kavita")).toHaveCount(0);
+
+  // Kavita saisi à la main : pas d'administration des livres.
+  await ouvrir(page, info, "accueil&kavita&admin");
+  if (appareil(info) === "telephone") await page.locator("nav.tabs button", { hasText: "Bibliothèques" }).click();
+  await expect(page.getByRole("button", { name: "Dashboard" }).first()).toBeVisible();
+  await expect(page.getByRole("button", { name: "Livres", exact: true })).toHaveCount(0);
+  await page.evaluate(async () => {
+    const nav = await import("/src/lib/nav.svelte.ts");
+    nav.go({ name: "admin", page: "books" });
+  });
+  await expect(page.locator(".page .muted").first()).toBeVisible();
+  await expect(page.getByRole("checkbox")).toHaveCount(0);
+});

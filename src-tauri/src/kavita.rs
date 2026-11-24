@@ -24,6 +24,8 @@ pub struct Kavita {
     http: Client,
     base: String,
     key: String,
+    /// Jeton du serveur multimédia, quand Kavita passe par Maku Server (`…/kavita`).
+    relay: reqwest::header::HeaderMap,
 }
 
 /// Bibliothèque Kavita : `kind` vaut « manga », « comic » ou « book » (romans, light novels).
@@ -242,7 +244,13 @@ impl Kavita {
         if key.is_empty() || key.len() > 256 || !key.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_') {
             bail!(crate::i18n::tr("kavita.badKey"));
         }
-        Ok(Kavita { http, base: clean_url(url)?, key: key.to_owned() })
+        Ok(Kavita { http, base: clean_url(url)?, key: key.to_owned(), relay: Default::default() })
+    }
+
+    /// Joint à chaque appel ce que demande le relais (le jeton du serveur multimédia).
+    pub fn through(mut self, relay: reqwest::header::HeaderMap) -> Self {
+        self.relay = relay;
+        self
     }
 
     pub fn base(&self) -> &str {
@@ -250,7 +258,12 @@ impl Kavita {
     }
 
     async fn call(&self, method: Method, path: &str, body: Option<Value>) -> Result<reqwest::Response> {
-        let mut req = self.http.request(method, format!("{}{path}", self.base)).header("x-api-key", &self.key).header("Accept", "application/json");
+        let mut req = self
+            .http
+            .request(method, format!("{}{path}", self.base))
+            .headers(self.relay.clone())
+            .header("x-api-key", &self.key)
+            .header("Accept", "application/json");
         if let Some(body) = body {
             req = req.json(&body);
         }
@@ -529,6 +542,10 @@ mod tests {
                     let (method, target) = (first.next().unwrap_or_default().to_owned(), first.next().unwrap_or_default().to_owned());
                     let key = text.lines().find_map(|l| l.to_ascii_lowercase().strip_prefix("x-api-key:").map(|v| v.trim().to_owned())).unwrap_or_default();
                     let body = text.split_once("\r\n\r\n").map(|(_, b)| b.to_owned()).unwrap_or_default();
+                    // Jeton du serveur joint par le relais : noté à part.
+                    if let Some(token) = text.lines().find_map(|l| l.to_ascii_lowercase().strip_prefix("x-maku-token:").map(|v| v.trim().to_owned())) {
+                        seen.lock().unwrap().push(("JETON".into(), target.clone(), token, String::new()));
+                    }
                     seen.lock().unwrap().push((method, target.clone(), key.clone(), body));
                     let path = target.split('?').next().unwrap_or_default();
                     let (status, extra, reply): (&str, &str, &str) = if key != "cle-ok" {
@@ -680,6 +697,18 @@ mod tests {
         // Un autre livre, ou du texte : inchangés.
         assert_eq!(r("//h/api/book/8/book-resources?file=a"), "//h/api/book/8/book-resources?file=a");
         assert_eq!(r("<p>Été</p>"), "<p>Été</p>");
+    }
+
+    #[tokio::test]
+    async fn par_le_relais_le_jeton_du_serveur_est_joint() {
+        let (base, log) = faux_kavita().await;
+        let direct = Kavita::new(Client::new(), &base, "cle-ok").unwrap();
+        direct.libraries().await.unwrap();
+        assert!(!log.lock().unwrap().iter().any(|r| r.0 == "JETON"), "pas de jeton sans relais");
+        let relay = crate::maku_server::relay_headers(Some(crate::maku_server::Relay::Server("jeton-plex".into())));
+        Kavita::new(Client::new(), &base, "cle-ok").unwrap().through(relay).libraries().await.unwrap();
+        let log = log.lock().unwrap();
+        assert!(log.iter().any(|r| r.0 == "JETON" && r.2 == "jeton-plex"), "{log:?}");
     }
 
     #[test]

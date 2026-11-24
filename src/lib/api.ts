@@ -25,6 +25,8 @@ export interface Session {
   tracearrUrl: string | null;
   /** Kavita (livres, BD, mangas) connecté pour ce serveur : son adresse (la clé reste dans la configuration). */
   kavitaUrl?: string | null;
+  /** Kavita fourni par Maku Server : un compte par utilisateur, réglé par l'administrateur (rien à saisir). */
+  kavitaRelay?: boolean;
   tracearrConnected: boolean;
   /** Une clé TMDB est enregistrée (logos des titres que Plex n'a pas). */
   tmdb: boolean;
@@ -140,6 +142,13 @@ export interface BookTocItem {
   page: number;
   part: string;
   children: BookTocItem[];
+}
+
+/** Administration › Livres (Kavita par Maku Server). `members` : les utilisateurs de Jellyfin ou d'Emby (Plex : null). */
+export interface KavitaAdmin {
+  libraries: { id: number; name: string; type: number }[];
+  users: { id: string; name: string; username: string; libraries: number[] }[];
+  members: { id: string; name: string }[] | null;
 }
 
 export interface Item {
@@ -773,6 +782,10 @@ export const api = {
     invoke<void>("kavita_progress", { progress }),
   kavitaBookPage: (chapterId: number, page: number) => invoke<string>("kavita_book_page", { chapterId, page }),
   kavitaBookToc: (chapterId: number) => invoke<BookTocItem[]>("kavita_book_toc", { chapterId }),
+  kavitaRelay: () => invoke<{ admin: boolean; changed: boolean } | null>("kavita_relay"),
+  kavitaAdmin: () => invoke<KavitaAdmin>("kavita_admin"),
+  kavitaAdminSet: (id: string, name: string, libraries: number[]) =>
+    invoke<{ id: string; name: string; libraries: number[] }>("kavita_admin_set", { id, name, libraries }),
   tracearrStartLogin: (open = true) => invoke<{ handle: string; authUrl: string }>("tracearr_start_login", { open }),
   tracearrPollLogin: (handle: string) => invoke<"waiting" | "done" | "expired">("tracearr_poll_login", { handle }),
   tracearrJellyfinLogin: () => invoke<void>("tracearr_jellyfin_login"),

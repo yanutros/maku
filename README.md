@@ -56,7 +56,7 @@ absent, et **Tracearr**, pour suivre ses statistiques. Tout se fait avec son com
 | 🏠 **[Les bibliothèques](https://yanutros.github.io/maku/bibliotheques.html)** | accueil façon plateforme de streaming, fiches immersives (logos, notes IMDb, Rotten Tomatoes, TMDB, Allociné), catégories, collections, filtres, tri et bandeau des lettres |
 | 🎵 **[La musique](https://yanutros.github.io/maku/musique.html)** | playlists, Mix of Three, paroles synchronisées, radio d'artiste, enchaînement sans blanc, Chromecast, AirPlay, musique en arrière-plan et Android Auto |
 | 📥 **[Les demandes](https://yanutros.github.io/maku/demandes.html)** | tendances et sorties à venir via Seerr, fiche complète, demande d'un film ou de saisons en un clic |
-| 📚 **[Les livres, BD et mangas](https://yanutros.github.io/maku/configurer.html#kavita)** | avec Kavita : ses bibliothèques à côté des autres (pas sur la télé), séries, volumes et chapitres, lecteur de BD et de mangas (gauche à droite, droite à gauche, défilement vertical ; page entière ou largeur, deux pages côte à côte sur grand écran, zoom au double-clic, au pincement ou à Ctrl + molette), PDF, lecteur de livres EPUB (pages ou défilement, sommaire, taille du texte, thème sombre, clair ou sépia), progression de lecture de votre compte Kavita |
+| 📚 **[Les livres, BD et mangas](https://yanutros.github.io/maku/configurer.html#kavita)** | avec Kavita : ses bibliothèques à côté des autres (pas sur la télé), séries, volumes et chapitres, lecteur de BD et de mangas (gauche à droite, droite à gauche, défilement vertical ; page entière ou largeur, deux pages côte à côte sur grand écran, zoom au double-clic, au pincement ou à Ctrl + molette), PDF, lecteur de livres EPUB (pages ou défilement, sommaire, taille du texte, thème sombre, clair ou sépia), progression de lecture de votre compte Kavita ; avec Maku Server, un compte Kavita par utilisateur, et l'administrateur choisit qui lit quoi |
 | 📊 **[Les statistiques](https://yanutros.github.io/maku/statistiques.html)** | avec Tracearr : temps devant l'écran, top 10 du mois, genres préférés, plus longue série, plus gros marathon |
 | 📺 **[TV, téléphone et voiture](https://yanutros.github.io/maku/appareils.html)** | une interface pour la télécommande, une autre pour le téléphone, la musique sur Android Auto, des mises à jour intégrées |
 | 🛠️ **[Pour l'administrateur](https://yanutros.github.io/maku/administration.html)** | lectures en cours, débit, utilisateurs, réglages du serveur, demandes Seerr à valider, corriger ou refuser, fiches à modifier, association à corriger, collections intelligentes, invitations en QR code |
@@ -116,7 +116,8 @@ Au premier lancement, choisissez **Plex** (connexion par code dans le navigateur
 
 Tout est expliqué pas à pas dans le [guide de configuration](https://yanutros.github.io/maku/configurer.html).
 L'administrateur qui ne veut pas exposer Seerr et Tracearr sur Internet installe le relais [Maku Server](server/README.md)
-(image Docker `ghcr.io/yanutros/maku-server`, amd64 et arm64).
+(image Docker `ghcr.io/yanutros/maku-server`, amd64 et arm64). Il relaie aussi Kavita, en donnant à chaque
+utilisateur son propre compte Kavita.
 
 Avec Jellyfin 12, le [plugin Maku](plugins/jellyfin/) fait la même chose depuis Jellyfin lui-même, par l'adresse du
 serveur, sans Docker ni port en plus ; Seerr s'y utilise sans mot de passe (dépôt à ajouter dans Jellyfin :
@@ -177,7 +178,8 @@ intégrant jsQR). Sur GitHub, ils passent à chaque envoi sur `main` et avant la
 version, comme ceux de Maku Server (`cargo test` dans `server` : jeton vérifié auprès de Plex, de Jellyfin et d'Emby,
 chacun à sa façon, gardé ensuite ; serveur ou service injoignable ; envoi trop gros ; chemins hors de l'API ;
 redirection rendue telle quelle ; avec `MAKU_KEY`, signature du nombre envoyé par Maku, que les deux programmes
-calculent de la même façon). `cargo clippy` y passe aussi, dans les deux, sans aucun signalement.
+calculent de la même façon ; Kavita : propriétaire reconnu par plex.tv ou l'administrateur Jellyfin, compte créé,
+ouvert puis retiré, retenu sur disque, images ouvertes aux seules clés vues). `cargo clippy` y passe aussi, dans les deux, sans aucun signalement.
 
 **Vidéo dans Maku sous Linux.** `tests/linux.spec.ts` vérifie que le réglage n'est proposé que sous Linux, et que la
 fenêtre passe en plein écran et au premier plan quand l'image s'affiche, pas avant, et jamais sans le réglage. Les
@@ -336,11 +338,12 @@ traduisez les valeurs sans toucher aux clés ni aux `{{variables}}`, puis décla
 | `src-tauri/src/seerr.rs` | Seerr : connexion Plex ou Jellyfin, découverte, fiches détaillées, demandes, et leur gestion par l'administrateur (liste, validation, modification, suppression) |
 | `src-tauri/src/tracearr.rs` | Tracearr : connexion Plex et tableau de bord personnel |
 | `src-tauri/src/kavita.rs`, `src/lib/books.svelte.ts`, `src/views/BookLibrary.svelte`, `src/views/BookSeries.svelte`, `src/components/BookReader.svelte`, `src/components/EpubReader.svelte` | Kavita : clé d'API du compte de l'utilisateur (en-tête `x-api-key`, rangée par serveur comme Seerr et Tracearr), bibliothèques ajoutées à celles du serveur (clé `kavita:<numéro>`, pas au téléviseur ni sur l'accueil), séries, volumes et chapitres, lecteur d'images (PDF compris, pages servies en images par Kavita ; double page appariée comme Kavita d'après les pages en largeur qu'il relève, zoom, mode largeur ; sens, pages et ajustement retenus par série ; nom du chapitre sans répéter celui de la série), lecteur EPUB (HTML de chaque section préparé par Kavita, adresses des images rendues absolues côté Rust, affiché nettoyé dans un shadow DOM, en colonnes ou en défilement ; réglages et endroit dans la section gardés sur l'appareil), progression envoyée à Kavita. Tests : `kavita.rs` (faux Kavita) et `tests/livres.spec.ts` |
+| `src-tauri/src/commands/books.rs`, `src/components/BookAccess.svelte` | Kavita par Maku Server : clé du compte de l'utilisateur demandée au relais au démarrage (celui de Seerr, de Tracearr, ou trouvé sur le réseau local ; accès retiré oublié), jeton du serveur joint aux appels ; Admin → Livres, pour le propriétaire du serveur, quel qu'il soit (une case par bibliothèque Kavita et par utilisateur) |
 | `src-tauri/src/maku_server.rs` | relais Maku Server : recherche sur la machine du serveur, vérification (`/maku/info`, signature du relais s'il a une clé, retenue par serveur dans la configuration) et jeton joint aux appels |
 | `src-tauri/src/tracks.rs`, `src/lib/trackPrefs.ts` | son et sous-titres préférés : la langue du son et les sous-titres choisis dans Réglages → Lecteur, et le choix fait sur un titre (dans le lecteur ou sur sa fiche), retenu par titre ou par série dans la configuration. Le Rust déplace la marque « piste choisie » du serveur là où il lit une fiche : la fiche, le lecteur et la conversion suivent |
 | `src/lib/androidBridge.ts` | pont Android : la page tire une clé, la présente à Android avant tout, et la joint à chaque appel (`window.PlexrDevice`) ; un cadre d'un autre site, à qui Android montre le même objet, n'en obtient rien |
 | `plugins/jellyfin/` | plugin Maku pour Jellyfin 12 (C#, .NET 10) : relais de Seerr (clé d'API, au nom du compte Seerr de chaque utilisateur, retrouvé par son identifiant Jellyfin ou lié à la main ; jeton CSRF de Seerr géré) et de Tracearr (cookies de session) à l'adresse du serveur (`/Maku/…`), `/Maku/maku/info` pour que Maku le reconnaisse, page de réglages ; tests xUnit des règles du relais et du compte Seerr sous lequel agit chaque utilisateur (lien choisi par l'administrateur, compte importé, aucun compte). Compilé par `.github/workflows/plugin-jellyfin.yml` ; un tag `jellyfin-v1.2.3` publie le catalogue Jellyfin (version GitHub `jellyfin-plugin`), construit par `plugins/jellyfin/catalogue.mjs` : les versions précédentes y sont gardées, et un ancien catalogue introuvable ou illisible arrête la publication au lieu d'être remplacé (`node --test plugins/jellyfin/catalogue.test.mjs`) |
-| `server/` | Maku Server, le relais lui-même (Rust, axum) : vérification du jeton auprès de Plex, Jellyfin ou Emby, transmission de l'API de Seerr et de Tracearr, preuve de son identité (`MAKU_KEY`, `proof.rs`) ; image Docker |
+| `server/` | Maku Server, le relais lui-même (Rust, axum) : vérification du jeton auprès de Plex, Jellyfin ou Emby, transmission de l'API de Seerr, de Tracearr et de Kavita, preuve de son identité (`MAKU_KEY`, `proof.rs`), comptes Kavita par utilisateur (`kavita.rs`, retenus dans `/data`) ; image Docker |
 | `src-tauri/src/plex_admin.rs`, `src/components/FixMatchDialog.svelte` | administration : édition des métadonnées, images, association d'un film, d'une série, d'un artiste ou d'un album (« Corriger l'association » : titres proposés par l'agent de Plex ou recherche par titre, année et artiste ; « Dissocier »), image d'un morceau copiée comme pochette d'album ; albums sans pochette illustrés par leur premier morceau (`fill_album_posters`, plex.rs). Droit d'administration redemandé quand plex.tv ne répond pas au lancement (`tests/musique-gestion.spec.ts`), réglages et lectures du serveur |
 | `src-tauri/src/net.rs` | règles de redirection des clients HTTP : même machine pour les serveurs, domaines GitHub pour les mises à jour ; jetons retirés des messages d'erreur (`redact`, appliqué à toute erreur rendue à l'interface) |
 | `src-tauri/src/update.rs` | dernière version sur GitHub, paquet adapté à l'appareil, téléchargement et installation |
@@ -396,7 +399,7 @@ Maku par un « Job Object » qui le fait fermer par le système même si Maku pl
 La politique de confidentialité complète, en français et en anglais, est dans [PRIVACY.md](PRIVACY.md).
 
 - Maku parle directement à votre serveur de médias, à plex.tv (connexion), à l'API publique de GitHub (pour savoir
-  si une nouvelle version existe) et, si vous les configurez, à Seerr, Tracearr et TMDB. Il n'envoie rien ailleurs
+  si une nouvelle version existe) et, si vous les configurez, à Seerr, Tracearr, Kavita et TMDB. Il n'envoie rien ailleurs
   et ne collecte aucune statistique d'usage.
 - Il cherche Maku Server sur la machine de votre serveur (port 32700, en `https` d'abord), à la seule adresse où il
   vient de reconnaître ce serveur, et ne lui confie votre jeton qu'après avoir vérifié qu'il est le relais de ce

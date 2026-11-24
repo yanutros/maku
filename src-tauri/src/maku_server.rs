@@ -35,6 +35,9 @@ pub struct Info {
     pub id: Option<String>,
     pub seerr: bool,
     pub tracearr: bool,
+    /// Kavita relayé, avec un compte par utilisateur (Maku Server 0.35 et suivants).
+    #[serde(default)]
+    pub kavita: bool,
     /// Le plugin Maku de Jellyfin (et non Maku Server) : Seerr s'y utilise sans mot de passe.
     #[serde(default)]
     pub plugin: bool,
@@ -155,10 +158,10 @@ pub fn relay_headers(relay: Option<Relay>) -> reqwest::header::HeaderMap {
     h
 }
 
-/// Adresse du relais d'une adresse Seerr ou Tracearr (« https://hôte:32700/seerr » → « https://hôte:32700 »).
+/// Adresse du relais d'une adresse Seerr, Tracearr ou Kavita (« https://hôte:32700/seerr » → « https://hôte:32700 »).
 pub fn relay_base(url: &str) -> Option<&str> {
     let url = url.trim_end_matches('/');
-    url.strip_suffix("/seerr").or_else(|| url.strip_suffix("/tracearr")).filter(|b| b.contains("://"))
+    url.strip_suffix("/seerr").or_else(|| url.strip_suffix("/tracearr")).or_else(|| url.strip_suffix("/kavita")).filter(|b| b.contains("://"))
 }
 
 pub async fn info(http: &Client, base: &str) -> Option<Seen> {
@@ -274,12 +277,13 @@ mod tests {
         assert_eq!(relay_base("http://h:32700/relais/tracearr/"), Some("http://h:32700/relais"));
         assert_eq!(relay_base("https://seerr.exemple.fr"), None);
         assert_eq!(relay_base("/seerr"), None);
+        assert_eq!(relay_base("https://h:32700/kavita"), Some("https://h:32700"));
     }
 
     #[test]
     fn relais_du_bon_serveur() {
         let server = SavedServer { name: "s".into(), machine_id: "abc".into(), uri: "http://h:32400".into(), token: "t".into(), kind: String::new(), user_id: None };
-        let mut info = Info { app: "maku-server".into(), server: "plex".into(), id: Some("abc".into()), seerr: true, tracearr: false, plugin: false, key: None, proof: None };
+        let mut info = Info { app: "maku-server".into(), server: "plex".into(), id: Some("abc".into()), seerr: true, tracearr: false, kavita: false, plugin: false, key: None, proof: None };
         assert!(serves(&info, &server));
         info.id = Some("autre".into());
         assert!(!serves(&info, &server));
@@ -312,6 +316,7 @@ mod tests {
             id: Some("abc".into()),
             seerr: true,
             tracearr: false,
+            kavita: false,
             plugin,
             key: key.map(str::to_owned),
             proof: proof.map(str::to_owned),

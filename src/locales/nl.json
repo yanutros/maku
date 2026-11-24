@@ -238,7 +238,8 @@
       "keyHint": "In Kavita: Instellingen › Authenticatiesleutels, maak een sleutel en plak die hier.",
       "connect": "Kavita verbinden",
       "connected": "Kavita verbonden",
-      "disconnected": "Kavita losgekoppeld"
+      "disconnected": "Kavita losgekoppeld",
+      "relay": "Geleverd door Maku Server: de serverbeheerder kiest je bibliotheken en je leest met je eigen Kavita-account. Hier valt niets in te stellen."
     }
   },
   "login": {
@@ -1179,9 +1180,11 @@
       "butler": "Nachtelijk serveronderhoud: back-ups, opschonen en analyses.",
       "dashboard": "Wat er nu speelt, bandbreedte, topgebruikers, geschiedenis en de meest afgespeelde titels.",
       "users": "De vrienden met wie de server gedeeld wordt: hun bibliotheken, rechten en beperkingen.",
-      "requests": "De verzoeken van alle gebruikers: goedkeuren, afwijzen, profiel of map vóór goedkeuring corrigeren, verwijderen."
+      "requests": "De verzoeken van alle gebruikers: goedkeuren, afwijzen, profiel of map vóór goedkeuring corrigeren, verwijderen.",
+      "books": "De Kavita-bibliotheken (boeken, strips, manga) die voor iedereen openstaan. Het eerste vinkje maakt een Kavita-account aan met een eigen leesvoortgang; alles uitvinken trekt de toegang in, het account blijft."
     },
-    "requests": "Verzoeken"
+    "requests": "Verzoeken",
+    "books": "Boeken"
   },
   "toast": {
     "region": "Meldingen",
@@ -1319,6 +1322,15 @@
     "spread": "Pagina's",
     "spreadAuto": "Automatisch",
     "spreadSingle": "Enkel",
-    "spreadDouble": "Dubbel"
+    "spreadDouble": "Dubbel",
+    "access": {
+      "none": "Geen toegang",
+      "count_one": "{{count}} bibliotheek",
+      "count_other": "{{count}} bibliotheken",
+      "gone": "staat niet meer op de server",
+      "noUsers": "Geen andere gebruikers op deze server.",
+      "saved": "Bibliotheken van {{name}} opgeslagen",
+      "removed": "{{name}} heeft geen toegang meer tot boeken"
+    }
   }
 }

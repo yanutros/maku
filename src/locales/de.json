@@ -238,7 +238,8 @@
       "keyHint": "In Kavita: Einstellungen › Authentifizierungsschlüssel, einen Schlüssel erstellen und hier einfügen.",
       "connect": "Kavita verbinden",
       "connected": "Kavita verbunden",
-      "disconnected": "Kavita getrennt"
+      "disconnected": "Kavita getrennt",
+      "relay": "Von Maku Server bereitgestellt: Der Server-Administrator wählt Ihre Bibliotheken, und Sie lesen mit Ihrem eigenen Kavita-Konto. Hier ist nichts einzustellen."
     }
   },
   "login": {
@@ -1179,9 +1180,11 @@
       "butler": "Nächtliche Serverpflege: Sicherungen, Aufräumen und Analysen.",
       "dashboard": "Was gerade läuft, Bandbreite, Top-Benutzer, Verlauf und die meistgespielten Titel.",
       "users": "Die Freunde, mit denen der Server geteilt wird: ihre Bibliotheken, Rechte und Einschränkungen.",
-      "requests": "Die Anfragen aller Nutzer: genehmigen, ablehnen, Profil oder Ordner vor der Genehmigung korrigieren, löschen."
+      "requests": "Die Anfragen aller Nutzer: genehmigen, ablehnen, Profil oder Ordner vor der Genehmigung korrigieren, löschen.",
+      "books": "Die Kavita-Bibliotheken (Bücher, Comics, Mangas), die jedem offenstehen. Das erste Häkchen legt ein Kavita-Konto mit eigenem Lesefortschritt an; alles abwählen entzieht den Zugang, das Konto bleibt."
     },
-    "requests": "Anfragen"
+    "requests": "Anfragen",
+    "books": "Bücher"
   },
   "toast": {
     "region": "Benachrichtigungen",
@@ -1319,6 +1322,15 @@
     "spread": "Seiten",
     "spreadAuto": "Automatisch",
     "spreadSingle": "Einzeln",
-    "spreadDouble": "Doppelt"
+    "spreadDouble": "Doppelt",
+    "access": {
+      "none": "Kein Zugang",
+      "count_one": "{{count}} Bibliothek",
+      "count_other": "{{count}} Bibliotheken",
+      "gone": "ist nicht mehr auf dem Server",
+      "noUsers": "Keine anderen Benutzer auf diesem Server.",
+      "saved": "Bibliotheken von {{name}} gespeichert",
+      "removed": "{{name}} hat keinen Zugang mehr zu Büchern"
+    }
   }
 }

@@ -39,7 +39,7 @@
     {/each}
   </div>
   <!-- Admin : l'administrateur du serveur et celui de Seerr, comme dans le menu de l'ordinateur et de la tablette. -->
-  {#if nav.admin || nav.seerrManager}
+  {#if nav.admin || nav.seerrManager || nav.kavitaAdmin}
     <h2 class="group">{t("sidebar.admin")}</h2>
     <div class="list">
       {#if nav.admin}
@@ -59,6 +59,13 @@
           <span class="icon"><Icon name="inbox" size={22} /></span>
           <span class="name">{t("admin.requests")}</span>
           {#if nav.pendingRequests}<span class="count">{nav.pendingRequests}</span>{/if}
+          <Icon name="chevronRight" size={18} />
+        </button>
+      {/if}
+      {#if nav.kavitaAdmin}
+        <button class="library" onclick={() => go({ name: "admin", page: "books" })}>
+          <span class="icon"><Icon name="book" size={22} /></span>
+          <span class="name">{t("admin.books")}</span>
           <Icon name="chevronRight" size={18} />
         </button>
       {/if}

@@ -216,7 +216,7 @@
     </button>
     <!-- Admin : l'administrateur du serveur (Dashboard, Réglages serveur) et celui de Seerr (Demandes), partout sauf
          au téléviseur (le téléphone l'a dans l'onglet Bibliothèques). -->
-    {#if (nav.admin || nav.seerrManager) && !device.tv}
+    {#if (nav.admin || nav.seerrManager || nav.kavitaAdmin) && !device.tv}
       <div class="group"><span>{t("sidebar.admin")}</span></div>
     {/if}
     {#if nav.admin && !device.tv}
@@ -234,6 +234,13 @@
               aria-current={nav.view.name === "admin" && nav.view.page === "requests" ? "page" : undefined} onclick={() => open({ name: "admin", page: "requests" })} title={t("admin.requests")}>
         <Icon name="inbox" /> <span class="label">{t("admin.requests")}</span>
         {#if nav.pendingRequests}<span class="count" aria-label={t("requests.pendingCount", { count: nav.pendingRequests })}>{nav.pendingRequests}</span>{/if}
+      </button>
+    {/if}
+    <!-- Kavita par Maku Server : qui lit quoi (propriétaire du serveur, quel qu'il soit). -->
+    {#if nav.kavitaAdmin && !device.tv}
+      <button class="item" class:active={nav.view.name === "admin" && nav.view.page === "books"}
+              aria-current={nav.view.name === "admin" && nav.view.page === "books" ? "page" : undefined} onclick={() => open({ name: "admin", page: "books" })} title={t("admin.books")}>
+        <Icon name="book" /> <span class="label">{t("admin.books")}</span>
       </button>
     {/if}
   </nav>

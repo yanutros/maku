@@ -10,7 +10,7 @@ pas de compte Maku, pas de statistiques d'utilisation, pas de publicité, aucun 
 Maku ne communique qu'avec les services que vous utilisez :
 
 - **votre serveur Plex ou Jellyfin**, et **plex.tv** pour la connexion à votre compte Plex et les métadonnées de Plex ;
-- **Seerr** et **Tracearr**, seulement si vous les configurez, directement ou par **Maku Server**, le relais que
+- **Seerr**, **Tracearr** et **Kavita**, seulement si vous les configurez, directement ou par **Maku Server**, le relais que
   l'administrateur de votre serveur peut installer à côté de lui (Maku le cherche sur le port 32700 de la machine du
   serveur, et ne lui confie votre jeton qu'après avoir vérifié qu'il est le relais de ce serveur) ;
 - **lrclib.net**, pour les paroles des morceaux (titre, artiste, album et durée), sauf si vous désactivez les paroles ;
@@ -47,7 +47,7 @@ usage statistics, no advertising, and no servers run by the project.
 Maku only talks to the services you use:
 
 - **your Plex or Jellyfin server**, and **plex.tv** for signing in to your Plex account and Plex metadata;
-- **Seerr** and **Tracearr**, only if you set them up, directly or through **Maku Server**, the relay your server's
+- **Seerr**, **Tracearr** and **Kavita**, only if you set them up, directly or through **Maku Server**, the relay your server's
   admin can install next to it (Maku looks for it on port 32700 of the server's machine, and only gives it your token
   after checking it is that server's relay);
 - **lrclib.net**, for song lyrics (title, artist, album and duration), unless you turn lyrics off;

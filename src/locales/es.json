@@ -238,7 +238,8 @@
       "keyHint": "En Kavita: Ajustes › Claves de autenticación, cree una clave y péguela aquí.",
       "connect": "Conectar Kavita",
       "connected": "Kavita conectado",
-      "disconnected": "Kavita desconectado"
+      "disconnected": "Kavita desconectado",
+      "relay": "Proporcionado por Maku Server: el administrador del servidor elige tus bibliotecas y lees con tu propia cuenta de Kavita. Nada que ajustar aquí."
     }
   },
   "login": {
@@ -1179,9 +1180,11 @@
       "butler": "El mantenimiento nocturno del servidor: copias de seguridad, limpieza y análisis.",
       "dashboard": "Lo que se reproduce ahora, el ancho de banda, los usuarios principales, el historial y lo más reproducido.",
       "users": "Los amigos con los que se comparte el servidor: sus bibliotecas, permisos y restricciones.",
-      "requests": "Las solicitudes de todos los usuarios: aprobarlas, rechazarlas, corregir su perfil o su carpeta antes de aprobarlas, eliminarlas."
+      "requests": "Las solicitudes de todos los usuarios: aprobarlas, rechazarlas, corregir su perfil o su carpeta antes de aprobarlas, eliminarlas.",
+      "books": "Las bibliotecas de Kavita (libros, cómics, mangas) abiertas a cada uno. La primera casilla marcada le crea una cuenta de Kavita, con su propio progreso; desmarcar todo le quita el acceso, conservando la cuenta."
     },
-    "requests": "Solicitudes"
+    "requests": "Solicitudes",
+    "books": "Libros"
   },
   "toast": {
     "region": "Notificaciones",
@@ -1319,6 +1322,15 @@
     "spread": "Páginas",
     "spreadAuto": "Automático",
     "spreadSingle": "Simple",
-    "spreadDouble": "Doble"
+    "spreadDouble": "Doble",
+    "access": {
+      "none": "Sin acceso",
+      "count_one": "{{count}} biblioteca",
+      "count_other": "{{count}} bibliotecas",
+      "gone": "ya no está en el servidor",
+      "noUsers": "Ningún otro usuario en este servidor.",
+      "saved": "Bibliotecas de {{name}} guardadas",
+      "removed": "{{name}} ya no tiene acceso a los libros"
+    }
   }
 }

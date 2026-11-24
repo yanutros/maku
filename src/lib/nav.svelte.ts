@@ -52,7 +52,7 @@ export type View =
   | { name: "settings"; page?: string }
   /** Catégorie Admin (administrateur, sauf au téléviseur) : Dashboard, Réglages du serveur ou Demandes (Seerr), et
    *  leur section. */
-  | { name: "admin"; page: "dashboard" | "settings" | "requests"; tab?: string };
+  | { name: "admin"; page: "dashboard" | "settings" | "requests" | "books"; tab?: string };
 
 export const nav = $state({
   view: { name: "home" } as View,
@@ -73,6 +73,8 @@ export const nav = $state({
   admin: false,
   /** Le compte Seerr connecté gère les demandes de tout le monde (Admin › Demandes). */
   seerrManager: false,
+  /** Kavita par Maku Server, et l'on est le propriétaire du serveur (Plex, Jellyfin ou Emby) : Admin › Livres. */
+  kavitaAdmin: false,
   /** Demandes Seerr en attente de validation, en pastille sur l'entrée Demandes. */
   pendingRequests: 0,
   /** Bande-annonce YouTube ouverte par-dessus la page (identifiant de la vidéo). */

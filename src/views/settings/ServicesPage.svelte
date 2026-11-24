@@ -402,6 +402,10 @@
 <h2 class="group-title">Kavita {#if session.kavitaUrl}<span class="ok">● {t("settings.services.connected")}</span>{/if}</h2>
 <section class="card">
   <p class="muted">{t("settings.kavita.intro")}</p>
+  {#if session.kavitaRelay}
+  <!-- Fourni par Maku Server : l'administrateur du serveur choisit les bibliothèques ; rien à saisir. -->
+  <p class="relay-note">{t("settings.kavita.relay")}</p>
+  {:else}
   <label>{t("settings.kavita.address")} <input bind:value={kavitaUrl} placeholder="http://kavita.lan:5000" /></label>
   <label>{t("settings.kavita.key")} <PasswordInput bind:value={kavitaKey} /></label>
   <p class="muted small">{t("settings.kavita.keyHint")}</p>
@@ -414,6 +418,7 @@
     {/if}
   </div>
   {#if kavitaError}<ErrorCard message={kavitaError} />{/if}
+  {/if}
 </section>
 </div>
 {/if}

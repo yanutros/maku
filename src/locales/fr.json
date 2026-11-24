@@ -238,7 +238,8 @@
       "keyHint": "Dans Kavita : Paramètres › Clés d'authentification, créez une clé et collez-la ici.",
       "connect": "Connecter Kavita",
       "connected": "Kavita connecté",
-      "disconnected": "Kavita déconnecté"
+      "disconnected": "Kavita déconnecté",
+      "relay": "Fourni par Maku Server : l'administrateur du serveur choisit vos bibliothèques, et vous lisez avec votre propre compte Kavita. Rien à régler ici."
     }
   },
   "login": {
@@ -1179,9 +1180,11 @@
       "butler": "L'entretien nocturne du serveur : sauvegardes, nettoyage et analyses.",
       "dashboard": "Ce qui se lit en ce moment, le débit, les plus gros consommateurs, l'historique et les titres les plus lus.",
       "users": "Les amis avec qui le serveur est partagé : leurs bibliothèques, leurs droits et leurs restrictions.",
-      "requests": "Les demandes de tous les utilisateurs : les valider, les refuser, corriger leur profil ou leur dossier avant validation, les supprimer."
+      "requests": "Les demandes de tous les utilisateurs : les valider, les refuser, corriger leur profil ou leur dossier avant validation, les supprimer.",
+      "books": "Les bibliothèques Kavita (livres, BD, mangas) ouvertes à chacun. La première case cochée lui crée un compte Kavita, avec sa propre progression ; tout décocher lui retire l'accès, en gardant son compte."
     },
-    "requests": "Demandes"
+    "requests": "Demandes",
+    "books": "Livres"
   },
   "toast": {
     "region": "Notifications",
@@ -1319,6 +1322,15 @@
     "spread": "Pages",
     "spreadAuto": "Automatique",
     "spreadSingle": "Simple",
-    "spreadDouble": "Double"
+    "spreadDouble": "Double",
+    "access": {
+      "none": "Aucun accès",
+      "count_one": "{{count}} bibliothèque",
+      "count_other": "{{count}} bibliothèques",
+      "gone": "n'est plus sur le serveur",
+      "noUsers": "Aucun autre utilisateur sur ce serveur.",
+      "saved": "Bibliothèques de {{name}} enregistrées",
+      "removed": "{{name}} n'a plus accès aux livres"
+    }
   }
 }

@@ -9,12 +9,13 @@
   import ServerUsers from "../components/ServerUsers.svelte";
   import ServerPrefs from "../components/ServerPrefs.svelte";
   import SeerrRequests from "../components/SeerrRequests.svelte";
+  import BookAccess from "../components/BookAccess.svelte";
   import type { RequestFilter } from "../lib/api";
 
   // Catégorie « Admin » du menu (administrateur, sauf au téléviseur) : le Dashboard (tableau de bord du serveur et
   // ses utilisateurs), les Réglages du serveur (une section par rubrique de Plex Web) et les Demandes (Seerr, pour
   // son administrateur), chacun avec la barre de sections des bibliothèques (Recommandé, Bibliothèque…).
-  let { page, initialTab = null }: { page: "dashboard" | "settings" | "requests"; initialTab?: string | null } = $props();
+  let { page, initialTab = null }: { page: "dashboard" | "settings" | "requests" | "books"; initialTab?: string | null } = $props();
 
   /** Onglets des Demandes : les filtres de Seerr. */
   const REQUEST_TABS: RequestFilter[] = ["pending", "processing", "available", "all"];
@@ -65,6 +66,8 @@
         }))
       : page === "dashboard"
       ? [{ id: "dashboard", label: t("settings.menu.dashboard") }, ...(nav.serverKind !== "jellyfin" ? [{ id: "users", label: t("settings.users.title") }] : [])]
+      : page === "books"
+      ? []
       : Object.keys(GROUPS)
           .filter((g) => !prefs || prefs.some((p) => p.group === g))
           .map((g) => ({ id: g, label: GROUPS[g] })),
@@ -85,7 +88,9 @@
 
 <div class="page">
   <div class="head">
-    <h1 class="row-title page-title">{page === "dashboard" ? t("admin.dashboard") : page === "requests" ? t("admin.requests") : t("admin.serverSettings")}</h1>
+    <h1 class="row-title page-title">
+      {page === "dashboard" ? t("admin.dashboard") : page === "requests" ? t("admin.requests") : page === "books" ? t("admin.books") : t("admin.serverSettings")}
+    </h1>
     <div class="tabs admin-tabs" role="tablist">
       {#each tabs as tb (tb.id)}
         <button role="tab" data-tab={tb.id} aria-selected={tab === tb.id} class:active={tab === tb.id} onclick={() => select(tb.id)}>{tb.label}</button>
@@ -105,6 +110,20 @@
         </div>
       </header>
       {#key tab}<SeerrRequests filter={tab as RequestFilter} />{/key}
+    {/if}
+  {:else if page === "books"}
+    <!-- Kavita par Maku Server : qui lit quels livres, BD et mangas (propriétaire du serveur, Plex, Jellyfin ou Emby). -->
+    {#if !nav.kavitaAdmin}
+      <p class="muted">{t("settings.menu.locked")}</p>
+    {:else}
+      <header class="banner">
+        <span class="banner-icon"><Icon name="book" size={30} /></span>
+        <div class="banner-text">
+          <h2>{t("admin.books")}</h2>
+          <p>{t("admin.banner.books")}</p>
+        </div>
+      </header>
+      <BookAccess />
     {/if}
   {:else if !nav.admin}
     <p class="muted">{t("settings.menu.locked")}</p>

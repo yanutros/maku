@@ -210,6 +210,7 @@
     "refused": "Kavita rechaza la clave de API: compruébela en Kavita › Ajustes › Claves de autenticación",
     "replied": "Kavita respondió {{status}}",
     "notFound": "Serie no encontrada en Kavita",
-    "notConfigured": "Kavita no está conectado (Ajustes › Servicios)"
+    "notConfigured": "Kavita no está conectado (Ajustes › Servicios)",
+    "relayFailed": "Maku Server no pudo hacerlo: {{error}}"
   }
 }

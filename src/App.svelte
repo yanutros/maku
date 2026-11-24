@@ -133,6 +133,18 @@
           }
         }, () => {});
       }
+      // Kavita par Maku Server : le compte Kavita de l'utilisateur, si l'administrateur lui a ouvert des bibliothèques
+      // (un Kavita saisi à la main n'est pas touché). Ses bibliothèques sont relues si l'accès a changé.
+      if (!device.tv && (!session.kavitaUrl || session.kavitaRelay)) {
+        const had = !!session.kavitaUrl;
+        api.kavitaRelay().then(async (r) => {
+          nav.kavitaAdmin = !!r?.admin;
+          if (!r?.changed && (r || !had)) return;
+          session = await api.session();
+          const base = sections.filter((s) => s.kind !== "book");
+          sections = session.kavitaUrl ? [...base, ...(await bookSections())] : base;
+        }, () => {});
+      }
     }
   }
 

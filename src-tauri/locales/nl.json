@@ -210,6 +210,7 @@
     "refused": "Kavita weigert de API-sleutel: controleer hem in Kavita › Instellingen › Authenticatiesleutels",
     "replied": "Kavita antwoordde {{status}}",
     "notFound": "Serie niet gevonden in Kavita",
-    "notConfigured": "Kavita is niet verbonden (Instellingen › Diensten)"
+    "notConfigured": "Kavita is niet verbonden (Instellingen › Diensten)",
+    "relayFailed": "Maku Server kon het niet uitvoeren: {{error}}"
   }
 }

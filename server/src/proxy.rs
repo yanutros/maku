@@ -1,4 +1,4 @@
-//! Transmission des appels à Seerr ou Tracearr, une fois l'utilisateur reconnu.
+//! Transmission des appels à Seerr, Tracearr ou Kavita, une fois l'utilisateur reconnu.
 
 use crate::auth::{self, Verdict};
 use crate::Shared;
@@ -41,31 +41,40 @@ fn error(status: StatusCode, message: &str) -> Response {
     (status, axum::Json(serde_json::json!({ "error": message }))).into_response()
 }
 
-/// `/seerr/api/v1/…` ou `/tracearr/api/v1/…` → adresse de base du service, et chemin à appeler.
-/// Rien d'autre que l'API, et pas de chemin qui remonte d'un dossier (`..`, même encodé).
-pub fn target<'a>(app: &'a crate::App, path: &'a str) -> Option<(&'a str, &'a str)> {
-    let (base, rest) = if let Some(rest) = path.strip_prefix("/seerr") {
-        (app.cfg.seerr.as_deref()?, rest)
+/// `/seerr/api/v1/…`, `/tracearr/api/v1/…` ou `/kavita/api/…` → adresse de base du service, chemin à appeler, et
+/// s'il s'agit de Kavita. Rien d'autre que l'API, et pas de chemin qui remonte d'un dossier (`..`, même encodé).
+pub fn target<'a>(app: &'a crate::App, path: &'a str) -> Option<(&'a str, &'a str, bool)> {
+    let (base, rest, kavita) = if let Some(rest) = path.strip_prefix("/seerr") {
+        (app.cfg.seerr.as_deref()?, rest, false)
+    } else if let Some(rest) = path.strip_prefix("/kavita") {
+        (app.cfg.kavita.as_ref()?.0.as_str(), rest, true)
     } else {
         let rest = path.strip_prefix("/tracearr")?;
-        (app.cfg.tracearr.as_deref()?, rest)
+        (app.cfg.tracearr.as_deref()?, rest, false)
     };
-    let api = rest == "/api/v1" || rest.starts_with("/api/v1/");
+    let api = if kavita { rest.starts_with("/api/") } else { rest == "/api/v1" || rest.starts_with("/api/v1/") };
     let lower = rest.to_ascii_lowercase();
     let escapes = lower.contains("..") || lower.contains("%2e") || lower.contains('\\') || lower.contains("%5c") || lower.contains("%2f");
-    (api && !escapes).then_some((base, rest))
+    (api && !escapes).then_some((base, rest, kavita))
 }
 
 pub async fn forward(State(app): State<Shared>, ConnectInfo(peer): ConnectInfo<SocketAddr>, req: Request) -> Response {
     let path = req.uri().path().to_owned();
-    let Some((base, rest)) = target(&app, &path) else {
+    let Some((base, rest, kavita)) = target(&app, &path) else {
         return error(StatusCode::NOT_FOUND, "not found");
     };
-    let token = req.headers().get(TOKEN_HEADER).and_then(|v| v.to_str().ok()).unwrap_or_default().to_owned();
-    match auth::check(&app, &token).await {
-        Verdict::Allowed => {}
-        Verdict::Denied => return error(StatusCode::UNAUTHORIZED, "not a user of this server"),
-        Verdict::Unavailable => return error(StatusCode::BAD_GATEWAY, "media server unreachable"),
+    if kavita {
+        // Kavita : le jeton du serveur, ou (pour les images) une clé Kavita vue récemment ; Kavita vérifie ensuite la clé.
+        if let Err(r) = crate::kavita::gate(&app, req.headers(), req.uri().query()).await {
+            return *r;
+        }
+    } else {
+        let token = req.headers().get(TOKEN_HEADER).and_then(|v| v.to_str().ok()).unwrap_or_default().to_owned();
+        match auth::check(&app, &token).await {
+            Verdict::Allowed => {}
+            Verdict::Denied => return error(StatusCode::UNAUTHORIZED, "not a user of this server"),
+            Verdict::Unavailable => return error(StatusCode::BAD_GATEWAY, "media server unreachable"),
+        }
     }
 
     let query = req.uri().query().map(|q| format!("?{q}")).unwrap_or_default();

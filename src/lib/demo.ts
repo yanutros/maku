@@ -645,6 +645,11 @@ function epubSection(page: number): string {
   if (page === 2) return `<div><h2>La nuit</h2>${epubText(3, 14)}<h2 id="note-1">Note</h2><p>La note du gardien.</p>${epubText(3, 6)}</div>`;
   return `<div><h2>${page === 1 ? "La tempête" : "Épilogue"}</h2>${epubText(page + 1, page === 3 ? 3 : 40)}</div>`;
 }
+/** Accès Kavita accordés par l'administrateur (Kavita par Maku Server, `&kavitarelay`) ; les tests les relisent. */
+const kavitaGrants: { id: string; name: string; username: string; libraries: number[] }[] = [
+  { id: "plex:900", name: "Ancien ami", username: "Ancien-ami.900", libraries: [1] },
+];
+(window as unknown as { __kavitaGrants: unknown }).__kavitaGrants = kavitaGrants;
 /** Kavita connecté depuis Réglages › Services pendant la démo. */
 let kavitaUrl: string | null = null;
 /** Progression envoyée par le lecteur (les tests la relisent). */
@@ -665,7 +670,14 @@ function handle(cmd: string, a: Args): unknown {
         mpvPath: null,
         tracearrUrl: "https://tracearr.exemple.fr",
         tracearrConnected: !new URLSearchParams(location.search).has("tracearrlogin") || tracearrLoggedIn,
-        kavitaUrl: kavitaUrl ?? (new URLSearchParams(location.search).has("kavita") ? "http://kavita.lan:5000" : null),
+        kavitaUrl:
+          kavitaUrl ??
+          (new URLSearchParams(location.search).has("kavitarelay")
+            ? "https://relais.exemple.fr/kavita"
+            : new URLSearchParams(location.search).has("kavita")
+              ? "http://kavita.lan:5000"
+              : null),
+        kavitaRelay: new URLSearchParams(location.search).has("kavitarelay") && kavitaUrl === null,
       };
     }
     // `?demo=…&tracearrlogin` : Tracearr pas encore connecté ; la connexion Plex aboutit au premier relevé.
@@ -974,6 +986,17 @@ function handle(cmd: string, a: Args): unknown {
       return kavitaUrl;
     case "kavita_libraries":
       return kavitaLibraries;
+    case "kavita_relay":
+      return new URLSearchParams(location.search).has("kavitarelay") ? { admin: true, changed: false } : null;
+    case "kavita_admin":
+      return { libraries: kavitaLibraries.map((l) => ({ id: l.id, name: l.name, type: l.kind === "manga" ? 0 : 2 })), users: kavitaGrants, members: null };
+    case "kavita_admin_set": {
+      const libraries = [...(a.libraries as number[])].sort((x, y) => x - y);
+      let grant = kavitaGrants.find((g) => g.id === a.id);
+      if (!grant && libraries.length) kavitaGrants.push((grant = { id: String(a.id), name: String(a.name), username: `${a.name}.${String(a.id).split(":")[1]}`, libraries }));
+      if (grant) grant.libraries = libraries;
+      return { id: a.id, name: a.name, libraries };
+    }
     case "kavita_series": {
       const list = kavitaSeries.filter((x) => x.libraryId === a.libraryId);
       return { items: Number(a.page) > 1 ? [] : list, total: list.length };
