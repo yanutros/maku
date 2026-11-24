@@ -23,6 +23,8 @@ export interface Session {
   seerrUrl: string | null;
   mpvPath: string | null;
   tracearrUrl: string | null;
+  /** Kavita (livres, BD, mangas) connecté pour ce serveur : son adresse (la clé reste dans la configuration). */
+  kavitaUrl?: string | null;
   tracearrConnected: boolean;
   /** Une clé TMDB est enregistrée (logos des titres que Plex n'a pas). */
   tmdb: boolean;
@@ -62,7 +64,82 @@ export interface ServerSummary {
 export interface Section {
   key: string;
   title: string;
-  kind: "movie" | "show" | "artist";
+  /** « book » : une bibliothèque Kavita (livres, BD, mangas), à la clé « kavita:<numéro> ». */
+  kind: "movie" | "show" | "artist" | "book";
+}
+
+/** Kavita : une bibliothèque, et son type (« manga » : lecture de droite à gauche proposée). */
+export interface BookLibrary {
+  id: number;
+  name: string;
+  kind: "manga" | "comic" | "book";
+}
+
+export interface BookSeries {
+  id: number;
+  name: string;
+  libraryId: number;
+  cover: string;
+  pages: number;
+  pagesRead: number;
+  format: "images" | "epub" | "pdf" | "unknown";
+}
+
+export interface BookChapter {
+  id: number;
+  volumeId: number;
+  number: string;
+  title: string;
+  pages: number;
+  pagesRead: number;
+  cover: string;
+  special: boolean;
+}
+
+export interface BookVolume {
+  id: number;
+  name: string;
+  cover: string;
+  pages: number;
+  pagesRead: number;
+  chapters: BookChapter[];
+}
+
+export interface BookSeriesDetail {
+  series: BookSeries;
+  summary: string | null;
+  libraryKind: BookLibrary["kind"];
+  volumes: BookVolume[];
+  chapters: BookChapter[];
+  specials: BookChapter[];
+  continueChapter: number | null;
+}
+
+/** Ce qu'il faut au lecteur pour un chapitre ; `pageUrl` contient « {page} », à remplacer (à partir de 0). */
+export interface BookChapterInfo {
+  chapterId: number;
+  volumeId: number;
+  seriesId: number;
+  libraryId: number;
+  libraryKind: BookLibrary["kind"];
+  seriesName: string;
+  title: string;
+  pages: number;
+  format: BookSeries["format"];
+  pageUrl: string;
+  resumePage: number;
+  nextChapter: number;
+  prevChapter: number;
+  /** Pages en largeur (double page déjà assemblée), affichées seules en lecture double page. */
+  wide: boolean[];
+}
+
+/** Entrée du sommaire d'un livre EPUB : la section où elle commence, et l'ancre dans cette section. */
+export interface BookTocItem {
+  title: string;
+  page: number;
+  part: string;
+  children: BookTocItem[];
 }
 
 export interface Item {
@@ -685,6 +762,17 @@ export const api = {
   /** Relais Maku Server sur la machine du serveur : il remplit les adresses de Seerr et Tracearr qui manquent. */
   relayDiscover: () => invoke<RelayFound | null>("relay_discover"),
   tmdbConfigure: (key: string) => invoke<void>("tmdb_configure", { key }),
+  // Kavita : livres, BD et mangas (kavita.rs).
+  kavitaConfigure: (url: string, key: string) => invoke<string | null>("kavita_configure", { url, key }),
+  kavitaLibraries: () => invoke<BookLibrary[]>("kavita_libraries"),
+  kavitaSeries: (libraryId: number, page: number, size: number) => invoke<{ items: BookSeries[]; total: number }>("kavita_series", { libraryId, page, size }),
+  kavitaOnDeck: (libraryId: number) => invoke<BookSeries[]>("kavita_on_deck", { libraryId }),
+  kavitaSeriesDetail: (seriesId: number) => invoke<BookSeriesDetail>("kavita_series_detail", { seriesId }),
+  kavitaChapter: (chapterId: number) => invoke<BookChapterInfo>("kavita_chapter", { chapterId }),
+  kavitaProgress: (progress: { chapterId: number; volumeId: number; seriesId: number; libraryId: number; page: number }) =>
+    invoke<void>("kavita_progress", { progress }),
+  kavitaBookPage: (chapterId: number, page: number) => invoke<string>("kavita_book_page", { chapterId, page }),
+  kavitaBookToc: (chapterId: number) => invoke<BookTocItem[]>("kavita_book_toc", { chapterId }),
   tracearrStartLogin: (open = true) => invoke<{ handle: string; authUrl: string }>("tracearr_start_login", { open }),
   tracearrPollLogin: (handle: string) => invoke<"waiting" | "done" | "expired">("tracearr_poll_login", { handle }),
   tracearrJellyfinLogin: () => invoke<void>("tracearr_jellyfin_login"),

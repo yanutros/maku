@@ -16,6 +16,7 @@ mod stats;
 mod services;
 mod app;
 mod invite;
+mod books;
 
 pub(crate) use session::*;
 pub(crate) use account::*;
@@ -32,3 +33,4 @@ pub(crate) use stats::*;
 pub(crate) use services::*;
 pub(crate) use app::*;
 pub(crate) use invite::*;
+pub(crate) use books::*;

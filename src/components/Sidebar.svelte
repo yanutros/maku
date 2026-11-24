@@ -32,7 +32,7 @@
   });
 
   function icon(kind: string): IconName {
-    return kind === "movie" ? "film" : kind === "artist" ? "music" : "tv";
+    return kind === "movie" ? "film" : kind === "artist" ? "music" : kind === "book" ? "book" : "tv";
   }
 
   function isActive(name: string, key?: string) {

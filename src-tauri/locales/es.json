@@ -202,5 +202,14 @@
   },
   "playlist": {
     "noTitle": "Ponle un nombre a la lista."
+  },
+  "kavita": {
+    "badUrl": "Dirección de Kavita no válida: empieza por http:// o https://",
+    "badKey": "Clave de API de Kavita no válida",
+    "unreachable": "Kavita no responde: {{error}}",
+    "refused": "Kavita rechaza la clave de API: compruébela en Kavita › Ajustes › Claves de autenticación",
+    "replied": "Kavita respondió {{status}}",
+    "notFound": "Serie no encontrada en Kavita",
+    "notConfigured": "Kavita no está conectado (Ajustes › Servicios)"
   }
 }

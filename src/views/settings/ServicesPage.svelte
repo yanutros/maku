@@ -45,6 +45,32 @@
   let relayFound = $state<string | null>(null);
   let tracearrError = $state<string | null>(null);
 
+  // --- Kavita : livres, BD et mangas (pas au téléviseur) ---
+
+  let kavitaUrl = $state("");
+  let kavitaKey = $state("");
+  let kavitaBusy = $state(false);
+  let kavitaError = $state<string | null>(null);
+  $effect.pre(() => {
+    kavitaUrl = session.kavitaUrl ?? "";
+  });
+
+  async function connectKavita(remove = false) {
+    kavitaBusy = true;
+    kavitaError = null;
+    try {
+      const base = await api.kavitaConfigure(remove ? "" : kavitaUrl, remove ? "" : kavitaKey);
+      kavitaKey = "";
+      if (base) kavitaUrl = base;
+      toast(remove ? t("settings.kavita.disconnected") : t("settings.kavita.connected"));
+      onChange();
+    } catch (e) {
+      kavitaError = errorText(e);
+    } finally {
+      kavitaBusy = false;
+    }
+  }
+
   // --- TMDB : logos des titres que Plex n'a pas ---
 
   let tmdbKey = $state("");
@@ -370,6 +396,27 @@
   {#if tracearrError}<ErrorCard message={tracearrError} />{/if}
 </section>
 </div>
+
+{#if !device.tv}
+<div class="tile">
+<h2 class="group-title">Kavita {#if session.kavitaUrl}<span class="ok">● {t("settings.services.connected")}</span>{/if}</h2>
+<section class="card">
+  <p class="muted">{t("settings.kavita.intro")}</p>
+  <label>{t("settings.kavita.address")} <input bind:value={kavitaUrl} placeholder="http://kavita.lan:5000" /></label>
+  <label>{t("settings.kavita.key")} <PasswordInput bind:value={kavitaKey} /></label>
+  <p class="muted small">{t("settings.kavita.keyHint")}</p>
+  <div class="row">
+    <button class="btn primary" disabled={kavitaBusy || !kavitaUrl.trim() || !kavitaKey.trim()} onclick={() => connectKavita()}>
+      {kavitaBusy ? t("settings.services.connecting") : t("settings.kavita.connect")}
+    </button>
+    {#if session.kavitaUrl}
+      <button class="btn" disabled={kavitaBusy} onclick={() => connectKavita(true)}>{t("settings.services.logout")}</button>
+    {/if}
+  </div>
+  {#if kavitaError}<ErrorCard message={kavitaError} />{/if}
+</section>
+</div>
+{/if}
 
 <div class="tile">
 <h2 class="group-title">{t("settings.tmdb.title")} {#if session.tmdb}<span class="ok">● {t("settings.tmdb.active")}</span>{/if}</h2>

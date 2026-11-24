@@ -61,5 +61,6 @@ export function resetHome() {
 
 /** Identifiants des rangées, d'après les bibliothèques du serveur. */
 export function availableRows(sections: { key: string; kind: string }[]): string[] {
-  return ["continue", "recent", ...sections.map((s) => `lib:${s.key}`), "trending"];
+  // Bibliothèques Kavita (« book ») : pas de rangée sur l'accueil, elles ont leur propre page.
+  return ["continue", "recent", ...sections.filter((s) => s.kind !== "book").map((s) => `lib:${s.key}`), "trending"];
 }

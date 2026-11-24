@@ -37,6 +37,8 @@ export type View =
       smart?: { ratingKey: string; title: string; content: string } | null;
     }
   | { name: "item"; ratingKey: string }
+  /** Série Kavita (livres, BD, mangas). */
+  | { name: "book"; id: number }
   /** Fiche d'un « Mix of Three » (lib/mixes.svelte.ts). */
   | { name: "mix"; id: string }
   | { name: "search"; query: string }

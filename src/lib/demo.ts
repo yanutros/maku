@@ -615,6 +615,42 @@ let offlineItems = [
 /** Titres de la liste de visionnage (identifiants plex://). */
 const watchlist = new Set<string>();
 
+// --- Kavita (`?demo=…&kavita`) : une bibliothèque de mangas et une de livres ---
+
+const kavitaLibraries = [
+  { id: 1, name: "Mangas", kind: "manga" },
+  { id: 2, name: "Romans", kind: "book" },
+];
+/** Page d'un chapitre de démonstration : une grande image (plus haute que l'écran), son numéro au milieu. */
+const kavitaPage = (chapterId: number) =>
+  `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='1200' height='1800' viewBox='0 0 600 900'><rect width='600' height='900' fill='ivory'/><text x='300' y='470' font-size='90' text-anchor='middle' fill='black'>${chapterId} · {page}</text></svg>`;
+const kavitaSeries = [
+  { id: 11, name: "La Lune de Papier", libraryId: 1, pages: 120, pagesRead: 45, format: "images" },
+  { id: 12, name: "Le Gardien des Marées", libraryId: 1, pages: 80, pagesRead: 45, format: "images" },
+  { id: 13, name: "Neige sur Kyoto", libraryId: 1, pages: 60, pagesRead: 60, format: "images" },
+  { id: 21, name: "Le Phare de l'Ouest", libraryId: 2, pages: 320, pagesRead: 0, format: "epub" },
+].map((x) => ({ ...x, cover: poster(x.name, x.libraryId === 1 ? "Manga" : "Roman") }));
+const kavitaChapter = (id: number, volumeId: number, number: string, pages: number, pagesRead: number) => ({
+  id, volumeId, number, title: "", pages, pagesRead, cover: poster(`Chapitre ${number}`, ""), special: false,
+});
+/** Livre EPUB de démonstration : 4 sections de texte ; la première contient de quoi vérifier le nettoyage (script,
+ *  attribut « onerror ») et un lien interne vers la note de la section 3. */
+const epubText = (n: number, count: number) =>
+  Array.from({ length: count }, (_, i) =>
+    `<p>Paragraphe ${n}.${i + 1}. Le gardien montait chaque soir les cent marches de la tour, une lampe à la main, en comptant les vagues qui frappaient la digue. Le vent de l'ouest apportait l'odeur du sel et des algues, et la lumière tournait au-dessus de la mer grise.</p>`,
+  ).join("");
+function epubSection(page: number): string {
+  if (page === 0)
+    return `<div class="ouverture"><style>.book-content h1 { letter-spacing: 2px; }</style><h1 id="debut">Le Phare de l'Ouest</h1><script>window.__epubPwned = 1</script><img src="data:image/png;base64,AAAA" alt="" onerror="window.__epubPwned = 2"><p><a kavita-page="2" kavita-part="note-1" href="javascript:void(0)">Voir la note</a></p>${epubText(1, 12)}</div>`;
+  if (page === 2) return `<div><h2>La nuit</h2>${epubText(3, 14)}<h2 id="note-1">Note</h2><p>La note du gardien.</p>${epubText(3, 6)}</div>`;
+  return `<div><h2>${page === 1 ? "La tempête" : "Épilogue"}</h2>${epubText(page + 1, page === 3 ? 3 : 40)}</div>`;
+}
+/** Kavita connecté depuis Réglages › Services pendant la démo. */
+let kavitaUrl: string | null = null;
+/** Progression envoyée par le lecteur (les tests la relisent). */
+const kavitaSaved: Record<string, unknown>[] = [];
+(window as unknown as { __kavitaSaved: unknown }).__kavitaSaved = kavitaSaved;
+
 function handle(cmd: string, a: Args): unknown {
   switch (cmd) {
     // `?demo=…&plugin` : un serveur Jellyfin avec le plugin Maku, par lequel passe Seerr.
@@ -629,6 +665,7 @@ function handle(cmd: string, a: Args): unknown {
         mpvPath: null,
         tracearrUrl: "https://tracearr.exemple.fr",
         tracearrConnected: !new URLSearchParams(location.search).has("tracearrlogin") || tracearrLoggedIn,
+        kavitaUrl: kavitaUrl ?? (new URLSearchParams(location.search).has("kavita") ? "http://kavita.lan:5000" : null),
       };
     }
     // `?demo=…&tracearrlogin` : Tracearr pas encore connecté ; la connexion Plex aboutit au premier relevé.
@@ -932,6 +969,59 @@ function handle(cmd: string, a: Args): unknown {
     }
     case "tracearr_dashboard":
       return dashboard;
+    case "kavita_configure":
+      kavitaUrl = String(a.url ?? "").trim() ? String(a.url).trim().replace(/\/home$/, "") : null;
+      return kavitaUrl;
+    case "kavita_libraries":
+      return kavitaLibraries;
+    case "kavita_series": {
+      const list = kavitaSeries.filter((x) => x.libraryId === a.libraryId);
+      return { items: Number(a.page) > 1 ? [] : list, total: list.length };
+    }
+    case "kavita_on_deck":
+      return kavitaSeries.filter((x) => x.libraryId === a.libraryId && x.pagesRead > 0 && x.pagesRead < x.pages);
+    case "kavita_series_detail": {
+      const series = kavitaSeries.find((x) => x.id === a.seriesId) ?? kavitaSeries[0];
+      const base = series.id * 100;
+      return {
+        series,
+        summary: "Une série de démonstration, pour essayer la lecture.",
+        libraryKind: kavitaLibraries.find((l) => l.id === series.libraryId)?.kind ?? "comic",
+        volumes: [
+          { id: base + 1, name: "Volume 1", cover: poster(`${series.name} 1`, ""), pages: 40, pagesRead: 40, chapters: [kavitaChapter(base + 11, base + 1, "1", 20, 20), kavitaChapter(base + 12, base + 1, "2", 20, 20)] },
+          { id: base + 2, name: "Volume 2", cover: poster(`${series.name} 2`, ""), pages: 40, pagesRead: 5, chapters: [kavitaChapter(base + 13, base + 2, "3", 20, 5), kavitaChapter(base + 14, base + 2, "4", 20, 0)] },
+        ],
+        chapters: [kavitaChapter(base + 15, base + 3, "5", 20, 0)],
+        specials: [],
+        continueChapter: base + 13,
+      };
+    }
+    case "kavita_chapter": {
+      const id = Number(a.chapterId);
+      const seriesId = Math.floor(id / 100);
+      const order = [11, 12, 13, 14, 15].map((n) => seriesId * 100 + n);
+      const at = order.indexOf(id);
+      const series = kavitaSeries.find((x) => x.id === seriesId) ?? kavitaSeries[0];
+      return {
+        chapterId: id, volumeId: seriesId * 100 + (at < 2 ? 1 : at < 4 ? 2 : 3), seriesId, libraryId: series.libraryId,
+        libraryKind: kavitaLibraries.find((l) => l.id === series.libraryId)?.kind ?? "comic",
+        seriesName: series.name, title: `Chapitre ${at + 1}`, pages: series.format === "epub" ? 4 : 20, format: series.format, pageUrl: kavitaPage(id),
+        resumePage: id % 100 === 13 ? (series.format === "epub" ? 1 : 5) : 0, nextChapter: order[at + 1] ?? -1, prevChapter: order[at - 1] ?? -1,
+        // La 10e page est une double page (en largeur).
+        wide: Array.from({ length: 20 }, (_, i) => i === 9),
+      };
+    }
+    case "kavita_book_page":
+      return epubSection(Number(a.page));
+    case "kavita_book_toc":
+      return [
+        { title: "Ouverture", page: 0, part: "", children: [{ title: "La tempête", page: 1, part: "", children: [] }] },
+        { title: "Note du gardien", page: 2, part: "note-1", children: [] },
+        { title: "Épilogue", page: 3, part: "", children: [] },
+      ];
+    case "kavita_progress":
+      kavitaSaved.push(a.progress as Record<string, unknown>);
+      return null;
     case "plugin:window|is_fullscreen":
       return false;
     default:

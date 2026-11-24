@@ -1,0 +1,331 @@
+// Kavita (livres, BD, mangas) : connexion dans Services, bibliothèques avec les autres (pas au téléviseur), page
+// d'une série, lecteur d'images (sens de lecture, progression, chapitre suivant) et lecteur de livres EPUB.
+import { expect, test, type Locator, type Page, type TestInfo } from "@playwright/test";
+import { appareil, ouvrir } from "./outils";
+
+const sauvegardes = (page: Page) =>
+  page.evaluate(() => (window as unknown as { __kavitaSaved: Record<string, unknown>[] }).__kavitaSaved.map((p) => ({ chapterId: p.chapterId, page: p.page })));
+
+async function ouvrirMangas(page: Page) {
+  await page.evaluate(async () => {
+    const nav = await import("/src/lib/nav.svelte.ts");
+    nav.go({ name: "section", key: "kavita:1", title: "Mangas", kind: "book" });
+  });
+  await expect(page.getByRole("heading", { name: "Mangas", exact: true })).toBeVisible();
+}
+
+test("les bibliothèques Kavita rejoignent les autres, sauf au téléviseur", async ({ page }, info) => {
+  await ouvrir(page, info, "accueil&kavita");
+  const menu = appareil(info) === "telephone" ? null : page.getByRole("navigation");
+  if (appareil(info) === "tv") {
+    await expect(page.getByRole("button", { name: "Films" }).first()).toBeAttached();
+    await expect(page.getByRole("button", { name: "Mangas" })).toHaveCount(0);
+  } else if (menu) {
+    await expect(menu.getByRole("button", { name: "Mangas" })).toBeVisible();
+    await expect(menu.getByRole("button", { name: "Romans" })).toBeVisible();
+  }
+  // Pas de rangée Kavita sur l'accueil : elles ont leur propre page.
+  await expect(page.getByRole("heading", { name: /Mangas/ })).toHaveCount(0);
+  const rangees = await page.evaluate(async () =>
+    (await import("/src/lib/homeRows.svelte.ts")).availableRows([
+      { key: "1", kind: "movie" },
+      { key: "kavita:1", kind: "book" },
+    ]),
+  );
+  expect(rangees).toContain("lib:1");
+  expect(rangees).not.toContain("lib:kavita:1");
+});
+
+/** Ouvre la série de mangas entamée à sa page de reprise (la 6e). */
+async function ouvrirManga(page: Page, info: TestInfo) {
+  await ouvrir(page, info, "accueil&kavita");
+  await ouvrirMangas(page);
+  await page.getByRole("button", { name: "Le Gardien des Marées" }).first().click();
+  await page.getByRole("button", { name: "Continuer" }).click();
+  const lecteur = page.getByRole("dialog");
+  await expect(lecteur.getByRole("img", { name: "Page 6" })).toBeVisible();
+  return lecteur;
+}
+
+/** Ouvre le panneau Affichage du lecteur et y choisit `choix` (sens, ajustement, pages). */
+async function affichage(lecteur: Locator, choix: string) {
+  const panneau = lecteur.getByRole("group", { name: "Affichage" });
+  if (!(await panneau.isVisible())) await lecteur.getByRole("button", { name: "Affichage" }).click();
+  await panneau.getByRole("radio", { name: choix, exact: true }).click();
+}
+
+const compte = (lecteur: Locator) => lecteur.getByText(/^\d+(-\d+)? \/ 20$/);
+const transformation = (page: Page) => page.locator(".reader .view").evaluate((el) => getComputedStyle(el).transform);
+
+test("série de manga : reprise à la bonne page, de droite à gauche, progression envoyée", async ({ page }, info) => {
+  test.skip(appareil(info) === "tv", "pas de Kavita au téléviseur");
+  await ouvrir(page, info, "accueil&kavita");
+  await ouvrirMangas(page);
+  // « Continuer la lecture » : la série entamée.
+  await expect(page.getByRole("heading", { name: "Continuer la lecture" })).toBeVisible();
+  await page.getByRole("button", { name: "Le Gardien des Marées" }).first().click();
+  await expect(page.getByRole("heading", { name: "Le Gardien des Marées" })).toBeVisible();
+  await expect(page.getByText("Volume 2")).toBeVisible();
+
+  await page.getByRole("button", { name: "Continuer" }).click();
+  const lecteur = page.getByRole("dialog");
+  // Reprise à la page où on s'était arrêté (5 pages lues : la 6e).
+  await expect(lecteur.getByRole("img", { name: "Page 6" })).toBeVisible();
+  await lecteur.getByRole("button", { name: "Affichage" }).click();
+  await expect(lecteur.getByRole("radio", { name: "Droite → gauche" })).toHaveAttribute("aria-checked", "true");
+  // Une page à la fois pour la suite.
+  await affichage(lecteur, "Simple");
+  await page.keyboard.press("Escape");
+  await expect(lecteur.getByRole("group", { name: "Affichage" })).toHaveCount(0);
+  // Manga : la flèche de gauche avance.
+  await page.keyboard.press("ArrowLeft");
+  await expect(lecteur.getByRole("img", { name: "Page 7" })).toBeVisible();
+  await expect.poll(() => sauvegardes(page)).toContainEqual({ chapterId: 1213, page: 6 });
+
+  // Gauche à droite : retenu pour la série, la flèche de droite avance.
+  await affichage(lecteur, "Gauche → droite");
+  await page.keyboard.press("Escape");
+  await page.keyboard.press("ArrowRight");
+  await expect(lecteur.getByRole("img", { name: "Page 8" })).toBeVisible();
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("maku.readerDirection") ?? "{}"))).toEqual({ "12": "ltr" });
+
+  // Dernière page, puis la suivante : chapitre fini, le chapitre suivant s'ouvre au début.
+  await page.keyboard.press("End");
+  await expect(lecteur.getByRole("img", { name: "Page 20" })).toBeVisible();
+  await page.keyboard.press("ArrowRight");
+  await expect(lecteur.getByText("Chapitre 4")).toBeVisible();
+  await expect(lecteur.getByRole("img", { name: "Page 1" })).toBeVisible();
+  await expect.poll(() => sauvegardes(page)).toContainEqual({ chapterId: 1213, page: 20 });
+
+  // Fermer : la progression du chapitre en cours part tout de suite.
+  await page.keyboard.press("ArrowRight");
+  await page.keyboard.press("Escape");
+  await expect(lecteur).toHaveCount(0);
+  // Sans attendre le délai de 800 ms des changements de page.
+  await expect.poll(() => sauvegardes(page), { timeout: 400 }).toContainEqual({ chapterId: 1214, page: 1 });
+});
+
+test("page entière dans l'écran ; deux pages côte à côte sur un écran large, la double page seule", async ({ page }, info) => {
+  test.skip(appareil(info) === "tv", "pas de Kavita au téléviseur");
+  const lecteur = await ouvrirManga(page, info);
+  const ecran = page.viewportSize()!;
+  // Les pages de la démo sont bien plus hautes que l'écran : elles tiennent quand même entières.
+  for (const img of await lecteur.getByRole("img").all()) {
+    const r = (await img.boundingBox())!;
+    expect(r.y).toBeGreaterThanOrEqual(-1);
+    expect(r.y + r.height).toBeLessThanOrEqual(ecran.height + 1);
+    expect(r.x + r.width).toBeLessThanOrEqual(ecran.width + 1);
+  }
+  if (ecran.width <= ecran.height) {
+    // Écran en hauteur : une page à la fois.
+    await expect(compte(lecteur)).toHaveText("6 / 20");
+    await expect(lecteur.getByRole("img")).toHaveCount(1);
+    return;
+  }
+  // Écran large : la 6e et la 7e côte à côte ; en manga, la 6e à droite.
+  await expect(compte(lecteur)).toHaveText("6-7 / 20");
+  const [six, sept] = [(await lecteur.getByRole("img", { name: "Page 6" }).boundingBox())!, (await lecteur.getByRole("img", { name: "Page 7" }).boundingBox())!];
+  expect(sept.x).toBeLessThan(six.x);
+  // La 10e est une double page : seule ; les suivantes reprennent par deux.
+  await page.keyboard.press("ArrowLeft");
+  await expect(compte(lecteur)).toHaveText("8-9 / 20");
+  await page.keyboard.press("ArrowLeft");
+  await expect(compte(lecteur)).toHaveText("10 / 20");
+  await page.keyboard.press("ArrowLeft");
+  await expect(compte(lecteur)).toHaveText("11-12 / 20");
+  // La progression part à chaque paire (sa première page, comme Kavita).
+  await expect.poll(() => sauvegardes(page)).toContainEqual({ chapterId: 1213, page: 10 });
+  // « Simple » : une page à la fois, retenu pour la série.
+  await affichage(lecteur, "Simple");
+  await expect(compte(lecteur)).toHaveText("11 / 20");
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("maku.readerLayout") ?? "{}"))).toEqual({ "12": { spread: "single", fit: "screen" } });
+  // Appariement comme Kavita : couverture seule, double page seule, puis par deux.
+  expect(await page.evaluate(async () => (await import("/src/lib/books.svelte.ts")).spreads(7, [false, false, false, true]))).toEqual([[0], [1, 2], [3], [4, 5], [6]]);
+});
+
+test("zoom : double-clic, Ctrl + molette, glisser ; zoomé, les côtés ne tournent pas la page", async ({ page }, info) => {
+  test.skip(appareil(info) === "tv", "pas de Kavita au téléviseur");
+  const lecteur = await ouvrirManga(page, info);
+  const ecran = page.viewportSize()!;
+  const avant = await compte(lecteur).textContent();
+  expect(await transformation(page)).toBe("none");
+  // Double-clic : zoom sur l'endroit visé, sans tourner la page.
+  await page.mouse.dblclick(ecran.width * 0.4, ecran.height * 0.4);
+  await expect.poll(() => transformation(page)).toMatch(/^matrix\(2\.5, 0, 0, 2\.5,/);
+  await page.waitForTimeout(400);
+  await expect(compte(lecteur)).toHaveText(avant!);
+  // Un clic sur un côté : la page ne tourne pas.
+  await page.mouse.click(ecran.width * 0.95, ecran.height * 0.5);
+  await page.waitForTimeout(400);
+  await expect(lecteur.getByRole("img", { name: "Page 6" })).toBeVisible();
+  // Glisser déplace la page zoomée.
+  const zoome = await transformation(page);
+  await page.mouse.move(ecran.width * 0.5, ecran.height * 0.5);
+  await page.mouse.down();
+  await page.mouse.move(ecran.width * 0.5 + 80, ecran.height * 0.5 + 60, { steps: 4 });
+  await page.mouse.up();
+  await expect.poll(() => transformation(page)).not.toBe(zoome);
+  // Échap revient à la page entière, sans fermer le lecteur.
+  await page.keyboard.press("Escape");
+  await expect.poll(() => transformation(page)).toBe("none");
+  await expect(lecteur).toBeVisible();
+  // Ctrl + molette zoome aussi ; tourner la page revient à la page entière.
+  await page.mouse.move(ecran.width * 0.5, ecran.height * 0.5);
+  await page.keyboard.down("Control");
+  await page.mouse.wheel(0, -100);
+  await page.keyboard.up("Control");
+  await expect.poll(() => transformation(page)).not.toBe("none");
+  await page.keyboard.press("ArrowLeft");
+  await expect.poll(() => transformation(page)).toBe("none");
+  // (Le clic sur le côté a masqué les commandes : la page se reconnaît à son image.)
+  await expect(lecteur.getByRole("img", { name: "Page 6" })).toHaveCount(0);
+});
+
+test("Largeur : la page défile, puis passe à la suivante", async ({ page }, info) => {
+  test.skip(appareil(info) === "tv", "pas de Kavita au téléviseur");
+  test.skip(appareil(info) === "telephone", "écran en hauteur : la page en largeur y tient déjà");
+  const lecteur = await ouvrirManga(page, info);
+  await affichage(lecteur, "Largeur");
+  await page.keyboard.press("Escape");
+  await expect(compte(lecteur)).toHaveText("6 / 20");
+  const scene = page.locator(".reader .stage");
+  const defile = () => scene.evaluate((el) => el.scrollTop);
+  // La page dépasse l'écran : la flèche du bas la fait descendre, sans changer de page.
+  await expect.poll(() => scene.evaluate((el) => el.scrollHeight > el.clientHeight * 1.2)).toBe(true);
+  await page.keyboard.press("ArrowDown");
+  await expect.poll(defile).toBeGreaterThan(50);
+  await expect(compte(lecteur)).toHaveText("6 / 20");
+  // Arrivé en bas : la page suivante, depuis son haut.
+  await scene.evaluate((el) => (el.scrollTop = el.scrollHeight));
+  await page.keyboard.press("ArrowDown");
+  await expect(compte(lecteur)).toHaveText("7 / 20");
+  await expect.poll(defile).toBe(0);
+  // En remontant, la page précédente reprend par son bas.
+  await page.keyboard.press("ArrowUp");
+  await expect(compte(lecteur)).toHaveText("6 / 20");
+  await expect.poll(defile).toBeGreaterThan(50);
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("maku.readerLayout") ?? "{}"))).toEqual({ "12": { spread: "auto", fit: "width" } });
+});
+
+test("défilement vertical : toutes les pages à la suite", async ({ page }, info) => {
+  test.skip(appareil(info) === "tv", "pas de Kavita au téléviseur");
+  const lecteur = await ouvrirManga(page, info);
+  await affichage(lecteur, "Vertical");
+  await page.keyboard.press("Escape");
+  await expect(lecteur.getByRole("img")).toHaveCount(20);
+  await expect(lecteur.getByRole("button", { name: "Chapitre suivant" }).first()).toBeAttached();
+});
+
+async function ouvrirLivre(page: Page, info: TestInfo) {
+  await ouvrir(page, info, "accueil&kavita");
+  await page.evaluate(async () => {
+    const nav = await import("/src/lib/nav.svelte.ts");
+    nav.go({ name: "book", id: 21 });
+  });
+  await expect(page.getByRole("heading", { name: "Le Phare de l'Ouest" })).toBeVisible();
+  await page.getByRole("button", { name: "Lire", exact: true }).click();
+  const lecteur = page.getByRole("dialog");
+  await expect(lecteur.getByText(/^Section \d sur 4/)).toBeVisible();
+  return lecteur;
+}
+
+/** Compteur du bas : section, puis écran dans la section (« Section 2 sur 4 · 1/5 »). */
+const compteur = (lecteur: Locator) => lecteur.getByText(/^Section \d sur 4/);
+
+test("livre EPUB : sections, pages tournées, sommaire, note et progression", async ({ page }, info) => {
+  test.skip(appareil(info) === "tv", "pas de Kavita au téléviseur");
+  await ouvrirLivre(page, info);
+  const lecteur = page.getByRole("dialog");
+  // Kavita reprend à la section 2 : son texte, au premier écran.
+  await expect(compteur(lecteur)).toHaveText(/^Section 2 sur 4 · 1\/\d+$/);
+  await expect(lecteur.getByText(/^Paragraphe 2\.1\./)).toBeInViewport();
+
+  // Tourner la page : l'écran suivant de la même section, puis retour.
+  await page.keyboard.press("ArrowRight");
+  await expect(compteur(lecteur)).toHaveText(/^Section 2 sur 4 · 2\/\d+$/);
+  await expect(lecteur.getByText(/^Paragraphe 2\.1\./)).not.toBeInViewport();
+  await page.keyboard.press("ArrowLeft");
+  await expect(compteur(lecteur)).toHaveText(/^Section 2 sur 4 · 1\/\d+$/);
+  // Avant le premier écran : la fin de la section précédente.
+  await page.keyboard.press("ArrowLeft");
+  await expect(compteur(lecteur)).toHaveText(/^Section 1 sur 4/);
+  const [ecran, total] = ((await compteur(lecteur).textContent()) ?? "").split("· ")[1].split("/");
+  expect(ecran).toBe(total);
+
+  // Sommaire : l'ouverture, nettoyée (ni script ni « onerror » : rien ne s'exécute).
+  await lecteur.getByRole("button", { name: "Sommaire" }).click();
+  await lecteur.getByRole("navigation", { name: "Sommaire" }).getByRole("button", { name: "Ouverture" }).click();
+  await expect(lecteur.getByRole("heading", { name: "Le Phare de l'Ouest" })).toBeInViewport();
+  const propre = await page.evaluate(() => {
+    const root = document.querySelector(".reader .book")!.shadowRoot!;
+    return {
+      script: root.querySelectorAll("script").length,
+      onerror: root.querySelectorAll("[onerror]").length,
+      execute: (window as unknown as { __epubPwned?: number }).__epubPwned ?? null,
+    };
+  });
+  expect(propre).toEqual({ script: 0, onerror: 0, execute: null });
+
+  // Lien interne du livre : la note, dans la section 3, à l'écran qui la contient.
+  await lecteur.getByText("Voir la note").click();
+  await expect(compteur(lecteur)).toHaveText(/^Section 3 sur 4/);
+  await expect(lecteur.getByText("La note du gardien.")).toBeInViewport();
+  await expect.poll(() => sauvegardes(page)).toContainEqual({ chapterId: 2113, page: 2 });
+
+  // Dernière section, courte : le livre est lu (4 sections sur 4), puis le suivant de la série s'ouvre.
+  await lecteur.getByRole("button", { name: "Sommaire" }).click();
+  await lecteur.getByRole("navigation", { name: "Sommaire" }).getByRole("button", { name: "Épilogue" }).click();
+  await expect(compteur(lecteur)).toHaveText(/^Section 4 sur 4/);
+  await expect.poll(() => sauvegardes(page)).toContainEqual({ chapterId: 2113, page: 4 });
+  await page.keyboard.press("ArrowRight");
+  await expect(lecteur.getByText("Le Phare de l'Ouest — Chapitre 4")).toBeVisible();
+});
+
+test("livre EPUB : taille, thème et défilement retenus, reprise au même écran", async ({ page }, info) => {
+  test.skip(appareil(info) === "tv", "pas de Kavita au téléviseur");
+  const lecteur = await ouvrirLivre(page, info);
+  // Deux écrans plus loin, on ferme : la réouverture revient au même endroit.
+  await page.keyboard.press("ArrowRight");
+  await page.keyboard.press("ArrowRight");
+  await expect(compteur(lecteur)).toHaveText(/· 3\/\d+$/);
+  await page.keyboard.press("Escape");
+  await expect(lecteur).toHaveCount(0);
+  await page.getByRole("button", { name: "Lire", exact: true }).click();
+  await expect(compteur(lecteur)).toHaveText(/^Section 2 sur 4 · 3\/\d+$/);
+
+  await lecteur.getByRole("button", { name: "Affichage" }).click();
+  const taille = lecteur.getByRole("group", { name: "Affichage" });
+  await taille.getByRole("button", { name: "Texte plus grand" }).click();
+  await expect(taille.getByText("110 %")).toBeVisible();
+  await taille.getByRole("radio", { name: "Sépia" }).click();
+  await expect(lecteur).toHaveCSS("background-color", "rgb(244, 236, 216)");
+  await taille.getByRole("radio", { name: "Défilement" }).click();
+  // Défilement : plus d'écrans, la section se lit d'un seul tenant.
+  await expect(compteur(lecteur)).toHaveText("Section 2 sur 4");
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("maku.epubReader") ?? "{}"))).toEqual({ layout: "scroll", size: 110, theme: "sepia" });
+
+  // Retenus pour la lecture suivante.
+  await page.keyboard.press("Escape");
+  await page.keyboard.press("Escape");
+  await expect(lecteur).toHaveCount(0);
+  await page.getByRole("button", { name: "Lire", exact: true }).click();
+  await expect(compteur(lecteur)).toHaveText("Section 2 sur 4");
+  await expect(lecteur).toHaveCSS("background-color", "rgb(244, 236, 216)");
+});
+
+test("Réglages › Services : connecter Kavita", async ({ page }, info) => {
+  test.skip(appareil(info) === "tv", "pas de Kavita au téléviseur");
+  await ouvrir(page, info, "reglages");
+  await page.evaluate(async () => {
+    const nav = await import("/src/lib/nav.svelte.ts");
+    nav.go({ name: "settings", page: "services" });
+  });
+  await page.getByLabel("Adresse de Kavita").fill("http://kavita.lan:5000/home");
+  const connecter = page.getByRole("button", { name: "Connecter Kavita" });
+  await expect(connecter).toBeDisabled();
+  await page.getByLabel("Clé d'API Kavita").fill("une-cle-de-test");
+  await connecter.click();
+  await expect(page.getByText("Kavita connecté")).toBeVisible();
+  // L'adresse retenue : la racine de Kavita, sans la page d'accueil.
+  await expect(page.getByLabel("Adresse de Kavita")).toHaveValue("http://kavita.lan:5000");
+});

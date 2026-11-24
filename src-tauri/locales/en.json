@@ -202,5 +202,14 @@
   },
   "playlist": {
     "noTitle": "Give the playlist a name."
+  },
+  "kavita": {
+    "badUrl": "Invalid Kavita address: it starts with http:// or https://",
+    "badKey": "Invalid Kavita API key",
+    "unreachable": "Kavita unreachable: {{error}}",
+    "refused": "Kavita rejects the API key: check it in Kavita › Settings › Auth keys",
+    "replied": "Kavita replied {{status}}",
+    "notFound": "Series not found in Kavita",
+    "notConfigured": "Kavita is not connected (Settings › Services)"
   }
 }

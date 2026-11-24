@@ -6,6 +6,7 @@ mod config;
 mod error;
 mod i18n;
 mod jellyfin;
+mod kavita;
 mod allocine;
 #[cfg(target_os = "linux")]
 mod libmpv;
@@ -378,6 +379,15 @@ pub fn run() {
             plex_tracks,
             plex_home,
             plex_metadata,
+            kavita_configure,
+            kavita_libraries,
+            kavita_series,
+            kavita_on_deck,
+            kavita_series_detail,
+            kavita_chapter,
+            kavita_progress,
+            kavita_book_page,
+            kavita_book_toc,
             plex_children,
             plex_related,
             plex_rate,

@@ -202,5 +202,14 @@
   },
   "playlist": {
     "noTitle": "Geef de afspeellijst een naam."
+  },
+  "kavita": {
+    "badUrl": "Ongeldig Kavita-adres: het begint met http:// of https://",
+    "badKey": "Ongeldige Kavita-API-sleutel",
+    "unreachable": "Kavita onbereikbaar: {{error}}",
+    "refused": "Kavita weigert de API-sleutel: controleer hem in Kavita › Instellingen › Authenticatiesleutels",
+    "replied": "Kavita antwoordde {{status}}",
+    "notFound": "Serie niet gevonden in Kavita",
+    "notConfigured": "Kavita is niet verbonden (Instellingen › Diensten)"
   }
 }

@@ -24,6 +24,8 @@ pub(crate) struct Session {
     mpv_path: Option<String>,
     tracearr_url: Option<String>,
     tracearr_connected: bool,
+    /// Kavita configuré pour ce serveur (sa clé n'est jamais renvoyée à la page).
+    kavita_url: Option<String>,
     /// Une clé TMDB est enregistrée (elle-même n'est jamais renvoyée à la page).
     tmdb: bool,
     /// Plex Home : connexion automatique au dernier profil, sans écran de choix.
@@ -123,6 +125,7 @@ pub fn get_session(state: State<'_, AppState>) -> Session {
         mpv_path: c.mpv_path,
         tracearr_url: c.tracearr_url,
         tracearr_connected: c.tracearr_cookies.is_some(),
+        kavita_url: c.kavita_url.filter(|_| c.kavita_key.is_some()),
         tmdb: c.tmdb_key.is_some(),
         auto_sign_in: c.auto_sign_in,
         store: update::from_store(),

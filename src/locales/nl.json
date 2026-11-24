@@ -230,6 +230,15 @@
       "player": "Afspelen van films, afleveringen en muziek: mpv, volgende aflevering, songteksten.",
       "interface": "Kleuren, taal, menu, getoonde scores en startpagina: Maku naar jouw smaak.",
       "services": "Seerr om aan te vragen, Tracearr om te volgen, TMDB voor logo's, en uitnodigingen."
+    },
+    "kavita": {
+      "intro": "Uw boeken, strips en manga uit Kavita, naast uw andere bibliotheken (behalve op de tv). De leesvoortgang is die van uw Kavita-account.",
+      "address": "Kavita-adres",
+      "key": "Kavita-API-sleutel",
+      "keyHint": "In Kavita: Instellingen › Authenticatiesleutels, maak een sleutel en plak die hier.",
+      "connect": "Kavita verbinden",
+      "connected": "Kavita verbonden",
+      "disconnected": "Kavita losgekoppeld"
     }
   },
   "login": {
@@ -1259,5 +1268,57 @@
     "done": "Gekoppeld aan ‘{{title}}’: Plex werkt de informatie bij",
     "unmatched": "‘{{title}}’ ontkoppeld: corrigeer de koppeling om de informatie terug te krijgen",
     "artist": "Artiest"
+  },
+  "books": {
+    "continueReading": "Verder lezen",
+    "allSeries": "Alle series",
+    "empty": "Geen series in deze bibliotheek.",
+    "read": "Lezen",
+    "continue": "Verder",
+    "volumes": "Delen",
+    "volume": "Deel",
+    "chapters": "Hoofdstukken",
+    "specials": "Specials",
+    "chapter": "Hoofdstuk {{number}}",
+    "untitled": "Zonder titel",
+    "pages_one": "{{count}} pagina",
+    "pages_other": "{{count}} pagina's",
+    "readPercent": "{{percent}}% gelezen",
+    "kind": {
+      "manga": "Manga",
+      "comic": "Strip",
+      "book": "Boek"
+    },
+    "reader": "Lezer",
+    "direction": "Leesrichting",
+    "ltr": "Links → rechts",
+    "rtl": "Rechts → links",
+    "vertical": "Verticaal",
+    "page": "Pagina",
+    "pageOf": "{{page}} / {{pages}}",
+    "pageAlt": "Pagina {{page}}",
+    "nextChapter": "Volgend hoofdstuk",
+    "prevChapter": "Vorig hoofdstuk",
+    "toc": "Inhoud",
+    "display": "Weergave",
+    "textSize": "Tekstgrootte",
+    "smaller": "Kleinere tekst",
+    "larger": "Grotere tekst",
+    "theme": "Thema",
+    "themeDark": "Donker",
+    "themeLight": "Licht",
+    "themeSepia": "Sepia",
+    "layout": "Indeling",
+    "paged": "Pagina's",
+    "scroll": "Scrollen",
+    "section": "Sectie",
+    "sectionOf": "Sectie {{section}} van {{sections}}",
+    "fit": "Aanpassen",
+    "fitScreen": "Hele pagina",
+    "fitWidth": "Breedte",
+    "spread": "Pagina's",
+    "spreadAuto": "Automatisch",
+    "spreadSingle": "Enkel",
+    "spreadDouble": "Dubbel"
   }
 }

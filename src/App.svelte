@@ -47,6 +47,11 @@
   import QrCode from "./components/QrCode.svelte";
   import { sidebar } from "./lib/sidebar.svelte";
   import { device } from "./lib/device";
+  import { bookLibraryId, bookSections, books } from "./lib/books.svelte";
+  import BookLibrary from "./views/BookLibrary.svelte";
+  import BookSeries from "./views/BookSeries.svelte";
+  import BookReader from "./components/BookReader.svelte";
+  import EpubReader from "./components/EpubReader.svelte";
   import { t } from "./lib/i18n";
 
   let session = $state<Session | null>(null);
@@ -99,6 +104,14 @@
     }
     if (wanted) {
       sections = await wanted.sections;
+      // Kavita : ses bibliothèques (livres, BD, mangas) à la suite des autres, sauf au téléviseur ; chargées à part,
+      // pour ne pas retarder le menu.
+      if (session.kavitaUrl && !device.tv) {
+        const base = sections;
+        bookSections().then((extra) => {
+          if (extra.length && sections === base) sections = [...base, ...extra];
+        });
+      }
       // Serveur joignable : la progression jouée hors ligne lui est renvoyée, les téléchargements reprennent.
       if (sections.length) {
         checkOfflineAllowed();
@@ -315,6 +328,10 @@
             <Home {sections} />
           {:else if nav.view.name === "libraries"}
             <Libraries {sections} />
+          {:else if nav.view.name === "section" && nav.view.kind === "book"}
+            <BookLibrary libraryId={bookLibraryId(nav.view.key) ?? 0} title={nav.view.title} />
+          {:else if nav.view.name === "book"}
+            <BookSeries id={nav.view.id} />
           {:else if nav.view.name === "section" && nav.view.kind === "artist"}
             <MusicLibrary sectionKey={nav.view.key} title={nav.view.title} />
           {:else if nav.view.name === "section"}
@@ -369,6 +386,9 @@
 {#if watching}
   <PlayerOverlay />
 {/if}
+
+<!-- Lecteur de BD et de mangas (Kavita), par-dessus tout. -->
+{#if books.reading}{#key books.reading}{#if books.reading.format === "epub"}<EpubReader />{:else}<BookReader />{/if}{/key}{/if}
 
 <!-- Bande-annonce YouTube : s'ouvre par-dessus la fiche, sans lecture en cours. -->
 <TrailerOverlay />

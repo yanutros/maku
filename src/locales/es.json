@@ -230,6 +230,15 @@
       "player": "Reproducción de películas, episodios y música: mpv, siguiente episodio, letras.",
       "interface": "Colores, idioma, menú, notas mostradas e inicio: Maku a tu gusto.",
       "services": "Seerr para pedir, Tracearr para seguir, TMDB para los logos e invitaciones."
+    },
+    "kavita": {
+      "intro": "Sus libros, cómics y mangas de Kavita, junto a sus otras bibliotecas (salvo en la tele). El progreso de lectura es el de su cuenta de Kavita.",
+      "address": "Dirección de Kavita",
+      "key": "Clave de API de Kavita",
+      "keyHint": "En Kavita: Ajustes › Claves de autenticación, cree una clave y péguela aquí.",
+      "connect": "Conectar Kavita",
+      "connected": "Kavita conectado",
+      "disconnected": "Kavita desconectado"
     }
   },
   "login": {
@@ -1259,5 +1268,57 @@
     "done": "Asociado a «{{title}}»: Plex está actualizando su información",
     "unmatched": "«{{title}}» desvinculado: corrige la coincidencia para recuperar su información",
     "artist": "Artista"
+  },
+  "books": {
+    "continueReading": "Seguir leyendo",
+    "allSeries": "Todas las series",
+    "empty": "No hay series en esta biblioteca.",
+    "read": "Leer",
+    "continue": "Continuar",
+    "volumes": "Volúmenes",
+    "volume": "Volumen",
+    "chapters": "Capítulos",
+    "specials": "Especiales",
+    "chapter": "Capítulo {{number}}",
+    "untitled": "Sin título",
+    "pages_one": "{{count}} página",
+    "pages_other": "{{count}} páginas",
+    "readPercent": "Leído al {{percent}} %",
+    "kind": {
+      "manga": "Manga",
+      "comic": "Cómic",
+      "book": "Libro"
+    },
+    "reader": "Lector",
+    "direction": "Sentido de lectura",
+    "ltr": "Izquierda → derecha",
+    "rtl": "Derecha → izquierda",
+    "vertical": "Vertical",
+    "page": "Página",
+    "pageOf": "{{page}} / {{pages}}",
+    "pageAlt": "Página {{page}}",
+    "nextChapter": "Capítulo siguiente",
+    "prevChapter": "Capítulo anterior",
+    "toc": "Índice",
+    "display": "Visualización",
+    "textSize": "Tamaño del texto",
+    "smaller": "Texto más pequeño",
+    "larger": "Texto más grande",
+    "theme": "Tema",
+    "themeDark": "Oscuro",
+    "themeLight": "Claro",
+    "themeSepia": "Sepia",
+    "layout": "Diseño",
+    "paged": "Páginas",
+    "scroll": "Desplazamiento",
+    "section": "Sección",
+    "sectionOf": "Sección {{section}} de {{sections}}",
+    "fit": "Ajuste",
+    "fitScreen": "Página completa",
+    "fitWidth": "Ancho",
+    "spread": "Páginas",
+    "spreadAuto": "Automático",
+    "spreadSingle": "Simple",
+    "spreadDouble": "Doble"
   }
 }

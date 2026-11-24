@@ -12,7 +12,7 @@
   const list = $derived(ordered(sections).filter((s) => !sidebar.hidden.includes(s.key)));
 
   function icon(kind: string): IconName {
-    return kind === "movie" ? "film" : kind === "artist" ? "music" : "tv";
+    return kind === "movie" ? "film" : kind === "artist" ? "music" : kind === "book" ? "book" : "tv";
   }
 </script>
 
