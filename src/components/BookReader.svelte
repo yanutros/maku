@@ -703,7 +703,8 @@
     position: absolute;
     top: calc(68px + var(--inset-top, 0px));
     right: 12px;
-    width: min(420px, calc(100% - 24px));
+    /* Assez large pour chaque réglage sur une ligne (libellé à gauche, boutons à droite). */
+    width: min(500px, calc(100% - 24px));
     padding: 16px;
     border: 1px solid #ffffff1f;
     border-radius: 14px;
@@ -726,8 +727,11 @@
     padding: 8px 0;
   }
 
+  /* Toujours à droite, même renvoyés sous leur libellé (écran étroit). */
   .modes {
     display: flex;
+    flex: none;
+    margin-left: auto;
     overflow: hidden;
     border: 1px solid #ffffff2a;
     border-radius: 999px;

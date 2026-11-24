@@ -86,12 +86,14 @@ compte Kavita**, avec sa propre progression de lecture, et l'administrateur choi
 
 1. Dans Kavita, connecté avec le compte administrateur : **Paramètres → Clés d'authentification**, créez une clé.
 2. Donnez au relais `KAVITA_URL`, cette clé (`KAVITA_KEY`) et un volume pour `/data`, puis redémarrez-le.
-3. Dans Maku, le propriétaire du serveur (Plex, Jellyfin ou Emby) trouve **Livres** dans la catégorie Admin : la liste
-   des utilisateurs du serveur, avec une case par bibliothèque Kavita.
-   - La première case cochée crée le compte Kavita de l'utilisateur (un nom tiré du sien, un mot de passe tiré au
-     hasard que personne n'a besoin de connaître, une clé d'API pour Maku).
-   - Tout décocher lui retire l'accès ; son compte et sa progression restent, s'il revient.
-   - Personne n'a accès tant que vous ne l'avez pas coché.
+3. Dans Maku, le propriétaire du serveur (Plex, Jellyfin ou Emby) trouve **Livres** dans la catégorie Admin, mis en
+   page comme Dashboard → Utilisateurs : la liste des utilisateurs du serveur, puis, pour chacun, un interrupteur par
+   bibliothèque Kavita.
+   - La première bibliothèque ouverte crée le compte Kavita de l'utilisateur (un nom tiré du sien, un mot de passe tiré
+     au hasard que personne n'a besoin de connaître, une clé d'API pour Maku).
+   - **Retirer l'accès** (ou tout fermer) lui retire ses bibliothèques ; son compte et sa progression restent, s'il
+     revient.
+   - Personne n'a accès tant que vous ne lui avez rien ouvert.
 4. Chez l'utilisateur, rien à régler : ses bibliothèques apparaissent dans Maku à côté des autres. Le propriétaire du
    serveur, lui, lit avec le compte administrateur de Kavita (celui de la clé), et garde sa progression.
 
@@ -99,6 +101,10 @@ Ce qu'il faut savoir :
 
 - **La clé administrateur ne quitte jamais le relais.** Chaque utilisateur reçoit la clé de son propre compte : Kavita
   lui refuse tout ce que vous ne lui avez pas ouvert, même avec une application modifiée.
+- Pour savoir **qui** est un utilisateur Plex, le relais demande à plex.tv. Le jeton qu'un ami reçoit pour un serveur
+  partagé n'ouvre pas plex.tv : Maku joint donc le jeton de son compte (`X-Maku-Plex`), qu'il confie déjà au relais
+  pour se connecter à Seerr. Le relais vérifie que ce compte a bien votre serveur parmi les siens, et ne le transmet
+  jamais plus loin. Avec Jellyfin et Emby, le jeton du serveur suffit.
 - Les appels passent par le relais (`/kavita/api/…`) avec le jeton de l'utilisateur auprès du serveur, comme pour
   Seerr. Les images (couvertures, pages) sont chargées sans ce jeton : le relais ne les laisse passer qu'avec une clé
   Kavita qu'il a vue, depuis moins d'un jour, auprès d'un utilisateur reconnu.

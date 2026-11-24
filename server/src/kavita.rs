@@ -280,31 +280,38 @@ pub fn valid_user_id(kind: Kind, id: &str) -> bool {
 }
 
 /// Qui porte ce jeton : `Ok(None)` s'il n'est pas un utilisateur du serveur, une erreur si le serveur ne répond pas.
-pub async fn who(app: &App, k: &Kavita, token: &str) -> Result<Option<Who>> {
+/// `account` : avec Plex, le jeton du compte plex.tv de l'utilisateur (`X-Maku-Plex`).
+pub async fn who(app: &App, k: &Kavita, token: &str, account: Option<&str>) -> Result<Option<Who>> {
     match auth::check(app, token).await {
         Verdict::Allowed => {}
         Verdict::Denied => return Ok(None),
         Verdict::Unavailable => bail!("media server unreachable"),
     }
-    if let Some((w, at)) = k.who.lock().unwrap().get(token) {
+    let key = format!("{token}|{}", account.unwrap_or_default());
+    if let Some((w, at)) = k.who.lock().unwrap().get(&key) {
         if at.elapsed() < WHO_FOR {
             return Ok(Some(w.clone()));
         }
     }
     let w = match app.cfg.kind {
-        Kind::Plex => plex_who(app, token).await?,
+        Kind::Plex => match plex_who(app, account.unwrap_or(token)).await? {
+            Some(w) => w,
+            None => return Ok(None),
+        },
         Kind::Jellyfin | Kind::Emby => media_who(app, token).await?,
     };
     let mut cache = k.who.lock().unwrap();
     if cache.len() > 2000 {
         cache.clear();
     }
-    cache.insert(token.to_owned(), (w.clone(), Instant::now()));
+    cache.insert(key, (w.clone(), Instant::now()));
     Ok(Some(w))
 }
 
-/// Plex : le compte plex.tv du jeton, et s'il possède ce serveur.
-async fn plex_who(app: &App, token: &str) -> Result<Who> {
+/// Plex : le compte plex.tv de ce jeton, s'il a accès à ce serveur, et s'il le possède. Le jeton d'un serveur partagé
+/// (celui d'un ami, `X-Maku-Token`) n'ouvre pas plex.tv : Maku joint donc celui du compte (`X-Maku-Plex`), qu'il confie
+/// déjà au relais pour se connecter à Seerr. Un compte qui n'a pas ce serveur parmi les siens n'est pas reconnu.
+async fn plex_who(app: &App, token: &str) -> Result<Option<Who>> {
     let get = |path: &str| {
         app.http
             .get(format!("{}{path}", app.cfg.plextv))
@@ -316,17 +323,20 @@ async fn plex_who(app: &App, token: &str) -> Result<Who> {
             .send()
     };
     let (user, resources) = tokio::join!(get("/api/v2/user"), get("/api/v2/resources?includeHttps=1"));
-    let user: Value = user.context("plex.tv injoignable")?.error_for_status()?.json().await?;
+    let user = user.context("plex.tv injoignable")?;
+    if matches!(user.status().as_u16(), 401 | 403) {
+        return Ok(None);
+    }
+    let user: Value = user.error_for_status()?.json().await?;
     let id = user["id"].as_i64().ok_or_else(|| anyhow!("plex.tv : compte sans numéro"))?;
     let name = ["title", "friendlyName", "username"].iter().find_map(|f| user[*f].as_str().filter(|s| !s.is_empty())).unwrap_or("").to_owned();
     let server = auth::server_id(app).await;
-    let owned = match resources {
-        Ok(r) => r.json::<Value>().await.unwrap_or_default(),
-        Err(_) => Value::Null,
+    let resources: Value = resources.context("plex.tv injoignable")?.error_for_status()?.json().await?;
+    let Some(server) = server else { bail!("media server unreachable") };
+    let Some(mine) = resources.as_array().into_iter().flatten().find(|r| r["clientIdentifier"].as_str() == Some(server.as_str())) else {
+        return Ok(None);
     };
-    let admin = server.is_some()
-        && owned.as_array().into_iter().flatten().any(|r| r["clientIdentifier"].as_str() == server.as_deref() && r["owned"].as_bool() == Some(true));
-    Ok(Who { id: format!("plex:{id}"), name, admin })
+    Ok(Some(Who { id: format!("plex:{id}"), name, admin: mine["owned"].as_bool() == Some(true) }))
 }
 
 /// Jellyfin et Emby : l'utilisateur du jeton, et s'il administre le serveur.
@@ -355,7 +365,8 @@ fn error(status: StatusCode, message: &str) -> Response {
 async fn caller<'a>(app: &'a App, headers: &HeaderMap) -> Result<(Who, &'a Kavita), Box<Response>> {
     let Some(k) = app.kavita.as_ref() else { return Err(Box::new(error(StatusCode::NOT_FOUND, "not found"))) };
     let token = headers.get(crate::proxy::TOKEN_HEADER).and_then(|v| v.to_str().ok()).unwrap_or_default();
-    match who(app, k, token).await {
+    let account = headers.get(crate::proxy::PLEX_HEADER).and_then(|v| v.to_str().ok()).filter(|v| !v.is_empty() && v.len() <= 512);
+    match who(app, k, token, account).await {
         Ok(Some(w)) => Ok((w, k)),
         Ok(None) => Err(Box::new(error(StatusCode::UNAUTHORIZED, "not a user of this server"))),
         Err(_) => Err(Box::new(error(StatusCode::BAD_GATEWAY, "media server unreachable"))),

@@ -643,7 +643,7 @@
     position: absolute;
     top: calc(64px + var(--inset-top, 0px));
     right: 12px;
-    width: min(360px, calc(100% - 24px));
+    width: min(420px, calc(100% - 24px));
     max-height: calc(100% - 150px - var(--inset-top, 0px) - var(--inset-bottom, 0px));
     overflow-y: auto;
     padding: 16px;
@@ -692,6 +692,13 @@
     justify-content: space-between;
     gap: 8px 12px;
     padding: 8px 0;
+  }
+
+  /* Toujours à droite, même renvoyés sous leur libellé (écran étroit). */
+  .size,
+  .modes {
+    flex: none;
+    margin-left: auto;
   }
 
   .size {

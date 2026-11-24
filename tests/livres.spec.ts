@@ -347,21 +347,27 @@ test("Maku Server : Administration › Livres, ouvrir puis retirer des biblioth�
     await page.locator("button.item", { hasText: "Livres" }).click();
   }
   await expect(page.getByRole("heading", { name: "Livres", level: 1 })).toBeVisible();
-  // Les utilisateurs du serveur, et un ancien qui a encore un compte (pour pouvoir le lui retirer).
-  const hugo = page.getByRole("region", { name: "Hugo" });
-  await expect(hugo.getByText("Aucun accès")).toBeVisible();
-  await expect(page.getByRole("region", { name: "Ancien ami" }).getByText("n'est plus sur le serveur")).toBeVisible();
-  // Cocher : le compte est créé avec cette bibliothèque.
-  await hugo.getByRole("checkbox", { name: "Romans" }).check();
-  await expect(hugo.getByText("1 bibliothèque")).toBeVisible();
+  // Comme Dashboard › Utilisateurs : la liste des comptes, puis la fiche de celui qu'on choisit.
+  const liste = page.locator(".users .list");
+  await expect(liste.getByRole("button", { name: /Hugo.*Aucun accès/ })).toBeVisible();
+  // Un ancien utilisateur qui a encore un compte, pour pouvoir le lui retirer.
+  await expect(liste.getByRole("button", { name: /Ancien ami.*n'est plus sur le serveur/ })).toBeVisible();
+  await liste.getByRole("button", { name: /Hugo/ }).click();
+  const hugo = page.getByRole("group", { name: "Bibliothèques Kavita de Hugo" });
+  await expect(page.getByText("Pas encore de compte Kavita")).toBeVisible();
+  // Un interrupteur par bibliothèque : le premier allumé crée son compte (au téléphone, la liste est cachée derrière la fiche).
+  await hugo.getByRole("checkbox", { name: /Romans/ }).check();
+  await expect(liste.getByRole("button", { name: /Hugo.*1 bibliothèque/, includeHidden: true })).toBeAttached();
   await expect.poll(() => accords(page)).toContainEqual({ id: "plex:102", libraries: [2] });
-  await hugo.getByRole("checkbox", { name: "Mangas" }).check();
-  await expect(hugo.getByText("2 bibliothèques")).toBeVisible();
+  await expect(page.getByText("Compte Kavita : Hugo.102")).toBeVisible();
+  await hugo.getByRole("checkbox", { name: /Mangas/ }).check();
+  await expect(liste.getByRole("button", { name: /Hugo.*2 bibliothèques/, includeHidden: true })).toBeAttached();
   await expect.poll(() => accords(page)).toContainEqual({ id: "plex:102", libraries: [1, 2] });
-  // Tout décocher : plus d'accès.
-  const ancien = page.getByRole("region", { name: "Ancien ami" });
-  await ancien.getByRole("checkbox", { name: "Mangas" }).uncheck();
-  await expect(ancien.getByText("Aucun accès")).toBeVisible();
+  // « Retirer l'accès » : plus aucune bibliothèque, le compte reste.
+  if (appareil(info) === "telephone") await page.getByRole("button", { name: "Retour" }).first().click();
+  await liste.getByRole("button", { name: /Ancien ami/ }).click();
+  await page.getByRole("button", { name: "Retirer l'accès" }).click();
+  await expect(liste.getByRole("button", { name: /Ancien ami.*Aucun accès/, includeHidden: true })).toBeAttached();
   await expect.poll(() => accords(page)).toContainEqual({ id: "plex:900", libraries: [] });
 });
 
@@ -386,4 +392,62 @@ test("Maku Server : Kavita fourni, rien à saisir dans les Réglages ; pas d'ong
   });
   await expect(page.locator(".page .muted").first()).toBeVisible();
   await expect(page.getByRole("checkbox")).toHaveCount(0);
+});
+
+test("Maku Server : son Kavita remplace celui saisi à la main", async ({ page }, info) => {
+  test.skip(appareil(info) === "tv", "pas de Kavita au téléviseur");
+  // Kavita saisi à la main à l'étape d'avant ; le relais du serveur en propose un : c'est lui qui sert.
+  await ouvrir(page, info, "accueil&kavitamain&kavitarelay&admin");
+  if (appareil(info) === "telephone") await page.locator("nav.tabs button", { hasText: "Bibliothèques" }).click();
+  await expect(page.getByRole("button", { name: "Livres", exact: true })).toBeVisible();
+  await page.evaluate(async () => {
+    const nav = await import("/src/lib/nav.svelte.ts");
+    nav.go({ name: "settings", page: "services" });
+  });
+  await expect(page.getByText("Fourni par Maku Server")).toBeVisible();
+});
+
+test("série : son fond couvre la fenêtre, sans bande sombre contre le menu en haut", async ({ page }, info) => {
+  test.skip(appareil(info) === "tv", "pas de Kavita au téléviseur");
+  await ouvrir(page, info, "accueil&kavita");
+  await page.evaluate(async () => {
+    const nav = await import("/src/lib/nav.svelte.ts");
+    nav.go({ name: "book", id: 12 });
+  });
+  await expect(page.getByRole("heading", { name: "Le Gardien des Marées" })).toBeVisible();
+  // Le dégradé du haut ne couvre que la page : sur un fond qui va jusqu'au bord, il s'arrêtait net contre le menu.
+  expect(await page.locator("main > header").evaluate((h) => getComputedStyle(h).backgroundImage)).toBe("none");
+  // Le fond lui-même passe derrière le menu (et non sous le fond de la fenêtre).
+  expect(await page.locator(".backdrop").evaluate((b) => getComputedStyle(b).zIndex)).toBe("0");
+});
+
+/** Bord droit de chaque groupe de boutons d'un panneau Affichage (ils doivent tous finir au même endroit). */
+const bordsDroits = (panneau: Locator) =>
+  panneau.locator(".modes, .size").evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().right)));
+
+test("panneaux Affichage : tous les boutons alignés à droite, chaque réglage sur sa ligne à l'ordinateur", async ({ page }, info) => {
+  test.skip(appareil(info) === "tv", "pas de Kavita au téléviseur");
+  const lecteur = await ouvrirManga(page, info);
+  await lecteur.getByRole("button", { name: "Affichage" }).click();
+  const bd = lecteur.getByRole("group", { name: "Affichage" });
+  await expect(bd.getByRole("radiogroup")).toHaveCount(3);
+  const droites = await bordsDroits(bd);
+  expect(new Set(droites).size, `bords droits : ${droites}`).toBe(1);
+  if (appareil(info) !== "telephone") {
+    // Le libellé et ses boutons sur la même ligne.
+    for (const groupe of await bd.locator(".setting").all()) {
+      const [libelle, boutons] = [(await groupe.locator("span").first().boundingBox())!, (await groupe.locator(".modes").boundingBox())!];
+      expect(boutons.y).toBeLessThan(libelle.y + libelle.height);
+    }
+  }
+  await page.keyboard.press("Escape");
+  await page.keyboard.press("Escape");
+
+  // Le lecteur EPUB : même règle.
+  const livre = await ouvrirLivre(page, info);
+  await livre.getByRole("button", { name: "Affichage" }).click();
+  const epub = livre.getByRole("group", { name: "Affichage" });
+  const droitesEpub = await bordsDroits(epub);
+  expect(droitesEpub.length).toBe(3);
+  expect(new Set(droitesEpub).size, `bords droits : ${droitesEpub}`).toBe(1);
 });

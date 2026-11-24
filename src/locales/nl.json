@@ -1181,7 +1181,7 @@
       "dashboard": "Wat er nu speelt, bandbreedte, topgebruikers, geschiedenis en de meest afgespeelde titels.",
       "users": "De vrienden met wie de server gedeeld wordt: hun bibliotheken, rechten en beperkingen.",
       "requests": "De verzoeken van alle gebruikers: goedkeuren, afwijzen, profiel of map vóór goedkeuring corrigeren, verwijderen.",
-      "books": "De Kavita-bibliotheken (boeken, strips, manga) die voor iedereen openstaan. Het eerste vinkje maakt een Kavita-account aan met een eigen leesvoortgang; alles uitvinken trekt de toegang in, het account blijft."
+      "books": "De Kavita-bibliotheken (boeken, strips, manga) die voor iedereen openstaan. De eerste bibliotheek die je voor iemand opent, maakt een Kavita-account aan met een eigen leesvoortgang; alles sluiten trekt de toegang in, het account blijft."
     },
     "requests": "Verzoeken",
     "books": "Boeken"
@@ -1330,7 +1330,11 @@
       "gone": "staat niet meer op de server",
       "noUsers": "Geen andere gebruikers op deze server.",
       "saved": "Bibliotheken van {{name}} opgeslagen",
-      "removed": "{{name}} heeft geen toegang meer tot boeken"
+      "removed": "{{name}} heeft geen toegang meer tot boeken",
+      "account": "Kavita-account: {{username}}",
+      "noAccount": "Nog geen Kavita-account: het wordt aangemaakt bij de eerste geopende bibliotheek",
+      "libraries": "Kavita-bibliotheken van {{name}}",
+      "keepsProgress": "Het Kavita-account en de voortgang blijven bewaard, mocht de persoon terugkomen."
     }
   }
 }

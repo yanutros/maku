@@ -1181,7 +1181,7 @@
       "dashboard": "What's playing right now, bandwidth, top users, history and the most played titles.",
       "users": "The friends the server is shared with: their libraries, permissions and restrictions.",
       "requests": "Everyone's requests: approve them, decline them, fix their profile or folder before approval, delete them.",
-      "books": "The Kavita libraries (books, comics, manga) open to each user. The first box checked creates a Kavita account for them, with their own progress; unchecking everything removes access but keeps the account."
+      "books": "The Kavita libraries (books, comics, manga) open to each user. The first library opened to someone creates a Kavita account for them, with their own progress; closing them all removes access but keeps the account."
     },
     "requests": "Requests",
     "books": "Books"
@@ -1330,7 +1330,11 @@
       "gone": "is no longer on the server",
       "noUsers": "No other user on this server.",
       "saved": "{{name}}'s libraries saved",
-      "removed": "{{name}} no longer has access to books"
+      "removed": "{{name}} no longer has access to books",
+      "account": "Kavita account: {{username}}",
+      "noAccount": "No Kavita account yet: it will be created with the first library opened",
+      "libraries": "{{name}}'s Kavita libraries",
+      "keepsProgress": "Their Kavita account and progress stay, should they come back."
     }
   }
 }

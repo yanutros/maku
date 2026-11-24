@@ -11,6 +11,8 @@ use std::net::SocketAddr;
 
 /// En-tête qui porte le jeton de l'utilisateur (jamais transmis plus loin).
 pub const TOKEN_HEADER: &str = "x-maku-token";
+/// Avec Plex, le jeton du compte plex.tv de l'utilisateur, pour savoir qui il est (jamais transmis plus loin).
+pub const PLEX_HEADER: &str = "x-maku-plex";
 /// Taille maximale d'un envoi (les demandes, réglages et connexions sont tout petits).
 const MAX_BODY: usize = 4 * 1024 * 1024;
 
@@ -28,6 +30,7 @@ const DROPPED: &[&str] = &[
     "host",
     "content-length",
     TOKEN_HEADER,
+    PLEX_HEADER,
     "origin",
     "referer",
     "forwarded",

@@ -109,7 +109,7 @@
       <ol class="steps">
         <li>Dans Kavita, avec le compte administrateur : <strong>Paramètres → Clés d'authentification</strong>, créez une clé.</li>
         <li>Donnez à Maku Server l'adresse de Kavita (<code>KAVITA_URL</code>), cette clé (<code>KAVITA_KEY</code>) et un volume pour <code>/data</code>, où il retient le compte de chacun.</li>
-        <li>Dans Maku, le propriétaire du serveur (Plex, Jellyfin ou Emby) ouvre <strong>Livres</strong>, dans la catégorie Admin : une case par bibliothèque Kavita et par utilisateur. La première case cochée crée le compte Kavita de l'utilisateur ; tout décocher lui retire l'accès, en gardant son compte et sa progression. Personne n'a accès tant que vous ne l'avez pas coché.</li>
+        <li>Dans Maku, le propriétaire du serveur (Plex, Jellyfin ou Emby) ouvre <strong>Livres</strong>, dans la catégorie Admin : la liste des utilisateurs du serveur, puis, pour chacun, un interrupteur par bibliothèque Kavita. La première bibliothèque ouverte crée le compte Kavita de l'utilisateur ; <strong>Retirer l'accès</strong> lui retire tout, en gardant son compte et sa progression. Personne n'a accès tant que vous ne lui avez rien ouvert.</li>
       </ol>
       <p>Le propriétaire du serveur lit, lui, avec le compte administrateur de Kavita, et garde sa progression. La clé administrateur ne quitte jamais le relais : chacun lit avec son propre compte, et Kavita lui refuse ce qui ne lui est pas ouvert. Le plugin Maku pour Jellyfin ne relaie pas encore Kavita.</p>
 

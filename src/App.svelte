@@ -133,9 +133,9 @@
           }
         }, () => {});
       }
-      // Kavita par Maku Server : le compte Kavita de l'utilisateur, si l'administrateur lui a ouvert des bibliothèques
-      // (un Kavita saisi à la main n'est pas touché). Ses bibliothèques sont relues si l'accès a changé.
-      if (!device.tv && (!session.kavitaUrl || session.kavitaRelay)) {
+      // Kavita par Maku Server : le compte Kavita de l'utilisateur, si l'administrateur lui a ouvert des bibliothèques ;
+      // il passe avant un Kavita saisi à la main. Ses bibliothèques sont relues si l'accès a changé.
+      if (!device.tv) {
         const had = !!session.kavitaUrl;
         api.kavitaRelay().then(async (r) => {
           nav.kavitaAdmin = !!r?.admin;
@@ -324,7 +324,7 @@
       {/if}
       <!-- Sur téléviseur, la recherche passe par le menu : la barre n'apparaît que sur sa page. -->
       {#if !device.phone && (!device.tv || nav.view.name === "search")}
-      <header data-nav-low class:clear={nav.view.name === "stats" || nav.view.name === "item" || nav.view.name === "mix" || nav.view.name === "seerr"}>
+      <header data-nav-low class:clear={nav.view.name === "stats" || nav.view.name === "item" || nav.view.name === "mix" || nav.view.name === "seerr" || nav.view.name === "book"}>
         <button class="btn round ghost" disabled={!nav.history.length} onclick={back} aria-label={t("common.c1.back")}>
           <Icon name="back" />
         </button>
@@ -611,7 +611,7 @@
     pointer-events: none;
   }
 
-  /* Statistiques et fiches : le fond de la page couvre toute la fenêtre, menu compris ; le dégradé du haut, qui ne
+  /* Statistiques, fiches et séries Kavita : le fond de la page couvre toute la fenêtre, menu compris ; le dégradé du haut, qui ne
      couvre que la page, y faisait une marque sombre en haut à gauche, contre le menu. Les fiches ont leur propre
      ombre en haut de l'image. */
   header.clear {

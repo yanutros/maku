@@ -54,15 +54,13 @@ pub(crate) struct KavitaAccess {
 }
 
 /// Kavita par Maku Server : le relais du serveur (celui de Seerr ou de Tracearr, ou trouvé sur le réseau local) donne
-/// la clé du compte Kavita de l'utilisateur, si l'administrateur lui a ouvert des bibliothèques. Un Kavita saisi à la
-/// main n'est pas touché ; un accès retiré par l'administrateur est oublié.
+/// la clé du compte Kavita de l'utilisateur, si l'administrateur lui a ouvert des bibliothèques. Il passe avant un Kavita
+/// saisi à la main (celui-ci ne reste que si le relais n'en propose pas, ou n'ouvre rien à cet utilisateur) ; un accès
+/// retiré par l'administrateur est oublié.
 #[tauri::command]
 pub async fn kavita_relay(state: State<'_, AppState>) -> CmdResult<Option<KavitaAccess>> {
     let c = state.cfg();
     let Some(server) = c.server.clone() else { return Ok(None) };
-    if c.kavita_url.is_some() && !c.kavita_relay {
-        return Ok(None);
-    }
     let mut bases: Vec<String> = [c.kavita_url.as_deref(), c.seerr_url.as_deref(), c.tracearr_url.as_deref()]
         .into_iter()
         .flatten()
@@ -85,7 +83,15 @@ pub async fn kavita_relay(state: State<'_, AppState>) -> CmdResult<Option<Kavita
         let url = format!("{base}/kavita");
         // Seulement le relais de ce serveur (Maku Server : le plugin Jellyfin ne relaie pas Kavita).
         let Some(relay) = state.relay_token(&url).await.ok().flatten().filter(|r| !r.is_plugin()) else { continue };
-        let Ok(resp) = state.http.get(format!("{base}/maku/kavita")).headers(maku_server::relay_headers(Some(relay))).timeout(Duration::from_secs(20)).send().await else {
+        let Ok(resp) = state
+            .http
+            .get(format!("{base}/maku/kavita"))
+            .headers(maku_server::relay_headers(Some(relay)))
+            .headers(plex_account(&c))
+            .timeout(Duration::from_secs(20))
+            .send()
+            .await
+        else {
             continue;
         };
         let status = resp.status();
@@ -116,6 +122,18 @@ pub async fn kavita_relay(state: State<'_, AppState>) -> CmdResult<Option<Kavita
     Ok(None)
 }
 
+/// Avec Plex, le jeton du compte plex.tv : celui du serveur, chez un ami, n'ouvre pas plex.tv, et le relais ne saurait pas
+/// qui il est. Maku le confie déjà au relais pour se connecter à Seerr ; le relais ne le transmet pas plus loin.
+fn plex_account(c: &config::Config) -> reqwest::header::HeaderMap {
+    let mut h = reqwest::header::HeaderMap::new();
+    let plex = c.server.as_ref().is_some_and(|s| !s.is_jellyfin());
+    if let Some(mut v) = c.plex_token.as_deref().filter(|_| plex).and_then(|t| reqwest::header::HeaderValue::from_str(t).ok()) {
+        v.set_sensitive(true);
+        h.insert("X-Maku-Plex", v);
+    }
+    h
+}
+
 /// Appel d'administration à Maku Server (propriétaire du serveur).
 async fn relay_admin(state: &AppState, method: reqwest::Method, path: &str, body: Option<Value>) -> anyhow::Result<Value> {
     let c = state.cfg();
@@ -127,7 +145,12 @@ async fn relay_admin(state: &AppState, method: reqwest::Method, path: &str, body
         .map(str::to_owned)
         .ok_or_else(|| anyhow!(crate::i18n::tr("kavita.notConfigured")))?;
     let relay = state.relay_token(&format!("{base}/kavita")).await?;
-    let mut req = state.http.request(method, format!("{base}{path}")).headers(maku_server::relay_headers(relay)).timeout(Duration::from_secs(60));
+    let mut req = state
+        .http
+        .request(method, format!("{base}{path}"))
+        .headers(maku_server::relay_headers(relay))
+        .headers(plex_account(&c))
+        .timeout(Duration::from_secs(60));
     if let Some(body) = body {
         req = req.json(&body);
     }

@@ -1181,7 +1181,7 @@
       "dashboard": "Lo que se reproduce ahora, el ancho de banda, los usuarios principales, el historial y lo más reproducido.",
       "users": "Los amigos con los que se comparte el servidor: sus bibliotecas, permisos y restricciones.",
       "requests": "Las solicitudes de todos los usuarios: aprobarlas, rechazarlas, corregir su perfil o su carpeta antes de aprobarlas, eliminarlas.",
-      "books": "Las bibliotecas de Kavita (libros, cómics, mangas) abiertas a cada uno. La primera casilla marcada le crea una cuenta de Kavita, con su propio progreso; desmarcar todo le quita el acceso, conservando la cuenta."
+      "books": "Las bibliotecas de Kavita (libros, cómics, mangas) abiertas a cada uno. La primera biblioteca abierta a alguien le crea una cuenta de Kavita, con su propio progreso; cerrarlas todas le quita el acceso, conservando la cuenta."
     },
     "requests": "Solicitudes",
     "books": "Libros"
@@ -1330,7 +1330,11 @@
       "gone": "ya no está en el servidor",
       "noUsers": "Ningún otro usuario en este servidor.",
       "saved": "Bibliotecas de {{name}} guardadas",
-      "removed": "{{name}} ya no tiene acceso a los libros"
+      "removed": "{{name}} ya no tiene acceso a los libros",
+      "account": "Cuenta de Kavita: {{username}}",
+      "noAccount": "Aún no tiene cuenta de Kavita: se creará con la primera biblioteca abierta",
+      "libraries": "Bibliotecas de Kavita de {{name}}",
+      "keepsProgress": "Su cuenta de Kavita y su progreso se conservan, por si vuelve."
     }
   }
 }

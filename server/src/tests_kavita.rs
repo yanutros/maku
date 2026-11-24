@@ -16,7 +16,8 @@ async fn serve(router: Router) -> String {
     format!("http://{addr}")
 }
 
-const TOKENS: [&str; 2] = ["proprio", "ami"];
+/// Jetons acceptés par le serveur : « serveur-ami » est celui qu'un ami reçoit pour ce serveur partagé (plex.tv le refuse).
+const TOKENS: [&str; 3] = ["proprio", "ami", "serveur-ami"];
 
 /// Faux Plex : les jetons « proprio » et « ami » ouvrent le serveur « abc123 ».
 async fn fake_plex() -> String {
@@ -49,6 +50,7 @@ async fn fake_plextv() -> String {
                     match token(&h).as_str() {
                         "proprio" => Json(json!({ "id": 1, "title": "Propriétaire" })).into_response(),
                         "ami" => Json(json!({ "id": 42, "title": "Élodie Lectrice", "username": "elo" })).into_response(),
+                        "intrus" => Json(json!({ "id": 77, "title": "Intrus" })).into_response(),
                         _ => StatusCode::UNAUTHORIZED.into_response(),
                     }
                 }),
@@ -56,8 +58,12 @@ async fn fake_plextv() -> String {
             .route(
                 "/api/v2/resources",
                 get(move |h: HeaderMap| async move {
-                    let owned = token(&h) == "proprio";
-                    Json(json!([{ "clientIdentifier": "autre", "owned": true }, { "clientIdentifier": "abc123", "owned": owned }]))
+                    match token(&h).as_str() {
+                        t @ ("proprio" | "ami") => Json(json!([{ "clientIdentifier": "autre", "owned": true }, { "clientIdentifier": "abc123", "owned": t == "proprio" }])).into_response(),
+                        // Un compte plex.tv qui n'a pas ce serveur.
+                        "intrus" => Json(json!([{ "clientIdentifier": "autre", "owned": true }])).into_response(),
+                        _ => StatusCode::UNAUTHORIZED.into_response(),
+                    }
                 }),
             ),
     )
@@ -86,7 +92,7 @@ async fn fake_kavita() -> (String, Seen) {
                 .or_else(|| req.uri().query().and_then(|q| q.split('&').find_map(|p| p.strip_prefix("apiKey=").map(str::to_owned))))
                 .unwrap_or_default();
             let method = req.method().to_string();
-            let token_forwarded = h.contains_key("x-maku-token");
+            let token_forwarded = h.contains_key("x-maku-token") || h.contains_key("x-maku-plex");
             let body = axum::body::to_bytes(req.into_body(), 1 << 20).await.unwrap();
             let body: Value = serde_json::from_slice(&body).unwrap_or(Value::Null);
             log.lock().unwrap().push((method, target.clone(), key.clone(), body.clone()));
@@ -244,6 +250,32 @@ async fn compte_cree_ouvert_puis_retire() {
     assert_eq!(updates[1].3["roles"], json!(["Login"]));
     assert_eq!(b.calls("/api/Account/invite").len(), 1, "un seul compte créé");
     assert_eq!(b.get("/maku/kavita", Some("ami")).await.status(), 403);
+    let _ = std::fs::remove_dir_all(&b.data);
+}
+
+#[tokio::test]
+async fn ami_plex_reconnu_par_son_compte() {
+    let b = bench().await;
+    b.grant("proprio", "plex:42", &[2]).await;
+    let session = |server: &'static str, account: Option<&'static str>| {
+        let mut r = b.http.get(format!("{}/maku/kavita", b.base)).header("X-Maku-Token", server);
+        if let Some(a) = account {
+            r = r.header("X-Maku-Plex", a);
+        }
+        r.send()
+    };
+    // Le jeton du serveur partagé ouvre le serveur, pas plex.tv : seul, il ne dit pas qui l'on est.
+    assert_eq!(session("serveur-ami", None).await.unwrap().status(), 401);
+    // Avec le jeton de son compte : reconnu, et sa clé lui revient.
+    let me: Value = session("serveur-ami", Some("ami")).await.unwrap().json().await.unwrap();
+    assert_eq!(me, json!({ "key": "cle-ami", "admin": false }));
+    // Un compte plex.tv qui n'a pas ce serveur ne se fait pas passer pour un utilisateur.
+    assert_eq!(session("serveur-ami", Some("intrus")).await.unwrap().status(), 401);
+    assert_eq!(session("serveur-ami", Some("inconnu")).await.unwrap().status(), 401);
+    // Ni l'un ni l'autre jeton ne part vers Kavita.
+    let r = b.http.get(format!("{}/kavita/api/Series/5", b.base)).header("X-Maku-Token", "serveur-ami").header("X-Maku-Plex", "ami").header("x-api-key", "cle-ami").send().await.unwrap();
+    let v: Value = r.json().await.unwrap();
+    assert_eq!(v["token"], false);
     let _ = std::fs::remove_dir_all(&b.data);
 }
 

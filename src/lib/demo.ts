@@ -650,6 +650,8 @@ const kavitaGrants: { id: string; name: string; username: string; libraries: num
   { id: "plex:900", name: "Ancien ami", username: "Ancien-ami.900", libraries: [1] },
 ];
 (window as unknown as { __kavitaGrants: unknown }).__kavitaGrants = kavitaGrants;
+/** `&kavitamain&kavitarelay` : un Kavita saisi à la main, puis le relais du serveur qui en propose un (il le remplace). */
+let relayTaken = false;
 /** Kavita connecté depuis Réglages › Services pendant la démo. */
 let kavitaUrl: string | null = null;
 /** Progression envoyée par le lecteur (les tests la relisent). */
@@ -672,12 +674,12 @@ function handle(cmd: string, a: Args): unknown {
         tracearrConnected: !new URLSearchParams(location.search).has("tracearrlogin") || tracearrLoggedIn,
         kavitaUrl:
           kavitaUrl ??
-          (new URLSearchParams(location.search).has("kavitarelay")
+          (new URLSearchParams(location.search).has("kavitarelay") && (relayTaken || !new URLSearchParams(location.search).has("kavitamain"))
             ? "https://relais.exemple.fr/kavita"
-            : new URLSearchParams(location.search).has("kavita")
+            : new URLSearchParams(location.search).has("kavita") || new URLSearchParams(location.search).has("kavitamain")
               ? "http://kavita.lan:5000"
               : null),
-        kavitaRelay: new URLSearchParams(location.search).has("kavitarelay") && kavitaUrl === null,
+        kavitaRelay: new URLSearchParams(location.search).has("kavitarelay") && kavitaUrl === null && (relayTaken || !new URLSearchParams(location.search).has("kavitamain")),
       };
     }
     // `?demo=…&tracearrlogin` : Tracearr pas encore connecté ; la connexion Plex aboutit au premier relevé.
@@ -986,8 +988,12 @@ function handle(cmd: string, a: Args): unknown {
       return kavitaUrl;
     case "kavita_libraries":
       return kavitaLibraries;
-    case "kavita_relay":
-      return new URLSearchParams(location.search).has("kavitarelay") ? { admin: true, changed: false } : null;
+    case "kavita_relay": {
+      if (!new URLSearchParams(location.search).has("kavitarelay")) return null;
+      const changed = !relayTaken && new URLSearchParams(location.search).has("kavitamain");
+      relayTaken = true;
+      return { admin: true, changed };
+    }
     case "kavita_admin":
       return { libraries: kavitaLibraries.map((l) => ({ id: l.id, name: l.name, type: l.kind === "manga" ? 0 : 2 })), users: kavitaGrants, members: null };
     case "kavita_admin_set": {

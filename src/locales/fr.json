@@ -1181,7 +1181,7 @@
       "dashboard": "Ce qui se lit en ce moment, le débit, les plus gros consommateurs, l'historique et les titres les plus lus.",
       "users": "Les amis avec qui le serveur est partagé : leurs bibliothèques, leurs droits et leurs restrictions.",
       "requests": "Les demandes de tous les utilisateurs : les valider, les refuser, corriger leur profil ou leur dossier avant validation, les supprimer.",
-      "books": "Les bibliothèques Kavita (livres, BD, mangas) ouvertes à chacun. La première case cochée lui crée un compte Kavita, avec sa propre progression ; tout décocher lui retire l'accès, en gardant son compte."
+      "books": "Les bibliothèques Kavita (livres, BD, mangas) ouvertes à chacun. La première bibliothèque ouverte à quelqu'un lui crée un compte Kavita, avec sa propre progression ; tout fermer lui retire l'accès, en gardant son compte."
     },
     "requests": "Demandes",
     "books": "Livres"
@@ -1330,7 +1330,11 @@
       "gone": "n'est plus sur le serveur",
       "noUsers": "Aucun autre utilisateur sur ce serveur.",
       "saved": "Bibliothèques de {{name}} enregistrées",
-      "removed": "{{name}} n'a plus accès aux livres"
+      "removed": "{{name}} n'a plus accès aux livres",
+      "account": "Compte Kavita : {{username}}",
+      "noAccount": "Pas encore de compte Kavita : il sera créé à la première bibliothèque ouverte",
+      "libraries": "Bibliothèques Kavita de {{name}}",
+      "keepsProgress": "Son compte Kavita et sa progression restent, s'il revient."
     }
   }
 }

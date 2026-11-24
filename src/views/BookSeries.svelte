@@ -114,14 +114,27 @@
 </div>
 
 <style>
+  /* Jusqu'au bord de la fenêtre, derrière le menu translucide, comme la page d'un album (MusicDetail) : posé sous le
+     fond de la fenêtre (z-index négatif), il s'arrêtait net au bord du menu. */
   .backdrop {
     position: fixed;
     inset: 0;
-    z-index: -1;
+    z-index: 0;
     background-position: center;
     background-size: cover;
-    filter: blur(60px) brightness(0.35);
-    transform: scale(1.2);
+    filter: blur(60px) saturate(1.4);
+    opacity: 0.35;
+    mask-image: linear-gradient(#000 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  :global(html.tv) .backdrop {
+    display: none;
+  }
+
+  .detail {
+    position: relative;
+    z-index: 1;
   }
 
   .back {

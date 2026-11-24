@@ -1181,7 +1181,7 @@
       "dashboard": "Was gerade läuft, Bandbreite, Top-Benutzer, Verlauf und die meistgespielten Titel.",
       "users": "Die Freunde, mit denen der Server geteilt wird: ihre Bibliotheken, Rechte und Einschränkungen.",
       "requests": "Die Anfragen aller Nutzer: genehmigen, ablehnen, Profil oder Ordner vor der Genehmigung korrigieren, löschen.",
-      "books": "Die Kavita-Bibliotheken (Bücher, Comics, Mangas), die jedem offenstehen. Das erste Häkchen legt ein Kavita-Konto mit eigenem Lesefortschritt an; alles abwählen entzieht den Zugang, das Konto bleibt."
+      "books": "Die Kavita-Bibliotheken (Bücher, Comics, Mangas), die jedem offenstehen. Die erste freigegebene Bibliothek legt ein Kavita-Konto mit eigenem Lesefortschritt an; alle schließen entzieht den Zugang, das Konto bleibt."
     },
     "requests": "Anfragen",
     "books": "Bücher"
@@ -1330,7 +1330,11 @@
       "gone": "ist nicht mehr auf dem Server",
       "noUsers": "Keine anderen Benutzer auf diesem Server.",
       "saved": "Bibliotheken von {{name}} gespeichert",
-      "removed": "{{name}} hat keinen Zugang mehr zu Büchern"
+      "removed": "{{name}} hat keinen Zugang mehr zu Büchern",
+      "account": "Kavita-Konto: {{username}}",
+      "noAccount": "Noch kein Kavita-Konto: Es wird mit der ersten freigegebenen Bibliothek angelegt",
+      "libraries": "Kavita-Bibliotheken von {{name}}",
+      "keepsProgress": "Das Kavita-Konto und der Lesefortschritt bleiben erhalten, falls die Person zurückkommt."
     }
   }
 }
