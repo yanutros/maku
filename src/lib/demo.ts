@@ -641,7 +641,7 @@ const epubText = (n: number, count: number) =>
   ).join("");
 function epubSection(page: number): string {
   if (page === 0)
-    return `<div class="ouverture"><style>.book-content h1 { letter-spacing: 2px; }</style><h1 id="debut">Le Phare de l'Ouest</h1><script>window.__epubPwned = 1</script><img src="data:image/png;base64,AAAA" alt="" onerror="window.__epubPwned = 2"><p><a kavita-page="2" kavita-part="note-1" href="javascript:void(0)">Voir la note</a></p>${epubText(1, 12)}</div>`;
+    return `<div class="ouverture"><style>.book-content h1 { letter-spacing: 2px; }</style><h1 id="debut">Le Phare de l'Ouest</h1><script>window.__epubPwned = 1</script><img src="data:image/png;base64,AAAA" alt="" onerror="window.__epubPwned = 2"><p><a kavita-page="2" kavita-part="note-1" href="javascript:void(0)">Voir la note</a></p>${epubText(1, 40)}</div>`;
   if (page === 2) return `<div><h2>La nuit</h2>${epubText(3, 14)}<h2 id="note-1">Note</h2><p>La note du gardien.</p>${epubText(3, 6)}</div>`;
   return `<div><h2>${page === 1 ? "La tempête" : "Épilogue"}</h2>${epubText(page + 1, page === 3 ? 3 : 40)}</div>`;
 }
