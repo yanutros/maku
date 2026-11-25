@@ -733,11 +733,24 @@
   /* Toujours à droite, même renvoyés sous leur libellé (écran étroit). */
   .modes {
     display: flex;
-    flex: none;
+    flex: 0 1 auto;
     margin-left: auto;
     overflow: hidden;
     border: 1px solid #ffffff2a;
     border-radius: 999px;
+  }
+
+  /* Jamais plus large que le panneau : sur un écran très étroit, les boutons rétrécissent (avec « … » au besoin)
+     au lieu de déborder. */
+  .modes {
+    max-width: 100%;
+  }
+
+  .modes button {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .modes button {
