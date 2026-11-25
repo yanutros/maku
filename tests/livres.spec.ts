@@ -87,7 +87,7 @@ test("série de manga : reprise à la bonne page, de droite à gauche, progressi
   await page.keyboard.press("Escape");
   await page.keyboard.press("ArrowRight");
   await expect(lecteur.getByRole("img", { name: "Page 8" })).toBeVisible();
-  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("maku.readerDirection") ?? "{}"))).toEqual({ "12": "ltr" });
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("maku.readerDirection") ?? "{}"))).toEqual({ "lib:1": "ltr" });
 
   // Dernière page, puis la suivante : chapitre fini, le chapitre suivant s'ouvre au début.
   await page.keyboard.press("End");
@@ -138,7 +138,7 @@ test("page entière dans l'écran ; deux pages côte à côte sur un écran larg
   // « Simple » : une page à la fois, retenu pour la série.
   await affichage(lecteur, "Simple");
   await expect(compte(lecteur)).toHaveText("11 / 20");
-  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("maku.readerLayout") ?? "{}"))).toEqual({ "12": { spread: "single", fit: "screen" } });
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("maku.readerLayout") ?? "{}"))).toEqual({ "lib:1": { spread: "single", fit: "screen" } });
   // Appariement comme Kavita : couverture seule, double page seule, puis par deux.
   expect(await page.evaluate(async () => (await import("/src/lib/books.svelte.ts")).spreads(7, [false, false, false, true]))).toEqual([[0], [1, 2], [3], [4, 5], [6]]);
 });
@@ -204,7 +204,7 @@ test("Largeur : la page défile, puis passe à la suivante", async ({ page }, in
   await page.keyboard.press("ArrowUp");
   await expect(compte(lecteur)).toHaveText("6 / 20");
   await expect.poll(defile).toBeGreaterThan(50);
-  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("maku.readerLayout") ?? "{}"))).toEqual({ "12": { spread: "auto", fit: "width" } });
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("maku.readerLayout") ?? "{}"))).toEqual({ "lib:1": { spread: "auto", fit: "width" } });
 });
 
 test("défilement vertical : toutes les pages à la suite", async ({ page }, info) => {
@@ -223,6 +223,8 @@ async function ouvrirLivre(page: Page, info: TestInfo) {
     nav.go({ name: "book", id: 21 });
   });
   await expect(page.getByRole("heading", { name: "Le Phare de l'Ouest" })).toBeVisible();
+  // Pas de bouton « Retour » dans la page : celui de la barre de Maku suffit.
+  await expect(page.locator(".page.detail").getByRole("button", { name: "Retour" })).toHaveCount(0);
   await page.getByRole("button", { name: "Lire", exact: true }).click();
   const lecteur = page.getByRole("dialog");
   await expect(lecteur.getByText(/^Section \d sur 4/)).toBeVisible();
@@ -302,7 +304,10 @@ test("livre EPUB : taille, thème et défilement retenus, reprise au même écra
   await taille.getByRole("radio", { name: "Défilement" }).click();
   // Défilement : plus d'écrans, la section se lit d'un seul tenant.
   await expect(compteur(lecteur)).toHaveText("Section 2 sur 4");
-  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("maku.epubReader") ?? "{}"))).toEqual({ layout: "scroll", size: 110, theme: "sepia" });
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("maku.epubReader") ?? "{}"))).toEqual({
+    "lib:2": { layout: "scroll", size: 110, theme: "sepia" },
+    last: { layout: "scroll", size: 110, theme: "sepia" },
+  });
 
   // Retenus pour la lecture suivante.
   await page.keyboard.press("Escape");
@@ -452,4 +457,74 @@ test("panneaux Affichage : tous les boutons alignés à droite, chaque réglage 
   const droitesEpub = await bordsDroits(epub);
   expect(droitesEpub.length).toBe(3);
   expect(new Set(droitesEpub).size, `bords droits : ${droitesEpub}`).toBe(1);
+});
+
+test("réglages retenus par bibliothèque : une autre série de la même bibliothèque les reprend", async ({ page }, info) => {
+  test.skip(appareil(info) === "tv", "pas de Kavita au téléviseur");
+  const lecteur = await ouvrirManga(page, info);
+  // Mangas : de droite à gauche par défaut ; on passe en gauche à droite, page simple.
+  await affichage(lecteur, "Gauche → droite");
+  await affichage(lecteur, "Simple");
+  await page.keyboard.press("Escape");
+  await page.keyboard.press("Escape");
+  await expect(lecteur).toHaveCount(0);
+  // Une autre série de la bibliothèque Mangas : mêmes réglages, sans les refaire.
+  await page.evaluate(async () => {
+    const nav = await import("/src/lib/nav.svelte.ts");
+    nav.go({ name: "book", id: 11 });
+  });
+  await page.getByRole("button", { name: /^(Lire|Continuer)$/ }).click();
+  await lecteur.getByRole("button", { name: "Affichage" }).click();
+  await expect(lecteur.getByRole("radio", { name: "Gauche → droite" })).toHaveAttribute("aria-checked", "true");
+  await expect(lecteur.getByRole("radio", { name: "Simple" })).toHaveAttribute("aria-checked", "true");
+});
+
+test("livre : la taille du texte change vraiment, même quand le livre impose la sienne", async ({ page }, info) => {
+  test.skip(appareil(info) === "tv", "pas de Kavita au téléviseur");
+  const lecteur = await ouvrirLivre(page, info);
+  const taille = () => lecteur.getByText(/^Paragraphe 2\.1\./).evaluate((p) => parseFloat(getComputedStyle(p).fontSize));
+  const avant = await taille();
+  await lecteur.getByRole("button", { name: "Affichage" }).click();
+  const panneau = lecteur.getByRole("group", { name: "Affichage" });
+  for (let i = 0; i < 3; i++) await panneau.getByRole("button", { name: "Texte plus grand" }).click();
+  await expect(panneau.getByText("130 %")).toBeVisible();
+  await expect.poll(taille).toBeCloseTo(avant * 1.3, 0);
+  for (let i = 0; i < 6; i++) await panneau.getByRole("button", { name: "Texte plus petit" }).click();
+  await expect(panneau.getByText("70 %")).toBeVisible();
+  await expect.poll(taille).toBeCloseTo(avant * 0.7, 0);
+});
+
+test("livre : le texte reste dans la page, avec une marge à droite comme à gauche", async ({ page }, info) => {
+  test.skip(appareil(info) === "tv", "pas de Kavita au téléviseur");
+  const lecteur = await ouvrirLivre(page, info);
+  const ecran = page.viewportSize()!;
+  // Ce que l'œil voit : le texte de l'écran, et rien dans la marge de droite (la colonne de l'écran suivant, déjà à
+  // côté, y débordait, coupée par le bord de la fenêtre).
+  const vu = () =>
+    page.evaluate((largeur) => {
+      const root = document.querySelector(".reader .book")!.shadowRoot!;
+      const fragments = [...root.querySelectorAll("p")].flatMap((p) => [...p.getClientRects()]).filter((r) => r.width > 0);
+      // Les morceaux de paragraphe que l'on peut toucher à l'écran : ceux qui ne sont pas cachés.
+      const visibles = fragments.filter((r) => {
+        const x = Math.min(largeur - 1, Math.max(0, r.left + 4));
+        const y = r.top + Math.min(8, r.height / 2);
+        return root.elementFromPoint(x, y)?.closest("p") !== null && r.left < largeur;
+      });
+      // La marge de droite : rien d'un paragraphe ne doit s'y trouver.
+      const droite = Math.max(...visibles.map((r) => r.right));
+      let dansLaMarge = 0;
+      for (let y = 140; y < window.innerHeight - 140; y += 24) {
+        for (let x = Math.ceil(droite) + 4; x < largeur - 2; x += 6) if (root.elementFromPoint(x, y)?.closest("p")) dansLaMarge++;
+      }
+      return { gauche: Math.min(...visibles.map((r) => r.left)), droite, dansLaMarge };
+    }, ecran.width);
+  for (const ecranSuivant of [false, true]) {
+    if (ecranSuivant) await page.keyboard.press("ArrowRight");
+    await page.waitForTimeout(200);
+    const { gauche, droite, dansLaMarge } = await vu();
+    expect(dansLaMarge, "texte visible dans la marge de droite").toBe(0);
+    expect(droite, `texte jusqu'à ${droite} px sur ${ecran.width}`).toBeLessThanOrEqual(ecran.width - 16);
+    // Marges égales à gauche et à droite, comme dans Kavita (le texte justifié remplit sa colonne).
+    expect(Math.abs(ecran.width - droite - gauche), `marges ${gauche} et ${ecran.width - droite}`).toBeLessThanOrEqual(3);
+  }
 });

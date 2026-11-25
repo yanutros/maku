@@ -7,7 +7,7 @@
   //   molette, et les côtés ne tournent plus la page ;
   // - « Largeur » : la page prend toute la largeur et défile ; arrivé en bas, on passe à la suivante ;
   // - « Vertical » : toutes les pages les unes sous les autres (webtoon).
-  // Sens, pages simples ou doubles et ajustement sont retenus par série. Les PDF passent par le même lecteur
+  // Sens, pages simples ou doubles et ajustement sont retenus par bibliothèque. Les PDF passent par le même lecteur
   // (Kavita en sert les pages en images). La progression part à Kavita à chaque page (avec un court délai) et à la
   // fermeture.
   import { onMount } from "svelte";
@@ -46,8 +46,8 @@
     try {
       const next = await api.kavitaChapter(chapterId);
       info = next;
-      direction = directionFor(next.seriesId, next.libraryKind);
-      layout = layoutFor(next.seriesId);
+      direction = directionFor(next.libraryId, next.libraryKind);
+      layout = layoutFor(next.libraryId);
       page = next.resumePage;
       // En double page, la reprise se fait sur la paire qui contient la page.
       page = shown[0] ?? page;
@@ -396,14 +396,14 @@
   function changeDirection(d: Direction) {
     direction = d;
     resetZoom();
-    if (info) setDirection(info.seriesId, d);
+    if (info) setDirection(info.libraryId, d);
     if (d === "vertical") requestAnimationFrame(() => scrollToPage(page));
   }
 
   function changeLayout(patch: Partial<PageLayout>) {
     layout = { ...layout, ...patch };
     resetZoom();
-    if (info) setLayout(info.seriesId, layout);
+    if (info) setLayout(info.libraryId, layout);
     page = shown[0] ?? page;
     edge = "top";
     requestAnimationFrame(placeEdge);

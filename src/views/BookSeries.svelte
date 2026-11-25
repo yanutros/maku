@@ -4,7 +4,6 @@
   import { onMount } from "svelte";
   import { api, errorText, type BookChapter, type BookSeriesDetail, type BookVolume } from "../lib/api";
   import { books } from "../lib/books.svelte";
-  import { back } from "../lib/nav.svelte";
   import { t } from "../lib/i18n";
   import ErrorCard from "../components/ErrorCard.svelte";
   import Icon from "../components/Icon.svelte";
@@ -56,7 +55,6 @@
 <div class="backdrop" style:background-image={detail ? `url("${detail.series.cover}")` : undefined}></div>
 
 <div class="page detail">
-  <button class="btn back" onclick={back}><Icon name="back" size={18} /> {t("common.c1.back")}</button>
   {#if error}<ErrorCard message={error} />{/if}
   {#if detail}
     <div class="head">
@@ -135,10 +133,6 @@
   .detail {
     position: relative;
     z-index: 1;
-  }
-
-  .back {
-    margin-bottom: 18px;
   }
 
   .head {

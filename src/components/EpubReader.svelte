@@ -43,6 +43,8 @@
 
   let host = $state<HTMLElement>();
   let viewport: HTMLElement | undefined;
+  /** Les pages du lecteur : colonnes, taille du texte. Le livre (`content`, ses styles) est dedans, sans prise sur elles. */
+  let pages: HTMLElement | undefined;
   let content: HTMLElement | undefined;
   let sheet: HTMLStyleElement | undefined;
   /** Largeur d'un écran, espace entre colonnes compris. */
@@ -60,17 +62,28 @@
     const c = THEMES[s.theme];
     return `
       :host { all: initial; display: block; width: 100%; height: 100%; }
-      .viewport { --side: 56px; }
+      /* Marges à gauche et à droite, comme le lecteur de Kavita : le texte ne touche jamais le bord. */
+      .viewport { --side: clamp(48px, 6vw, 120px); }
       @media (max-width: 700px) { .viewport { --side: 20px; } }
       .viewport {
         box-sizing: border-box; width: 100%; height: 100%; overflow: hidden; background: ${c.bg}; color: ${c.fg};
         padding: calc(64px + var(--inset-top, 0px)) var(--side) calc(64px + var(--inset-bottom, 0px));
       }
+      /* Les pages sont coupées au bord du texte, marges comprises : la colonne de l'écran suivant, déjà à côté, ne
+         déborde plus dans la marge de droite. */
+      .clip { height: 100%; overflow: hidden; }
+      .scroll .clip { height: auto; overflow: visible; }
       .scroll { overflow-y: auto; overscroll-behavior: contain; }
-      .scroll .book-content { max-width: 46em; margin: 0 auto; }
-      .book-content {
+      .scroll .pages { max-width: 46em; margin: 0 auto; }
+      .pages {
         box-sizing: border-box; font-family: Georgia, "Times New Roman", serif; font-size: ${s.size}%;
         line-height: 1.6; overflow-wrap: break-word; hyphens: auto; color: ${c.fg};
+      }
+      /* Le livre ne règle ni la taille de son texte ni sa place : Kavita y reporte les marges et la taille du « body »
+         de l'EPUB, qui écrasaient la taille choisie et décalaient les colonnes hors de l'écran. */
+      .book-content {
+        margin: 0 !important; padding: 0 !important; width: auto !important; max-width: none !important;
+        font-size: 100% !important; box-sizing: border-box;
       }
       .book-content * { color: ${c.fg} !important; background-color: transparent !important; }
       .book-content a, .book-content a * { color: ${c.link} !important; }
@@ -85,9 +98,15 @@
     const root = host!.attachShadow({ mode: "open" });
     sheet = document.createElement("style");
     viewport = document.createElement("div");
+    pages = document.createElement("div");
+    pages.className = "pages";
     content = document.createElement("div");
     content.className = "book-content";
-    viewport.append(content);
+    pages.append(content);
+    const clip = document.createElement("div");
+    clip.className = "clip";
+    clip.append(pages);
+    viewport.append(clip);
     root.append(sheet, viewport);
     viewport.addEventListener("click", onContentClick);
     viewport.addEventListener("scroll", onScroll, { passive: true });
@@ -116,7 +135,8 @@
       firstSettings = false;
       return;
     }
-    saveEpubSettings(s);
+    const library = untrack(() => info?.libraryId);
+    if (library !== undefined) saveEpubSettings(library, s);
     const at = untrack(position);
     tick().then(() => layout({ at }));
   });
@@ -133,10 +153,10 @@
 
   /** Met la section en pages (ou en défilement) et s'y place. */
   function layout(target: Target) {
-    if (!viewport || !content) return;
+    if (!viewport || !pages || !content) return;
     lastTarget = target;
     if (settings.layout === "scroll") {
-      content.style.cssText = "";
+      pages.style.cssText = "";
       screens = 1;
       screen = 0;
       const max = viewport.scrollHeight - viewport.clientHeight;
@@ -153,30 +173,30 @@
     const perScreen = width >= 900 ? 2 : 1;
     const gap = perScreen === 2 ? 72 : 40;
     step = width + gap;
-    Object.assign(content.style, {
+    Object.assign(pages.style, {
       width: `${width}px`,
       height: `${height}px`,
       columnCount: String(perScreen),
       columnGap: `${gap}px`,
       columnFill: "auto",
     });
-    content.style.setProperty("--page-h", `${height}px`);
+    pages.style.setProperty("--page-h", `${height}px`);
     viewport.scrollTop = 0;
     const columnWidth = (width - gap * (perScreen - 1)) / perScreen;
-    const columns = Math.max(1, Math.round((content.scrollWidth + gap) / (columnWidth + gap)));
+    const columns = Math.max(1, Math.round((pages.scrollWidth + gap) / (columnWidth + gap)));
     screens = Math.max(1, Math.ceil(columns / perScreen));
     if ("end" in target) screen = screens - 1;
     else if ("at" in target) screen = Math.round(target.at * (screens - 1));
     else {
       const el = partElement(target.part);
-      const x = el ? el.getBoundingClientRect().left - content.getBoundingClientRect().left : 0;
+      const x = el ? el.getBoundingClientRect().left - pages.getBoundingClientRect().left : 0;
       screen = Math.min(screens - 1, Math.max(0, Math.floor((x + 1) / step)));
     }
     place();
   }
 
   function place() {
-    if (content && settings.layout === "paged") content.style.transform = `translateX(${-screen * step}px)`;
+    if (pages && settings.layout === "paged") pages.style.transform = `translateX(${-screen * step}px)`;
   }
   $effect(() => {
     void screen;
@@ -210,6 +230,8 @@
     try {
       const next = await api.kavitaChapter(chapterId);
       info = next;
+      // Les réglages de cette bibliothèque (sépia pour les romans, par exemple), retenus pour elle.
+      settings = epubSettings(next.libraryId);
       saved = -1;
       api.kavitaBookToc(chapterId).then((items) => (toc = items)).catch(() => (toc = []));
       // L'endroit retenu sur l'appareil, s'il est dans la section où Kavita reprend.

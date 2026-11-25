@@ -639,7 +639,12 @@ const epubText = (n: number, count: number) =>
   Array.from({ length: count }, (_, i) =>
     `<p>Paragraphe ${n}.${i + 1}. Le gardien montait chaque soir les cent marches de la tour, une lampe à la main, en comptant les vagues qui frappaient la digue. Le vent de l'ouest apportait l'odeur du sel et des algues, et la lumière tournait au-dessus de la mer grise.</p>`,
   ).join("");
+/** Comme Kavita : les styles du « body » de l'EPUB reportés sur `.book-content` (marges, taille du texte en pixels). */
+const epubBody = "<style>.book-content { margin: 0 9%; padding-left: 40px; font-size: 18px; }</style>";
 function epubSection(page: number): string {
+  return epubBody + epubSectionHtml(page);
+}
+function epubSectionHtml(page: number): string {
   if (page === 0)
     return `<div class="ouverture"><style>.book-content h1 { letter-spacing: 2px; }</style><h1 id="debut">Le Phare de l'Ouest</h1><script>window.__epubPwned = 1</script><img src="data:image/png;base64,AAAA" alt="" onerror="window.__epubPwned = 2"><p><a kavita-page="2" kavita-part="note-1" href="javascript:void(0)">Voir la note</a></p>${epubText(1, 40)}</div>`;
   if (page === 2) return `<div><h2>La nuit</h2>${epubText(3, 14)}<h2 id="note-1">Note</h2><p>La note du gardien.</p>${epubText(3, 6)}</div>`;

@@ -30,7 +30,14 @@ export async function bookSections(): Promise<Section[]> {
 
 export const libraryKind = (id: number) => books.libraries.find((l) => l.id === id)?.kind ?? "comic";
 
-// --- Sens de lecture, retenu par série (un manga se lit de droite à gauche par défaut) ---
+// --- Réglages des lecteurs, retenus par bibliothèque Kavita (« Mangas » de droite à gauche, « BD » de gauche à droite,
+// « Romans » en sépia…) : choisis une fois, ils valent pour toute la bibliothèque. Gardés avec les autres préférences
+// de Maku (prefs.ts), ils survivent aux redémarrages et aux mises à jour. ---
+
+/** Clé d'une bibliothèque Kavita dans les réglages des lecteurs. */
+const libKey = (libraryId: number) => `lib:${libraryId}`;
+
+// --- Sens de lecture (un manga se lit de droite à gauche par défaut) ---
 
 export type Direction = "ltr" | "rtl" | "vertical";
 const DIRECTION_KEY = "maku.readerDirection";
@@ -44,16 +51,16 @@ function directions(): Record<string, Direction> {
   }
 }
 
-export function directionFor(seriesId: number, kind: BookLibrary["kind"]): Direction {
-  const d = directions()[String(seriesId)];
+export function directionFor(libraryId: number, kind: BookLibrary["kind"]): Direction {
+  const d = directions()[libKey(libraryId)];
   return d === "ltr" || d === "rtl" || d === "vertical" ? d : kind === "manga" ? "rtl" : "ltr";
 }
 
-export function setDirection(seriesId: number, direction: Direction) {
+export function setDirection(libraryId: number, direction: Direction) {
   const all = directions();
-  all[String(seriesId)] = direction;
-  // Les 300 dernières séries réglées suffisent.
-  const kept = Object.fromEntries(Object.entries(all).slice(-300));
+  all[libKey(libraryId)] = direction;
+  // Seules les bibliothèques comptent (les réglages par série des premières versions sont oubliés).
+  const kept = Object.fromEntries(Object.entries(all).filter(([k]) => k.startsWith("lib:")));
   try {
     localStorage.setItem(DIRECTION_KEY, JSON.stringify(kept));
   } catch {
@@ -77,23 +84,40 @@ export interface EpubSettings {
 const EPUB_KEY = "maku.epubReader";
 export const EPUB_SIZES = { min: 70, max: 200, step: 10 };
 
-export function epubSettings(): EpubSettings {
-  const d: EpubSettings = { layout: "paged", size: 100, theme: "dark" };
+/** Réglages EPUB gardés : par bibliothèque, et les derniers choisis (« last »), pour une bibliothèque encore jamais lue. */
+function epubStore(): Record<string, Partial<EpubSettings>> {
   try {
     const s = JSON.parse(localStorage.getItem(EPUB_KEY) ?? "{}");
-    return {
-      layout: s.layout === "scroll" ? "scroll" : d.layout,
-      size: typeof s.size === "number" ? Math.min(EPUB_SIZES.max, Math.max(EPUB_SIZES.min, s.size)) : d.size,
-      theme: s.theme === "light" || s.theme === "sepia" ? s.theme : d.theme,
-    };
+    if (!s || typeof s !== "object") return {};
+    // Première version : un seul jeu de réglages, pour tous les livres.
+    return "layout" in s || "theme" in s || "size" in s ? { last: s } : s;
   } catch {
-    return d;
+    return {};
   }
 }
 
-export function saveEpubSettings(s: EpubSettings) {
+function validSettings(s: Partial<EpubSettings> | undefined): EpubSettings {
+  const d: EpubSettings = { layout: "paged", size: 100, theme: "dark" };
+  if (!s) return d;
+  return {
+    layout: s.layout === "scroll" ? "scroll" : d.layout,
+    size: typeof s.size === "number" ? Math.min(EPUB_SIZES.max, Math.max(EPUB_SIZES.min, s.size)) : d.size,
+    theme: s.theme === "light" || s.theme === "sepia" ? s.theme : d.theme,
+  };
+}
+
+/** Réglages du lecteur EPUB pour une bibliothèque (sans bibliothèque, ou jamais lue : les derniers choisis). */
+export function epubSettings(libraryId?: number): EpubSettings {
+  const store = epubStore();
+  return validSettings((libraryId !== undefined ? store[libKey(libraryId)] : undefined) ?? store.last);
+}
+
+export function saveEpubSettings(libraryId: number, s: EpubSettings) {
+  const store = epubStore();
+  store[libKey(libraryId)] = s;
+  store.last = s;
   try {
-    localStorage.setItem(EPUB_KEY, JSON.stringify(s));
+    localStorage.setItem(EPUB_KEY, JSON.stringify(store));
   } catch {
     // Stockage indisponible : les réglages valent pour cette lecture.
   }
@@ -152,7 +176,7 @@ export function cleanBookHtml(html: string): DocumentFragment {
   return frag;
 }
 
-// --- BD et mangas : pages simples ou doubles, page entière ou largeur, retenus par série ---
+// --- BD et mangas : pages simples ou doubles, page entière ou largeur, retenus par bibliothèque ---
 
 /** « auto » : deux pages côte à côte quand l'écran est plus large que haut. */
 export type Spread = "auto" | "single" | "double";
@@ -173,20 +197,19 @@ function layouts(): Record<string, Partial<PageLayout>> {
   }
 }
 
-export function layoutFor(seriesId: number): PageLayout {
-  const l = layouts()[String(seriesId)] ?? {};
+export function layoutFor(libraryId: number): PageLayout {
+  const l = layouts()[libKey(libraryId)] ?? {};
   return {
     spread: l.spread === "single" || l.spread === "double" ? l.spread : "auto",
     fit: l.fit === "width" ? "width" : "screen",
   };
 }
 
-export function setLayout(seriesId: number, layout: PageLayout) {
+export function setLayout(libraryId: number, layout: PageLayout) {
   const all = layouts();
-  delete all[String(seriesId)];
-  all[String(seriesId)] = layout;
+  all[libKey(libraryId)] = layout;
   try {
-    localStorage.setItem(LAYOUT_KEY, JSON.stringify(Object.fromEntries(Object.entries(all).slice(-300))));
+    localStorage.setItem(LAYOUT_KEY, JSON.stringify(Object.fromEntries(Object.entries(all).filter(([k]) => k.startsWith("lib:")))));
   } catch {
     // Stockage indisponible : le choix vaut pour cette lecture.
   }
