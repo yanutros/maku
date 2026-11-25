@@ -9,7 +9,7 @@ using MediaBrowser.Model.Serialization;
 namespace Jellyfin.Plugin.Maku;
 
 /// <summary>
-/// Maku pour Jellyfin : relaie Seerr et Tracearr par l'adresse du serveur Jellyfin, pour ses seuls utilisateurs.
+/// Maku pour Jellyfin : relaie Seerr, Tracearr et Kavita par l'adresse du serveur Jellyfin, pour ses seuls utilisateurs.
 /// </summary>
 public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
 {
@@ -34,7 +34,7 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
     public override Guid Id => Guid.Parse(PluginId);
 
     /// <inheritdoc />
-    public override string Description => "Seerr et Tracearr pour les utilisateurs de Maku, sans les exposer sur Internet.";
+    public override string Description => "Seerr, Tracearr et Kavita pour les utilisateurs de Maku, sans les exposer sur Internet.";
 
     /// <summary>Gets l'instance chargée par Jellyfin.</summary>
     public static Plugin? Instance { get; private set; }

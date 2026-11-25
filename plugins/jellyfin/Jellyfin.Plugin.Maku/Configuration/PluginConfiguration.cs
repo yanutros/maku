@@ -22,6 +22,40 @@ public class PluginConfiguration : BasePluginConfiguration
     /// retrouve le compte Seerr importé de Jellyfin (même identifiant).
     /// </summary>
     public List<UserLink> UserLinks { get; set; } = [];
+
+    /// <summary>Gets or sets l'adresse de Kavita, vue depuis le serveur Jellyfin (vide : pas de Kavita).</summary>
+    public string KavitaUrl { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets la clé d'API du compte administrateur de Kavita : le plugin crée avec elle le compte Kavita de chaque
+    /// utilisateur. Elle ne quitte jamais le serveur.
+    /// </summary>
+    public string KavitaApiKey { get; set; } = string.Empty;
+
+    /// <summary>Gets or sets les comptes Kavita créés pour les utilisateurs Jellyfin (Maku › Admin › Livres).</summary>
+    public List<KavitaAccount> KavitaAccounts { get; set; } = [];
+}
+
+/// <summary>Le compte Kavita d'un utilisateur Jellyfin, et les bibliothèques qui lui sont ouvertes.</summary>
+public class KavitaAccount
+{
+    /// <summary>Gets or sets l'identifiant de l'utilisateur Jellyfin (32 caractères hexadécimaux).</summary>
+    public string JellyfinUserId { get; set; } = string.Empty;
+
+    /// <summary>Gets or sets son nom, tel que l'administrateur le voit.</summary>
+    public string Name { get; set; } = string.Empty;
+
+    /// <summary>Gets or sets le numéro du compte dans Kavita.</summary>
+    public int KavitaId { get; set; }
+
+    /// <summary>Gets or sets le nom du compte dans Kavita.</summary>
+    public string Username { get; set; } = string.Empty;
+
+    /// <summary>Gets or sets la clé d'API créée pour Maku sur ce compte.</summary>
+    public string Key { get; set; } = string.Empty;
+
+    /// <summary>Gets or sets les bibliothèques ouvertes (vide : plus d'accès, le compte et sa progression restent).</summary>
+    public List<int> Libraries { get; set; } = [];
 }
 
 /// <summary>Un utilisateur Jellyfin et le compte Seerr sous lequel il fait ses demandes.</summary>

@@ -111,7 +111,7 @@
         <li>Donnez à Maku Server l'adresse de Kavita (<code>KAVITA_URL</code>), cette clé (<code>KAVITA_KEY</code>) et un volume pour <code>/data</code>, où il retient le compte de chacun.</li>
         <li>Dans Maku, le propriétaire du serveur (Plex, Jellyfin ou Emby) ouvre <strong>Livres</strong>, dans la catégorie Admin : la liste des utilisateurs du serveur, puis, pour chacun, un interrupteur par bibliothèque Kavita. La première bibliothèque ouverte crée le compte Kavita de l'utilisateur ; <strong>Retirer l'accès</strong> lui retire tout, en gardant son compte et sa progression. Personne n'a accès tant que vous ne lui avez rien ouvert.</li>
       </ol>
-      <p>Le propriétaire du serveur lit, lui, avec le compte administrateur de Kavita, et garde sa progression. La clé administrateur ne quitte jamais le relais : chacun lit avec son propre compte, et Kavita lui refuse ce qui ne lui est pas ouvert. Le plugin Maku pour Jellyfin ne relaie pas encore Kavita.</p>
+      <p>Le propriétaire du serveur lit, lui, avec le compte administrateur de Kavita, et garde sa progression. La clé administrateur ne quitte jamais le relais : chacun lit avec son propre compte, et Kavita lui refuse ce qui ne lui est pas ouvert. Avec Jellyfin, le <a href="#plugin-jellyfin">plugin Maku</a> fait la même chose : l'adresse de Kavita et la clé de l'administrateur se donnent dans ses réglages.</p>
 
       <h2 id="invitation">L'invitation en QR code</h2>
       <p>Le plus simple pour vos proches : l'administrateur leur envoie une invitation, et Maku se configure tout seul.</p>
@@ -165,13 +165,14 @@ volumes:
       <p>Le <a href="https://github.com/yanutros/maku/blob/main/server/README.md">guide complet de Maku Server</a> détaille les variables, le HTTPS et un tunnel sans port à ouvrir.</p>
 
       <h2 id="plugin-jellyfin">Le plugin Maku pour Jellyfin</h2>
-      <p>Avec <strong>Jellyfin</strong>, pas besoin de Docker ni d'un port de plus : le <strong>plugin Maku</strong> s'installe dans Jellyfin et relaie Seerr et Tracearr par l'adresse même du serveur. Seerr et Tracearr restent sur le réseau local, et seuls les utilisateurs connectés à Jellyfin passent. En prime, chacun fait ses demandes sous son propre compte Seerr, <strong>sans mot de passe à saisir</strong>. Il demande Jellyfin 12.</p>
+      <p>Avec <strong>Jellyfin</strong>, pas besoin de Docker ni d'un port de plus : le <strong>plugin Maku</strong> s'installe dans Jellyfin et relaie Seerr, Tracearr et Kavita par l'adresse même du serveur. Ils restent sur le réseau local, et seuls les utilisateurs connectés à Jellyfin passent. En prime, chacun fait ses demandes sous son propre compte Seerr, <strong>sans mot de passe à saisir</strong>. Il demande Jellyfin 12.</p>
       <h3>L'installer</h3>
       <ol class="steps">
         <li>Dans Jellyfin : <strong>Tableau de bord → Extensions → Gérer les dépôts</strong>, ajoutez ce dépôt : <code>https://github.com/yanutros/maku/releases/download/jellyfin-plugin/manifest.json</code></li>
         <li>Dans le catalogue, installez <strong>Maku</strong>, puis redémarrez Jellyfin.</li>
         <li>Ouvrez les réglages du plugin : l'adresse de Seerr (vue depuis le serveur Jellyfin) et sa <strong>clé d'API</strong> (dans Seerr : Paramètres → Général), puis l'adresse de Tracearr si vous l'utilisez.</li>
         <li>Chaque utilisateur Jellyfin utilise le compte Seerr importé de Jellyfin. Si Seerr est relié à un autre serveur, choisissez dans la même page le compte Seerr de chacun.</li>
+        <li>Pour Kavita : son adresse et la <strong>clé d'API de son compte administrateur</strong> (dans Kavita : Paramètres → Clés d'authentification). Qui lit quoi se règle ensuite dans Maku, <strong>Admin → Livres</strong> (voir <a href="#kavita-partage">Partager Kavita</a>).</li>
       </ol>
       <h3>Côté Maku</h3>
       <p>Rien à faire : connecté à ce serveur Jellyfin, Maku trouve le plugin tout seul, sur le réseau de la maison comme depuis Internet. Réglages → Services affiche « Plugin Maku détecté », et Seerr se connecte sans identifiant ni mot de passe. Pour Tracearr, <strong>Se connecter avec Jellyfin</strong> suffit.</p>

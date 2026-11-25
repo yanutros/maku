@@ -120,7 +120,7 @@ L'administrateur qui ne veut pas exposer Seerr et Tracearr sur Internet installe
 utilisateur son propre compte Kavita.
 
 Avec Jellyfin 12, le [plugin Maku](plugins/jellyfin/) fait la même chose depuis Jellyfin lui-même, par l'adresse du
-serveur, sans Docker ni port en plus ; Seerr s'y utilise sans mot de passe (dépôt à ajouter dans Jellyfin :
+serveur, sans Docker ni port en plus, Kavita compris ; Seerr s'y utilise sans mot de passe (dépôt à ajouter dans Jellyfin :
 `https://github.com/yanutros/maku/releases/download/jellyfin-plugin/manifest.json`).
 
 ## 🛠️ Développer

@@ -73,7 +73,7 @@ pub async fn kavita_relay(state: State<'_, AppState>) -> CmdResult<Option<Kavita
             if let Some(key) = found.pin {
                 state.update_cfg(|c| void(c.relay_keys.insert(server.key(), key)))?;
             }
-            if found.info.kavita && !found.info.plugin {
+            if found.info.kavita {
                 bases.push(found.base);
             }
         }
@@ -81,8 +81,8 @@ pub async fn kavita_relay(state: State<'_, AppState>) -> CmdResult<Option<Kavita
     bases.dedup();
     for base in bases {
         let url = format!("{base}/kavita");
-        // Seulement le relais de ce serveur (Maku Server : le plugin Jellyfin ne relaie pas Kavita).
-        let Some(relay) = state.relay_token(&url).await.ok().flatten().filter(|r| !r.is_plugin()) else { continue };
+        // Seulement le relais de ce serveur : Maku Server, ou le plugin Maku de Jellyfin (même adresses, sous « /Maku »).
+        let Some(relay) = state.relay_token(&url).await.ok().flatten() else { continue };
         let Ok(resp) = state
             .http
             .get(format!("{base}/maku/kavita"))

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -9,6 +10,7 @@ using System.Threading.Tasks;
 using Jellyfin.Plugin.Maku.Configuration;
 using Jellyfin.Plugin.Maku.Relay;
 using MediaBrowser.Common;
+using MediaBrowser.Controller.Library;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -21,7 +23,9 @@ namespace Jellyfin.Plugin.Maku.Api;
 /// <list type="bullet">
 /// <item>« GET /Maku/maku/info » : ce que le plugin propose (sans jeton), pour que Maku le reconnaisse ;</item>
 /// <item>« /Maku/seerr/api/v1/… » : l'API de Seerr, au nom du compte Seerr de l'utilisateur (clé d'API du plugin) ;</item>
-/// <item>« /Maku/tracearr/api/v1/… » : l'API de Tracearr, transmise telle quelle (cookies de session compris).</item>
+/// <item>« /Maku/tracearr/api/v1/… » : l'API de Tracearr, transmise telle quelle (cookies de session compris) ;</item>
+/// <item>« /Maku/maku/kavita… » et « /Maku/kavita/api/… » : un compte Kavita par utilisateur, et l'API de Kavita
+/// (voir <see cref="KavitaAccounts"/>).</item>
 /// </list>
 /// Seuls les utilisateurs du serveur passent : Jellyfin vérifie leur jeton avant d'appeler le relais.
 /// </summary>
@@ -34,6 +38,7 @@ public class MakuController : ControllerBase
 
     private readonly IHttpClientFactory _httpFactory;
     private readonly IApplicationHost _host;
+    private readonly IUserManager _users;
     private readonly ILogger<MakuController> _logger;
 
     /// <summary>
@@ -41,13 +46,18 @@ public class MakuController : ControllerBase
     /// </summary>
     /// <param name="httpFactory">Clients HTTP de Jellyfin.</param>
     /// <param name="host">Le serveur (son identifiant).</param>
+    /// <param name="users">Les utilisateurs du serveur (Admin › Livres).</param>
     /// <param name="logger">Journal.</param>
-    public MakuController(IHttpClientFactory httpFactory, IApplicationHost host, ILogger<MakuController> logger)
+    public MakuController(IHttpClientFactory httpFactory, IApplicationHost host, IUserManager users, ILogger<MakuController> logger)
     {
         _httpFactory = httpFactory;
         _host = host;
+        _users = users;
         _logger = logger;
     }
+
+    /// <summary>Kavita est-il configuré (adresse et clé de l'administrateur) ?</summary>
+    private static bool KavitaReady(PluginConfiguration c) => RelayRules.CleanBase(c.KavitaUrl).Length > 0 && c.KavitaApiKey.Length > 0;
 
     private static PluginConfiguration Config => Plugin.Instance?.Configuration ?? new PluginConfiguration();
 
@@ -68,6 +78,7 @@ public class MakuController : ControllerBase
             id = _host.SystemId,
             seerr = RelayRules.CleanBase(c.SeerrUrl).Length > 0 && c.SeerrApiKey.Length > 0,
             tracearr = RelayRules.CleanBase(c.TracearrUrl).Length > 0,
+            kavita = KavitaReady(c),
         });
     }
 
@@ -230,6 +241,233 @@ public class MakuController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// La clé Kavita de l'utilisateur : celle de l'administrateur de Kavita pour un administrateur du serveur, sinon celle
+    /// de son compte, s'il a au moins une bibliothèque ouverte.
+    /// </summary>
+    /// <param name="cancel">Annulation.</param>
+    /// <returns>La clé, et s'il administre le serveur.</returns>
+    [Authorize]
+    [HttpGet("maku/kavita")]
+    [Produces("application/json")]
+    public async Task<ActionResult> KavitaSession(CancellationToken cancel)
+    {
+        var c = Config;
+        if (!KavitaReady(c))
+        {
+            return Error(HttpStatusCode.NotFound, "not found");
+        }
+
+        var userId = JellyfinUserId();
+        if (userId is null)
+        {
+            return Error(HttpStatusCode.Forbidden, "a user token is required");
+        }
+
+        var admin = IsAdmin();
+        var key = KavitaAccounts.KeyFor(c, userId, admin);
+        if (key is null)
+        {
+            return Error(HttpStatusCode.Forbidden, "no access");
+        }
+
+        var keys = await KavitaAccounts.KeysOf(_httpFactory.CreateClient(), RelayRules.CleanBase(c.KavitaUrl), key, cancel).ConfigureAwait(false);
+        KavitaAccounts.Shared.MarkSeen(keys);
+        return Ok(new { key, admin });
+    }
+
+    /// <summary>Bibliothèques Kavita, comptes déjà créés et utilisateurs du serveur (Maku › Admin › Livres).</summary>
+    /// <param name="cancel">Annulation.</param>
+    /// <returns>Les bibliothèques, les comptes et les utilisateurs.</returns>
+    [Authorize(Policy = "RequiresElevation")]
+    [HttpGet("maku/kavita/admin")]
+    [Produces("application/json")]
+    public async Task<ActionResult> KavitaAdmin(CancellationToken cancel)
+    {
+        var c = Config;
+        if (!KavitaReady(c))
+        {
+            return Error(HttpStatusCode.NotFound, "not found");
+        }
+
+        IReadOnlyList<KavitaLibrary> libraries;
+        try
+        {
+            libraries = await KavitaAccounts.Libraries(_httpFactory.CreateClient(), c, cancel).ConfigureAwait(false);
+        }
+        catch (Exception e) when (e is HttpRequestException or KavitaException or TaskCanceledException or System.Text.Json.JsonException)
+        {
+            return Error(HttpStatusCode.BadGateway, e.Message);
+        }
+
+        var me = RelayRules.NormalizeUserId(JellyfinUserId());
+        var members = _users.GetUsers()
+            .Select(u => new { id = "jellyfin:" + RelayRules.NormalizeUserId(u.Id.ToString("N")), name = u.Username })
+            .Where(u => u.id != "jellyfin:" + me)
+            .OrderBy(u => u.name, StringComparer.CurrentCultureIgnoreCase);
+        var users = c.KavitaAccounts.Select(a => new
+        {
+            id = "jellyfin:" + RelayRules.NormalizeUserId(a.JellyfinUserId),
+            name = a.Name,
+            username = a.Username,
+            libraries = a.Libraries,
+        });
+        return Ok(new
+        {
+            libraries = libraries.Select(l => new { id = l.Id, name = l.Name, type = l.Type }),
+            users,
+            members,
+        });
+    }
+
+    /// <summary>Bibliothèques Kavita ouvertes à un utilisateur ; la première crée son compte Kavita.</summary>
+    /// <param name="id">« jellyfin:&lt;identifiant&gt; ».</param>
+    /// <param name="grant">Son nom et ses bibliothèques.</param>
+    /// <param name="cancel">Annulation.</param>
+    /// <returns>Le compte.</returns>
+    [Authorize(Policy = "RequiresElevation")]
+    [HttpPut("maku/kavita/admin/users/{id}")]
+    [Produces("application/json")]
+    public async Task<ActionResult> KavitaGrant([FromRoute] string id, [FromBody] KavitaGrantBody grant, CancellationToken cancel)
+    {
+        var c = Config;
+        if (!KavitaReady(c) || Plugin.Instance is null)
+        {
+            return Error(HttpStatusCode.NotFound, "not found");
+        }
+
+        var userId = KavitaAccounts.GrantTarget(id, JellyfinUserId());
+        if (userId is null)
+        {
+            return Error(HttpStatusCode.BadRequest, "bad user");
+        }
+
+        var name = (grant.Name ?? string.Empty).Trim();
+        name = name.Length > 100 ? name[..100] : name;
+        var libraries = (grant.Libraries ?? []).Distinct().Order().ToList();
+        var http = _httpFactory.CreateClient();
+        await KavitaAccounts.Shared.Writing.WaitAsync(cancel).ConfigureAwait(false);
+        try
+        {
+            var account = c.KavitaAccounts.FirstOrDefault(a => RelayRules.NormalizeUserId(a.JellyfinUserId) == userId);
+            if (account is null && libraries.Count == 0)
+            {
+                return Ok(new { id, name, libraries });
+            }
+
+            if (account is null)
+            {
+                account = await KavitaAccounts.Create(http, c, userId, name, libraries, cancel).ConfigureAwait(false);
+                c.KavitaAccounts.Add(account);
+            }
+            else
+            {
+                if (!account.Libraries.SequenceEqual(libraries))
+                {
+                    await KavitaAccounts.SetLibraries(http, c, account, libraries, cancel).ConfigureAwait(false);
+                }
+
+                account.Libraries = libraries;
+                if (name.Length > 0)
+                {
+                    account.Name = name;
+                }
+            }
+
+            Plugin.Instance.SaveConfiguration();
+            return Ok(new { id, name = account.Name, username = account.Username, libraries = account.Libraries });
+        }
+        catch (Exception e) when (e is HttpRequestException or KavitaException or TaskCanceledException or System.Text.Json.JsonException)
+        {
+            _logger.LogWarning(e, "Maku : Kavita a refusé la création ou la mise à jour d'un compte");
+            return Error(HttpStatusCode.BadGateway, e.Message);
+        }
+        finally
+        {
+            KavitaAccounts.Shared.Writing.Release();
+        }
+    }
+
+    /// <summary>
+    /// API de Kavita : avec le jeton Jellyfin de l'utilisateur (les appels du moteur de Maku), ou avec une clé Kavita vue
+    /// récemment auprès d'un utilisateur reconnu (les images, que la page charge sans en-tête). Kavita vérifie ensuite la
+    /// clé : chacun ne voit que ce que son compte autorise.
+    /// </summary>
+    /// <param name="path">Chemin après « /Maku/kavita/ ».</param>
+    /// <param name="cancel">Annulation.</param>
+    /// <returns>La réponse de Kavita.</returns>
+    [AllowAnonymous]
+    [Route("kavita/{**path}")]
+    [AcceptVerbs("GET", "POST", "PUT", "DELETE")]
+    public async Task<ActionResult> Kavita(string? path, CancellationToken cancel)
+    {
+        var c = Config;
+        var baseUrl = RelayRules.CleanBase(c.KavitaUrl);
+        var apiPath = KavitaAccounts.ApiPath(path);
+        if (!KavitaReady(c) || apiPath is null)
+        {
+            return Error(HttpStatusCode.NotFound, "not found");
+        }
+
+        var key = Request.Headers["x-api-key"].ToString();
+        if (key.Length == 0)
+        {
+            key = Request.Query["apiKey"].ToString();
+        }
+
+        var recognized = JellyfinUserId() is not null;
+        if (!KavitaAccounts.Shared.MayPass(recognized, key))
+        {
+            return Error(HttpStatusCode.Unauthorized, "not a user of this server");
+        }
+
+        // Clé d'un utilisateur reconnu : elle et ses voisines (celle des images d'un livre) ouvrent les images.
+        if (recognized && key.Length > 0 && !KavitaAccounts.Shared.Fresh(key))
+        {
+            var keys = await KavitaAccounts.KeysOf(_httpFactory.CreateClient(), baseUrl, key, cancel).ConfigureAwait(false);
+            KavitaAccounts.Shared.MarkSeen(keys);
+        }
+
+        var body = await ReadBody(cancel).ConfigureAwait(false);
+        if (body is null)
+        {
+            return Error(HttpStatusCode.RequestEntityTooLarge, "request too large");
+        }
+
+        using var message = new HttpRequestMessage(new HttpMethod(Request.Method), baseUrl + "/" + apiPath + Request.QueryString.Value);
+        // Seuls passent la clé Kavita et ce qui décrit la réponse attendue : jamais le jeton Jellyfin.
+        foreach (var name in new[] { "x-api-key", "accept", "accept-language", "if-none-match", "if-modified-since", "range" })
+        {
+            if (Request.Headers.TryGetValue(name, out var values))
+            {
+                message.Headers.TryAddWithoutValidation(name, values.ToArray());
+            }
+        }
+
+        if (body.Length > 0)
+        {
+            message.Content = new ByteArrayContent(body);
+            if (Request.ContentType is { Length: > 0 } type && MediaTypeHeaderValue.TryParse(type, out var parsed))
+            {
+                message.Content.Headers.ContentType = parsed;
+            }
+        }
+
+        try
+        {
+            using var response = await _httpFactory.CreateClient().SendAsync(message, HttpCompletionOption.ResponseHeadersRead, cancel).ConfigureAwait(false);
+            return await Relay(response, keepCookies: false, cancel).ConfigureAwait(false);
+        }
+        catch (HttpRequestException e)
+        {
+            _logger.LogWarning(e, "Maku : Kavita injoignable ({Url})", baseUrl);
+            return Error(HttpStatusCode.BadGateway, "kavita unreachable");
+        }
+    }
+
+    /// <summary>L'utilisateur de l'appel administre-t-il le serveur ?</summary>
+    private bool IsAdmin() => User.IsInRole("Administrator");
+
     /// <summary>Utilisateur Jellyfin de l'appel (un jeton de clé d'API n'en a pas).</summary>
     private string? JellyfinUserId()
     {
@@ -319,4 +557,14 @@ public class MakuController : ControllerBase
 
     private ObjectResult Error(HttpStatusCode status, string message)
         => StatusCode((int)status, new { error = message });
+}
+
+/// <summary>Bibliothèques Kavita ouvertes à un utilisateur (Maku › Admin › Livres).</summary>
+public class KavitaGrantBody
+{
+    /// <summary>Gets or sets le nom de l'utilisateur, tel que l'administrateur le voit.</summary>
+    public string? Name { get; set; }
+
+    /// <summary>Gets or sets les bibliothèques Kavita ouvertes.</summary>
+    public List<int>? Libraries { get; set; }
 }

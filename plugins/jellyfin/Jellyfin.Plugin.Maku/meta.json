@@ -1,10 +1,10 @@
 {
   "category": "General",
-  "changelog": "Correction : un compte Seerr dont l'identifiant n'est pas un nombre n'empêche plus de retrouver les comptes des utilisateurs.",
-  "description": "Les utilisateurs de Maku font leurs demandes dans Seerr et suivent leurs statistiques Tracearr par l'adresse de ce serveur Jellyfin, sans que Seerr et Tracearr soient exposés sur Internet. Seerr s'utilise sous le compte de chacun, sans mot de passe à saisir.",
+  "changelog": "Kavita : les livres, BD et mangas pour les utilisateurs de Maku, avec un compte Kavita par utilisateur et sa propre progression. L'administrateur choisit qui lit quoi dans Maku, Admin → Livres.",
+  "description": "Les utilisateurs de Maku font leurs demandes dans Seerr, suivent leurs statistiques Tracearr et lisent les livres, BD et mangas de Kavita par l'adresse de ce serveur Jellyfin, sans que ces services soient exposés sur Internet. Seerr et Kavita s'utilisent sous le compte de chacun, sans mot de passe à saisir.",
   "guid": "662e5017-18be-4b27-9def-d03d195ba88e",
   "name": "Maku",
-  "overview": "Seerr et Tracearr pour les utilisateurs de Maku, sans les exposer sur Internet.",
+  "overview": "Seerr, Tracearr et Kavita pour les utilisateurs de Maku, sans les exposer sur Internet.",
   "owner": "yanutros",
   "targetAbi": "12.0.0.0",
   "timestamp": "2026-11-15T00:00:00.0000000Z",

@@ -115,8 +115,8 @@ Ce qu'il faut savoir :
 - Les comptes créés s'appellent comme l'utilisateur, suivis de la fin de son identifiant (`Camille.123456`) ; ils
   sont visibles dans **Kavita → Paramètres → Utilisateurs**. Leur adresse e-mail, en `@maku.invalid`, ne mène
   nulle part : aucune invitation n'arrive chez personne.
-- Le [plugin Maku pour Jellyfin](../plugins/jellyfin/) ne relaie pas encore Kavita : avec Jellyfin, utilisez Maku Server
-  pour Kavita.
+- Avec Jellyfin, le [plugin Maku](../plugins/jellyfin/) fait la même chose depuis Jellyfin lui-même : l'adresse de Kavita
+  et la clé de l'administrateur se donnent dans ses réglages, et les comptes y sont retenus.
 
 ## Côté Maku
 

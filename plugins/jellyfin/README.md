@@ -1,8 +1,8 @@
 # Plugin Maku pour Jellyfin
 
-Le plugin Maku s'installe dans **Jellyfin 12**. Il permet aux utilisateurs de Maku de faire leurs demandes avec **Seerr**
-et de suivre leurs statistiques **Tracearr** par l'adresse même du serveur Jellyfin, sans Docker ni port en plus, et
-sans que Seerr et Tracearr soient exposés sur Internet. C'est l'équivalent, dans Jellyfin, de
+Le plugin Maku s'installe dans **Jellyfin 12**. Il permet aux utilisateurs de Maku de faire leurs demandes avec **Seerr**,
+de suivre leurs statistiques **Tracearr** et de lire les livres, BD et mangas de **Kavita** par l'adresse même du serveur
+Jellyfin, sans Docker ni port en plus, et sans que ces services soient exposés sur Internet. C'est l'équivalent, dans Jellyfin, de
 [Maku Server](../../server/README.md).
 
 - Seuls les utilisateurs du serveur passent : Jellyfin vérifie leur jeton avant d'appeler le plugin.
@@ -12,7 +12,11 @@ sans que Seerr et Tracearr soient exposés sur Internet. C'est l'équivalent, da
 - **Tracearr** est relayé tel quel (sa session tient dans ses cookies). Dans Maku, « Se connecter avec Jellyfin » ouvre
   la session par Quick Connect, validé par Maku lui-même : l'administrateur autorise la connexion des membres dans
   Tracearr (Réglages → Se connecter, et sur le serveur dans Connexions).
-- Seule l'API de Seerr et de Tracearr passe (`/api/v1/…`), jamais leurs pages d'administration.
+- **Kavita** : chaque utilisateur reçoit **son propre compte Kavita**, avec sa propre progression. Le plugin le crée
+  avec la clé d'API de l'administrateur de Kavita, qui ne quitte jamais le serveur, et l'administrateur de Jellyfin
+  choisit qui lit quoi dans Maku, **Admin → Livres**. Les comptes sont retenus dans les réglages du plugin. Les
+  administrateurs de Jellyfin lisent avec le compte administrateur de Kavita.
+- Seule l'API de Seerr, de Tracearr et de Kavita passe, jamais leurs pages d'administration.
 
 ## Installation
 
@@ -20,7 +24,8 @@ sans que Seerr et Tracearr soient exposés sur Internet. C'est l'équivalent, da
    `https://github.com/yanutros/maku/releases/download/jellyfin-plugin/manifest.json`.
 2. Installez **Maku** depuis le catalogue, puis redémarrez Jellyfin.
 3. Dans les réglages du plugin : l'adresse de Seerr (vue depuis le serveur) et sa clé d'API (Seerr : Paramètres →
-   Général), l'adresse de Tracearr, et si besoin le compte Seerr de chaque utilisateur.
+   Général), l'adresse de Tracearr, l'adresse de Kavita et la clé d'API de son compte administrateur (Kavita :
+   Paramètres → Clés d'authentification), et si besoin le compte Seerr de chaque utilisateur.
 
 Maku trouve le plugin tout seul : Réglages → Services affiche « Plugin Maku détecté ».
 
@@ -32,6 +37,10 @@ Maku trouve le plugin tout seul : Réglages → Services affiche « Plugin Maku 
 | `/Maku/seerr/api/v1/…` | API de Seerr, au nom du compte Seerr de l'utilisateur |
 | `/Maku/tracearr/api/v1/…` | API de Tracearr, cookies de session compris |
 | `GET /Maku/admin/seerr-users` | comptes Seerr, pour la page de réglages (administrateur de Jellyfin) |
+| `GET /Maku/maku/kavita` | clé du compte Kavita de l'utilisateur, s'il a accès |
+| `GET /Maku/maku/kavita/admin` | bibliothèques Kavita, comptes et utilisateurs (administrateur de Jellyfin) |
+| `PUT /Maku/maku/kavita/admin/users/{id}` | bibliothèques ouvertes à un utilisateur ; la première crée son compte |
+| `/Maku/kavita/api/…` | API de Kavita (jeton Jellyfin ; images : clé Kavita vue depuis moins d'un jour) |
 
 ## Construire
 

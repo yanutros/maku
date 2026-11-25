@@ -38,6 +38,21 @@
                     </div>
 
                     <div class="verticalSection">
+                        <h3 class="sectionTitle">Kavita</h3>
+                        <p class="fieldDescription" data-t="kavitaIntro"></p>
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="KavitaUrl" data-t="kavitaUrl"></label>
+                            <input id="KavitaUrl" type="url" is="emby-input" placeholder="http://192.168.1.10:5000" />
+                            <div class="fieldDescription" data-t="kavitaUrlHint"></div>
+                        </div>
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="KavitaApiKey" data-t="kavitaKey"></label>
+                            <input id="KavitaApiKey" type="password" is="emby-input" autocomplete="off" />
+                            <div class="fieldDescription" data-t="kavitaKeyHint"></div>
+                        </div>
+                    </div>
+
+                    <div class="verticalSection">
                         <h3 class="sectionTitle" data-t="usersTitle"></h3>
                         <p class="fieldDescription" data-t="usersHint"></p>
                         <p id="MakuSeerrStatus" class="fieldDescription"></p>
@@ -65,6 +80,11 @@
                         seerrKeyHint: 'Dans Seerr : Paramètres → Général. Chaque utilisateur agit sous son propre compte Seerr (ses droits, ses quotas), sans mot de passe à saisir.',
                         tracearrUrl: 'Adresse de Tracearr',
                         tracearrUrlHint: 'Vue depuis le serveur Jellyfin. Vide : pas de Tracearr.',
+                        kavitaIntro: 'Les livres, BD et mangas de Kavita, avec un compte Kavita par utilisateur et sa propre progression. Qui lit quoi se règle dans Maku, Admin → Livres : la première bibliothèque ouverte à quelqu\'un lui crée son compte.',
+                        kavitaUrl: 'Adresse de Kavita',
+                        kavitaUrlHint: 'Vue depuis le serveur Jellyfin. Vide : pas de Kavita.',
+                        kavitaKey: 'Clé d\'API de l\'administrateur de Kavita',
+                        kavitaKeyHint: 'Dans Kavita, avec le compte administrateur : Paramètres → Clés d\'authentification. Elle ne quitte jamais le serveur ; chaque utilisateur reçoit la clé de son propre compte.',
                         usersTitle: 'Comptes Seerr des utilisateurs',
                         usersHint: 'Par défaut, chaque utilisateur Jellyfin utilise le compte Seerr importé de Jellyfin. Choisissez un autre compte ici si besoin (par exemple si Seerr est relié à un autre serveur).',
                         auto: 'Automatique',
@@ -82,6 +102,11 @@
                         seerrKeyHint: 'In Seerr: Settings → General. Each user acts under their own Seerr account (their permissions, their quotas), with no password to type.',
                         tracearrUrl: 'Tracearr address',
                         tracearrUrlHint: 'As seen from the Jellyfin server. Empty: no Tracearr.',
+                        kavitaIntro: 'Kavita books, comics and manga, with a Kavita account per user and their own progress. Who reads what is set in Maku, Admin → Books: the first library opened to someone creates their account.',
+                        kavitaUrl: 'Kavita address',
+                        kavitaUrlHint: 'As seen from the Jellyfin server. Empty: no Kavita.',
+                        kavitaKey: 'Kavita administrator API key',
+                        kavitaKeyHint: 'In Kavita, with the administrator account: Settings → Authentication Keys. It never leaves the server; each user gets the key of their own account.',
                         usersTitle: 'Users\' Seerr accounts',
                         usersHint: 'By default, each Jellyfin user uses the Seerr account imported from Jellyfin. Pick another account here if needed (for example when Seerr is linked to another server).',
                         auto: 'Automatic',
@@ -157,6 +182,8 @@
                         page.querySelector('#SeerrUrl').value = c.SeerrUrl || '';
                         page.querySelector('#SeerrApiKey').value = c.SeerrApiKey || '';
                         page.querySelector('#TracearrUrl').value = c.TracearrUrl || '';
+                        page.querySelector('#KavitaUrl').value = c.KavitaUrl || '';
+                        page.querySelector('#KavitaApiKey').value = c.KavitaApiKey || '';
                         Dashboard.hideLoadingMsg();
                         loadUsers();
                     });
@@ -169,6 +196,8 @@
                         c.SeerrUrl = page.querySelector('#SeerrUrl').value.trim();
                         c.SeerrApiKey = page.querySelector('#SeerrApiKey').value.trim();
                         c.TracearrUrl = page.querySelector('#TracearrUrl').value.trim();
+                        c.KavitaUrl = page.querySelector('#KavitaUrl').value.trim();
+                        c.KavitaApiKey = page.querySelector('#KavitaApiKey').value.trim();
                         c.UserLinks = [];
                         page.querySelectorAll('#MakuUsers select').forEach(function (s) {
                             if (s.value !== '0') c.UserLinks.push({ JellyfinUserId: s.dataset.jellyfinUser, SeerrUserId: parseInt(s.value, 10) });
