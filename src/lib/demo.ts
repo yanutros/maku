@@ -615,11 +615,13 @@ let offlineItems = [
 /** Titres de la liste de visionnage (identifiants plex://). */
 const watchlist = new Set<string>();
 
-// --- Kavita (`?demo=…&kavita`) : une bibliothèque de mangas et une de livres ---
+// --- Kavita (`?demo=…&kavita`) : une bibliothèque de mangas, une de livres et une de BD (assez longue pour la barre
+// des lettres : plusieurs pages de séries) ---
 
 const kavitaLibraries = [
   { id: 1, name: "Mangas", kind: "manga" },
   { id: 2, name: "Romans", kind: "book" },
+  { id: 3, name: "BD", kind: "comic" },
 ];
 /** Page d'un chapitre de démonstration : une grande image (plus haute que l'écran), son numéro au milieu. */
 const kavitaPage = (chapterId: number) =>
@@ -629,9 +631,30 @@ const kavitaSeries = [
   { id: 12, name: "Le Gardien des Marées", libraryId: 1, pages: 80, pagesRead: 45, format: "images" },
   { id: 13, name: "Neige sur Kyoto", libraryId: 1, pages: 60, pagesRead: 60, format: "images" },
   { id: 21, name: "Le Phare de l'Ouest", libraryId: 2, pages: 320, pagesRead: 0, format: "epub" },
-].map((x) => ({ ...x, cover: poster(x.name, x.libraryId === 1 ? "Manga" : "Roman") }));
+  // BD : six albums par lettre (ni Q, ni X, ni Y), un titre qui commence par un chiffre et un par une lettre accentuée,
+  // classés comme Kavita (nom en capitales ; les accents après Z).
+  ...[
+    ..."Aube Brume Cendre Dune Escale Falaise Givre Horizon Isthme Jade Kraken Lagune Mirage Nuage Orage Prairie Rivage Sable Tempête Ultime Vortex Wapiti Zénith"
+      .split(" ")
+      .flatMap((word, i) => [1, 2, 3, 4, 5, 6].map((n) => ({ id: 300 + i * 10 + n, name: `${word} ${n}`, libraryId: 3, pages: 48, pagesRead: 0, format: "images" }))),
+    { id: 299, name: "2 Mondes", libraryId: 3, pages: 48, pagesRead: 0, format: "images" },
+    { id: 298, name: "Étoile filante", libraryId: 3, pages: 48, pagesRead: 0, format: "images" },
+  ].sort((a, b) => (a.name.toUpperCase() < b.name.toUpperCase() ? -1 : 1)),
+].map((x) => ({ ...x, cover: poster(x.name, x.libraryId === 1 ? "Manga" : x.libraryId === 2 ? "Roman" : "BD") }));
+/** Chapitres marqués comme lus (true) ou non lus (false) depuis un menu « ⋮ ». */
+const kavitaRead = new Map<number, boolean>();
+/** Ce qu'on a demandé de marquer (les tests le relisent). */
+const kavitaMarks: Record<string, unknown>[] = [];
+(window as unknown as { __kavitaMarks: unknown }).__kavitaMarks = kavitaMarks;
+/** Les chapitres de démonstration d'une série : 11 et 12 (volume 1), 13 et 14 (volume 2), 15 (hors volume). */
+const kavitaChapterIds = (seriesId: number, volumeId?: number) =>
+  [11, 12, 13, 14, 15].map((n) => seriesId * 100 + n).filter((c) => volumeId === undefined || (c % 100 <= 12 ? 1 : c % 100 <= 14 ? 2 : 3) === volumeId % 100);
 const kavitaChapter = (id: number, volumeId: number, number: string, pages: number, pagesRead: number) => ({
-  id, volumeId, number, title: "", pages, pagesRead, cover: poster(`Chapitre ${number}`, ""), special: false,
+  id, volumeId, number, title: "", pages, pagesRead: kavitaRead.has(id) ? (kavitaRead.get(id) ? pages : 0) : pagesRead, cover: poster(`Chapitre ${number}`, ""), special: false,
+});
+/** Volume de démonstration : ses pages lues sont celles de ses chapitres. */
+const kavitaVolume = (id: number, name: string, cover: string, chapters: ReturnType<typeof kavitaChapter>[]) => ({
+  id, name, cover, chapters, pages: chapters.reduce((n, c) => n + c.pages, 0), pagesRead: chapters.reduce((n, c) => n + c.pagesRead, 0),
 });
 /** Livre EPUB de démonstration : 4 sections de texte ; la première contient de quoi vérifier le nettoyage (script,
  *  attribut « onerror ») et un lien interne vers la note de la section 3. */
@@ -1010,8 +1033,36 @@ function handle(cmd: string, a: Args): unknown {
     }
     case "kavita_series": {
       const list = kavitaSeries.filter((x) => x.libraryId === a.libraryId);
-      return { items: Number(a.page) > 1 ? [] : list, total: list.length };
+      const size = Number(a.size) || 60;
+      return { items: list.slice((Number(a.page) - 1) * size, Number(a.page) * size), total: list.length };
     }
+    // Comme Kavita : chaque initiale (en capitales, « # » pour le reste) et son nombre de séries, dans l'ordre.
+    case "kavita_jump_bar": {
+      const keys: { letter: string; size: number }[] = [];
+      for (const x of kavitaSeries.filter((x) => x.libraryId === a.libraryId)) {
+        const c = x.name.charAt(0).toUpperCase();
+        const letter = /\p{L}/u.test(c) ? c : "#";
+        const key = keys.find((k) => k.letter === letter);
+        if (key) key.size++;
+        else keys.push({ letter, size: 1 });
+      }
+      return keys;
+    }
+    case "kavita_mark_read": {
+      const m = a.mark as { seriesId: number; volumeId?: number | null; chapterId?: number | null; read: boolean };
+      kavitaMarks.push(m);
+      const ids = m.chapterId ? [m.chapterId] : kavitaChapterIds(m.seriesId, m.volumeId ?? undefined);
+      for (const c of ids) kavitaRead.set(c, m.read);
+      if (!m.chapterId && !m.volumeId) {
+        const series = kavitaSeries.find((x) => x.id === m.seriesId);
+        if (series) series.pagesRead = m.read ? series.pages : 0;
+      }
+      return null;
+    }
+    case "kavita_details":
+      return a.chapterId
+        ? { pages: 20, words: 5400, hours: 0.4, bytes: 2_400_000, added: "2025-12-09T12:40:00", files: [`Chapitre ${Number(a.chapterId) % 100}.cbz`] }
+        : { pages: 54, words: 0, hours: 0.9, bytes: 101_300_000, added: "2025-12-09T12:40:00", files: [`Volume ${Number(a.volumeId) % 100}.cbz`] };
     case "kavita_on_deck":
       return kavitaSeries.filter((x) => x.libraryId === a.libraryId && x.pagesRead > 0 && x.pagesRead < x.pages);
     case "kavita_series_detail": {
@@ -1022,8 +1073,8 @@ function handle(cmd: string, a: Args): unknown {
         summary: "Une série de démonstration, pour essayer la lecture.",
         libraryKind: kavitaLibraries.find((l) => l.id === series.libraryId)?.kind ?? "comic",
         volumes: [
-          { id: base + 1, name: "Volume 1", cover: poster(`${series.name} 1`, ""), pages: 40, pagesRead: 40, chapters: [kavitaChapter(base + 11, base + 1, "1", 20, 20), kavitaChapter(base + 12, base + 1, "2", 20, 20)] },
-          { id: base + 2, name: "Volume 2", cover: poster(`${series.name} 2`, ""), pages: 40, pagesRead: 5, chapters: [kavitaChapter(base + 13, base + 2, "3", 20, 5), kavitaChapter(base + 14, base + 2, "4", 20, 0)] },
+          kavitaVolume(base + 1, "Volume 1", poster(`${series.name} 1`, ""), [kavitaChapter(base + 11, base + 1, "1", 20, 20), kavitaChapter(base + 12, base + 1, "2", 20, 20)]),
+          kavitaVolume(base + 2, "Volume 2", poster(`${series.name} 2`, ""), [kavitaChapter(base + 13, base + 2, "3", 20, 5), kavitaChapter(base + 14, base + 2, "4", 20, 0)]),
         ],
         chapters: [kavitaChapter(base + 15, base + 3, "5", 20, 0)],
         specials: [],

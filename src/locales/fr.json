@@ -1346,6 +1346,24 @@
     "presentTwo": "2 colonnes",
     "fullscreen": "Plein écran",
     "exitFullscreen": "Quitter le plein écran",
-    "brightness": "Luminosité"
+    "brightness": "Luminosité",
+    "markRead": "Marquer comme lu",
+    "markUnread": "Marquer comme non lu",
+    "markedRead": "Marqué comme lu",
+    "markedUnread": "Marqué comme non lu",
+    "details": {
+      "open": "Détails",
+      "title": "Détails",
+      "pages": "Pages",
+      "words": "Mots",
+      "readingTime": "Temps de lecture",
+      "underHour": "Moins d'une heure",
+      "hours_one": "Environ {{count}} heure",
+      "hours_other": "Environ {{count}} heures",
+      "size": "Taille",
+      "added": "Ajouté le",
+      "files_one": "Fichier",
+      "files_other": "Fichiers"
+    }
   }
 }

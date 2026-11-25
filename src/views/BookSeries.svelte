@@ -1,12 +1,18 @@
 <script lang="ts">
   // Série Kavita : couverture, résumé, « Lire » ou « Continuer », puis ses volumes, ses chapitres hors volume et ses
   // hors-séries. Les livres EPUB s'ouvrent dans leur propre lecteur (EpubReader), les autres dans celui des images.
+  // La série, chaque volume et chaque chapitre ont leur menu « ⋮ », comme dans Kavita : lire, marquer comme lu ou
+  // non lu, détails.
   import { onMount } from "svelte";
   import { api, errorText, type BookChapter, type BookSeriesDetail, type BookVolume } from "../lib/api";
   import { books } from "../lib/books.svelte";
+  import { toast } from "../lib/nav.svelte";
   import { t } from "../lib/i18n";
   import ErrorCard from "../components/ErrorCard.svelte";
   import Icon from "../components/Icon.svelte";
+  import BookMenu, { type BookMenuEntry } from "../components/BookMenu.svelte";
+  import BookMore from "../components/BookMore.svelte";
+  import BookDetails from "../components/BookDetails.svelte";
 
   let { id }: { id: number } = $props();
 
@@ -48,6 +54,45 @@
   }
 
   const ratio = (x: { pages: number; pagesRead: number }) => (x.pages > 0 ? Math.min(1, x.pagesRead / x.pages) : 0);
+
+  // --- Menus « ⋮ » : la série, un volume ou un chapitre ---
+  type Target = { kind: "series" } | { kind: "volume"; volume: BookVolume } | { kind: "chapter"; chapter: BookChapter };
+  let menu = $state<{ x: number; y: number; target: Target } | null>(null);
+  let details = $state<{ title: string; cover: string; volumeId?: number; chapterId?: number } | null>(null);
+
+  function openMenu(e: MouseEvent, target: Target) {
+    e.preventDefault();
+    e.stopPropagation();
+    menu = { x: e.clientX, y: e.clientY, target };
+  }
+
+  async function markRead(target: Target, read: boolean) {
+    await api.kavitaMarkRead({
+      seriesId: id,
+      volumeId: target.kind === "volume" ? target.volume.id : null,
+      chapterId: target.kind === "chapter" ? target.chapter.id : null,
+      read,
+    });
+    toast(read ? t("books.markedRead") : t("books.markedUnread"));
+    await load();
+  }
+
+  const menuTitle = (target: Target) =>
+    target.kind === "series" ? detail!.series.name : target.kind === "volume" ? target.volume.name || t("books.volume") : chapterLabel(target.chapter);
+
+  function entries(target: Target): BookMenuEntry[] {
+    const x = target.kind === "series" ? detail!.series : target.kind === "volume" ? target.volume : target.chapter;
+    const list: BookMenuEntry[] = [];
+    if (readable && target.kind !== "series")
+      list.push({ icon: "play", label: t("books.read"), run: () => (target.kind === "volume" ? readVolume(target.volume) : read(target.chapter.id)) });
+    if (x.pagesRead < x.pages) list.push({ icon: "checkCircle", label: t("books.markRead"), run: () => markRead(target, true) });
+    if (x.pagesRead > 0) list.push({ icon: "restart", label: t("books.markUnread"), run: () => markRead(target, false) });
+    if (target.kind === "volume")
+      list.push({ icon: "info", label: t("books.details.open"), run: () => (details = { title: menuTitle(target), cover: target.volume.cover, volumeId: target.volume.id }) });
+    if (target.kind === "chapter")
+      list.push({ icon: "info", label: t("books.details.open"), run: () => (details = { title: menuTitle(target), cover: target.chapter.cover, chapterId: target.chapter.id }) });
+    return list;
+  }
   const chapterLabel = (c: BookChapter) =>
     [c.number && t("books.chapter", { number: c.number }), c.title].filter(Boolean).join(" · ") || t("books.untitled");
 </script>
@@ -74,6 +119,9 @@
               <Icon name="play" size={18} filled /> {progress > 0 && progress < 1 ? t("books.continue") : t("books.read")}
             </button>
           {/if}
+          <button class="btn round big" onclick={(e) => openMenu(e, { kind: "series" })} title={t("common.c1.moreActions")} aria-label={t("common.c1.moreActions")}>
+            <Icon name="more" size={20} />
+          </button>
         </div>
         {#if detail.summary}<p class="summary">{detail.summary}</p>{/if}
       </div>
@@ -83,10 +131,13 @@
       <h2>{t("books.volumes")}</h2>
       <div class="grid">
         {#each detail.volumes as v (v.id)}
-          <button class="tile" onclick={() => readVolume(v)} disabled={!readable}>
-            <span class="cover-small"><img src={v.cover} alt="" loading="lazy" />{#if ratio(v) > 0 && ratio(v) < 1}<span class="bar"><span style:width="{ratio(v) * 100}%"></span></span>{/if}{#if ratio(v) >= 1}<span class="done"><Icon name="check" size={13} /></span>{/if}</span>
-            <span class="name">{v.name || t("books.volume")}</span>
-          </button>
+          <div class="tile-wrap has-more" role="group" oncontextmenu={(e) => openMenu(e, { kind: "volume", volume: v })}>
+            <button class="tile" onclick={() => readVolume(v)} disabled={!readable}>
+              <span class="cover-small"><img src={v.cover} alt="" loading="lazy" />{#if ratio(v) > 0 && ratio(v) < 1}<span class="bar"><span style:width="{ratio(v) * 100}%"></span></span>{/if}{#if ratio(v) >= 1}<span class="done"><Icon name="check" size={13} /></span>{/if}</span>
+              <span class="name">{v.name || t("books.volume")}</span>
+            </button>
+            <BookMore onmenu={(e) => openMenu(e, { kind: "volume", volume: v })} />
+          </div>
         {/each}
       </div>
     {/if}
@@ -96,12 +147,17 @@
         <h2>{t(`books.${key}`)}</h2>
         <div class="rows">
           {#each list as BookChapter[] as c (c.id)}
-            <button class="row" onclick={() => read(c.id)} disabled={!readable}>
-              <img src={c.cover} alt="" loading="lazy" />
-              <span class="label">{chapterLabel(c)}</span>
-              <span class="muted small">{t("books.pages", { count: c.pages })}</span>
-              {#if ratio(c) >= 1}<span class="check"><Icon name="check" size={16} /></span>{:else if ratio(c) > 0}<span class="pct">{Math.round(ratio(c) * 100)} %</span>{/if}
-            </button>
+            <div class="row-wrap" role="group" oncontextmenu={(e) => openMenu(e, { kind: "chapter", chapter: c })}>
+              <button class="row" onclick={() => read(c.id)} disabled={!readable}>
+                <img src={c.cover} alt="" loading="lazy" />
+                <span class="label">{chapterLabel(c)}</span>
+                <span class="muted small">{t("books.pages", { count: c.pages })}</span>
+                {#if ratio(c) >= 1}<span class="check"><Icon name="check" size={16} /></span>{:else if ratio(c) > 0}<span class="pct">{Math.round(ratio(c) * 100)} %</span>{/if}
+              </button>
+              <button class="dots" onclick={(e) => openMenu(e, { kind: "chapter", chapter: c })} title={t("common.c1.moreActions")} aria-label={t("common.c1.moreActions")}>
+                <Icon name="more" size={18} />
+              </button>
+            </div>
           {/each}
         </div>
       {/if}
@@ -110,6 +166,13 @@
     <div class="head"><div class="skeleton cover-skeleton"></div></div>
   {/if}
 </div>
+
+{#if menu && detail}
+  <BookMenu x={menu.x} y={menu.y} title={menuTitle(menu.target)} entries={entries(menu.target)} onclose={() => (menu = null)} />
+{/if}
+{#if details}
+  <BookDetails {...details} onclose={() => (details = null)} />
+{/if}
 
 <style>
   /* Jusqu'au bord de la fenêtre, derrière le menu translucide, comme la page d'un album (MusicDetail) : posé sous le
@@ -220,7 +283,12 @@
     gap: 20px 16px;
   }
 
+  .tile-wrap {
+    position: relative;
+  }
+
   .tile {
+    width: 100%;
     display: grid;
     gap: 8px;
     padding: 0;
@@ -285,7 +353,15 @@
     gap: 4px;
   }
 
+  .row-wrap {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
   .row {
+    flex: 1;
+    min-width: 0;
     display: grid;
     grid-template-columns: 44px 1fr auto auto;
     align-items: center;
@@ -302,6 +378,32 @@
   .row:hover,
   .row:focus-visible {
     background: #ffffff10;
+  }
+
+  /* « ⋮ » d'un chapitre : au survol de la ligne (toujours visible sur un écran tactile). */
+  .dots {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: none;
+    color: var(--text-dim);
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+
+  .row-wrap:hover .dots,
+  .dots:focus-visible {
+    opacity: 1;
+  }
+
+  .dots:hover {
+    background: #ffffff1a;
+    color: var(--text);
   }
 
   .row img {

@@ -136,6 +136,27 @@ export interface BookChapterInfo {
   wide: boolean[];
 }
 
+/** « Détails » d'un volume ou d'un chapitre Kavita. */
+export interface BookDetails {
+  pages: number;
+  /** Mots (livres) ; 0 pour des images. */
+  words: number;
+  /** Temps de lecture estimé, en heures. */
+  hours: number;
+  bytes: number;
+  /** Date d'ajout (ISO 8601, heure universelle, parfois sans « Z »). */
+  added: string | null;
+  files: string[];
+}
+
+/** Ce que l'on marque comme lu ou non lu : un chapitre, sinon un volume, sinon toute la série. */
+export interface BookReadMark {
+  seriesId: number;
+  volumeId?: number | null;
+  chapterId?: number | null;
+  read: boolean;
+}
+
 /** Entrée du sommaire d'un livre EPUB : la section où elle commence, et l'ancre dans cette section. */
 export interface BookTocItem {
   title: string;
@@ -782,6 +803,11 @@ export const api = {
     invoke<void>("kavita_progress", { progress }),
   kavitaBookPage: (chapterId: number, page: number) => invoke<string>("kavita_book_page", { chapterId, page }),
   kavitaBookToc: (chapterId: number) => invoke<BookTocItem[]>("kavita_book_toc", { chapterId }),
+  /** Initiales d'une bibliothèque, dans l'ordre de la liste par nom, et leur nombre de séries. */
+  kavitaJumpBar: (libraryId: number) => invoke<{ letter: string; size: number }[]>("kavita_jump_bar", { libraryId }),
+  kavitaMarkRead: (mark: BookReadMark) => invoke<void>("kavita_mark_read", { mark }),
+  kavitaDetails: (target: { volumeId?: number; chapterId?: number }) =>
+    invoke<BookDetails>("kavita_details", { volumeId: target.volumeId ?? null, chapterId: target.chapterId ?? null }),
   kavitaRelay: () => invoke<{ admin: boolean; changed: boolean } | null>("kavita_relay"),
   kavitaAdmin: () => invoke<KavitaAdmin>("kavita_admin"),
   kavitaAdminSet: (id: string, name: string, libraries: number[]) =>

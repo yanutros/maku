@@ -606,3 +606,107 @@ test("BD : luminosité des pages, retenue pour la bibliothèque", async ({ page 
   await expect.poll(() => lecteur.getByRole("img", { name: "Page 6" }).evaluate((i) => getComputedStyle(i).filter)).toBe("brightness(0.6)");
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("maku.readerLayout") ?? "{}")["lib:1"].brightness)).toBe(60);
 });
+
+/** Ouvre le menu « ⋮ » d'une couverture ou d'une ligne : le bouton, ou l'appui long (clic droit) au téléphone. */
+async function menuDe(page: Page, info: TestInfo, element: Locator) {
+  if (appareil(info) === "telephone") await element.click({ button: "right" });
+  else await element.getByRole("button", { name: "Plus d'actions" }).click();
+  const menu = page.getByRole("menu");
+  await expect(menu).toBeVisible();
+  return menu;
+}
+
+const marques = (page: Page) => page.evaluate(() => (window as unknown as { __kavitaMarks: unknown[] }).__kavitaMarks);
+
+test("série Kavita : menu « ⋮ » pour la marquer comme lue ou non lue, et ouvrir sa fiche", async ({ page }, info) => {
+  test.skip(appareil(info) === "tv", "pas de Kavita au téléviseur");
+  await ouvrir(page, info, "accueil&kavita");
+  await ouvrirMangas(page);
+  // La série entamée : dans « Continuer la lecture » et dans toutes les séries.
+  await expect(page.locator('[data-series="12"]')).toHaveCount(2);
+  const carte = page.locator('[data-series="12"]').last();
+  let menu = await menuDe(page, info, carte);
+  await expect(menu.getByRole("menuitem")).toHaveText(["Marquer comme lu", "Marquer comme non lu", "Ouvrir la fiche"]);
+  await menu.getByRole("menuitem", { name: "Marquer comme lu" }).click();
+  await expect(page.getByText("Marqué comme lu")).toBeVisible();
+  expect(await marques(page)).toEqual([{ seriesId: 12, read: true }]);
+  // Lue : elle quitte « Continuer la lecture », et son menu ne propose plus que « non lu ».
+  await expect(page.locator('[data-series="12"]')).toHaveCount(1);
+  menu = await menuDe(page, info, page.locator('[data-series="12"]'));
+  await expect(menu.getByRole("menuitem")).toHaveText(["Marquer comme non lu", "Ouvrir la fiche"]);
+  await menu.getByRole("menuitem", { name: "Ouvrir la fiche" }).click();
+  await expect(page.getByRole("heading", { name: "Le Gardien des Marées" })).toBeVisible();
+});
+
+test("série Kavita : « ⋮ » de la série, des volumes et des chapitres, et leurs détails", async ({ page }, info) => {
+  test.skip(appareil(info) === "tv", "pas de Kavita au téléviseur");
+  await ouvrir(page, info, "accueil&kavita");
+  await ouvrirMangas(page);
+  await page.getByRole("button", { name: "Le Gardien des Marées" }).first().click();
+  await expect(page.getByRole("heading", { name: "Le Gardien des Marées" })).toBeVisible();
+
+  // La série : à côté de « Continuer ».
+  await page.locator(".actions").getByRole("button", { name: "Plus d'actions" }).click();
+  await expect(page.getByRole("menu").getByRole("menuitem")).toHaveText(["Marquer comme lu", "Marquer comme non lu"]);
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("menu")).toHaveCount(0);
+
+  // Un volume entamé : lire, lu, non lu, détails ; marqué lu, il ne propose plus « lu ».
+  const volume = page.getByRole("group").filter({ hasText: "Volume 2" });
+  let menu = await menuDe(page, info, volume);
+  await expect(menu.getByRole("menuitem")).toHaveText(["Lire", "Marquer comme lu", "Marquer comme non lu", "Détails"]);
+  await menu.getByRole("menuitem", { name: "Marquer comme lu" }).click();
+  await expect(page.getByText("Marqué comme lu")).toBeVisible();
+  expect(await marques(page)).toEqual([{ seriesId: 12, volumeId: 1202, chapterId: null, read: true }]);
+  menu = await menuDe(page, info, volume);
+  await expect(menu.getByRole("menuitem")).toHaveText(["Lire", "Marquer comme non lu", "Détails"]);
+
+  // Détails du volume, comme dans Kavita.
+  await menu.getByRole("menuitem", { name: "Détails" }).click();
+  const fiche = page.getByRole("dialog", { name: "Détails" });
+  await expect(fiche.getByRole("heading", { name: "Volume 2" })).toBeVisible();
+  await expect(fiche.getByText("54 pages")).toBeVisible();
+  await expect(fiche.getByText("Moins d'une heure")).toBeVisible();
+  await expect(fiche.getByText("101 Mo")).toBeVisible();
+  await expect(fiche.getByText("9 décembre 2025")).toBeVisible();
+  await expect(fiche.getByText("Volume 2.cbz")).toBeVisible();
+  // Des images : pas de mots.
+  await expect(fiche.getByText("Mots")).toHaveCount(0);
+  await page.keyboard.press("Escape");
+  await expect(fiche).toHaveCount(0);
+
+  // Un chapitre hors volume : son « ⋮ » au bout de la ligne, ses mots (un livre en aurait).
+  const chapitre = page.getByRole("group").filter({ hasText: "Chapitre 5" });
+  await chapitre.getByRole("button", { name: "Plus d'actions" }).click();
+  menu = page.getByRole("menu");
+  await expect(menu.getByRole("menuitem")).toHaveText(["Lire", "Marquer comme lu", "Détails"]);
+  await menu.getByRole("menuitem", { name: "Marquer comme lu" }).click();
+  await expect.poll(() => marques(page)).toContainEqual({ seriesId: 12, volumeId: null, chapterId: 1215, read: true });
+  await expect(chapitre.locator(".check")).toBeVisible();
+  await chapitre.click({ button: "right" });
+  await page.getByRole("menu").getByRole("menuitem", { name: "Détails" }).click();
+  await expect(page.getByRole("dialog", { name: "Détails" }).getByText(/^5\s400$/)).toBeVisible();
+});
+
+test("BD : la barre des lettres mène à la première série d'une lettre, même pas encore chargée", async ({ page }, info) => {
+  test.skip(appareil(info) === "tv" || appareil(info) === "telephone", "barre des lettres sur ordinateur seulement");
+  await ouvrir(page, info, "accueil&kavita");
+  await page.evaluate(async () => {
+    const nav = await import("/src/lib/nav.svelte.ts");
+    nav.go({ name: "section", key: "kavita:3", title: "BD", kind: "book" });
+  });
+  await expect(page.getByRole("heading", { name: "BD", exact: true })).toBeVisible();
+  const lettres = page.getByRole("navigation", { name: "Aller à la lettre" });
+  await expect(lettres).toBeVisible();
+  // Pas de série en Q, X ni Y : lettres éteintes.
+  for (const l of ["Q", "X", "Y"]) await expect(lettres.getByRole("button", { name: l, exact: true })).toBeDisabled();
+  // Une première page de 60 séries : « Zénith » est à la troisième.
+  await expect(page.locator("[data-series]")).toHaveCount(60);
+  await lettres.getByRole("button", { name: "Z", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Zénith 1" })).toBeInViewport();
+  // E : « Escale », pas « Étoile filante » (rangée après Z, comme dans Kavita).
+  await lettres.getByRole("button", { name: "E", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Escale 1" })).toBeInViewport();
+  await lettres.getByRole("button", { name: "#", exact: true }).click();
+  await expect(page.getByRole("button", { name: "2 Mondes" })).toBeInViewport();
+});

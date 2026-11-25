@@ -2,7 +2,7 @@
 //! (adresse et clé d'API d'un compte Kavita), ou fourni par Maku Server, qui donne à chaque utilisateur son propre
 //! compte Kavita et laisse l'administrateur choisir qui lit quoi (Administration › Livres).
 
-use crate::kavita::{BookLibrary, BookSeries, ChapterInfo, Kavita, Progress, SeriesDetail, SeriesPage, TocItem};
+use crate::kavita::{BookDetails, BookLibrary, BookSeries, ChapterInfo, JumpKey, Kavita, Progress, ReadMark, SeriesDetail, SeriesPage, TocItem};
 use crate::*;
 
 impl AppState {
@@ -216,4 +216,22 @@ pub async fn kavita_book_toc(state: State<'_, AppState>, chapter_id: i64) -> Cmd
 #[tauri::command]
 pub async fn kavita_progress(state: State<'_, AppState>, progress: Progress) -> CmdResult<()> {
     Ok(state.kavita().await?.save_progress(&progress).await?)
+}
+
+/// Initiales d'une bibliothèque, pour la barre des lettres.
+#[tauri::command]
+pub async fn kavita_jump_bar(state: State<'_, AppState>, library_id: i64) -> CmdResult<Vec<JumpKey>> {
+    Ok(state.kavita().await?.jump_bar(library_id).await?)
+}
+
+/// Marque comme lu ou non lu (série, volume ou chapitre).
+#[tauri::command]
+pub async fn kavita_mark_read(state: State<'_, AppState>, mark: ReadMark) -> CmdResult<()> {
+    Ok(state.kavita().await?.mark_read(&mark).await?)
+}
+
+/// « Détails » d'un volume ou d'un chapitre.
+#[tauri::command]
+pub async fn kavita_details(state: State<'_, AppState>, volume_id: Option<i64>, chapter_id: Option<i64>) -> CmdResult<BookDetails> {
+    Ok(state.kavita().await?.details(volume_id, chapter_id).await?)
 }

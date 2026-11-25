@@ -1346,6 +1346,24 @@
     "presentTwo": "2 kolommen",
     "fullscreen": "Volledig scherm",
     "exitFullscreen": "Volledig scherm sluiten",
-    "brightness": "Helderheid"
+    "brightness": "Helderheid",
+    "markRead": "Markeren als gelezen",
+    "markUnread": "Markeren als ongelezen",
+    "markedRead": "Gemarkeerd als gelezen",
+    "markedUnread": "Gemarkeerd als ongelezen",
+    "details": {
+      "open": "Details",
+      "title": "Details",
+      "pages": "Pagina's",
+      "words": "Woorden",
+      "readingTime": "Leestijd",
+      "underHour": "Minder dan een uur",
+      "hours_one": "Ongeveer {{count}} uur",
+      "hours_other": "Ongeveer {{count}} uur",
+      "size": "Grootte",
+      "added": "Toegevoegd op",
+      "files_one": "Bestand",
+      "files_other": "Bestanden"
+    }
   }
 }

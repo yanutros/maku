@@ -1,24 +1,42 @@
 <script lang="ts">
-  // Couverture d'une série Kavita, avec sa progression de lecture.
+  // Couverture d'une série Kavita, avec sa progression de lecture et, si `onmenu` est donné, son menu « ⋮ » (aussi
+  // au clic droit et à l'appui long).
   import type { BookSeries } from "../lib/api";
+  import BookMore from "./BookMore.svelte";
   import Icon from "./Icon.svelte";
 
-  let { series, onclick }: { series: BookSeries; onclick: () => void } = $props();
+  let { series, onclick, onmenu }: { series: BookSeries; onclick: () => void; onmenu?: (e: MouseEvent) => void } = $props();
+
+  function menu(e: MouseEvent) {
+    if (!onmenu) return;
+    e.preventDefault();
+    e.stopPropagation();
+    onmenu(e);
+  }
   const progress = $derived(series.pages > 0 ? Math.min(1, series.pagesRead / series.pages) : 0);
   let broken = $state(false);
 </script>
 
-<button class="book" {onclick} title={series.name}>
-  <span class="cover">
-    {#if broken}<Icon name="book" size={40} />{:else}<img src={series.cover} alt="" loading="lazy" onerror={() => (broken = true)} />{/if}
-    {#if progress > 0 && progress < 1}<span class="bar"><span style:width="{progress * 100}%"></span></span>{/if}
-    {#if progress >= 1}<span class="done"><Icon name="check" size={14} /></span>{/if}
-  </span>
-  <span class="name">{series.name}</span>
-</button>
+<div class="wrap has-more" oncontextmenu={menu} role="group" data-series={series.id}>
+  <button class="book" {onclick} title={series.name}>
+    <span class="cover">
+      {#if broken}<Icon name="book" size={40} />{:else}<img src={series.cover} alt="" loading="lazy" onerror={() => (broken = true)} />{/if}
+      {#if progress > 0 && progress < 1}<span class="bar"><span style:width="{progress * 100}%"></span></span>{/if}
+      {#if progress >= 1}<span class="done"><Icon name="check" size={14} /></span>{/if}
+    </span>
+    <span class="name">{series.name}</span>
+  </button>
+  {#if onmenu}<BookMore onmenu={menu} />{/if}
+</div>
 
 <style>
+  .wrap {
+    position: relative;
+    min-width: 0;
+  }
+
   .book {
+    width: 100%;
     display: grid;
     gap: 8px;
     min-width: 0;

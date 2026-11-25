@@ -1346,6 +1346,24 @@
     "presentTwo": "2 columns",
     "fullscreen": "Full screen",
     "exitFullscreen": "Exit full screen",
-    "brightness": "Brightness"
+    "brightness": "Brightness",
+    "markRead": "Mark as read",
+    "markUnread": "Mark as unread",
+    "markedRead": "Marked as read",
+    "markedUnread": "Marked as unread",
+    "details": {
+      "open": "Details",
+      "title": "Details",
+      "pages": "Pages",
+      "words": "Words",
+      "readingTime": "Reading time",
+      "underHour": "Under an hour",
+      "hours_one": "About {{count}} hour",
+      "hours_other": "About {{count}} hours",
+      "size": "Size",
+      "added": "Added",
+      "files_one": "File",
+      "files_other": "Files"
+    }
   }
 }

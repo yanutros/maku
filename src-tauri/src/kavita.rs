@@ -469,6 +469,93 @@ impl Kavita {
         self.call(Method::POST, "/api/Reader/progress", Some(body)).await?;
         Ok(())
     }
+
+    /// Barre des lettres d'une bibliothèque : chaque initiale et son nombre de séries, dans l'ordre de la liste par
+    /// nom (« # » pour ce qui ne commence pas par une lettre).
+    pub async fn jump_bar(&self, library_id: i64) -> Result<Vec<JumpKey>> {
+        let v = self.json(Method::GET, &format!("/api/Library/jump-bar?libraryId={library_id}"), None).await?;
+        Ok(v.as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(|k| Some(JumpKey { letter: text(&k["title"]).or_else(|| text(&k["key"]))?, size: int(&k["size"]) }))
+            .filter(|k| k.size > 0)
+            .collect())
+    }
+
+    /// Marque comme lu (ou non lu) une série entière, un volume ou un chapitre, comme le menu de Kavita.
+    pub async fn mark_read(&self, m: &ReadMark) -> Result<()> {
+        let state = if m.read { "read" } else { "unread" };
+        let (path, body) = match (m.chapter_id, m.volume_id) {
+            (Some(chapter), _) => (format!("/api/Reader/mark-multiple-{state}"), json!({ "seriesId": m.series_id, "volumeIds": [], "chapterIds": [chapter] })),
+            (None, Some(volume)) => (format!("/api/Reader/mark-volume-{state}"), json!({ "seriesId": m.series_id, "volumeId": volume })),
+            (None, None) => (format!("/api/Reader/mark-{state}"), json!({ "seriesId": m.series_id })),
+        };
+        self.call(Method::POST, &path, Some(body)).await?;
+        Ok(())
+    }
+
+    /// « Détails » d'un volume ou d'un chapitre : pages, mots, temps de lecture, taille, date d'ajout et fichiers.
+    pub async fn details(&self, volume_id: Option<i64>, chapter_id: Option<i64>) -> Result<BookDetails> {
+        let (v, files): (Value, Vec<Value>) = match (chapter_id, volume_id) {
+            (Some(id), _) => {
+                let c = self.json(Method::GET, &format!("/api/Chapter?chapterId={id}"), None).await?;
+                let files = c["files"].as_array().cloned().unwrap_or_default();
+                (c, files)
+            }
+            (None, Some(id)) => {
+                let v = self.json(Method::GET, &format!("/api/Volume?volumeId={id}"), None).await?;
+                let files = v["chapters"].as_array().into_iter().flatten().flat_map(|c| c["files"].as_array().cloned().unwrap_or_default()).collect();
+                (v, files)
+            }
+            (None, None) => bail!(crate::i18n::tr("kavita.notFound")),
+        };
+        if v.is_null() {
+            bail!(crate::i18n::tr("kavita.notFound"));
+        }
+        // Le nom du fichier seulement : le chemin est celui du serveur de Kavita.
+        let name = |f: &Value| text(&f["filePath"]).map(|p| p.rsplit(['/', '\\']).next().unwrap_or(&p).to_owned());
+        Ok(BookDetails {
+            pages: int(&v["pages"]),
+            words: v["wordCount"].as_i64().unwrap_or(0),
+            hours: v["avgHoursToRead"].as_f64().unwrap_or(0.0),
+            bytes: files.iter().map(|f| f["bytes"].as_i64().unwrap_or(0)).sum(),
+            added: text(&v["createdUtc"]).or_else(|| text(&v["created"])),
+            files: files.iter().filter_map(name).collect(),
+        })
+    }
+}
+
+/// Initiale de la barre des lettres et nombre de séries qui commencent par elle.
+#[derive(Serialize, Debug, PartialEq)]
+pub struct JumpKey {
+    pub letter: String,
+    pub size: i64,
+}
+
+/// Ce que l'on marque comme lu ou non lu : un chapitre, sinon un volume, sinon toute la série.
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct ReadMark {
+    pub series_id: i64,
+    pub volume_id: Option<i64>,
+    pub chapter_id: Option<i64>,
+    pub read: bool,
+}
+
+/// « Détails » d'un volume ou d'un chapitre.
+#[derive(Serialize, Debug, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct BookDetails {
+    pub pages: i64,
+    /// Mots (livres) ; 0 pour des images.
+    pub words: i64,
+    /// Temps de lecture estimé par Kavita, en heures.
+    pub hours: f64,
+    /// Taille des fichiers, en octets.
+    pub bytes: i64,
+    /// Date d'ajout (ISO 8601, heure universelle).
+    pub added: Option<String>,
+    pub files: Vec<String>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -575,6 +662,15 @@ mod tests {
                             "/api/Reader/next-chapter" => ("200 OK", "", "1009"),
                             "/api/Reader/prev-chapter" => ("200 OK", "", "-1"),
                             "/api/Reader/progress" => ("200 OK", "", ""),
+                            "/api/Reader/mark-read" | "/api/Reader/mark-unread" | "/api/Reader/mark-volume-read" | "/api/Reader/mark-volume-unread"
+                            | "/api/Reader/mark-multiple-read" | "/api/Reader/mark-multiple-unread" => ("200 OK", "", ""),
+                            "/api/Library/jump-bar" => ("200 OK", "", r##"[{"key":"#","size":2,"title":"#"},{"key":"A","size":30,"title":"A"},{"key":"B","size":0,"title":"B"},{"key":"É","size":3,"title":"É"}]"##),
+                            "/api/Volume" => (
+                                "200 OK",
+                                "",
+                                r#"{"id":101,"pages":54,"wordCount":0,"avgHoursToRead":0.9,"createdUtc":"2025-12-09T12:40:00","chapters":[{"id":1001,"files":[{"filePath":"/bds/La Lune/La Lune Vol. 01.cbz","bytes":1000}]},{"id":1002,"files":[{"filePath":"C:\\bds\\La Lune\\Bonus.cbz","bytes":24}]}]}"#,
+                            ),
+                            "/api/Chapter" => ("200 OK", "", r#"{"id":1001,"pages":20,"wordCount":5400,"avgHoursToRead":0.4,"createdUtc":"2025-12-09T12:40:00","files":[{"filePath":"/livres/Le Phare.epub","bytes":2048}]}"#),
                             // Page d'un livre, en chaîne JSON, avec l'hôte interne vu par Kavita derrière un relais.
                             "/api/Book/1001/book-page" => (
                                 "200 OK",
@@ -680,6 +776,65 @@ mod tests {
         assert_eq!((toc[0].title.as_str(), toc[0].page), ("Partie 1", 1));
         assert_eq!((toc[0].children[0].title.as_str(), toc[0].children[0].page, toc[0].children[0].part.as_str()), ("Chapitre 1", 2, "c1"));
         assert_eq!((toc[1].part.as_str(), toc[1].children.len()), ("", 0));
+    }
+
+    #[tokio::test]
+    async fn barre_des_lettres() {
+        let (base, log) = faux_kavita().await;
+        let k = Kavita::new(Client::new(), &base, "cle-ok").unwrap();
+        let keys = k.jump_bar(3).await.unwrap();
+        // Dans l'ordre de Kavita ; une lettre vide est laissée de côté.
+        assert_eq!(keys.iter().map(|k| (k.letter.as_str(), k.size)).collect::<Vec<_>>(), [("#", 2), ("A", 30), ("É", 3)]);
+        assert!(log.lock().unwrap().iter().any(|r| r.0 == "GET" && r.1 == "/api/Library/jump-bar?libraryId=3"));
+    }
+
+    #[tokio::test]
+    async fn marquer_lu_ou_non_lu() {
+        let (base, log) = faux_kavita().await;
+        let k = Kavita::new(Client::new(), &base, "cle-ok").unwrap();
+        let mark = |volume_id, chapter_id, read| ReadMark { series_id: 11, volume_id, chapter_id, read };
+        k.mark_read(&mark(None, None, true)).await.unwrap();
+        k.mark_read(&mark(Some(101), None, false)).await.unwrap();
+        k.mark_read(&mark(Some(101), Some(1001), true)).await.unwrap();
+        k.mark_read(&mark(None, Some(1001), false)).await.unwrap();
+        let log = log.lock().unwrap();
+        let sent: Vec<(String, Value)> = log
+            .iter()
+            .filter(|r| r.1.starts_with("/api/Reader/mark"))
+            .map(|r| (format!("{} {}", r.0, r.1), serde_json::from_str(&r.3).unwrap()))
+            .collect();
+        assert_eq!(
+            sent,
+            [
+                ("POST /api/Reader/mark-read".to_owned(), json!({ "seriesId": 11 })),
+                ("POST /api/Reader/mark-volume-unread".to_owned(), json!({ "seriesId": 11, "volumeId": 101 })),
+                // Un chapitre : seulement lui, même avec son volume.
+                ("POST /api/Reader/mark-multiple-read".to_owned(), json!({ "seriesId": 11, "volumeIds": [], "chapterIds": [1001] })),
+                ("POST /api/Reader/mark-multiple-unread".to_owned(), json!({ "seriesId": 11, "volumeIds": [], "chapterIds": [1001] })),
+            ]
+        );
+    }
+
+    #[tokio::test]
+    async fn details_d_un_volume_et_d_un_chapitre() {
+        let (base, _) = faux_kavita().await;
+        let k = Kavita::new(Client::new(), &base, "cle-ok").unwrap();
+        let v = k.details(Some(101), None).await.unwrap();
+        // Les fichiers de tous ses chapitres, par leur nom seulement (pas le chemin sur le serveur de Kavita).
+        assert_eq!(
+            v,
+            BookDetails {
+                pages: 54,
+                words: 0,
+                hours: 0.9,
+                bytes: 1024,
+                added: Some("2025-12-09T12:40:00".into()),
+                files: vec!["La Lune Vol. 01.cbz".into(), "Bonus.cbz".into()],
+            }
+        );
+        let c = k.details(Some(101), Some(1001)).await.unwrap();
+        assert_eq!((c.pages, c.words, c.bytes, c.files), (20, 5400, 2048, vec!["Le Phare.epub".to_owned()]));
+        assert!(k.details(None, None).await.is_err());
     }
 
     #[test]

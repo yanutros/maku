@@ -1346,6 +1346,24 @@
     "presentTwo": "2 Spalten",
     "fullscreen": "Vollbild",
     "exitFullscreen": "Vollbild beenden",
-    "brightness": "Helligkeit"
+    "brightness": "Helligkeit",
+    "markRead": "Als gelesen markieren",
+    "markUnread": "Als ungelesen markieren",
+    "markedRead": "Als gelesen markiert",
+    "markedUnread": "Als ungelesen markiert",
+    "details": {
+      "open": "Details",
+      "title": "Details",
+      "pages": "Seiten",
+      "words": "Wörter",
+      "readingTime": "Lesezeit",
+      "underHour": "Unter einer Stunde",
+      "hours_one": "Etwa {{count}} Stunde",
+      "hours_other": "Etwa {{count}} Stunden",
+      "size": "Größe",
+      "added": "Hinzugefügt am",
+      "files_one": "Datei",
+      "files_other": "Dateien"
+    }
   }
 }

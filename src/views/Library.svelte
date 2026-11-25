@@ -19,6 +19,7 @@
   import GenreTile from "../components/GenreTile.svelte";
   import ContinueRow from "../components/ContinueRow.svelte";
   import FeaturePanels, { type Panel } from "../components/FeaturePanels.svelte";
+  import LetterBar, { letterOf } from "../components/LetterBar.svelte";
   import { go, nav, toast } from "../lib/nav.svelte";
   import { play } from "../lib/player.svelte";
   import Icon from "../components/Icon.svelte";
@@ -159,13 +160,8 @@
     { id: "categories", label: t("library.tabs.categories") },
   ]);
 
-  // Bandeau des lettres (ordinateur), comme dans Plex : « # » puis A à Z ; une lettre sans collection est éteinte,
-  // les autres mènent à la première collection qui commence par elle (accents et chiffres compris).
-  const LETTERS = ["#", ..."ABCDEFGHIJKLMNOPQRSTUVWXYZ"];
-  const letterOf = (title: string) => {
-    const c = title.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().charAt(0).toUpperCase();
-    return c >= "A" && c <= "Z" ? c : "#";
-  };
+  // Bandeau des lettres (ordinateur), comme dans Plex : une lettre sans collection est éteinte, les autres mènent à
+  // la première collection qui commence par elle (accents et chiffres compris).
   const firstByLetter = $derived.by(() => {
     const map = new Map<string, string>();
     for (const c of collections ?? []) {
@@ -445,14 +441,6 @@
   });
 </script>
 
-{#snippet letterBar(has: (l: string) => boolean, jump: (l: string) => void)}
-  <nav class="letters" aria-label={t("library.letters")}>
-    {#each LETTERS as l (l)}
-      <button disabled={!has(l)} onclick={() => jump(l)}>{l}</button>
-    {/each}
-  </nav>
-{/snippet}
-
 {#snippet tvHead()}
   <div class="tv-head">
     <h1>{title}</h1>
@@ -547,7 +535,7 @@
     <div class="grid" class:lettered={showTitleLetters}>
       {#each items as item (item.ratingKey)}<PosterCard {item} />{/each}
     </div>
-    {#if showTitleLetters}{@render letterBar((l) => letterOffsets.has(l), jumpToTitle)}{/if}
+    {#if showTitleLetters}<LetterBar has={(l) => letterOffsets.has(l)} jump={jumpToTitle} />{/if}
   {:else if tab === "collections"}
     {#if !collections}
       {#if !error}<div class="grid">{#each Array(12) as _, i (i)}<div class="skeleton poster-skeleton"></div>{/each}</div>{/if}
@@ -557,7 +545,7 @@
       <div class="grid" class:lettered={showLetters}>
         {#each collections as item (item.ratingKey)}<PosterCard {item} />{/each}
       </div>
-      {#if showLetters}{@render letterBar((l) => firstByLetter.has(l), jumpTo)}{/if}
+      {#if showLetters}<LetterBar has={(l) => firstByLetter.has(l)} jump={jumpTo} />{/if}
     {/if}
   {:else if !genres}
     {#if !error}
@@ -686,45 +674,6 @@
   .tile-skeleton {
     aspect-ratio: 16 / 9;
     border-radius: 18px;
-  }
-
-  /* Lettres collées au bord droit, sur toute la hauteur utile, comme dans Plex. */
-  .letters {
-    position: fixed;
-    top: 50%;
-    right: 10px;
-    z-index: 5;
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-    padding: 6px 2px;
-    border-radius: 12px;
-    background: #0008;
-    backdrop-filter: blur(10px);
-    transform: translateY(-50%);
-  }
-
-  .letters button {
-    width: 24px;
-    height: min(22px, calc((100vh - 220px) / 27));
-    padding: 0;
-    border: none;
-    border-radius: 6px;
-    background: none;
-    color: var(--text-dim);
-    font-size: 11px;
-    font-weight: 700;
-    line-height: 1;
-  }
-
-  .letters button:hover:not(:disabled) {
-    background: var(--accent);
-    color: var(--accent-text);
-  }
-
-  .letters button:disabled {
-    color: var(--text-faint);
-    opacity: 0.4;
   }
 
   /* La grille laisse la place du bandeau. */
