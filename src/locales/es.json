@@ -1311,9 +1311,6 @@
     "themeDark": "Oscuro",
     "themeLight": "Claro",
     "themeSepia": "Sepia",
-    "layout": "Diseño",
-    "paged": "Páginas",
-    "scroll": "Desplazamiento",
     "section": "Sección",
     "sectionOf": "Sección {{section}} de {{sections}}",
     "fit": "Ajuste",
@@ -1335,6 +1332,20 @@
       "noAccount": "Aún no tiene cuenta de Kavita: se creará con la primera biblioteca abierta",
       "libraries": "Bibliotecas de Kavita de {{name}}",
       "keepsProgress": "Su cuenta de Kavita y su progreso se conservan, por si vuelve."
-    }
+    },
+    "font": "Tipografía",
+    "fontBook": "La del libro",
+    "fontSerif": "Con serifa",
+    "fontSans": "Sin serifa",
+    "fontLegible": "Muy legible",
+    "lineHeight": "Interlineado",
+    "margin": "Márgenes",
+    "presentation": "Presentación",
+    "presentScroll": "Desplazamiento",
+    "presentOne": "1 columna",
+    "presentTwo": "2 columnas",
+    "fullscreen": "Pantalla completa",
+    "exitFullscreen": "Salir de pantalla completa",
+    "brightness": "Brillo"
   }
 }

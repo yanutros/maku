@@ -1311,9 +1311,6 @@
     "themeDark": "Donker",
     "themeLight": "Licht",
     "themeSepia": "Sepia",
-    "layout": "Indeling",
-    "paged": "Pagina's",
-    "scroll": "Scrollen",
     "section": "Sectie",
     "sectionOf": "Sectie {{section}} van {{sections}}",
     "fit": "Aanpassen",
@@ -1335,6 +1332,20 @@
       "noAccount": "Nog geen Kavita-account: het wordt aangemaakt bij de eerste geopende bibliotheek",
       "libraries": "Kavita-bibliotheken van {{name}}",
       "keepsProgress": "Het Kavita-account en de voortgang blijven bewaard, mocht de persoon terugkomen."
-    }
+    },
+    "font": "Lettertype",
+    "fontBook": "Dat van het boek",
+    "fontSerif": "Met schreef",
+    "fontSans": "Schreefloos",
+    "fontLegible": "Goed leesbaar",
+    "lineHeight": "Regelafstand",
+    "margin": "Marges",
+    "presentation": "Weergave",
+    "presentScroll": "Scrollen",
+    "presentOne": "1 kolom",
+    "presentTwo": "2 kolommen",
+    "fullscreen": "Volledig scherm",
+    "exitFullscreen": "Volledig scherm sluiten",
+    "brightness": "Helderheid"
   }
 }

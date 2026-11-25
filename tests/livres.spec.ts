@@ -138,7 +138,7 @@ test("page entière dans l'écran ; deux pages côte à côte sur un écran larg
   // « Simple » : une page à la fois, retenu pour la série.
   await affichage(lecteur, "Simple");
   await expect(compte(lecteur)).toHaveText("11 / 20");
-  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("maku.readerLayout") ?? "{}"))).toEqual({ "lib:1": { spread: "single", fit: "screen" } });
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("maku.readerLayout") ?? "{}"))).toEqual({ "lib:1": { spread: "single", fit: "screen", brightness: 100 } });
   // Appariement comme Kavita : couverture seule, double page seule, puis par deux.
   expect(await page.evaluate(async () => (await import("/src/lib/books.svelte.ts")).spreads(7, [false, false, false, true]))).toEqual([[0], [1, 2], [3], [4, 5], [6]]);
 });
@@ -204,7 +204,7 @@ test("Largeur : la page défile, puis passe à la suivante", async ({ page }, in
   await page.keyboard.press("ArrowUp");
   await expect(compte(lecteur)).toHaveText("6 / 20");
   await expect.poll(defile).toBeGreaterThan(50);
-  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("maku.readerLayout") ?? "{}"))).toEqual({ "lib:1": { spread: "auto", fit: "width" } });
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("maku.readerLayout") ?? "{}"))).toEqual({ "lib:1": { spread: "auto", fit: "width", brightness: 100 } });
 });
 
 test("défilement vertical : toutes les pages à la suite", async ({ page }, info) => {
@@ -305,8 +305,8 @@ test("livre EPUB : taille, thème et défilement retenus, reprise au même écra
   // Défilement : plus d'écrans, la section se lit d'un seul tenant.
   await expect(compteur(lecteur)).toHaveText("Section 2 sur 4");
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("maku.epubReader") ?? "{}"))).toEqual({
-    "lib:2": { layout: "scroll", size: 110, theme: "sepia" },
-    last: { layout: "scroll", size: 110, theme: "sepia" },
+    "lib:2": { layout: "scroll", columns: 2, size: 110, theme: "sepia", font: "book", lineHeight: 1.6, margin: 5 },
+    last: { layout: "scroll", columns: 2, size: 110, theme: "sepia", font: "book", lineHeight: 1.6, margin: 5 },
   });
 
   // Retenus pour la lecture suivante.
@@ -428,7 +428,7 @@ test("série : son fond couvre la fenêtre, sans bande sombre contre le menu en 
 
 /** Bord droit de chaque groupe de boutons d'un panneau Affichage (ils doivent tous finir au même endroit). */
 const bordsDroits = (panneau: Locator) =>
-  panneau.locator(".modes, .size").evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().right)));
+  panneau.locator(".modes, .size, .control, .slider").evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().right)));
 
 test("panneaux Affichage : tous les boutons alignés à droite, chaque réglage sur sa ligne à l'ordinateur", async ({ page }, info) => {
   test.skip(appareil(info) === "tv", "pas de Kavita au téléviseur");
@@ -443,7 +443,7 @@ test("panneaux Affichage : tous les boutons alignés à droite, chaque réglage 
   if (appareil(info) !== "telephone") {
     // Le libellé et ses boutons sur la même ligne.
     for (const groupe of await bd.locator(".setting").all()) {
-      const [libelle, boutons] = [(await groupe.locator("span").first().boundingBox())!, (await groupe.locator(".modes").boundingBox())!];
+      const [libelle, boutons] = [(await groupe.locator("span, label").first().boundingBox())!, (await groupe.locator(".modes, .slider").first().boundingBox())!];
       expect(boutons.y).toBeLessThan(libelle.y + libelle.height);
     }
   }
@@ -455,7 +455,8 @@ test("panneaux Affichage : tous les boutons alignés à droite, chaque réglage 
   await livre.getByRole("button", { name: "Affichage" }).click();
   const epub = livre.getByRole("group", { name: "Affichage" });
   const droitesEpub = await bordsDroits(epub);
-  expect(droitesEpub.length).toBe(3);
+  // Police, taille, interligne, marges, thème, présentation.
+  expect(droitesEpub.length).toBe(6);
   expect(new Set(droitesEpub).size, `bords droits : ${droitesEpub}`).toBe(1);
 });
 
@@ -527,4 +528,81 @@ test("livre : le texte reste dans la page, avec une marge à droite comme à gau
     // Marges égales à gauche et à droite, comme dans Kavita (le texte justifié remplit sa colonne).
     expect(Math.abs(ecran.width - droite - gauche), `marges ${gauche} et ${ecran.width - droite}`).toBeLessThanOrEqual(3);
   }
+});
+
+test("livre : police, interligne, marges et présentation, comme dans Kavita, retenus pour la bibliothèque", async ({ page }, info) => {
+  test.skip(appareil(info) === "tv", "pas de Kavita au téléviseur");
+  const lecteur = await ouvrirLivre(page, info);
+  const paragraphe = lecteur.getByText(/^Paragraphe 2\.1\./);
+  const style = () => paragraphe.evaluate((p) => ({ police: getComputedStyle(p).fontFamily, interligne: parseFloat(getComputedStyle(p).lineHeight) / parseFloat(getComputedStyle(p).fontSize), gauche: Math.round(p.getBoundingClientRect().left) }));
+  const avant = await style();
+  await lecteur.getByRole("button", { name: "Affichage" }).click();
+  const panneau = lecteur.getByRole("group", { name: "Affichage" });
+  // Police : par défaut celle du livre ; « Très lisible » l'emporte sur elle.
+  await expect(panneau.getByLabel("Police")).toHaveValue("book");
+  await panneau.getByLabel("Police").selectOption("legible");
+  await expect.poll(async () => (await style()).police).toContain("Verdana");
+  // Interligne et marges : des curseurs, appliqués aussitôt.
+  await panneau.getByLabel("Interligne").fill("2.2");
+  await expect(panneau.getByText(/^2[,.]2$/)).toBeVisible();
+  await expect.poll(async () => (await style()).interligne).toBeCloseTo(2.2, 1);
+  await panneau.getByLabel("Marges").fill("15");
+  await expect(panneau.getByText("15 %")).toBeVisible();
+  await expect.poll(async () => (await style()).gauche).toBeGreaterThan(avant.gauche + 30);
+  // Présentation : « 1 colonne » sur ordinateur (le téléphone n'en a qu'une de toute façon).
+  if (appareil(info) !== "telephone") {
+    await panneau.getByRole("radio", { name: "1 colonne" }).click();
+    await expect(panneau.getByRole("radio", { name: "1 colonne" })).toHaveAttribute("aria-checked", "true");
+  } else {
+    await expect(panneau.getByRole("radio", { name: "2 colonnes" })).toHaveCount(0);
+  }
+  await expect
+    .poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("maku.epubReader") ?? "{}")["lib:2"]))
+    .toMatchObject({ font: "legible", lineHeight: 2.2, margin: 15, ...(appareil(info) !== "telephone" ? { columns: 1 } : {}) });
+});
+
+/** Plein écran demandé à la fenêtre (null : jamais demandé). */
+const pleinEcran = (page: Page) => page.evaluate(() => (window as unknown as { __fullscreen?: boolean }).__fullscreen ?? null);
+
+test("plein écran : dans le lecteur de livres et de BD, Échap en sort sans fermer, et la fermeture aussi", async ({ page }, info) => {
+  test.skip(appareil(info) === "tv", "pas de Kavita au téléviseur");
+  const livre = await ouvrirLivre(page, info);
+  await livre.getByRole("button", { name: "Plein écran" }).click();
+  await expect.poll(() => pleinEcran(page)).toBe(true);
+  // Rien autour du livre : les commandes sont cachées.
+  await expect(livre.getByRole("button", { name: "Affichage" })).toHaveCount(0);
+  await page.keyboard.press("Escape");
+  await expect.poll(() => pleinEcran(page)).toBe(false);
+  await expect(livre).toBeVisible();
+  // Les commandes reviennent avec la sortie du plein écran.
+  await expect(livre.getByRole("button", { name: "Affichage" })).toBeVisible();
+  await expect(livre.getByRole("slider").first()).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(livre).toHaveCount(0);
+
+  const bd = await ouvrirManga(page, info);
+  await bd.getByRole("button", { name: "Plein écran" }).click();
+  await expect.poll(() => pleinEcran(page)).toBe(true);
+  await expect(bd.getByRole("button", { name: "Affichage" })).toHaveCount(0);
+  await page.keyboard.press("Escape");
+  await expect.poll(() => pleinEcran(page)).toBe(false);
+  await expect(bd.getByRole("button", { name: "Affichage" })).toBeVisible();
+  await bd.getByRole("button", { name: "Plein écran" }).click();
+  await expect.poll(() => pleinEcran(page)).toBe(true);
+  // Fermer le lecteur en plein écran en sort aussi.
+  await page.evaluate(async () => {
+    (await import("/src/lib/books.svelte.ts")).books.reading = null;
+  });
+  await expect(bd).toHaveCount(0);
+  await expect.poll(() => pleinEcran(page)).toBe(false);
+});
+
+test("BD : luminosité des pages, retenue pour la bibliothèque", async ({ page }, info) => {
+  test.skip(appareil(info) === "tv", "pas de Kavita au téléviseur");
+  const lecteur = await ouvrirManga(page, info);
+  await lecteur.getByRole("button", { name: "Affichage" }).click();
+  await lecteur.getByLabel("Luminosité").fill("60");
+  await expect(lecteur.getByText("60 %")).toBeVisible();
+  await expect.poll(() => lecteur.getByRole("img", { name: "Page 6" }).evaluate((i) => getComputedStyle(i).filter)).toBe("brightness(0.6)");
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("maku.readerLayout") ?? "{}")["lib:1"].brightness)).toBe(60);
 });

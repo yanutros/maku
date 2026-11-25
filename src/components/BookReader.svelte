@@ -14,11 +14,13 @@
   import { api, errorText, type BookChapterInfo } from "../lib/api";
   import {
     books,
+    BRIGHTNESS,
     directionFor,
     layoutFor,
     pageUrl,
     setDirection,
     setLayout,
+    setReaderFullscreen,
     spreads,
     type Direction,
     type Fit,
@@ -33,8 +35,9 @@
   /** Page affichée (la première, en double page), à partir de 0. */
   let page = $state(0);
   let direction = $state<Direction>("ltr");
-  let layout = $state<PageLayout>({ spread: "auto", fit: "screen" });
+  let layout = $state<PageLayout>({ spread: "auto", fit: "screen", brightness: 100 });
   let controls = $state(true);
+  let fullscreen = $state(false);
   let panel = $state(false);
   let error = $state<string | null>(null);
   let scroller = $state<HTMLElement>();
@@ -59,7 +62,10 @@
   }
   onMount(() => {
     if (books.reading) open(books.reading.chapterId);
-    return () => flush();
+    return () => {
+      flush();
+      if (fullscreen) setReaderFullscreen(false);
+    };
   });
 
   // --- Pages affichées : une seule, ou une paire en double page ---
@@ -110,7 +116,26 @@
 
   function close() {
     flush();
+    if (fullscreen) setReaderFullscreen(false);
     books.reading = null;
+  }
+
+  /** Plein écran : rien autour des pages ; les commandes reviennent d'un appui au milieu. */
+  async function toggleFullscreen() {
+    fullscreen = await setReaderFullscreen(!fullscreen);
+    if (fullscreen) {
+      panel = false;
+      controls = false;
+    } else {
+      // En sortant du plein écran, la barre du haut et la progression reviennent.
+      controls = true;
+    }
+  }
+
+  /** Luminosité des pages (lecture le soir), retenue pour la bibliothèque. */
+  function setBrightness(value: number) {
+    layout = { ...layout, brightness: value };
+    if (info) setLayout(info.libraryId, layout);
   }
 
   async function goChapter(id: number) {
@@ -171,6 +196,7 @@
     if (k === "Escape" || k === "Backspace" || k === "GoBack" || k === "BrowserBack") {
       if (panel) panel = false;
       else if (zoom > 1) resetZoom();
+      else if (fullscreen && k === "Escape") toggleFullscreen();
       else close();
     } else if (direction === "vertical") return;
     else if (k === "ArrowLeft") leftward();
@@ -446,7 +472,7 @@
 
 <svelte:window onkeydown={onKey} onresize={() => (landscape = window.innerWidth > window.innerHeight)} />
 
-<div class="reader" role="dialog" aria-modal="true" aria-label={title || t("books.reader")}>
+<div class="reader" role="dialog" aria-modal="true" aria-label={title || t("books.reader")} style:--brightness={layout.brightness / 100}>
   {#if error}
     <div class="center"><ErrorCard message={error} /><button class="btn" onclick={close}>{t("common.c1.close")}</button></div>
   {:else if !info}
@@ -489,6 +515,15 @@
     <div class="bar top">
       <button class="icon-btn" onclick={close} aria-label={t("common.c1.close")} title={t("common.c1.close")}><Icon name="x" size={22} /></button>
       <span class="title">{title}</span>
+      <button
+        class="icon-btn"
+        onclick={toggleFullscreen}
+        aria-label={fullscreen ? t("books.exitFullscreen") : t("books.fullscreen")}
+        title={fullscreen ? t("books.exitFullscreen") : t("books.fullscreen")}
+        aria-pressed={fullscreen}
+      >
+        <Icon name={fullscreen ? "exitFullscreen" : "fullscreen"} size={20} />
+      </button>
       <button class="icon-btn" class:on={panel} onclick={() => (panel = !panel)} aria-label={t("books.display")} title={t("books.display")} aria-expanded={panel}>
         <Icon name="sliders" size={20} />
       </button>
@@ -545,6 +580,21 @@
           </div>
         {/if}
       {/if}
+      <div class="setting">
+        <label for="bd-brightness">{t("books.brightness")}</label>
+        <div class="slider">
+          <input
+            id="bd-brightness"
+            type="range"
+            min={BRIGHTNESS.min}
+            max={BRIGHTNESS.max}
+            step={BRIGHTNESS.step}
+            value={layout.brightness}
+            oninput={(e) => setBrightness(Number((e.target as HTMLInputElement).value))}
+          />
+          <output>{layout.brightness} %</output>
+        </div>
+      </div>
     </div>
   {/if}
 </div>
@@ -602,6 +652,32 @@
     width: 100%;
     height: 100%;
     transform-origin: center;
+  }
+
+  /* Luminosité choisie (lecture le soir). */
+  .view img,
+  .strip img {
+    filter: brightness(var(--brightness, 1));
+  }
+
+  .slider {
+    display: flex;
+    flex: 0 1 auto;
+    align-items: center;
+    gap: 10px;
+    margin-left: auto;
+  }
+
+  .slider input {
+    width: 150px;
+    max-width: 40vw;
+    accent-color: var(--accent);
+  }
+
+  .slider output {
+    min-width: 44px;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
   }
 
   .view img {

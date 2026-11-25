@@ -1,21 +1,26 @@
 <script lang="ts">
   // Lecteur de livres EPUB (Kavita). Kavita découpe un livre en sections (les « pages » de sa progression) et sert
   // le HTML de chacune, styles du livre compris. Maku l'affiche à part, dans un shadow DOM (les styles du livre ne
-  // touchent pas l'interface), nettoyé (ni script ni formulaire), en pages tournées (colonnes de la largeur de
-  // l'écran, deux côte à côte sur un grand écran) ou en défilement. Taille du texte, thème et mise en page sont
-  // retenus ; Kavita ne gardant que la section, l'endroit dans la section est retenu sur l'appareil.
+  // touchent pas l'interface), nettoyé (ni script ni formulaire), en pages tournées (une ou deux colonnes) ou en
+  // défilement, en plein écran si l'on veut. Police, taille du texte, interligne, marges, thème et présentation, comme
+  // dans le lecteur de Kavita, sont retenus par bibliothèque ; Kavita ne gardant que la section, l'endroit dans la
+  // section est retenu sur l'appareil.
   import { onMount, tick, untrack } from "svelte";
   import { invoke } from "@tauri-apps/api/core";
   import { api, errorText, type BookChapterInfo, type BookTocItem } from "../lib/api";
   import {
     books,
     cleanBookHtml,
+    EPUB_FONTS,
+    EPUB_LINE_HEIGHTS,
+    EPUB_MARGINS,
     EPUB_SIZES,
     epubPosition,
     epubSettings,
     saveEpubPosition,
     saveEpubSettings,
-    type EpubLayout,
+    setReaderFullscreen,
+    type EpubFont,
     type EpubSettings,
     type EpubTheme,
   } from "../lib/books.svelte";
@@ -38,6 +43,7 @@
   let toc = $state<BookTocItem[]>([]);
   let panel = $state<"toc" | "settings" | null>(null);
   let controls = $state(true);
+  let fullscreen = $state(false);
   let loading = $state(true);
   let error = $state<string | null>(null);
 
@@ -62,9 +68,8 @@
     const c = THEMES[s.theme];
     return `
       :host { all: initial; display: block; width: 100%; height: 100%; }
-      /* Marges à gauche et à droite, comme le lecteur de Kavita : le texte ne touche jamais le bord. */
-      .viewport { --side: clamp(48px, 6vw, 120px); }
-      @media (max-width: 700px) { .viewport { --side: 20px; } }
+      /* Marges à gauche et à droite, réglables comme dans le lecteur de Kavita : le texte ne touche jamais le bord. */
+      .viewport { --side: max(8px, ${s.margin}vw); }
       .viewport {
         box-sizing: border-box; width: 100%; height: 100%; overflow: hidden; background: ${c.bg}; color: ${c.fg};
         padding: calc(64px + var(--inset-top, 0px)) var(--side) calc(64px + var(--inset-bottom, 0px));
@@ -77,8 +82,12 @@
       .scroll .pages { max-width: 46em; margin: 0 auto; }
       .pages {
         box-sizing: border-box; font-family: Georgia, "Times New Roman", serif; font-size: ${s.size}%;
-        line-height: 1.6; overflow-wrap: break-word; hyphens: auto; color: ${c.fg};
+        line-height: ${s.lineHeight}; overflow-wrap: break-word; hyphens: auto; color: ${c.fg};
       }
+      /* Interligne choisi, même si le livre en impose un. */
+      .book-content { line-height: ${s.lineHeight} !important; }
+      .book-content * { line-height: inherit !important; }
+      ${s.font === "book" ? "" : `.book-content, .book-content * { font-family: ${EPUB_FONTS[s.font]} !important; }`}
       /* Le livre ne règle ni la taille de son texte ni sa place : Kavita y reporte les marges et la taille du « body »
          de l'EPUB, qui écrasaient la taille choisie et décalaient les colonnes hors de l'écran. */
       .book-content {
@@ -118,6 +127,7 @@
     return () => {
       resize.disconnect();
       flush();
+      if (fullscreen) setReaderFullscreen(false);
     };
   });
 
@@ -170,7 +180,8 @@
     const width = viewport.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
     const height = viewport.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
     // Deux colonnes côte à côte sur un grand écran, comme un livre ouvert.
-    const perScreen = width >= 900 ? 2 : 1;
+    // Deux colonnes choisies, sur un écran assez large pour les lire.
+    const perScreen = settings.columns === 2 && width >= 700 ? 2 : 1;
     const gap = perScreen === 2 ? 72 : 40;
     step = width + gap;
     Object.assign(pages.style, {
@@ -317,7 +328,33 @@
 
   function close() {
     flush();
+    if (fullscreen) setReaderFullscreen(false);
     books.reading = null;
+  }
+
+  /** Plein écran : rien autour du livre ; les commandes reviennent d'un appui au milieu de la page. */
+  async function toggleFullscreen() {
+    fullscreen = await setReaderFullscreen(!fullscreen);
+    if (fullscreen) {
+      panel = null;
+      controls = false;
+    } else {
+      // En sortant du plein écran, la barre du haut et la progression reviennent.
+      controls = true;
+    }
+  }
+
+  /** Présentation, comme dans Kavita : défilement continu, une colonne, ou deux côte à côte. */
+  type Presentation = "scroll" | "one" | "two";
+  /** Écran trop étroit pour deux colonnes (téléphone) : le choix n'est pas proposé, une seule colonne s'affiche. */
+  let narrow = $state(window.innerWidth < 700);
+  const presentation = $derived<Presentation>(settings.layout === "scroll" ? "scroll" : settings.columns === 1 || narrow ? "one" : "two");
+  function setPresentation(p: Presentation) {
+    if (p === "scroll") settings.layout = "scroll";
+    else {
+      settings.layout = "paged";
+      settings.columns = p === "one" ? 1 : 2;
+    }
   }
 
   async function goChapter(id: number) {
@@ -386,6 +423,7 @@
     const k = e.key;
     if (k === "Escape" || k === "Backspace" || k === "GoBack" || k === "BrowserBack") {
       if (panel) panel = null;
+      else if (fullscreen && k === "Escape") toggleFullscreen();
       else close();
     } else if (panel) return;
     else if (k === "ArrowRight" || k === "PageDown" || k === " ") next();
@@ -438,9 +476,16 @@
   const currentToc = $derived(flatToc.reduce<BookTocItem | null>((cur, e) => (e.item.page <= section ? e.item : cur), null));
 
   const title = $derived(info ? [info.seriesName, info.title].filter(Boolean).join(" — ") : "");
-  const layouts: [EpubLayout, string][] = [
-    ["paged", "books.paged"],
-    ["scroll", "books.scroll"],
+  const presentations: [Presentation, string][] = [
+    ["scroll", "books.presentScroll"],
+    ["one", "books.presentOne"],
+    ["two", "books.presentTwo"],
+  ];
+  const fonts: [EpubFont, string][] = [
+    ["book", "books.fontBook"],
+    ["serif", "books.fontSerif"],
+    ["sans", "books.fontSans"],
+    ["legible", "books.fontLegible"],
   ];
   const themes: [EpubTheme, string][] = [
     ["dark", "books.themeDark"],
@@ -449,7 +494,7 @@
   ];
 </script>
 
-<svelte:window onkeydown={onKey} />
+<svelte:window onkeydown={onKey} onresize={() => (narrow = window.innerWidth < 700)} />
 
 <div class="reader" role="dialog" aria-modal="true" aria-label={title || t("books.reader")} style:background={THEMES[settings.theme].bg}>
   <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
@@ -472,6 +517,15 @@
           <Icon name="queue" size={20} />
         </button>
       {/if}
+      <button
+        class="icon-btn"
+        onclick={toggleFullscreen}
+        aria-label={fullscreen ? t("books.exitFullscreen") : t("books.fullscreen")}
+        title={fullscreen ? t("books.exitFullscreen") : t("books.fullscreen")}
+        aria-pressed={fullscreen}
+      >
+        <Icon name={fullscreen ? "exitFullscreen" : "fullscreen"} size={20} />
+      </button>
       <button
         class="icon-btn"
         class:on={panel === "settings"}
@@ -517,11 +571,31 @@
     <div class="panel display" role="group" aria-label={t("books.display")}>
       <h2>{t("books.display")}</h2>
       <div class="setting">
+        <label for="epub-font">{t("books.font")}</label>
+        <select id="epub-font" class="control" bind:value={settings.font}>
+          {#each fonts as [id, label] (id)}<option value={id}>{t(label)}</option>{/each}
+        </select>
+      </div>
+      <div class="setting">
         <span>{t("books.textSize")}</span>
         <div class="size">
           <button class="icon-btn small" onclick={() => (settings.size = Math.max(EPUB_SIZES.min, settings.size - EPUB_SIZES.step))} disabled={settings.size <= EPUB_SIZES.min} aria-label={t("books.smaller")} title={t("books.smaller")}>A−</button>
           <output>{settings.size} %</output>
           <button class="icon-btn small" onclick={() => (settings.size = Math.min(EPUB_SIZES.max, settings.size + EPUB_SIZES.step))} disabled={settings.size >= EPUB_SIZES.max} aria-label={t("books.larger")} title={t("books.larger")}>A+</button>
+        </div>
+      </div>
+      <div class="setting">
+        <label for="epub-line">{t("books.lineHeight")}</label>
+        <div class="slider control">
+          <input id="epub-line" type="range" min={EPUB_LINE_HEIGHTS.min} max={EPUB_LINE_HEIGHTS.max} step={EPUB_LINE_HEIGHTS.step} bind:value={settings.lineHeight} />
+          <output>{settings.lineHeight.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</output>
+        </div>
+      </div>
+      <div class="setting">
+        <label for="epub-margin">{t("books.margin")}</label>
+        <div class="slider control">
+          <input id="epub-margin" type="range" min={EPUB_MARGINS.min} max={EPUB_MARGINS.max} step={EPUB_MARGINS.step} bind:value={settings.margin} />
+          <output>{settings.margin} %</output>
         </div>
       </div>
       <div class="setting">
@@ -533,10 +607,10 @@
         </div>
       </div>
       <div class="setting">
-        <span>{t("books.layout")}</span>
-        <div class="modes" role="radiogroup" aria-label={t("books.layout")}>
-          {#each layouts as [id, label] (id)}
-            <button role="radio" aria-checked={settings.layout === id} class:on={settings.layout === id} onclick={() => (settings.layout = id)}>{t(label)}</button>
+        <span>{t("books.presentation")}</span>
+        <div class="modes" role="radiogroup" aria-label={t("books.presentation")}>
+          {#each presentations.filter(([id]) => !(narrow && id === "two")) as [id, label] (id)}
+            <button role="radio" aria-checked={presentation === id} class:on={presentation === id} onclick={() => setPresentation(id)}>{t(label)}</button>
           {/each}
         </div>
       </div>
@@ -725,9 +799,45 @@
 
   /* Toujours à droite, même renvoyés sous leur libellé (écran étroit). */
   .size,
+  .control,
   .modes {
     flex: 0 1 auto;
     margin-left: auto;
+  }
+
+  /* Police : une liste, comme dans Kavita. Interligne et marge : des curseurs, avec leur valeur. */
+  select.control {
+    padding: 7px 12px;
+    border: 1px solid #ffffff2a;
+    border-radius: 999px;
+    background: #ffffff14;
+    color: #fff;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  select.control option {
+    background: #1b1b1b;
+    color: #fff;
+  }
+
+  .slider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .slider input {
+    width: 150px;
+    max-width: 40vw;
+    accent-color: var(--accent);
+  }
+
+  .slider output {
+    min-width: 44px;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
   }
 
   .size {

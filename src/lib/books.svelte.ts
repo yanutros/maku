@@ -1,5 +1,6 @@
 // Kavita : bibliothèques de livres, BD et mangas, mêlées à celles du serveur vidéo (sauf au téléviseur), et
 // préférences du lecteur. Les appels passent par le moteur (kavita.rs), qui garde la clé d'API.
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { api, type BookLibrary, type BookSeries, type Section } from "./api";
 
 export const books = $state({
@@ -75,14 +76,31 @@ export const pageUrl = (template: string, page: number) => template.replace("{pa
 
 export type EpubLayout = "paged" | "scroll";
 export type EpubTheme = "dark" | "light" | "sepia";
+/** « book » : la police du livre (le « Default » de Kavita) ; les autres sont présentes sur tous les appareils. */
+export type EpubFont = "book" | "serif" | "sans" | "legible";
 export interface EpubSettings {
+  /** « paged » : pages tournées, en `columns` colonnes ; « scroll » : défilement continu. */
   layout: EpubLayout;
+  columns: 1 | 2;
   /** Taille du texte, en % de celle du livre. */
   size: number;
   theme: EpubTheme;
+  font: EpubFont;
+  /** Interligne (1,6 : une ligne et demie, environ). */
+  lineHeight: number;
+  /** Marge de chaque côté, en % de la largeur de l'écran. */
+  margin: number;
 }
 const EPUB_KEY = "maku.epubReader";
 export const EPUB_SIZES = { min: 70, max: 200, step: 10 };
+export const EPUB_LINE_HEIGHTS = { min: 1.2, max: 2.4, step: 0.2 };
+export const EPUB_MARGINS = { min: 0, max: 20, step: 1 };
+/** Polices proposées : celles du système, présentes partout (Android prend sa police à empattements ou sans). */
+export const EPUB_FONTS: Record<Exclude<EpubFont, "book">, string> = {
+  serif: 'Georgia, "Noto Serif", "Times New Roman", serif',
+  sans: 'system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+  legible: 'Verdana, "Atkinson Hyperlegible", Tahoma, "DejaVu Sans", sans-serif',
+};
 
 /** Réglages EPUB gardés : par bibliothèque, et les derniers choisis (« last »), pour une bibliothèque encore jamais lue. */
 function epubStore(): Record<string, Partial<EpubSettings>> {
@@ -96,13 +114,20 @@ function epubStore(): Record<string, Partial<EpubSettings>> {
   }
 }
 
+const within = (v: unknown, r: { min: number; max: number }, d: number) =>
+  typeof v === "number" && Number.isFinite(v) ? Math.min(r.max, Math.max(r.min, v)) : d;
+
 function validSettings(s: Partial<EpubSettings> | undefined): EpubSettings {
-  const d: EpubSettings = { layout: "paged", size: 100, theme: "dark" };
+  const d: EpubSettings = { layout: "paged", columns: 2, size: 100, theme: "dark", font: "book", lineHeight: 1.6, margin: 5 };
   if (!s) return d;
   return {
     layout: s.layout === "scroll" ? "scroll" : d.layout,
-    size: typeof s.size === "number" ? Math.min(EPUB_SIZES.max, Math.max(EPUB_SIZES.min, s.size)) : d.size,
+    columns: s.columns === 1 ? 1 : d.columns,
+    size: within(s.size, EPUB_SIZES, d.size),
     theme: s.theme === "light" || s.theme === "sepia" ? s.theme : d.theme,
+    font: s.font === "serif" || s.font === "sans" || s.font === "legible" ? s.font : d.font,
+    lineHeight: Math.round(within(s.lineHeight, EPUB_LINE_HEIGHTS, d.lineHeight) * 10) / 10,
+    margin: Math.round(within(s.margin, EPUB_MARGINS, d.margin)),
   };
 }
 
@@ -185,7 +210,10 @@ export type Fit = "screen" | "width";
 export interface PageLayout {
   spread: Spread;
   fit: Fit;
+  /** Luminosité des pages, en % (100 : telles quelles). */
+  brightness: number;
 }
+export const BRIGHTNESS = { min: 30, max: 100, step: 5 };
 const LAYOUT_KEY = "maku.readerLayout";
 
 function layouts(): Record<string, Partial<PageLayout>> {
@@ -202,7 +230,28 @@ export function layoutFor(libraryId: number): PageLayout {
   return {
     spread: l.spread === "single" || l.spread === "double" ? l.spread : "auto",
     fit: l.fit === "width" ? "width" : "screen",
+    brightness: Math.round(within(l.brightness, BRIGHTNESS, 100)),
   };
+}
+
+// --- Plein écran des lecteurs ---
+
+/**
+ * Plein écran du lecteur, pour lire sans rien autour : la fenêtre de Maku sur ordinateur, les barres du système
+ * masquées sur Android (sans tourner l'écran, à la différence d'une vidéo). Rend l'état obtenu.
+ */
+export async function setReaderFullscreen(on: boolean): Promise<boolean> {
+  const android = (window as { PlexrDevice?: { setImmersive?(on: boolean): void } }).PlexrDevice;
+  if (android?.setImmersive) {
+    android.setImmersive(on);
+    return on;
+  }
+  try {
+    await getCurrentWindow().setFullscreen(on);
+    return on;
+  } catch {
+    return false;
+  }
 }
 
 export function setLayout(libraryId: number, layout: PageLayout) {

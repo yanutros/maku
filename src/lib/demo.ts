@@ -640,7 +640,7 @@ const epubText = (n: number, count: number) =>
     `<p>Paragraphe ${n}.${i + 1}. Le gardien montait chaque soir les cent marches de la tour, une lampe à la main, en comptant les vagues qui frappaient la digue. Le vent de l'ouest apportait l'odeur du sel et des algues, et la lumière tournait au-dessus de la mer grise.</p>`,
   ).join("");
 /** Comme Kavita : les styles du « body » de l'EPUB reportés sur `.book-content` (marges, taille du texte en pixels). */
-const epubBody = "<style>.book-content { margin: 0 9%; padding-left: 40px; font-size: 18px; }</style>";
+const epubBody = "<style>.book-content { margin: 0 9%; padding-left: 40px; font-size: 18px; line-height: 1.1; font-family: monospace; }</style>";
 function epubSection(page: number): string {
   return epubBody + epubSectionHtml(page);
 }
@@ -1058,6 +1058,10 @@ function handle(cmd: string, a: Args): unknown {
       return null;
     case "plugin:window|is_fullscreen":
       return false;
+    // Plein écran demandé par un lecteur : noté pour les tests.
+    case "plugin:window|set_fullscreen":
+      (window as unknown as { __fullscreen: unknown }).__fullscreen = a.value;
+      return null;
     default:
       return null;
   }

@@ -1311,9 +1311,6 @@
     "themeDark": "Dark",
     "themeLight": "Light",
     "themeSepia": "Sepia",
-    "layout": "Layout",
-    "paged": "Pages",
-    "scroll": "Scrolling",
     "section": "Section",
     "sectionOf": "Section {{section}} of {{sections}}",
     "fit": "Fit",
@@ -1335,6 +1332,20 @@
       "noAccount": "No Kavita account yet: it will be created with the first library opened",
       "libraries": "{{name}}'s Kavita libraries",
       "keepsProgress": "Their Kavita account and progress stay, should they come back."
-    }
+    },
+    "font": "Font",
+    "fontBook": "The book's own",
+    "fontSerif": "Serif",
+    "fontSans": "Sans serif",
+    "fontLegible": "Highly legible",
+    "lineHeight": "Line spacing",
+    "margin": "Margins",
+    "presentation": "Layout",
+    "presentScroll": "Scrolling",
+    "presentOne": "1 column",
+    "presentTwo": "2 columns",
+    "fullscreen": "Full screen",
+    "exitFullscreen": "Exit full screen",
+    "brightness": "Brightness"
   }
 }

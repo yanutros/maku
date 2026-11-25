@@ -267,6 +267,21 @@ class MainActivity : TauriActivity() {
         }
       }
 
+      /** Lecteur de livres ou de BD en plein écran : barres du système masquées, sans tourner l'écran. */
+      @JavascriptInterface
+      fun setImmersive(key: String, on: Boolean) {
+        if (!gate.allows(key)) return
+        runOnUiThread {
+          val controller = WindowCompat.getInsetsController(window, window.decorView)
+          if (on) {
+            controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            controller.hide(WindowInsetsCompat.Type.systemBars())
+          } else {
+            controller.show(WindowInsetsCompat.Type.systemBars())
+          }
+        }
+      }
+
       /** Hauteur des barres d'état et de navigation (« haut,bas », en px CSS), que la page évite. */
       @JavascriptInterface
       fun insets(key: String): String {
