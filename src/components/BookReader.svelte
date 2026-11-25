@@ -703,8 +703,11 @@
     position: absolute;
     top: calc(68px + var(--inset-top, 0px));
     right: 12px;
-    /* Assez large pour chaque réglage sur une ligne (libellé à gauche, boutons à droite). */
-    width: min(500px, calc(100% - 24px));
+    /* La largeur du réglage le plus large (libellé à gauche, boutons à droite, sur une ligne), quelles que soient la
+       police et la langue ; sur un écran trop étroit, les boutons passent sous leur libellé, à droite. */
+    width: max-content;
+    min-width: min(380px, calc(100% - 24px));
+    max-width: calc(100% - 24px);
     padding: 16px;
     border: 1px solid #ffffff1f;
     border-radius: 14px;

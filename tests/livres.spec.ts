@@ -428,6 +428,8 @@ const bordsDroits = (panneau: Locator) =>
 test("panneaux Affichage : tous les boutons alignés à droite, chaque réglage sur sa ligne à l'ordinateur", async ({ page }, info) => {
   test.skip(appareil(info) === "tv", "pas de Kavita au téléviseur");
   const lecteur = await ouvrirManga(page, info);
+  // Texte élargi, comme avec une police plus large (Linux) ou une langue plus longue : la largeur doit suivre.
+  await page.addStyleTag({ content: ".reader * { letter-spacing: 1.2px !important; }" });
   await lecteur.getByRole("button", { name: "Affichage" }).click();
   const bd = lecteur.getByRole("group", { name: "Affichage" });
   await expect(bd.getByRole("radiogroup")).toHaveCount(3);

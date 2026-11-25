@@ -654,6 +654,13 @@
     box-shadow: 0 12px 40px #0008;
   }
 
+  /* Affichage : la largeur du réglage le plus large, comme dans le lecteur de BD. */
+  .panel.display {
+    width: max-content;
+    min-width: min(360px, calc(100% - 24px));
+    max-width: calc(100% - 24px);
+  }
+
   .panel h2 {
     margin: 0 0 12px;
     font-size: 15px;
