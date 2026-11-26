@@ -257,6 +257,11 @@
 
   // Téléphone : les rubriques des onglets n'ont pas de bouton Retour (le bouton d'Android suffit).
   const TAB_VIEWS = ["home", "libraries", "discover", "stats", "settings"];
+  // Pages Kavita : la recherche du haut (films, séries, artistes) n'y sert pas. Une bibliothèque Kavita a sa propre
+  // recherche, et le bouton retour à côté de son titre : pas de barre du haut ; une série garde le retour seul, sur
+  // son fond, comme la fiche d'un film.
+  const bookLibrary = $derived(nav.view.name === "section" && nav.view.kind === "book");
+  const bookPage = $derived(bookLibrary || nav.view.name === "book");
 
   function onSearchInput() {
     clearTimeout(searchTimer);
@@ -323,18 +328,20 @@
         </header>
       {/if}
       <!-- Sur téléviseur, la recherche passe par le menu : la barre n'apparaît que sur sa page. -->
-      {#if !device.phone && (!device.tv || nav.view.name === "search")}
+      {#if !device.phone && (!device.tv || nav.view.name === "search") && !bookLibrary}
       <header data-nav-low class:clear={nav.view.name === "stats" || nav.view.name === "item" || nav.view.name === "mix" || nav.view.name === "seerr" || nav.view.name === "book"}>
         <button class="btn round ghost" disabled={!nav.history.length} onclick={back} aria-label={t("common.c1.back")}>
           <Icon name="back" />
         </button>
-        <label class="search">
-          <Icon name="search" size={18} />
-          <input type="search" placeholder={t("app.searchPlaceholder")} bind:value={query} oninput={onSearchInput} use:tvAutofocus use:clearOnTvEdit />
-        </label>
+        {#if !bookPage}
+          <label class="search">
+            <Icon name="search" size={18} />
+            <input type="search" placeholder={t("app.searchPlaceholder")} bind:value={query} oninput={onSearchInput} use:tvAutofocus use:clearOnTvEdit />
+          </label>
+        {/if}
       </header>
       {/if}
-      <div class="content" bind:this={content}>
+      <div class="content" class:headless={bookLibrary && !device.phone} bind:this={content}>
         {#key nav.view}
           {#if nav.view.name === "home"}
             <Home {sections} />
@@ -667,6 +674,11 @@
     min-height: 0;
     overflow-y: auto;
     padding-top: 68px;
+  }
+
+  /* Sans barre du haut (bibliothèque Kavita) : la page commence en haut, son titre à la place de la barre. */
+  .content.headless {
+    padding-top: 22px;
   }
 
   .auth-qr {

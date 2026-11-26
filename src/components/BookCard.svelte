@@ -4,6 +4,7 @@
   import type { BookSeries } from "../lib/api";
   import BookMore from "./BookMore.svelte";
   import Icon from "./Icon.svelte";
+  import { t } from "../lib/i18n";
 
   let { series, onclick, onmenu }: { series: BookSeries; onclick: () => void; onmenu?: (e: MouseEvent) => void } = $props();
 
@@ -14,6 +15,10 @@
     onmenu(e);
   }
   const progress = $derived(series.pages > 0 ? Math.min(1, series.pagesRead / series.pages) : 0);
+  /** Sous le nom : où en est la lecture, sinon la longueur. */
+  const sub = $derived(
+    progress >= 1 ? t("books.readDone") : progress > 0 ? t("books.readPercent", { percent: Math.round(progress * 100) }) : series.pages > 0 ? t("books.pages", { count: series.pages }) : "",
+  );
   let broken = $state(false);
 </script>
 
@@ -25,6 +30,7 @@
       {#if progress >= 1}<span class="done"><Icon name="check" size={14} /></span>{/if}
     </span>
     <span class="name">{series.name}</span>
+    {#if sub}<span class="sub" class:started={progress > 0}>{sub}</span>{/if}
   </button>
   {#if onmenu}<BookMore onmenu={menu} />{/if}
 </div>
@@ -101,6 +107,17 @@
     border-radius: 50%;
     background: var(--accent);
     color: var(--accent-text);
+  }
+
+  .sub {
+    margin-top: -4px;
+    color: var(--text-faint);
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .sub.started {
+    color: var(--accent);
   }
 
   .name {

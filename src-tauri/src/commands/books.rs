@@ -183,8 +183,9 @@ pub async fn kavita_libraries(state: State<'_, AppState>) -> CmdResult<Vec<BookL
 }
 
 #[tauri::command]
-pub async fn kavita_series(state: State<'_, AppState>, library_id: i64, page: u32, size: u32) -> CmdResult<SeriesPage> {
-    Ok(state.kavita().await?.library_series(library_id, page, size).await?)
+/// Séries d'une bibliothèque, par page ; `sort` : « name » (par défaut), « added » ou « reading ».
+pub async fn kavita_series(state: State<'_, AppState>, library_id: i64, page: u32, size: u32, sort: Option<String>) -> CmdResult<SeriesPage> {
+    Ok(state.kavita().await?.library_series(library_id, page, size, sort.as_deref().unwrap_or("name")).await?)
 }
 
 #[tauri::command]
@@ -234,4 +235,17 @@ pub async fn kavita_mark_read(state: State<'_, AppState>, mark: ReadMark) -> Cmd
 #[tauri::command]
 pub async fn kavita_details(state: State<'_, AppState>, volume_id: Option<i64>, chapter_id: Option<i64>) -> CmdResult<BookDetails> {
     Ok(state.kavita().await?.details(volume_id, chapter_id).await?)
+}
+
+/// Recherche dans une bibliothèque (titres, auteurs, genres).
+#[tauri::command]
+pub async fn kavita_search(state: State<'_, AppState>, library_id: i64, query: String) -> CmdResult<Vec<BookSeries>> {
+    Ok(state.kavita().await?.search_series(library_id, &query).await?)
+}
+
+/// Illustrations en ligne d'une série (AniList, et TMDB avec la clé de l'utilisateur).
+#[tauri::command]
+pub async fn kavita_artwork(state: State<'_, AppState>, name: String, kind: String, anilist_id: Option<i64>) -> CmdResult<crate::book_art::BookArt> {
+    let key = state.cfg().tmdb_key;
+    Ok(crate::book_art::find(&state.http, &name, &kind, anilist_id, key.as_deref(), crate::i18n::language()).await)
 }

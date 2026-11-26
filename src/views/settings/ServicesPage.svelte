@@ -15,6 +15,7 @@
   import { go, nav, toast } from "../../lib/nav.svelte";
   import { device } from "../../lib/device";
   import { forgetRemoteLogos } from "../../lib/logos";
+  import { onlineArt, setOnlineArt } from "../../lib/books.svelte";
   import { t } from "../../lib/i18n";
 
   /** `relay` : le Maku Server trouvé sur le réseau à l'ouverture des réglages (voir Settings.svelte). */
@@ -48,6 +49,8 @@
   // --- Kavita : livres, BD et mangas (pas au téléviseur) ---
 
   let kavitaUrl = $state("");
+  /** Fond et logo des séries cherchés en ligne (AniList, TMDB). */
+  let bookArt = $state(onlineArt());
   let kavitaKey = $state("");
   let kavitaBusy = $state(false);
   let kavitaError = $state<string | null>(null);
@@ -418,6 +421,15 @@
     {/if}
   </div>
   {#if kavitaError}<ErrorCard message={kavitaError} />{/if}
+  {/if}
+  {#if session.kavitaUrl}
+    <label class="line">
+      <div class="line-text">
+        <strong>{t("settings.kavita.artwork")}</strong>
+        <span class="muted small">{t("settings.kavita.artworkHint")}</span>
+      </div>
+      <input type="checkbox" class="switch" bind:checked={bookArt} onchange={() => setOnlineArt(bookArt)} />
+    </label>
   {/if}
 </section>
 </div>

@@ -115,7 +115,24 @@ export interface BookSeriesDetail {
   chapters: BookChapter[];
   specials: BookChapter[];
   continueChapter: number | null;
+  writers: string[];
+  genres: string[];
+  year: number | null;
+  status: "ongoing" | "hiatus" | "completed" | "cancelled" | "ended" | null;
+  /** Numéro AniList, si Kavita le connaît (illustrations en ligne). */
+  anilistId: number | null;
+  /** Couleur dominante de la couverture (« #a1b2c3 »). */
+  color: string | null;
 }
+
+/** Illustrations en ligne d'une série Kavita : fond (paysage) et logo du titre. */
+export interface BookArt {
+  backdrop: string | null;
+  logo: string | null;
+}
+
+/** Ordre d'une bibliothèque Kavita : par nom, dernières enrichies d'abord, ou en cours de lecture. */
+export type BookSort = "name" | "added" | "reading";
 
 /** Ce qu'il faut au lecteur pour un chapitre ; `pageUrl` contient « {page} », à remplacer (à partir de 0). */
 export interface BookChapterInfo {
@@ -795,7 +812,11 @@ export const api = {
   // Kavita : livres, BD et mangas (kavita.rs).
   kavitaConfigure: (url: string, key: string) => invoke<string | null>("kavita_configure", { url, key }),
   kavitaLibraries: () => invoke<BookLibrary[]>("kavita_libraries"),
-  kavitaSeries: (libraryId: number, page: number, size: number) => invoke<{ items: BookSeries[]; total: number }>("kavita_series", { libraryId, page, size }),
+  kavitaSeries: (libraryId: number, page: number, size: number, sort: BookSort = "name") =>
+    invoke<{ items: BookSeries[]; total: number }>("kavita_series", { libraryId, page, size, sort }),
+  kavitaSearch: (libraryId: number, query: string) => invoke<BookSeries[]>("kavita_search", { libraryId, query }),
+  kavitaArtwork: (name: string, kind: BookLibrary["kind"], anilistId: number | null) =>
+    invoke<BookArt>("kavita_artwork", { name, kind, anilistId }),
   kavitaOnDeck: (libraryId: number) => invoke<BookSeries[]>("kavita_on_deck", { libraryId }),
   kavitaSeriesDetail: (seriesId: number) => invoke<BookSeriesDetail>("kavita_series_detail", { seriesId }),
   kavitaChapter: (chapterId: number) => invoke<BookChapterInfo>("kavita_chapter", { chapterId }),

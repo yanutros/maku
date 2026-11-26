@@ -239,7 +239,9 @@
       "connect": "Conectar Kavita",
       "connected": "Kavita conectado",
       "disconnected": "Kavita desconectado",
-      "relay": "Proporcionado por Maku Server: el administrador del servidor elige tus bibliotecas y lees con tu propia cuenta de Kavita. Nada que ajustar aquí."
+      "relay": "Proporcionado por Maku Server: el administrador del servidor elige tus bibliotecas y lees con tu propia cuenta de Kavita. Nada que ajustar aquí.",
+      "artwork": "Ilustraciones en línea",
+      "artworkHint": "Fondo y logo de las series: de AniList y TMDB para mangas y light novels, y de TMDB para los cómics adaptados al cine o en serie (con una clave TMDB). Solo se envía el nombre de la serie."
     }
   },
   "login": {
@@ -1364,6 +1366,43 @@
       "added": "Añadido el",
       "files_one": "Archivo",
       "files_other": "Archivos"
-    }
+    },
+    "volumeCount_one": "{{count}} tomo",
+    "volumeCount_other": "{{count}} tomos",
+    "chapterCount_one": "{{count}} capítulo",
+    "chapterCount_other": "{{count}} capítulos",
+    "status": {
+      "ongoing": "En curso",
+      "hiatus": "En pausa",
+      "completed": "Terminada",
+      "cancelled": "Cancelada",
+      "ended": "Finalizada"
+    },
+    "atVolume": "tomo {{volume}}",
+    "atChapter": "cap. {{chapter}}",
+    "resumeAt": "Seguir: {{where}}, página {{page}}",
+    "findNumber": "Ir al n.º…",
+    "order": "Orden",
+    "oldestFirst": "Del primero",
+    "newestFirst": "Del último",
+    "noMatch": "Ningún tomo ni capítulo coincide.",
+    "featured": "Destacado",
+    "openSeries": "Ficha",
+    "sort": "Ordenar",
+    "sortName": "A-Z",
+    "sortAdded": "Añadidos recientes",
+    "sortReading": "En curso",
+    "search": "Buscar en {{library}}",
+    "searchHint": "Título, autor, género…",
+    "results": "Resultados",
+    "noResults": "Ninguna serie coincide.",
+    "readDone": "Leído",
+    "classic": "Clásico",
+    "manga": "Manga",
+    "zoomOut": "Reducir",
+    "zoomIn": "Ampliar la página",
+    "zoomReset": "Volver a la página entera",
+    "prevShort": "Ant.",
+    "nextShort": "Sig."
   }
 }

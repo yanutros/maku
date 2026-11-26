@@ -9,13 +9,17 @@
   // - « Vertical » : toutes les pages les unes sous les autres (webtoon).
   // Sens, pages simples ou doubles et ajustement sont retenus par bibliothèque. Les PDF passent par le même lecteur
   // (Kavita en sert les pages en images). La progression part à Kavita à chaque page (avec un court délai) et à la
-  // fermeture.
+  // fermeture. Les barres (titre, zoom, sens de lecture ; chapitres et page) se rétractent quand la souris ne bouge
+  // plus, et reviennent au moindre mouvement.
   import { onMount } from "svelte";
+  import { fly } from "svelte/transition";
+  import "./readerBars.css";
   import { api, errorText, type BookChapterInfo } from "../lib/api";
   import {
     books,
     BRIGHTNESS,
     directionFor,
+    idleBars,
     layoutFor,
     pageUrl,
     setDirection,
@@ -43,6 +47,20 @@
   let scroller = $state<HTMLElement>();
   let stage = $state<HTMLElement>();
   let landscape = $state(window.innerWidth > window.innerHeight);
+  /** Barres rentrées faute de mouvement de la souris (le curseur s'efface aussi). */
+  let idle = $state(false);
+  let overBars = false;
+  const bars = idleBars(
+    () => {
+      controls = true;
+      idle = false;
+    },
+    () => {
+      controls = false;
+      idle = true;
+    },
+    () => panel || overBars || !!document.querySelector(".rb :focus-visible"),
+  );
 
   async function open(chapterId: number) {
     error = null;
@@ -64,6 +82,7 @@
     if (books.reading) open(books.reading.chapterId);
     return () => {
       flush();
+      bars.stop();
       if (fullscreen) setReaderFullscreen(false);
     };
   });
@@ -454,10 +473,11 @@
 
   const title = $derived(info ? [info.seriesName, info.title].filter(Boolean).join(" — ") : "");
   const pageLabel = $derived(shown.length > 1 ? `${shown[0] + 1}-${shown[shown.length - 1] + 1}` : String(page + 1));
-  const directions: [Direction, string][] = [
-    ["ltr", "books.ltr"],
-    ["rtl", "books.rtl"],
-    ["vertical", "books.vertical"],
+  /** Sens de lecture : libellé complet (bulle, lecteur d'écran), libellé court et icône dans la barre. */
+  const directions: [Direction, string, string, "readLtr" | "readRtl" | "readVertical"][] = [
+    ["ltr", "books.ltr", "books.classic", "readLtr"],
+    ["rtl", "books.rtl", "books.manga", "readRtl"],
+    ["vertical", "books.vertical", "books.vertical", "readVertical"],
   ];
   const fits: [Fit, string][] = [
     ["screen", "books.fitScreen"],
@@ -470,9 +490,16 @@
   ];
 </script>
 
-<svelte:window onkeydown={onKey} onresize={() => (landscape = window.innerWidth > window.innerHeight)} />
+<svelte:window onkeydown={onKey} onpointermove={bars.wake} onresize={() => (landscape = window.innerWidth > window.innerHeight)} />
 
-<div class="reader" role="dialog" aria-modal="true" aria-label={title || t("books.reader")} style:--brightness={layout.brightness / 100}>
+<div
+  class="reader"
+  class:rb-idle={idle && !controls}
+  role="dialog"
+  aria-modal="true"
+  aria-label={title || t("books.reader")}
+  style:--brightness={layout.brightness / 100}
+>
   {#if error}
     <div class="center"><ErrorCard message={error} /><button class="btn" onclick={close}>{t("common.c1.close")}</button></div>
   {:else if !info}
@@ -512,9 +539,24 @@
   {/if}
 
   {#if info && controls}
-    <div class="bar top">
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div class="rb rb-top" transition:fly={{ y: -64, duration: 150 }} onpointerenter={() => (overBars = true)} onpointerleave={() => (overBars = false)}>
       <button class="icon-btn" onclick={close} aria-label={t("common.c1.close")} title={t("common.c1.close")}><Icon name="x" size={22} /></button>
-      <span class="title">{title}</span>
+      <div class="rb-heading"><strong>{info.seriesName}</strong>{#if info.title}<span>{info.title}</span>{/if}</div>
+      {#if direction !== "vertical" && layout.fit === "screen"}
+        <div class="rb-group rb-zoom" role="group" aria-label={t("books.zoomReset")}>
+          <button onclick={() => zoomAtCenter(zoom / 1.5)} disabled={zoom <= 1} aria-label={t("books.zoomOut")} title={t("books.zoomOut")}>−</button>
+          <button class="rb-value" onclick={resetZoom} aria-label={t("books.zoomReset")} title={t("books.zoomReset")}>{Math.round(zoom * 100)} %</button>
+          <button onclick={() => zoomAtCenter(zoom * 1.5)} disabled={zoom >= MAX_ZOOM} aria-label={t("books.zoomIn")} title={t("books.zoomIn")}>+</button>
+        </div>
+      {/if}
+      <div class="rb-group" role="radiogroup" aria-label={t("books.direction")}>
+        {#each directions as [d, label, short, icon] (d)}
+          <button role="radio" aria-checked={direction === d} class:on={direction === d} onclick={() => changeDirection(d)} aria-label={t(label)} title={t(label)}>
+            <Icon name={icon} size={18} /><span class="rb-label">{t(short)}</span>
+          </button>
+        {/each}
+      </div>
       <button
         class="icon-btn"
         onclick={toggleFullscreen}
@@ -528,8 +570,9 @@
         <Icon name="sliders" size={20} />
       </button>
     </div>
-    <div class="bar bottom">
-      {#if info.prevChapter > 0}<button class="icon-btn" onclick={() => goChapter(info!.prevChapter)} aria-label={t("books.prevChapter")} title={t("books.prevChapter")}><Icon name="skipPrev" size={20} /></button>{/if}
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div class="rb rb-bottom" transition:fly={{ y: 64, duration: 150 }} onpointerenter={() => (overBars = true)} onpointerleave={() => (overBars = false)}>
+      {#if info.prevChapter > 0}<button class="rb-chip" onclick={() => goChapter(info!.prevChapter)} aria-label={t("books.prevChapter")} title={t("books.prevChapter")}><Icon name="skipPrev" size={16} /><span class="rb-label">{t("books.prevShort")}</span></button>{/if}
       <input
         type="range"
         min="0"
@@ -545,21 +588,13 @@
         }}
       />
       <span class="count">{t("books.pageOf", { page: pageLabel, pages: info.pages })}</span>
-      {#if info.nextChapter > 0}<button class="icon-btn" onclick={() => goChapter(info!.nextChapter)} aria-label={t("books.nextChapter")} title={t("books.nextChapter")}><Icon name="skipNext" size={20} /></button>{/if}
+      {#if info.nextChapter > 0}<button class="rb-chip" onclick={() => goChapter(info!.nextChapter)} aria-label={t("books.nextChapter")} title={t("books.nextChapter")}><span class="rb-label">{t("books.nextShort")}</span><Icon name="skipNext" size={16} /></button>{/if}
     </div>
   {/if}
 
   {#if info && panel}
     <div class="panel" role="group" aria-label={t("books.display")}>
       <h2>{t("books.display")}</h2>
-      <div class="setting">
-        <span>{t("books.direction")}</span>
-        <div class="modes" role="radiogroup" aria-label={t("books.direction")}>
-          {#each directions as [d, label] (d)}
-            <button role="radio" aria-checked={direction === d} class:on={direction === d} onclick={() => changeDirection(d)}>{t(label)}</button>
-          {/each}
-        </div>
-      </div>
       {#if direction !== "vertical"}
         <div class="setting">
           <span>{t("books.fit")}</span>
@@ -726,36 +761,6 @@
   .next-chapter {
     display: block;
     margin: 32px auto 64px;
-  }
-
-  .bar {
-    position: absolute;
-    right: 0;
-    left: 0;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 16px;
-    background: #000c;
-    backdrop-filter: blur(10px);
-  }
-
-  .top {
-    top: 0;
-    padding-top: calc(12px + var(--inset-top, 0px));
-  }
-
-  .bottom {
-    bottom: 0;
-    padding-bottom: calc(12px + var(--inset-bottom, 0px));
-  }
-
-  .title {
-    flex: 1;
-    overflow: hidden;
-    font-weight: 600;
-    text-overflow: ellipsis;
-    white-space: nowrap;
   }
 
   .icon-btn {

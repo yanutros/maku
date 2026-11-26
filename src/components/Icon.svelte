@@ -56,6 +56,10 @@
     qr: "M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h3v3h-3zM18 18h3v3h-3zM18 14h3M14 18v3",
     expand: "M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7",
     edit: "M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z",
+    // Sens de lecture : deux pages, et la flèche de lecture dessous (ou les pages l'une sous l'autre).
+    readLtr: "M4 4h7v11H4zM13 4h7v11h-7zM4 19.5h15M16 17l3 2.5-3 2.5",
+    readRtl: "M4 4h7v11H4zM13 4h7v11h-7zM20 19.5H5M8 17l-3 2.5L8 22",
+    readVertical: "M4 3h11v8H4zM4 13h11v8H4zM19.5 4v15M17 16.5l2.5 2.5 2.5-2.5",
     more: "M12 5.5a1 1 0 1 0 0-2 1 1 0 0 0 0 2zM12 13a1 1 0 1 0 0-2 1 1 0 0 0 0 2zM12 20.5a1 1 0 1 0 0-2 1 1 0 0 0 0 2z",
     menu: "M3 6h18M3 12h18M3 18h18",
     eye: "M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z",

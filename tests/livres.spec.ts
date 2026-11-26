@@ -47,11 +47,12 @@ async function ouvrirManga(page: Page, info: TestInfo) {
   return lecteur;
 }
 
-/** Ouvre le panneau Affichage du lecteur et y choisit `choix` (sens, ajustement, pages). */
+/** Choisit `choix` dans le lecteur : le sens de lecture est dans la barre du haut, le reste (ajustement, pages) dans
+    le panneau Affichage, ouvert au besoin. */
 async function affichage(lecteur: Locator, choix: string) {
-  const panneau = lecteur.getByRole("group", { name: "Affichage" });
-  if (!(await panneau.isVisible())) await lecteur.getByRole("button", { name: "Affichage" }).click();
-  await panneau.getByRole("radio", { name: choix, exact: true }).click();
+  const choixVisible = lecteur.getByRole("radio", { name: choix, exact: true });
+  if (!(await choixVisible.isVisible())) await lecteur.getByRole("button", { name: "Affichage" }).click();
+  await choixVisible.click();
 }
 
 const compte = (lecteur: Locator) => lecteur.getByText(/^\d+(-\d+)? \/ 20$/);
@@ -83,8 +84,8 @@ test("série de manga : reprise à la bonne page, de droite à gauche, progressi
   await expect.poll(() => sauvegardes(page)).toContainEqual({ chapterId: 1213, page: 6 });
 
   // Gauche à droite : retenu pour la série, la flèche de droite avance.
+  // Le sens de lecture est dans la barre du haut : pas de panneau à refermer.
   await affichage(lecteur, "Gauche → droite");
-  await page.keyboard.press("Escape");
   await page.keyboard.press("ArrowRight");
   await expect(lecteur.getByRole("img", { name: "Page 8" })).toBeVisible();
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("maku.readerDirection") ?? "{}"))).toEqual({ "lib:1": "ltr" });
@@ -211,7 +212,6 @@ test("défilement vertical : toutes les pages à la suite", async ({ page }, inf
   test.skip(appareil(info) === "tv", "pas de Kavita au téléviseur");
   const lecteur = await ouvrirManga(page, info);
   await affichage(lecteur, "Vertical");
-  await page.keyboard.press("Escape");
   await expect(lecteur.getByRole("img")).toHaveCount(20);
   await expect(lecteur.getByRole("button", { name: "Chapitre suivant" }).first()).toBeAttached();
 });
@@ -280,7 +280,9 @@ test("livre EPUB : sections, pages tournées, sommaire, note et progression", as
   await expect(compteur(lecteur)).toHaveText(/^Section 4 sur 4/);
   await expect.poll(() => sauvegardes(page)).toContainEqual({ chapterId: 2113, page: 4 });
   await page.keyboard.press("ArrowRight");
-  await expect(lecteur.getByText("Le Phare de l'Ouest — Chapitre 4")).toBeVisible();
+  await expect(page.getByRole("dialog", { name: "Le Phare de l'Ouest — Chapitre 4" })).toBeVisible();
+  // En haut : la série, puis le chapitre.
+  await expect(lecteur.locator(".rb-heading")).toHaveText(/^Le Phare de l'Ouests*Chapitre 4$/);
 });
 
 test("livre EPUB : taille, thème et défilement retenus, reprise au même écran", async ({ page }, info) => {
@@ -437,7 +439,8 @@ test("panneaux Affichage : tous les boutons alignés à droite, chaque réglage 
   await page.addStyleTag({ content: ".reader * { letter-spacing: 2.5px !important; }" });
   await lecteur.getByRole("button", { name: "Affichage" }).click();
   const bd = lecteur.getByRole("group", { name: "Affichage" });
-  await expect(bd.getByRole("radiogroup")).toHaveCount(3);
+  // Ajustement et pages (le sens de lecture est dans la barre du haut).
+  await expect(bd.getByRole("radiogroup")).toHaveCount(2);
   const droites = await bordsDroits(bd);
   expect(new Set(droites).size, `bords droits : ${droites}`).toBe(1);
   if (appareil(info) !== "telephone") {
@@ -709,4 +712,224 @@ test("BD : la barre des lettres mène à la première série d'une lettre, même
   await expect(page.getByRole("button", { name: "Escale 1" })).toBeInViewport();
   await lettres.getByRole("button", { name: "#", exact: true }).click();
   await expect(page.getByRole("button", { name: "2 Mondes" })).toBeInViewport();
+});
+
+test("fiche de série immersive : fond et logo trouvés en ligne, informations, point de reprise ; sinon la couverture", async ({ page }, info) => {
+  test.skip(appareil(info) === "tv", "pas de Kavita au téléviseur");
+  await ouvrir(page, info, "accueil&kavita");
+  await ouvrirMangas(page);
+  await page.locator('[data-series="12"]').last().getByRole("button").first().click();
+  // Le logo à la place du titre (son texte de remplacement est le nom de la série), le fond en grand.
+  const titre = page.getByRole("heading", { name: "Le Gardien des Marées" });
+  await expect(titre.getByRole("img")).toBeVisible();
+  await expect(page.locator(".backdrop img.art")).toHaveAttribute("src", /^data:image\/svg/);
+  // Auteurs · année · volumes · genres · statut, et où reprend « Continuer ».
+  await expect(page.locator(".facts")).toHaveText(/Aiko Tanaka.*2019.*2 volumes.*Aventure, Fantastique.*En cours/);
+  await expect(page.getByText("Reprise : vol. 2, page 6")).toBeVisible();
+
+  // Une série sans illustration en ligne : sa couverture, floutée, en fond ; son nom en texte.
+  await ouvrirMangas(page);
+  await page.locator('[data-series="11"]').last().getByRole("button").first().click();
+  await expect(page.getByRole("heading", { name: "La Lune de Papier" })).toBeVisible();
+  await expect(page.locator(".backdrop img.cover-art")).toBeVisible();
+  await expect(page.locator(".backdrop img.art")).toHaveCount(0);
+});
+
+test("illustrations en ligne : un interrupteur dans Services › Kavita, et rien n'est cherché une fois coupé", async ({ page }, info) => {
+  test.skip(appareil(info) === "tv", "pas de Kavita au téléviseur");
+  await ouvrir(page, info, "accueil&kavita");
+  await page.evaluate(async () => (await import("/src/lib/nav.svelte.ts")).go({ name: "settings", page: "services" }));
+  const interrupteur = page.getByRole("checkbox", { name: /Illustrations en ligne/ });
+  await expect(interrupteur).toBeChecked();
+  await interrupteur.click();
+  await expect(interrupteur).not.toBeChecked();
+  expect(await page.evaluate(() => localStorage.getItem("maku.bookArtwork"))).toBe("off");
+  // Coupé : « Le Gardien des Marées » garde sa couverture en fond et son nom en texte.
+  await ouvrirMangas(page);
+  await page.locator('[data-series="12"]').last().getByRole("button").first().click();
+  await expect(page.getByRole("heading", { name: "Le Gardien des Marées" })).toBeVisible();
+  await expect(page.locator(".backdrop img.cover-art")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Le Gardien des Marées" }).getByRole("img")).toHaveCount(0);
+});
+
+test("longue série : du dernier au premier, et « Aller au n° » (volume ou chapitre)", async ({ page }, info) => {
+  test.skip(appareil(info) === "tv", "pas de Kavita au téléviseur");
+  await ouvrir(page, info, "accueil&kavita");
+  await page.evaluate(async () => (await import("/src/lib/nav.svelte.ts")).go({ name: "book", id: 301 }));
+  const volumes = page.locator(".tile .name");
+  await expect(volumes).toHaveCount(15);
+  await expect(volumes.first()).toHaveText("Volume 1");
+  await page.getByRole("radiogroup", { name: "Ordre" }).getByRole("radio", { name: "Du dernier" }).click();
+  await expect(volumes.first()).toHaveText("Volume 15");
+  // « 12 » : le volume 12, et le volume 10, qui contient le chapitre 12.
+  await page.getByRole("searchbox", { name: "Aller au n°…" }).fill("12");
+  await expect(volumes).toHaveText(["Volume 12", "Volume 10"]);
+  await page.getByRole("searchbox", { name: "Aller au n°…" }).fill("999");
+  await expect(page.getByText("Aucun volume ni chapitre ne correspond.")).toBeVisible();
+});
+
+test("bibliothèque Kavita : « À la une », tri retenu, recherche par titre ou auteur, progression sous les couvertures", async ({ page }, info) => {
+  test.skip(appareil(info) === "tv", "pas de Kavita au téléviseur");
+  await ouvrir(page, info, "accueil&kavita");
+  await ouvrirMangas(page);
+  // À la une : la série en cours, avec « Continuer » et sa fiche.
+  const une = page.getByRole("region", { name: "À la une" });
+  await expect(une.getByRole("heading", { name: "La Lune de Papier" })).toBeVisible();
+  await expect(une.getByText("Lu à 38 %")).toBeVisible();
+  // Sous les couvertures : la progression, « Lu », ou le nombre de pages.
+  await expect(page.locator('[data-series="13"] .sub')).toHaveText("Lu");
+  await expect(page.locator('[data-series="11"] .sub').last()).toHaveText("Lu à 38 %");
+
+  // En cours seulement ; l'ordre est retenu pour la bibliothèque.
+  await page.getByRole("radiogroup", { name: "Trier" }).getByRole("radio", { name: "En cours" }).click();
+  await expect(page.locator(".grid [data-series]")).toHaveCount(2);
+  await expect(page.getByRole("heading", { name: "Continuer la lecture" })).toHaveCount(0);
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("maku.bookSort") ?? "{}"))).toEqual({ "lib:1": "reading" });
+  await page.getByRole("radiogroup", { name: "Trier" }).getByRole("radio", { name: "A-Z" }).click();
+  await expect(page.locator('[data-series="13"]')).toBeVisible();
+
+  // Recherche : un titre, puis un auteur (toutes ses séries).
+  const recherche = page.getByRole("searchbox", { name: "Rechercher dans Mangas" });
+  await recherche.fill("gardien");
+  await expect(page.getByRole("heading", { name: /^Résultats/ })).toBeVisible();
+  await expect(page.locator(".grid [data-series]")).toHaveCount(1);
+  await recherche.fill("Tanaka");
+  await expect(page.locator(".grid [data-series]")).toHaveCount(3);
+  await recherche.fill("introuvable");
+  await expect(page.getByText("Aucune série ne correspond.")).toBeVisible();
+  await recherche.fill("");
+  await expect(une).toBeVisible();
+
+  // « Continuer » d'À la une ouvre le lecteur.
+  await une.getByRole("button", { name: "Continuer" }).click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+});
+
+test("lecteur : barres à la manière des sites de mangas, qui se rétractent quand la souris ne bouge plus", async ({ page }, info) => {
+  test.skip(appareil(info) !== "pc" && appareil(info) !== "safari", "souris : ordinateur seulement");
+  const lecteur = await ouvrirManga(page, info);
+  // En haut : la série et le chapitre, le zoom, le sens de lecture en boutons ; en bas, chapitre précédent ou suivant.
+  await expect(lecteur.locator(".rb-heading strong")).toHaveText("Le Gardien des Marées");
+  const sens = lecteur.getByRole("radiogroup", { name: "Sens de lecture" });
+  await expect(sens.getByRole("radio", { name: "Droite → gauche" })).toHaveAttribute("aria-checked", "true");
+  await expect(sens.getByRole("radio", { name: "Droite → gauche" })).toHaveText("Manga");
+  await lecteur.getByRole("button", { name: "Agrandir la page" }).click();
+  await expect(lecteur.getByRole("button", { name: "Revenir à la page entière" })).toHaveText("150 %");
+  await lecteur.getByRole("button", { name: "Revenir à la page entière" }).click();
+  await expect(lecteur.getByRole("button", { name: "Revenir à la page entière" })).toHaveText("100 %");
+  await expect(lecteur.getByRole("button", { name: "Chapitre suivant" })).toBeVisible();
+
+  // Souris immobile : les barres (et le curseur) disparaissent ; le moindre mouvement les ramène.
+  await page.evaluate(() => ((window as unknown as { __readerIdleMs: number }).__readerIdleMs = 400));
+  await page.mouse.move(640, 420);
+  await page.mouse.move(650, 430);
+  await expect(lecteur.getByRole("button", { name: "Affichage" })).toHaveCount(0);
+  await expect(lecteur).toHaveClass(/rb-idle/);
+  await page.mouse.move(600, 400);
+  await expect(lecteur.getByRole("button", { name: "Affichage" })).toBeVisible();
+  // Tant que la souris est sur une barre, elle reste (deux mouvements : le premier la fait revenir, le second
+  // entre dedans).
+  await page.mouse.move(700, 24);
+  await page.mouse.move(704, 26);
+  await page.waitForTimeout(900);
+  await expect(lecteur.getByRole("button", { name: "Affichage" })).toBeVisible();
+  // Le panneau ouvert la garde aussi.
+  await lecteur.getByRole("button", { name: "Affichage" }).click();
+  await page.mouse.move(640, 600);
+  await page.waitForTimeout(900);
+  await expect(lecteur.getByRole("group", { name: "Affichage" })).toBeVisible();
+  await expect(lecteur.getByRole("button", { name: "Affichage" })).toBeVisible();
+});
+
+test("titre stylisé : les jambages (p, q, g) ne sont pas coupés", async ({ page }, info) => {
+  test.skip(appareil(info) === "tv", "pas de Kavita au téléviseur");
+  await ouvrir(page, info, "accueil&kavita");
+  await page.evaluate(async () => (await import("/src/lib/nav.svelte.ts")).go({ name: "book", id: 301 }));
+  const titre = page.locator("h1 .styled");
+  await expect(titre).toHaveText("Aube 1");
+  await page.evaluate(() => document.fonts.ready);
+  // La place que la police donne au texte (jambages compris) tient dans la partie visible du titre.
+  const debord = await titre.evaluate((el) => {
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    const texte = range.getBoundingClientRect();
+    const boite = el.getBoundingClientRect();
+    return Math.round(texte.bottom - boite.bottom);
+  });
+  expect(debord).toBeLessThanOrEqual(0);
+});
+
+test("bibliothèque Kavita : « À la une », recherche, tri et couvertures alignés à droite, avant la barre des lettres", async ({ page }, info) => {
+  test.skip(appareil(info) === "tv", "pas de Kavita au téléviseur");
+  await ouvrir(page, info, "accueil&kavita");
+  await ouvrirMangas(page);
+  const une = page.getByRole("region", { name: "À la une" });
+  await expect(une).toBeVisible();
+  if (appareil(info) !== "telephone") await expect(page.getByRole("navigation", { name: "Aller à la lettre" })).toBeVisible();
+  const droite = (selecteur: string) => page.locator(".page.books").locator(selecteur).first().evaluate((el) => Math.round(el.getBoundingClientRect().right));
+  const grille = await droite(".grid");
+  for (const s of [".hero", ".head .tools", ".head .modes"]) expect(await droite(s), s).toBe(grille);
+  // Le titre, puis la recherche et le tri sur la même ligne ; « À la une » dessous.
+  const haut = (selecteur: string) => page.locator(".page.books").locator(selecteur).first().evaluate((el) => el.getBoundingClientRect());
+  const [titre, recherche, tri, bandeau] = [await haut("h1"), await haut(".search"), await haut(".head .modes"), await haut(".hero")];
+  if (appareil(info) !== "telephone") {
+    expect(Math.round(recherche.top + recherche.height / 2)).toBe(Math.round(tri.top + tri.height / 2));
+    expect(Math.abs(titre.top + titre.height / 2 - (tri.top + tri.height / 2))).toBeLessThan(4);
+    // Même allure : deux pilules de même hauteur.
+    expect(Math.round(recherche.height)).toBe(Math.round(tri.height));
+  }
+  expect(bandeau.top).toBeGreaterThan(tri.bottom);
+  // Aucun liseré autour du bandeau.
+  expect(await une.evaluate((el) => getComputedStyle(el).borderLeftWidth)).toBe("0px");
+});
+
+test("pages Kavita : pas de recherche de films et séries en haut ; le retour à côté du titre de la bibliothèque", async ({ page }, info) => {
+  test.skip(appareil(info) !== "pc" && appareil(info) !== "safari", "barre du haut : ordinateur");
+  await ouvrir(page, info, "accueil&kavita");
+  const rechercheDuHaut = page.getByPlaceholder("Rechercher un film, une série, un artiste…");
+  await expect(rechercheDuHaut).toBeVisible();
+  await ouvrirMangas(page);
+  await expect(rechercheDuHaut).toHaveCount(0);
+  // Un seul bouton retour : à côté du titre.
+  const retour = page.getByRole("button", { name: "Retour" });
+  await expect(retour).toHaveCount(1);
+  await expect(page.locator(".page.books .head").getByRole("button", { name: "Retour" })).toBeVisible();
+  // La fiche d'une série : le retour seul, sur son fond, sans la recherche.
+  await page.locator('[data-series="12"]').last().getByRole("button").first().click();
+  await expect(page.getByRole("heading", { name: "Le Gardien des Marées" })).toBeVisible();
+  await expect(rechercheDuHaut).toHaveCount(0);
+  await page.getByRole("button", { name: "Retour" }).click();
+  await expect(page.getByRole("heading", { name: "Mangas", exact: true })).toBeVisible();
+  await page.locator(".page.books .head").getByRole("button", { name: "Retour" }).click();
+  await expect(rechercheDuHaut).toBeVisible();
+});
+
+test("bibliothèque Kavita : au retour d'une série, on retrouve l'endroit quitté, même loin dans la liste", async ({ page }, info) => {
+  test.skip(appareil(info) !== "pc" && appareil(info) !== "safari", "barre des lettres : ordinateur");
+  await ouvrir(page, info, "accueil&kavita");
+  await page.evaluate(async () => {
+    const nav = await import("/src/lib/nav.svelte.ts");
+    nav.go({ name: "section", key: "kavita:3", title: "BD", kind: "book" });
+  });
+  // Tout en bas : « Zénith », à la troisième page de la liste.
+  await page.getByRole("navigation", { name: "Aller à la lettre" }).getByRole("button", { name: "Z", exact: true }).click();
+  const zenith = page.getByRole("button", { name: "Zénith 1" });
+  await expect(zenith).toBeInViewport();
+  // Le saut à la lettre glisse : on attend qu'il soit fini.
+  const position = () => page.locator(".content").evaluate((el) => el.scrollTop);
+  let avant = -1;
+  await expect.poll(async () => {
+    const p = await position();
+    const stable = p === avant;
+    avant = p;
+    return stable;
+  }, { intervals: [250] }).toBe(true);
+  expect(avant).toBeGreaterThan(1000);
+  await zenith.click();
+  await expect(page.getByRole("heading", { name: "Zénith 1" })).toBeVisible();
+  await page.getByRole("button", { name: "Retour" }).click();
+  // De retour : la même place, la série quittée à l'écran.
+  await expect(page.getByRole("heading", { name: "BD", exact: true })).toBeAttached();
+  await expect(zenith).toBeInViewport();
+  await expect.poll(async () => Math.abs((await position()) - avant)).toBeLessThan(4);
 });

@@ -57,10 +57,14 @@
   }
 
   /* Sans logo : une typographie de cinéma, sur deux lignes au plus. */
+  /* Interligne serré, mais les jambages (p, q, g) et l'italique dépassent de la ligne : une marge intérieure leur laisse
+     la place sans rien décaler (compensée par une marge négative). */
   .styled {
     display: -webkit-box;
     overflow: hidden;
     line-height: 1;
+    margin: 0 -0.08em -0.18em;
+    padding: 0 0.08em 0.18em;
     text-shadow: 0 3px 18px #000c;
     white-space: normal;
     -webkit-box-orient: vertical;

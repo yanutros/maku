@@ -6,6 +6,8 @@
   // dans le lecteur de Kavita, sont retenus par bibliothèque ; Kavita ne gardant que la section, l'endroit dans la
   // section est retenu sur l'appareil.
   import { onMount, tick, untrack } from "svelte";
+  import { fly } from "svelte/transition";
+  import "./readerBars.css";
   import { invoke } from "@tauri-apps/api/core";
   import { api, errorText, type BookChapterInfo, type BookTocItem } from "../lib/api";
   import {
@@ -16,6 +18,7 @@
     EPUB_MARGINS,
     EPUB_SIZES,
     epubPosition,
+    idleBars,
     epubSettings,
     saveEpubPosition,
     saveEpubSettings,
@@ -45,6 +48,20 @@
   let controls = $state(true);
   let fullscreen = $state(false);
   let loading = $state(true);
+  /** Barres rentrées faute de mouvement de la souris (le curseur s'efface aussi). */
+  let idle = $state(false);
+  let overBars = false;
+  const bars = idleBars(
+    () => {
+      controls = true;
+      idle = false;
+    },
+    () => {
+      controls = false;
+      idle = true;
+    },
+    () => panel !== null || overBars || !!document.querySelector(".rb :focus-visible"),
+  );
   let error = $state<string | null>(null);
 
   let host = $state<HTMLElement>();
@@ -126,6 +143,7 @@
     if (books.reading) open(books.reading.chapterId);
     return () => {
       resize.disconnect();
+      bars.stop();
       flush();
       if (fullscreen) setReaderFullscreen(false);
     };
@@ -494,9 +512,16 @@
   ];
 </script>
 
-<svelte:window onkeydown={onKey} onresize={() => (narrow = window.innerWidth < 700)} />
+<svelte:window onkeydown={onKey} onpointermove={bars.wake} onresize={() => (narrow = window.innerWidth < 700)} />
 
-<div class="reader" role="dialog" aria-modal="true" aria-label={title || t("books.reader")} style:background={THEMES[settings.theme].bg}>
+<div
+  class="reader"
+  class:rb-idle={idle && !controls}
+  role="dialog"
+  aria-modal="true"
+  aria-label={title || t("books.reader")}
+  style:background={THEMES[settings.theme].bg}
+>
   <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
   <div class="stage" onclick={onTap} ontouchstart={onTouchStart} ontouchend={onTouchEnd}>
     <div class="book" bind:this={host}></div>
@@ -509,9 +534,10 @@
   {/if}
 
   {#if info && controls}
-    <div class="bar top">
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div class="rb rb-top" transition:fly={{ y: -64, duration: 150 }} onpointerenter={() => (overBars = true)} onpointerleave={() => (overBars = false)}>
       <button class="icon-btn" onclick={close} aria-label={t("common.c1.close")} title={t("common.c1.close")}><Icon name="x" size={22} /></button>
-      <span class="title">{title}</span>
+      <div class="rb-heading"><strong>{info.seriesName}</strong>{#if info.title}<span>{info.title}</span>{/if}</div>
       {#if toc.length}
         <button class="icon-btn" class:on={panel === "toc"} onclick={() => (panel = panel === "toc" ? null : "toc")} aria-label={t("books.toc")} title={t("books.toc")} aria-expanded={panel === "toc"}>
           <Icon name="queue" size={20} />
@@ -537,8 +563,9 @@
         <Icon name="sliders" size={20} />
       </button>
     </div>
-    <div class="bar bottom">
-      {#if info.prevChapter > 0}<button class="icon-btn" onclick={() => goChapter(info!.prevChapter)} aria-label={t("books.prevChapter")} title={t("books.prevChapter")}><Icon name="skipPrev" size={20} /></button>{/if}
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div class="rb rb-bottom" transition:fly={{ y: 64, duration: 150 }} onpointerenter={() => (overBars = true)} onpointerleave={() => (overBars = false)}>
+      {#if info.prevChapter > 0}<button class="rb-chip" onclick={() => goChapter(info!.prevChapter)} aria-label={t("books.prevChapter")} title={t("books.prevChapter")}><Icon name="skipPrev" size={16} /><span class="rb-label">{t("books.prevShort")}</span></button>{/if}
       <input
         type="range"
         min="0"
@@ -550,7 +577,7 @@
       <span class="count">
         {t("books.sectionOf", { section: section + 1, sections: info.pages })}{settings.layout === "paged" && screens > 1 ? ` · ${screen + 1}/${screens}` : ""}
       </span>
-      {#if info.nextChapter > 0}<button class="icon-btn" onclick={() => goChapter(info!.nextChapter)} aria-label={t("books.nextChapter")} title={t("books.nextChapter")}><Icon name="skipNext" size={20} /></button>{/if}
+      {#if info.nextChapter > 0}<button class="rb-chip" onclick={() => goChapter(info!.nextChapter)} aria-label={t("books.nextChapter")} title={t("books.nextChapter")}><span class="rb-label">{t("books.nextShort")}</span><Icon name="skipNext" size={16} /></button>{/if}
     </div>
   {/if}
 
@@ -662,36 +689,6 @@
     to {
       transform: rotate(360deg);
     }
-  }
-
-  .bar {
-    position: absolute;
-    right: 0;
-    left: 0;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 16px;
-    background: #000c;
-    backdrop-filter: blur(10px);
-  }
-
-  .top {
-    top: 0;
-    padding-top: calc(10px + var(--inset-top, 0px));
-  }
-
-  .bottom {
-    bottom: 0;
-    padding-bottom: calc(10px + var(--inset-bottom, 0px));
-  }
-
-  .title {
-    flex: 1;
-    overflow: hidden;
-    font-weight: 600;
-    text-overflow: ellipsis;
-    white-space: nowrap;
   }
 
   .icon-btn {

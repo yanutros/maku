@@ -239,7 +239,9 @@
       "connect": "Connect Kavita",
       "connected": "Kavita connected",
       "disconnected": "Kavita disconnected",
-      "relay": "Provided by Maku Server: the server admin picks your libraries, and you read with your own Kavita account. Nothing to set up here."
+      "relay": "Provided by Maku Server: the server admin picks your libraries, and you read with your own Kavita account. Nothing to set up here.",
+      "artwork": "Online artwork",
+      "artworkHint": "Series backdrop and logo: from AniList and TMDB for manga and light novels, and from TMDB for comics adapted as a film or series (with a TMDB key). Only the series name is sent."
     }
   },
   "login": {
@@ -1364,6 +1366,43 @@
       "added": "Added",
       "files_one": "File",
       "files_other": "Files"
-    }
+    },
+    "volumeCount_one": "{{count}} volume",
+    "volumeCount_other": "{{count}} volumes",
+    "chapterCount_one": "{{count}} chapter",
+    "chapterCount_other": "{{count}} chapters",
+    "status": {
+      "ongoing": "Ongoing",
+      "hiatus": "On hiatus",
+      "completed": "Completed",
+      "cancelled": "Cancelled",
+      "ended": "Ended"
+    },
+    "atVolume": "vol. {{volume}}",
+    "atChapter": "ch. {{chapter}}",
+    "resumeAt": "Resume: {{where}}, page {{page}}",
+    "findNumber": "Go to no.…",
+    "order": "Order",
+    "oldestFirst": "First to last",
+    "newestFirst": "Last to first",
+    "noMatch": "No volume or chapter matches.",
+    "featured": "Featured",
+    "openSeries": "Details",
+    "sort": "Sort",
+    "sortName": "A-Z",
+    "sortAdded": "Recently added",
+    "sortReading": "In progress",
+    "search": "Search {{library}}",
+    "searchHint": "Title, author, genre…",
+    "results": "Results",
+    "noResults": "No series matches.",
+    "readDone": "Read",
+    "classic": "Classic",
+    "manga": "Manga",
+    "zoomOut": "Zoom out",
+    "zoomIn": "Enlarge page",
+    "zoomReset": "Back to whole page",
+    "prevShort": "Prev.",
+    "nextShort": "Next"
   }
 }

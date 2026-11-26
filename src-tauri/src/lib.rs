@@ -8,6 +8,7 @@ mod i18n;
 mod jellyfin;
 mod kavita;
 mod allocine;
+mod book_art;
 #[cfg(target_os = "linux")]
 mod libmpv;
 mod lyrics;
@@ -391,6 +392,8 @@ pub fn run() {
             kavita_jump_bar,
             kavita_mark_read,
             kavita_details,
+            kavita_search,
+            kavita_artwork,
             kavita_relay,
             kavita_admin,
             kavita_admin_set,

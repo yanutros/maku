@@ -641,6 +641,8 @@ const kavitaSeries = [
     { id: 298, name: "Étoile filante", libraryId: 3, pages: 48, pagesRead: 0, format: "images" },
   ].sort((a, b) => (a.name.toUpperCase() < b.name.toUpperCase() ? -1 : 1)),
 ].map((x) => ({ ...x, cover: poster(x.name, x.libraryId === 1 ? "Manga" : x.libraryId === 2 ? "Roman" : "BD") }));
+/** Auteur des séries d'une bibliothèque de démonstration. */
+const kavitaWriter = (libraryId: number) => (libraryId === 1 ? "Aiko Tanaka" : libraryId === 2 ? "Jeanne Marin" : "Paul Moreau");
 /** Chapitres marqués comme lus (true) ou non lus (false) depuis un menu « ⋮ ». */
 const kavitaRead = new Map<number, boolean>();
 /** Ce qu'on a demandé de marquer (les tests le relisent). */
@@ -1032,10 +1034,27 @@ function handle(cmd: string, a: Args): unknown {
       return { id: a.id, name: a.name, libraries };
     }
     case "kavita_series": {
-      const list = kavitaSeries.filter((x) => x.libraryId === a.libraryId);
+      // « added » : les dernières ajoutées d'abord (ici, l'ordre inverse) ; « reading » : celles en cours seulement.
+      let list = kavitaSeries.filter((x) => x.libraryId === a.libraryId);
+      if (a.sort === "added") list = [...list].reverse();
+      if (a.sort === "reading") list = list.filter((x) => x.pagesRead > 0 && x.pagesRead < x.pages);
       const size = Number(a.size) || 60;
       return { items: list.slice((Number(a.page) - 1) * size, Number(a.page) * size), total: list.length };
     }
+    // Comme Kavita : le nom de la série, ou son auteur (celui de toute la bibliothèque, ici).
+    case "kavita_search": {
+      const q = String(a.query ?? "").trim().toLowerCase();
+      const library = kavitaSeries.filter((x) => x.libraryId === a.libraryId);
+      return kavitaWriter(Number(a.libraryId)).toLowerCase().includes(q) ? library : library.filter((x) => x.name.toLowerCase().includes(q));
+    }
+    // Illustrations en ligne : seulement pour « Le Gardien des Marées » (un fond paysage et un logo).
+    case "kavita_artwork":
+      return a.name === "Le Gardien des Marées"
+        ? {
+            backdrop: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='1600' height='900'><rect width='1600' height='900' fill='%23246'/><circle cx='1200' cy='300' r='220' fill='%23fc6'/></svg>",
+            logo: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='600' height='160'><text x='10' y='120' font-size='110' fill='white'>MARÉES</text></svg>",
+          }
+        : { backdrop: null, logo: null };
     // Comme Kavita : chaque initiale (en capitales, « # » pour le reste) et son nombre de séries, dans l'ordre.
     case "kavita_jump_bar": {
       const keys: { letter: string; size: number }[] = [];
@@ -1075,10 +1094,22 @@ function handle(cmd: string, a: Args): unknown {
         volumes: [
           kavitaVolume(base + 1, "Volume 1", poster(`${series.name} 1`, ""), [kavitaChapter(base + 11, base + 1, "1", 20, 20), kavitaChapter(base + 12, base + 1, "2", 20, 20)]),
           kavitaVolume(base + 2, "Volume 2", poster(`${series.name} 2`, ""), [kavitaChapter(base + 13, base + 2, "3", 20, 5), kavitaChapter(base + 14, base + 2, "4", 20, 0)]),
+          // Une BD au long cours : quinze volumes, de quoi trier et chercher un numéro.
+          ...(series.libraryId === 3
+            ? Array.from({ length: 13 }, (_, i) => i + 3).map((n) =>
+                kavitaVolume(base + 20 + n, `Volume ${n}`, poster(`${series.name} ${n}`, ""), [kavitaChapter(9_000_000 + base + n, base + 20 + n, String(n + 2), 20, 0)]),
+              )
+            : []),
         ],
         chapters: [kavitaChapter(base + 15, base + 3, "5", 20, 0)],
         specials: [],
         continueChapter: base + 13,
+        writers: [kavitaWriter(series.libraryId)],
+        genres: ["Aventure", "Fantastique"],
+        year: 2019,
+        status: series.libraryId === 1 ? "ongoing" : "completed",
+        anilistId: null,
+        color: "#3a6ea5",
       };
     }
     case "kavita_chapter": {
@@ -1121,6 +1152,8 @@ function handle(cmd: string, a: Args): unknown {
 /** Installe la simulation puis, une fois l'interface montée, ouvre la vue demandée. */
 export async function installDemo(view: string): Promise<() => Promise<void>> {
   mockWindows("main");
+  // Barres des lecteurs : toujours là (captures, tests) ; le test des barres qui se rétractent règle son délai.
+  (window as unknown as { __readerIdleMs?: number }).__readerIdleMs ??= 0;
   // Captures nettes : pas de fondu ni d'animation en cours au moment de la prise.
   const still = document.createElement("style");
   still.textContent = "*,*::before,*::after{transition:none!important;animation-duration:0s!important;animation-delay:0s!important}";

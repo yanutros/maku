@@ -3,9 +3,11 @@
   // hors-séries. Les livres EPUB s'ouvrent dans leur propre lecteur (EpubReader), les autres dans celui des images.
   // La série, chaque volume et chaque chapitre ont leur menu « ⋮ », comme dans Kavita : lire, marquer comme lu ou
   // non lu, détails.
+  // Comme la fiche d'un film : le fond de la série en grand, qui se fond dans la page (l'illustration trouvée en
+  // ligne, sinon la couverture floutée, teintée de sa couleur), et son logo à la place du titre quand il existe.
   import { onMount } from "svelte";
-  import { api, errorText, type BookChapter, type BookSeriesDetail, type BookVolume } from "../lib/api";
-  import { books } from "../lib/books.svelte";
+  import { api, errorText, type BookArt, type BookChapter, type BookSeriesDetail, type BookVolume } from "../lib/api";
+  import { books, seriesArt } from "../lib/books.svelte";
   import { toast } from "../lib/nav.svelte";
   import { t } from "../lib/i18n";
   import ErrorCard from "../components/ErrorCard.svelte";
@@ -13,11 +15,26 @@
   import BookMenu, { type BookMenuEntry } from "../components/BookMenu.svelte";
   import BookMore from "../components/BookMore.svelte";
   import BookDetails from "../components/BookDetails.svelte";
+  import TitleLogo from "../components/TitleLogo.svelte";
 
   let { id }: { id: number } = $props();
 
   let detail = $state<BookSeriesDetail | null>(null);
   let error = $state<string | null>(null);
+  let art = $state<BookArt>({ backdrop: null, logo: null });
+
+  // Fond et logo en ligne, une fois la série connue (son nom, son type, son numéro AniList).
+  let artFor = "";
+  $effect(() => {
+    if (!detail) return;
+    const d = detail;
+    const key = `${d.series.id}`;
+    if (artFor === key) return;
+    artFor = key;
+    seriesArt(d.series.name, d.libraryKind, d.anilistId).then((a) => {
+      if (detail?.series.id === d.series.id) art = a;
+    });
+  });
 
   async function load() {
     try {
@@ -95,20 +112,64 @@
   }
   const chapterLabel = (c: BookChapter) =>
     [c.number && t("books.chapter", { number: c.number }), c.title].filter(Boolean).join(" · ") || t("books.untitled");
+
+  // --- Informations, comme sur une fiche : auteurs · année · volumes · genres · statut ---
+  const facts = $derived.by(() => {
+    if (!detail) return [];
+    const d = detail;
+    return [
+      d.writers.slice(0, 2).join(", "),
+      d.year ? String(d.year) : "",
+      d.volumes.length ? t("books.volumeCount", { count: d.volumes.length }) : d.chapters.length ? t("books.chapterCount", { count: d.chapters.length }) : "",
+      d.genres.slice(0, 3).join(", "),
+      d.status ? t(`books.status.${d.status}`) : "",
+    ].filter(Boolean);
+  });
+
+  /** Où reprend « Continuer » : « vol. 2, page 6 » ou « chap. 5, page 1 » (la page qui suit la dernière lue). */
+  const resumeAt = $derived.by(() => {
+    if (!detail?.continueChapter || progress <= 0 || progress >= 1) return null;
+    const d = detail;
+    const id = d.continueChapter;
+    const volume = d.volumes.find((v) => v.chapters.some((c) => c.id === id));
+    const chapter = [...d.volumes.flatMap((v) => v.chapters), ...d.chapters, ...d.specials].find((c) => c.id === id);
+    if (!chapter) return null;
+    const page = Math.min(chapter.pages, chapter.pagesRead + 1);
+    const where = volume ? t("books.atVolume", { volume: volume.name.replace(/^\D+/, "") || volume.name }) : t("books.atChapter", { chapter: chapter.number || chapterLabel(chapter) });
+    return t("books.resumeAt", { where, page });
+  });
+
+  // --- Volumes et chapitres : du premier au dernier, ou l'inverse ; filtre « aller au n° » pour les longues séries ---
+  let newestFirst = $state(false);
+  let find = $state("");
+  const ordered = <T,>(list: T[]) => (newestFirst ? [...list].reverse() : list);
+  const matches = (text: string) => !find.trim() || text.toLowerCase().includes(find.trim().toLowerCase());
+  const volumes = $derived(detail ? ordered(detail.volumes.filter((v) => matches(v.name) || v.chapters.some((c) => matches(c.number)))) : []);
+  const chapters = $derived(detail ? ordered(detail.chapters.filter((c) => matches(chapterLabel(c)))) : []);
+  const specials = $derived(detail ? ordered(detail.specials.filter((c) => matches(chapterLabel(c)))) : []);
+  /** Plus de 12 volumes ou chapitres : de quoi trier et chercher. */
+  const long = $derived(!!detail && detail.volumes.length + detail.chapters.length > 12);
 </script>
 
-<div class="backdrop" style:background-image={detail ? `url("${detail.series.cover}")` : undefined}></div>
+<div class="backdrop" style:--tint={detail?.color ?? "transparent"} aria-hidden="true">
+  {#if art.backdrop}
+    <img class="art" src={art.backdrop} alt="" />
+  {:else if detail}
+    <img class="cover-art" src={detail.series.cover} alt="" />
+  {/if}
+</div>
 
 <div class="page detail">
   {#if error}<ErrorCard message={error} />{/if}
   {#if detail}
-    <div class="head">
+    <div class="head" class:with-art={!!art.backdrop}>
       <button class="cover" onclick={() => read(detail!.continueChapter ?? first?.id)} disabled={!readable} title={t("books.read")} tabindex="-1" aria-hidden="true">
         <img src={detail.series.cover} alt="" />
       </button>
       <div class="info">
         <div class="eyebrow">{kindLabel}</div>
-        <h1>{detail.series.name}</h1>
+        <h1 class="title" style:--logo-h="150px" style:--logo-w="min(520px, 100%)"><TitleLogo logo={art.logo} title={detail.series.name} genres={detail.genres} /></h1>
+        {#if facts.length}<div class="facts">{#each facts as f, i (i)}<span>{f}</span>{/each}</div>{/if}
         <div class="meta">
           {#if detail.series.pages}<span>{t("books.pages", { count: detail.series.pages })}</span>{/if}
           {#if progress > 0}<span>{t("books.readPercent", { percent: Math.round(progress * 100) })}</span>{/if}
@@ -122,15 +183,29 @@
           <button class="btn round big" onclick={(e) => openMenu(e, { kind: "series" })} title={t("common.c1.moreActions")} aria-label={t("common.c1.moreActions")}>
             <Icon name="more" size={20} />
           </button>
+          {#if resumeAt}<span class="resume">{resumeAt}</span>{/if}
         </div>
         {#if detail.summary}<p class="summary">{detail.summary}</p>{/if}
       </div>
     </div>
 
-    {#if detail.volumes.length}
+    {#if long}
+      <div class="toolbar">
+        <label class="find">
+          <Icon name="search" size={16} />
+          <input type="search" bind:value={find} placeholder={t("books.findNumber")} aria-label={t("books.findNumber")} />
+        </label>
+        <div class="modes" role="radiogroup" aria-label={t("books.order")}>
+          <button role="radio" aria-checked={!newestFirst} class:on={!newestFirst} onclick={() => (newestFirst = false)}>{t("books.oldestFirst")}</button>
+          <button role="radio" aria-checked={newestFirst} class:on={newestFirst} onclick={() => (newestFirst = true)}>{t("books.newestFirst")}</button>
+        </div>
+      </div>
+    {/if}
+
+    {#if volumes.length}
       <h2>{t("books.volumes")}</h2>
       <div class="grid">
-        {#each detail.volumes as v (v.id)}
+        {#each volumes as v (v.id)}
           <div class="tile-wrap has-more" role="group" oncontextmenu={(e) => openMenu(e, { kind: "volume", volume: v })}>
             <button class="tile" onclick={() => readVolume(v)} disabled={!readable}>
               <span class="cover-small"><img src={v.cover} alt="" loading="lazy" />{#if ratio(v) > 0 && ratio(v) < 1}<span class="bar"><span style:width="{ratio(v) * 100}%"></span></span>{/if}{#if ratio(v) >= 1}<span class="done"><Icon name="check" size={13} /></span>{/if}</span>
@@ -142,7 +217,7 @@
       </div>
     {/if}
 
-    {#each [["chapters", detail.chapters], ["specials", detail.specials]] as [key, list] (key)}
+    {#each [["chapters", chapters], ["specials", specials]] as [key, list] (key)}
       {#if (list as BookChapter[]).length}
         <h2>{t(`books.${key}`)}</h2>
         <div class="rows">
@@ -162,6 +237,7 @@
         </div>
       {/if}
     {/each}
+    {#if find.trim() && !volumes.length && !chapters.length && !specials.length}<p class="muted">{t("books.noMatch")}</p>{/if}
   {:else if !error}
     <div class="head"><div class="skeleton cover-skeleton"></div></div>
   {/if}
@@ -175,18 +251,59 @@
 {/if}
 
 <style>
-  /* Jusqu'au bord de la fenêtre, derrière le menu translucide, comme la page d'un album (MusicDetail) : posé sous le
-     fond de la fenêtre (z-index négatif), il s'arrêtait net au bord du menu. */
+  /* Comme la fiche d'un film : le fond jusqu'au bord de la fenêtre, derrière le menu translucide, intact en haut et
+     fondu dans la page vers le bas. Sans illustration en ligne, la couverture floutée et agrandie, teintée de sa
+     couleur (calculée par Kavita). */
   .backdrop {
     position: fixed;
     inset: 0;
     z-index: 0;
-    background-position: center;
-    background-size: cover;
-    filter: blur(60px) saturate(1.4);
-    opacity: 0.35;
-    mask-image: linear-gradient(#000 0%, transparent 70%);
+    overflow: hidden;
+    background: radial-gradient(120% 80% at 70% 0%, color-mix(in srgb, var(--tint) 45%, transparent), transparent 70%);
     pointer-events: none;
+  }
+
+  .backdrop img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    animation: unveil 1.2s var(--ease);
+  }
+
+  .backdrop .art {
+    height: auto;
+    min-height: 62%;
+    max-height: 100%;
+    object-position: center top;
+    mask-image: linear-gradient(#000 0%, #000 50%, transparent 100%);
+  }
+
+  .backdrop .cover-art {
+    height: 85%;
+    object-position: center 22%;
+    filter: blur(26px) saturate(1.35) brightness(0.75);
+    opacity: 0.75;
+    transform: scale(1.12);
+    mask-image: linear-gradient(#000 0%, #000 35%, transparent 100%);
+  }
+
+  /* Le bas s'assombrit sous le titre, le haut un peu sous l'en-tête. */
+  .backdrop::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(0deg, var(--bg) 0%, #000000b0 30%, #00000030 60%, transparent 80%),
+      linear-gradient(90deg, #000000a0 0%, transparent 55%),
+      linear-gradient(180deg, #00000070 0%, transparent 14%);
+  }
+
+  @keyframes unveil {
+    from {
+      opacity: 0;
+      transform: scale(1.08);
+    }
   }
 
   :global(html.tv) .backdrop {
@@ -198,10 +315,24 @@
     z-index: 1;
   }
 
+  /* L'en-tête occupe le haut de l'écran, comme le bandeau d'un film : le fond se voit avant les volumes. */
   .head {
     display: flex;
     gap: 32px;
     align-items: flex-end;
+    min-height: calc(62vh - 68px);
+    animation: rise 0.7s 0.1s var(--ease) backwards;
+  }
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+  }
+
+  :global(html.phone) .head {
+    min-height: 0;
   }
 
   :global(html.phone) .head {
@@ -243,6 +374,111 @@
     margin: 6px 0 10px;
     font-size: clamp(28px, 4vw, 44px);
     line-height: 1.1;
+    text-shadow: 0 2px 18px #0009;
+  }
+
+  :global(html.phone) h1 {
+    --logo-pos: center bottom;
+    display: flex;
+    justify-content: center;
+  }
+
+  /* Auteurs · année · volumes · genres · statut. */
+  .facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 0;
+    margin-bottom: 6px;
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .facts span:not(:last-child)::after {
+    content: "·";
+    margin: 0 8px;
+    color: var(--text-faint);
+  }
+
+  :global(html.phone) .facts {
+    justify-content: center;
+  }
+
+  .resume {
+    align-self: center;
+    color: var(--text-dim);
+    font-size: 13px;
+  }
+
+  /* Longues séries : chercher un numéro, et l'ordre des volumes et chapitres. */
+  .toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 34px;
+  }
+
+  /* La même pilule que la recherche et le tri des bibliothèques (et leurs onglets). */
+  .find,
+  .modes {
+    height: 44px;
+    border-radius: 22px;
+    background: #ffffff0d;
+  }
+
+  .find {
+    display: flex;
+    flex: 1 1 260px;
+    align-items: center;
+    gap: 8px;
+    max-width: 420px;
+    padding: 0 16px;
+    border: 1px solid transparent;
+    color: var(--text-dim);
+    transition: border-color 0.15s;
+  }
+
+  .find:focus-within {
+    border-color: var(--accent);
+  }
+
+  .find input {
+    flex: 1;
+    min-width: 0;
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--text);
+    outline: none;
+  }
+
+  .modes {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px;
+  }
+
+  .modes button {
+    height: 36px;
+    padding: 0 16px;
+    border: none;
+    border-radius: 18px;
+    background: none;
+    color: var(--text-dim);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .modes button:hover {
+    color: var(--text);
+  }
+
+  .modes button.on {
+    background: var(--accent);
+    color: var(--accent-text);
   }
 
   .meta {

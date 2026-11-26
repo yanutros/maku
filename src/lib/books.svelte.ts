@@ -1,7 +1,7 @@
 // Kavita : bibliothèques de livres, BD et mangas, mêlées à celles du serveur vidéo (sauf au téléviseur), et
 // préférences du lecteur. Les appels passent par le moteur (kavita.rs), qui garde la clé d'API.
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { api, type BookLibrary, type BookSeries, type Section } from "./api";
+import { api, type BookArt, type BookLibrary, type BookSeries, type Section } from "./api";
 
 export const books = $state({
   /** Bibliothèques de Kavita, telles que lues à la connexion. */
@@ -281,4 +281,75 @@ export function spreads(pages: number, wide: boolean[] = []): number[][] {
     }
   }
   return out;
+}
+
+// --- Barres des lecteurs qui se rétractent ---
+
+/**
+ * Délai (ms) avant que les barres d'un lecteur se rétractent, la souris immobile ; 0 : jamais. La démo le coupe
+ * (tests, captures) ; un test le règle par `window.__readerIdleMs`.
+ */
+export function readerIdleMs(): number {
+  const forced = (window as { __readerIdleMs?: number }).__readerIdleMs;
+  return typeof forced === "number" ? forced : 1500;
+}
+
+/**
+ * Barres qui se rétractent : `wake` à chaque mouvement de la souris les montre, puis elles se cachent une fois la souris
+ * immobile, sauf tant que `busy` (panneau ouvert, pointeur sur une barre, ou un de ses boutons atteint au clavier).
+ * Rien au doigt : un appui au milieu les montre ou les cache, comme avant.
+ */
+export function idleBars(show: () => void, hide: () => void, busy: () => boolean) {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const arm = () => {
+    clearTimeout(timer);
+    const ms = readerIdleMs();
+    if (ms > 0) timer = setTimeout(() => (busy() ? arm() : hide()), ms);
+  };
+  return {
+    wake(e: PointerEvent) {
+      if (e.pointerType !== "mouse" || readerIdleMs() <= 0) return;
+      show();
+      arm();
+    },
+    stop() {
+      clearTimeout(timer);
+    },
+  };
+}
+
+// --- Illustrations en ligne des séries (AniList, TMDB) ---
+
+const ART_KEY = "maku.bookArtwork";
+const NO_ART: BookArt = { backdrop: null, logo: null };
+const artCache = new Map<string, Promise<BookArt>>();
+
+/** Chercher en ligne le fond et le logo des séries (réglable dans Réglages › Services › Kavita). */
+export function onlineArt(): boolean {
+  try {
+    return localStorage.getItem(ART_KEY) !== "off";
+  } catch {
+    return true;
+  }
+}
+
+export function setOnlineArt(on: boolean) {
+  try {
+    localStorage.setItem(ART_KEY, on ? "on" : "off");
+  } catch {
+    // Stockage indisponible : le choix vaut pour la session.
+  }
+  artCache.clear();
+}
+
+/** Fond et logo d'une série, cherchés une fois par session (rien si c'est coupé, ou en cas d'échec). */
+export function seriesArt(name: string, kind: BookLibrary["kind"], anilistId: number | null): Promise<BookArt> {
+  if (!onlineArt()) return Promise.resolve(NO_ART);
+  const key = `${kind}|${anilistId ?? ""}|${name}`;
+  let art = artCache.get(key);
+  if (!art) {
+    art = api.kavitaArtwork(name, kind, anilistId).catch(() => NO_ART);
+    artCache.set(key, art);
+  }
+  return art;
 }

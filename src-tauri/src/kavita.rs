@@ -10,11 +10,19 @@ use reqwest::{Client, Method, StatusCode};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
-/// Comparaison « contient » et champ « bibliothèques » des filtres de séries (SeriesFilterV2Dto de Kavita).
+/// Comparaisons et champs des filtres de séries (SeriesFilterV2Dto de Kavita : FilterComparison, SeriesFilterField).
+const FILTER_GREATER_THAN: u8 = 1;
+const FILTER_LESS_THAN: u8 = 3;
 const FILTER_CONTAINS: u8 = 5;
+const FIELD_WRITERS: u8 = 17;
+const FIELD_GENRES: u8 = 18;
 const FIELD_LIBRARIES: u8 = 19;
-/// Tri par nom de tri.
+/// Pourcentage lu de la série.
+const FIELD_READ_PROGRESS: u8 = 20;
+/// Tris (SeriesSortField) : par nom de tri, par dernier ajout, par dernière lecture.
 const SORT_NAME: u8 = 1;
+const SORT_LAST_CHAPTER_ADDED: u8 = 4;
+const SORT_READ_PROGRESS: u8 = 7;
 /// Volume des chapitres rangés hors volume, et celui des hors-séries (numéros réservés de Kavita).
 const LOOSE_LEAF_VOLUME: f64 = -100_000.0;
 const SPECIAL_VOLUME: f64 = 100_000.0;
@@ -95,6 +103,35 @@ pub struct SeriesDetail {
     pub specials: Vec<BookChapter>,
     /// Chapitre où reprendre la lecture (Kavita le choisit d'après la progression).
     pub continue_chapter: Option<i64>,
+    /// Auteurs (scénario) et genres, d'après les métadonnées de Kavita.
+    pub writers: Vec<String>,
+    pub genres: Vec<String>,
+    pub year: Option<i64>,
+    /// « ongoing », « hiatus », « completed », « cancelled » ou « ended ».
+    pub status: Option<&'static str>,
+    /// Numéro AniList de la série, si Kavita le connaît (pour ses illustrations en ligne).
+    pub anilist_id: Option<i64>,
+    /// Couleur dominante de la couverture (« #a1b2c3 »), calculée par Kavita.
+    pub color: Option<String>,
+}
+
+/// Statut de publication de Kavita (PublicationStatus).
+fn publication_status(v: &Value) -> Option<&'static str> {
+    Some(match v.as_i64()? {
+        0 => "ongoing",
+        1 => "hiatus",
+        2 => "completed",
+        3 => "cancelled",
+        4 => "ended",
+        _ => return None,
+    })
+}
+
+/// Numéro AniList dans les liens de la série (« https://anilist.co/manga/12345/Le-Titre »).
+fn anilist_in_links(links: &str) -> Option<i64> {
+    let after = links.split("anilist.co/manga/").nth(1)?;
+    let digits: String = after.chars().take_while(char::is_ascii_digit).collect();
+    digits.parse().ok().filter(|n| *n > 0)
 }
 
 /// Ce qu'il faut au lecteur pour un chapitre.
@@ -218,6 +255,82 @@ fn text(v: &Value) -> Option<String> {
     v.as_str().map(str::trim).filter(|s| !s.is_empty()).map(str::to_owned)
 }
 
+/// Résumé en texte : celui d'un EPUB arrive souvent en HTML (« <p class="description">…<br>… »). Les balises
+/// tombent (un saut de ligne pour <br> et la fin d'un paragraphe), les entités sont décodées, les lignes vides en
+/// trop retirées.
+fn plain_text(html: &str) -> String {
+    let mut out = String::new();
+    let mut rest = html;
+    while let Some(start) = rest.find('<') {
+        out.push_str(&rest[..start]);
+        // Un « < » qui n'ouvre pas de balise (« a < b ») reste du texte.
+        let is_tag = rest[start + 1..].starts_with(|c: char| c.is_ascii_alphabetic() || c == '/' || c == '!');
+        let end = rest[start..].find('>');
+        let (true, Some(end)) = (is_tag, end) else {
+            out.push('<');
+            rest = &rest[start + 1..];
+            continue;
+        };
+        let tag = rest[start + 1..start + end].trim().to_ascii_lowercase();
+        let name = tag.trim_start_matches('/').split(|c: char| c.is_whitespace() || c == '/').next().unwrap_or("");
+        if name == "br" || (tag.starts_with('/') && matches!(name, "p" | "div" | "li")) {
+            out.push('\n');
+        }
+        rest = &rest[start + end + 1..];
+    }
+    out.push_str(rest);
+    let decoded = decode_entities(&out);
+    let mut text = String::new();
+    for line in decoded.lines().map(str::trim) {
+        if line.is_empty() {
+            continue;
+        }
+        if !text.is_empty() {
+            text.push('\n');
+        }
+        text.push_str(line);
+    }
+    text
+}
+
+/// Entités HTML courantes, et les numériques (« &#233; », « &#xE9; ») ; une entité inconnue reste telle quelle.
+fn decode_entities(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    let mut rest = s;
+    while let Some(at) = rest.find('&') {
+        out.push_str(&rest[..at]);
+        let after = &rest[at + 1..];
+        let decoded = after.find(';').filter(|end| *end <= 10).and_then(|end| {
+            let name = &after[..end];
+            let c = match name {
+                "amp" => Some('&'),
+                "lt" => Some('<'),
+                "gt" => Some('>'),
+                "quot" => Some('"'),
+                "apos" => Some('\''),
+                "nbsp" => Some('\u{a0}'),
+                "oelig" => Some('œ'),
+                n if n.starts_with("#x") || n.starts_with("#X") => u32::from_str_radix(&n[2..], 16).ok().and_then(char::from_u32),
+                n if n.starts_with('#') => n[1..].parse().ok().and_then(char::from_u32),
+                _ => None,
+            }?;
+            Some((c, end))
+        });
+        match decoded {
+            Some((c, end)) => {
+                out.push(c);
+                rest = &after[end + 1..];
+            }
+            None => {
+                out.push('&');
+                rest = after;
+            }
+        }
+    }
+    out.push_str(rest);
+    out
+}
+
 /// Adresse de Kavita telle que saisie : schéma obligatoire, sans « / » final ni chemin de page (« …/home »).
 pub fn clean_url(url: &str) -> Result<String> {
     let url = url.trim().trim_end_matches('/');
@@ -330,12 +443,28 @@ impl Kavita {
             .collect())
     }
 
-    /// Séries d'une bibliothèque, par nom, page `page` (à partir de 1).
-    pub async fn library_series(&self, library_id: i64, page: u32, size: u32) -> Result<SeriesPage> {
+    /// Séries d'une bibliothèque, page `page` (à partir de 1) : par nom (`sort` « name »), les dernières enrichies
+    /// d'abord (« added »), ou celles en cours de lecture, les dernières lues d'abord (« reading »).
+    pub async fn library_series(&self, library_id: i64, page: u32, size: u32, sort: &str) -> Result<SeriesPage> {
+        let mut statements = vec![json!({ "comparison": FILTER_CONTAINS, "field": FIELD_LIBRARIES, "value": library_id.to_string() })];
+        let (field, ascending) = match sort {
+            "added" => (SORT_LAST_CHAPTER_ADDED, false),
+            "reading" => {
+                statements.push(json!({ "comparison": FILTER_GREATER_THAN, "field": FIELD_READ_PROGRESS, "value": "0" }));
+                statements.push(json!({ "comparison": FILTER_LESS_THAN, "field": FIELD_READ_PROGRESS, "value": "100" }));
+                (SORT_READ_PROGRESS, false)
+            }
+            _ => (SORT_NAME, true),
+        };
+        self.filtered(statements, field, ascending, page, size).await
+    }
+
+    /// Séries répondant à tous les `statements` (filtre v2 de Kavita), triées.
+    async fn filtered(&self, statements: Vec<Value>, sort_field: u8, ascending: bool, page: u32, size: u32) -> Result<SeriesPage> {
         let filter = json!({
-            "statements": [{ "comparison": FILTER_CONTAINS, "field": FIELD_LIBRARIES, "value": library_id.to_string() }],
+            "statements": statements,
             "combination": 1,
-            "sortOptions": { "sortField": SORT_NAME, "isAscending": true },
+            "sortOptions": { "sortField": sort_field, "isAscending": ascending },
             "limitTo": 0,
         });
         let resp = self.call(Method::POST, &format!("/api/Series/all-v2?PageNumber={}&PageSize={}", page.max(1), size.clamp(1, 200)), Some(filter)).await?;
@@ -350,6 +479,50 @@ impl Kavita {
         let items: Vec<BookSeries> = v.as_array().into_iter().flatten().filter_map(|s| self.series(s)).collect();
         let total = total.unwrap_or(items.len() as i64);
         Ok(SeriesPage { items, total })
+    }
+
+    /// Recherche dans une bibliothèque, comme celle de Kavita : les séries dont le nom correspond, puis celles des
+    /// auteurs et des genres trouvés (60 au plus, sans doublon).
+    pub async fn search_series(&self, library_id: i64, query: &str) -> Result<Vec<BookSeries>> {
+        let query = query.trim();
+        if query.is_empty() {
+            return Ok(Vec::new());
+        }
+        let found = self
+            .json(Method::GET, &format!("/api/Search/search?queryString={}&includeChapterAndFiles=false", urlencoding::encode(query)), None)
+            .await?;
+        let named: Vec<i64> = found["series"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter(|s| s["libraryId"].as_i64() == Some(library_id))
+            .filter_map(|s| s["seriesId"].as_i64())
+            .take(24)
+            .collect();
+        let ids = |key: &str| found[key].as_array().into_iter().flatten().filter_map(|x| x["id"].as_i64()).map(|id| id.to_string()).collect::<Vec<_>>().join(",");
+        let by = |field: u8, value: String| async move {
+            if value.is_empty() {
+                return Vec::new();
+            }
+            let statements = vec![
+                json!({ "comparison": FILTER_CONTAINS, "field": FIELD_LIBRARIES, "value": library_id.to_string() }),
+                json!({ "comparison": FILTER_CONTAINS, "field": field, "value": value }),
+            ];
+            self.filtered(statements, SORT_NAME, true, 1, 60).await.map(|p| p.items).unwrap_or_default()
+        };
+        let paths: Vec<String> = named.iter().map(|id| format!("/api/Series/{id}")).collect();
+        let (named, writers, genres) = tokio::join!(
+            futures::future::join_all(paths.iter().map(|p| self.json(Method::GET, p, None))),
+            by(FIELD_WRITERS, ids("persons")),
+            by(FIELD_GENRES, ids("genres")),
+        );
+        let mut out: Vec<BookSeries> = Vec::new();
+        for s in named.into_iter().filter_map(|r| r.ok()).filter_map(|v| self.series(&v)).chain(writers).chain(genres) {
+            if out.len() < 60 && !out.iter().any(|x| x.id == s.id) {
+                out.push(s);
+            }
+        }
+        Ok(out)
     }
 
     /// Séries en cours de lecture (« Continuer la lecture » de Kavita), d'une bibliothèque ou de toutes (0).
@@ -371,8 +544,13 @@ impl Kavita {
             self.json(Method::GET, &paths[2], None),
             self.json(Method::GET, &paths[3], None),
         );
-        let series = self.series(&series?).ok_or_else(|| anyhow!(crate::i18n::tr("kavita.notFound")))?;
+        let raw = series?;
+        let series = self.series(&raw).ok_or_else(|| anyhow!(crate::i18n::tr("kavita.notFound")))?;
         let detail = detail?;
+        let metadata = metadata.unwrap_or(Value::Null);
+        let names = |key: &str| -> Vec<String> {
+            metadata[key].as_array().into_iter().flatten().filter_map(|p| text(&p["name"]).or_else(|| text(&p["title"]))).collect()
+        };
         let list = |key: &str| -> Vec<BookChapter> { detail[key].as_array().into_iter().flatten().filter_map(|c| self.chapter(c)).collect() };
         let volumes = detail["volumes"]
             .as_array()
@@ -395,7 +573,13 @@ impl Kavita {
             })
             .collect();
         Ok(SeriesDetail {
-            summary: metadata.ok().and_then(|m| text(&m["summary"])),
+            summary: text(&metadata["summary"]).map(|s| plain_text(&s)).filter(|s| !s.is_empty()),
+            writers: names("writers"),
+            genres: names("genres"),
+            year: metadata["releaseYear"].as_i64().filter(|y| *y > 0),
+            status: publication_status(&metadata["publicationStatus"]),
+            anilist_id: raw["aniListId"].as_i64().filter(|n| *n > 0).or_else(|| text(&metadata["webLinks"]).and_then(|l| anilist_in_links(&l))),
+            color: text(&raw["primaryColor"]).filter(|c| c.len() == 7 && c.starts_with('#') && c[1..].chars().all(|x| x.is_ascii_hexdigit())),
             library_kind: library_kind(&detail["libraryType"]),
             volumes,
             chapters: list("chapters"),
@@ -645,8 +829,18 @@ mod tests {
                                 "Pagination: {\"currentPage\":1,\"itemsPerPage\":2,\"totalItems\":57,\"totalPages\":29}\r\n",
                                 r#"[{"id":11,"name":"La Lune","libraryId":1,"pages":120,"pagesRead":45,"format":1},{"id":12,"name":"Roman","libraryId":1,"pages":300,"pagesRead":0,"format":3}]"#,
                             ),
-                            "/api/Series/11" => ("200 OK", "", r#"{"id":11,"name":"La Lune","libraryId":1,"pages":120,"pagesRead":45,"format":1}"#),
-                            "/api/Series/metadata" => ("200 OK", "", r#"{"summary":"  Une histoire.  "}"#),
+                            "/api/Series/11" => ("200 OK", "", r##"{"id":11,"name":"La Lune","libraryId":1,"pages":120,"pagesRead":45,"format":1,"aniListId":0,"primaryColor":"#A1b2c3"}"##),
+                            "/api/Series/12" => ("200 OK", "", r#"{"id":12,"name":"Roman","libraryId":1,"pages":300,"pagesRead":0,"format":3}"#),
+                            "/api/Search/search" => (
+                                "200 OK",
+                                "",
+                                r#"{"series":[{"seriesId":12,"name":"Roman","libraryId":1},{"seriesId":99,"name":"Ailleurs","libraryId":2}],"persons":[{"id":7,"name":"Une autrice"},{"id":8,"name":"Un auteur"}],"genres":[{"id":3,"title":"Aventure"}]}"#,
+                            ),
+                            "/api/Series/metadata" => (
+                                "200 OK",
+                                "",
+                                r#"{"summary":" <p>Une histoire.</p> ","writers":[{"name":"Une autrice"}],"genres":[{"title":"Aventure"},{"title":"Comédie"}],"releaseYear":1998,"publicationStatus":2,"webLinks":"https://exemple.fr,https://anilist.co/manga/30013/La-Lune"}"#,
+                            ),
                             "/api/Series/series-detail" => (
                                 "200 OK",
                                 "",
@@ -699,7 +893,7 @@ mod tests {
         let k = Kavita::new(Client::new(), &format!("{base}/home"), "cle-ok").unwrap();
         let libs = k.libraries().await.unwrap();
         assert_eq!(libs.iter().map(|l| (l.id, l.kind)).collect::<Vec<_>>(), [(1, "manga"), (2, "book"), (3, "comic")]);
-        let page = k.library_series(1, 2, 60).await.unwrap();
+        let page = k.library_series(1, 2, 60, "name").await.unwrap();
         assert_eq!(page.total, 57, "le total vient de l'en-tête Pagination");
         assert_eq!(page.items.len(), 2);
         assert_eq!((page.items[0].format, page.items[1].format), ("images", "epub"));
@@ -735,6 +929,65 @@ mod tests {
         // Numéro réservé des hors-séries : pas affiché.
         assert_eq!((d.specials[0].number.as_str(), d.specials[0].title.as_str(), d.specials[0].special), ("", "Bonus", true));
         assert_eq!(d.continue_chapter, Some(1009));
+        // Les métadonnées de Kavita : auteurs, genres, année, statut ; le numéro AniList pris dans les liens (Kavita
+        // n'en donne pas), la couleur de la couverture vérifiée.
+        assert_eq!((d.writers.clone(), d.genres.clone()), (vec!["Une autrice".to_owned()], vec!["Aventure".to_owned(), "Comédie".to_owned()]));
+        assert_eq!((d.year, d.status, d.anilist_id, d.color.as_deref()), (Some(1998), Some("completed"), Some(30013), Some("#A1b2c3")));
+    }
+
+    #[test]
+    fn resume_sans_html() {
+        assert_eq!(
+            plain_text("<p class=\"description\">« Frappe-toi le c&oelig;ur&#8239;» &amp; plus<br>Alfred de Musset</p>"),
+            "« Frappe-toi le cœur\u{202f}» & plus\nAlfred de Musset"
+        );
+        assert_eq!(plain_text("<p>Un.</p>\n\n<p>Deux.</p>"), "Un.\nDeux.");
+        // Un texte sans balise reste tel quel, un « < » isolé aussi.
+        assert_eq!(plain_text("  Une histoire. "), "Une histoire.");
+        assert_eq!(plain_text("a < b et c > d"), "a < b et c > d");
+        assert_eq!(decode_entities("&#xE9;t&#233; &bogus; &"), "été &bogus; &");
+    }
+
+    #[test]
+    fn numero_anilist_et_statut() {
+        assert_eq!(anilist_in_links("https://anilist.co/manga/30013"), Some(30013));
+        assert_eq!(anilist_in_links("https://anilist.co/anime/21"), None);
+        assert_eq!(anilist_in_links(""), None);
+        assert_eq!(publication_status(&json!(0)), Some("ongoing"));
+        assert_eq!(publication_status(&json!(9)), None);
+    }
+
+    #[tokio::test]
+    async fn tris_de_la_bibliotheque() {
+        let (base, log) = faux_kavita().await;
+        let k = Kavita::new(Client::new(), &base, "cle-ok").unwrap();
+        for sort in ["added", "reading"] {
+            k.library_series(1, 1, 60, sort).await.unwrap();
+        }
+        let log = log.lock().unwrap();
+        let bodies: Vec<Value> = log.iter().filter(|r| r.1.starts_with("/api/Series/all-v2")).map(|r| serde_json::from_str(&r.3).unwrap()).collect();
+        // Les dernières enrichies d'abord.
+        assert_eq!(bodies[0]["sortOptions"], json!({ "sortField": 4, "isAscending": false }));
+        // En cours : lues à plus de 0 % et moins de 100 %, les dernières lues d'abord.
+        assert_eq!(bodies[1]["statements"][1], json!({ "comparison": 1, "field": 20, "value": "0" }));
+        assert_eq!(bodies[1]["statements"][2], json!({ "comparison": 3, "field": 20, "value": "100" }));
+        assert_eq!(bodies[1]["sortOptions"], json!({ "sortField": 7, "isAscending": false }));
+    }
+
+    #[tokio::test]
+    async fn recherche_titres_auteurs_genres() {
+        let (base, log) = faux_kavita().await;
+        let k = Kavita::new(Client::new(), &base, "cle-ok").unwrap();
+        let found = k.search_series(1, " une autrice ").await.unwrap();
+        // La série nommée (pas celle d'une autre bibliothèque), puis celles des auteurs et genres, sans doublon.
+        assert_eq!(found.iter().map(|s| s.id).collect::<Vec<_>>(), [12, 11]);
+        assert!(k.search_series(1, "  ").await.unwrap().is_empty());
+        let log = log.lock().unwrap();
+        assert!(log.iter().any(|r| r.1 == "/api/Search/search?queryString=une%20autrice&includeChapterAndFiles=false"));
+        let bodies: Vec<Value> = log.iter().filter(|r| r.1.starts_with("/api/Series/all-v2")).map(|r| serde_json::from_str(&r.3).unwrap()).collect();
+        assert!(bodies.iter().any(|b| b["statements"][1] == json!({ "comparison": 5, "field": 17, "value": "7,8" })));
+        assert!(bodies.iter().any(|b| b["statements"][1] == json!({ "comparison": 5, "field": 18, "value": "3" })));
+        assert!(bodies.iter().all(|b| b["statements"][0]["value"] == "1"));
     }
 
     #[tokio::test]

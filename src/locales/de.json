@@ -239,7 +239,9 @@
       "connect": "Kavita verbinden",
       "connected": "Kavita verbunden",
       "disconnected": "Kavita getrennt",
-      "relay": "Von Maku Server bereitgestellt: Der Server-Administrator wählt Ihre Bibliotheken, und Sie lesen mit Ihrem eigenen Kavita-Konto. Hier ist nichts einzustellen."
+      "relay": "Von Maku Server bereitgestellt: Der Server-Administrator wählt Ihre Bibliotheken, und Sie lesen mit Ihrem eigenen Kavita-Konto. Hier ist nichts einzustellen.",
+      "artwork": "Online-Bilder",
+      "artworkHint": "Hintergrund und Logo der Serien: von AniList und TMDB für Mangas und Light Novels, von TMDB für verfilmte Comics (mit einem TMDB-Schlüssel). Nur der Serienname wird gesendet."
     }
   },
   "login": {
@@ -1364,6 +1366,43 @@
       "added": "Hinzugefügt am",
       "files_one": "Datei",
       "files_other": "Dateien"
-    }
+    },
+    "volumeCount_one": "{{count}} Band",
+    "volumeCount_other": "{{count}} Bände",
+    "chapterCount_one": "{{count}} Kapitel",
+    "chapterCount_other": "{{count}} Kapitel",
+    "status": {
+      "ongoing": "Laufend",
+      "hiatus": "Pausiert",
+      "completed": "Abgeschlossen",
+      "cancelled": "Abgebrochen",
+      "ended": "Beendet"
+    },
+    "atVolume": "Bd. {{volume}}",
+    "atChapter": "Kap. {{chapter}}",
+    "resumeAt": "Weiter: {{where}}, Seite {{page}}",
+    "findNumber": "Zu Nr.…",
+    "order": "Reihenfolge",
+    "oldestFirst": "Vom ersten",
+    "newestFirst": "Vom letzten",
+    "noMatch": "Kein Band und kein Kapitel passt.",
+    "featured": "Im Fokus",
+    "openSeries": "Details",
+    "sort": "Sortieren",
+    "sortName": "A-Z",
+    "sortAdded": "Neu hinzugefügt",
+    "sortReading": "Angefangen",
+    "search": "In {{library}} suchen",
+    "searchHint": "Titel, Autor, Genre…",
+    "results": "Ergebnisse",
+    "noResults": "Keine Serie passt.",
+    "readDone": "Gelesen",
+    "classic": "Klassisch",
+    "manga": "Manga",
+    "zoomOut": "Verkleinern",
+    "zoomIn": "Seite vergrößern",
+    "zoomReset": "Zurück zur ganzen Seite",
+    "prevShort": "Zurück",
+    "nextShort": "Weiter"
   }
 }

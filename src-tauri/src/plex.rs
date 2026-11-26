@@ -197,7 +197,7 @@ pub async fn remote_logo(
 }
 
 /// Requête TMDB avec la clé de l'utilisateur : clé d'API (v3) ou jeton d'accès en lecture (v4).
-fn tmdb_get(http: &Client, key: &str, path: &str) -> RequestBuilder {
+pub(crate) fn tmdb_get(http: &Client, key: &str, path: &str) -> RequestBuilder {
     let url = format!("https://api.themoviedb.org/3{path}");
     if key.contains('.') {
         http.get(url).bearer_auth(key)

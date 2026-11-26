@@ -239,7 +239,9 @@
       "connect": "Kavita verbinden",
       "connected": "Kavita verbonden",
       "disconnected": "Kavita losgekoppeld",
-      "relay": "Geleverd door Maku Server: de serverbeheerder kiest je bibliotheken en je leest met je eigen Kavita-account. Hier valt niets in te stellen."
+      "relay": "Geleverd door Maku Server: de serverbeheerder kiest je bibliotheken en je leest met je eigen Kavita-account. Hier valt niets in te stellen.",
+      "artwork": "Online afbeeldingen",
+      "artworkHint": "Achtergrond en logo van series: van AniList en TMDB voor manga en light novels, en van TMDB voor verfilmde strips (met een TMDB-sleutel). Alleen de naam van de serie wordt verstuurd."
     }
   },
   "login": {
@@ -1364,6 +1366,43 @@
       "added": "Toegevoegd op",
       "files_one": "Bestand",
       "files_other": "Bestanden"
-    }
+    },
+    "volumeCount_one": "{{count}} deel",
+    "volumeCount_other": "{{count}} delen",
+    "chapterCount_one": "{{count}} hoofdstuk",
+    "chapterCount_other": "{{count}} hoofdstukken",
+    "status": {
+      "ongoing": "Lopend",
+      "hiatus": "Gepauzeerd",
+      "completed": "Voltooid",
+      "cancelled": "Gestopt",
+      "ended": "Afgelopen"
+    },
+    "atVolume": "deel {{volume}}",
+    "atChapter": "hfst. {{chapter}}",
+    "resumeAt": "Verder: {{where}}, pagina {{page}}",
+    "findNumber": "Naar nr.…",
+    "order": "Volgorde",
+    "oldestFirst": "Eerste eerst",
+    "newestFirst": "Laatste eerst",
+    "noMatch": "Geen deel of hoofdstuk komt overeen.",
+    "featured": "Uitgelicht",
+    "openSeries": "Details",
+    "sort": "Sorteren",
+    "sortName": "A-Z",
+    "sortAdded": "Recent toegevoegd",
+    "sortReading": "Bezig",
+    "search": "Zoeken in {{library}}",
+    "searchHint": "Titel, auteur, genre…",
+    "results": "Resultaten",
+    "noResults": "Geen serie komt overeen.",
+    "readDone": "Gelezen",
+    "classic": "Klassiek",
+    "manga": "Manga",
+    "zoomOut": "Uitzoomen",
+    "zoomIn": "Pagina vergroten",
+    "zoomReset": "Terug naar hele pagina",
+    "prevShort": "Vorige",
+    "nextShort": "Volgende"
   }
 }

@@ -1,0 +1,142 @@
+/* Barres des lecteurs Kavita (BookReader, EpubReader), à la manière des lecteurs de mangas en ligne : en haut, le
+   titre et les réglages courants en boutons groupés, soulignés de la couleur d'accent ; en bas, le chapitre
+   précédent, la page et le suivant. Elles glissent hors de l'écran quand la souris ne bouge plus. */
+
+.rb {
+  position: absolute;
+  right: 0;
+  left: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 8px 14px;
+  background: color-mix(in srgb, #0b0d1c 94%, transparent);
+  color: #fff;
+}
+
+.rb-top {
+  top: 0;
+  padding-top: calc(8px + var(--inset-top, 0px));
+  border-bottom: 2px solid var(--accent);
+}
+
+.rb-bottom {
+  bottom: 0;
+  padding-bottom: calc(8px + var(--inset-bottom, 0px));
+  border-top: 1px solid #ffffff1a;
+}
+
+/* Titre : la série en gras, puis le chapitre, sur une ligne. */
+.rb-heading {
+  display: flex;
+  flex: 1;
+  align-items: baseline;
+  gap: 12px;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.rb-heading strong {
+  overflow: hidden;
+  font-size: 17px;
+  text-overflow: ellipsis;
+}
+
+.rb-heading span {
+  overflow: hidden;
+  color: #fff9;
+  font-size: 13px;
+  text-overflow: ellipsis;
+}
+
+/* Un groupe de boutons dans un cadre sombre (zoom, sens de lecture…), l'actif à la couleur d'accent. */
+.rb-group {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid #ffffff1f;
+  border-radius: 12px;
+  background: #0007;
+}
+
+.rb-group button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 9px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: #fffb;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.rb-group button:hover:not(:disabled) {
+  background: #ffffff1a;
+  color: #fff;
+}
+
+.rb-group button.on {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+.rb-group button:disabled {
+  opacity: 0.3;
+}
+
+.rb-group .rb-value {
+  min-width: 54px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Libellés des boutons d'icône : sur un grand écran seulement. */
+@media (max-width: 1100px) {
+  .rb-label {
+    display: none;
+  }
+}
+
+/* Chapitre précédent ou suivant, en bas. */
+.rb-chip {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 10px;
+  background: #ffffff14;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.rb-chip:hover {
+  background: #ffffff2a;
+}
+
+html.phone .rb-zoom {
+  display: none;
+}
+
+/* Souris immobile, barres rentrées : le curseur s'efface aussi. */
+.rb-idle,
+.rb-idle * {
+  cursor: none !important;
+}

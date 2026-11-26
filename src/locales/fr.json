@@ -239,7 +239,9 @@
       "connect": "Connecter Kavita",
       "connected": "Kavita connecté",
       "disconnected": "Kavita déconnecté",
-      "relay": "Fourni par Maku Server : l'administrateur du serveur choisit vos bibliothèques, et vous lisez avec votre propre compte Kavita. Rien à régler ici."
+      "relay": "Fourni par Maku Server : l'administrateur du serveur choisit vos bibliothèques, et vous lisez avec votre propre compte Kavita. Rien à régler ici.",
+      "artwork": "Illustrations en ligne",
+      "artworkHint": "Fond et logo des séries : sur AniList et TMDB pour les mangas et light novels, et sur TMDB pour les BD adaptées en film ou en série (avec une clé TMDB). Seul le nom de la série est envoyé."
     }
   },
   "login": {
@@ -1364,6 +1366,43 @@
       "added": "Ajouté le",
       "files_one": "Fichier",
       "files_other": "Fichiers"
-    }
+    },
+    "volumeCount_one": "{{count}} volume",
+    "volumeCount_other": "{{count}} volumes",
+    "chapterCount_one": "{{count}} chapitre",
+    "chapterCount_other": "{{count}} chapitres",
+    "status": {
+      "ongoing": "En cours",
+      "hiatus": "En pause",
+      "completed": "Terminée",
+      "cancelled": "Abandonnée",
+      "ended": "Terminée"
+    },
+    "atVolume": "vol. {{volume}}",
+    "atChapter": "chap. {{chapter}}",
+    "resumeAt": "Reprise : {{where}}, page {{page}}",
+    "findNumber": "Aller au n°…",
+    "order": "Ordre",
+    "oldestFirst": "Du premier",
+    "newestFirst": "Du dernier",
+    "noMatch": "Aucun volume ni chapitre ne correspond.",
+    "featured": "À la une",
+    "openSeries": "Fiche",
+    "sort": "Trier",
+    "sortName": "A-Z",
+    "sortAdded": "Ajouts récents",
+    "sortReading": "En cours",
+    "search": "Rechercher dans {{library}}",
+    "searchHint": "Titre, auteur, genre…",
+    "results": "Résultats",
+    "noResults": "Aucune série ne correspond.",
+    "readDone": "Lu",
+    "classic": "Classique",
+    "manga": "Manga",
+    "zoomOut": "Réduire le zoom",
+    "zoomIn": "Agrandir la page",
+    "zoomReset": "Revenir à la page entière",
+    "prevShort": "Préc.",
+    "nextShort": "Suiv."
   }
 }
