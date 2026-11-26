@@ -866,6 +866,8 @@ test("bibliothèque Kavita : « À la une », recherche, tri et couvertures alig
   const une = page.getByRole("region", { name: "À la une" });
   await expect(une).toBeVisible();
   if (appareil(info) !== "telephone") await expect(page.getByRole("navigation", { name: "Aller à la lettre" })).toBeVisible();
+  // Texte élargi, comme avec les polices plus larges de Linux : la recherche rétrécit, le tri reste sur la ligne.
+  await page.addStyleTag({ content: ".page.books .head * { letter-spacing: 1.5px !important; }" });
   const droite = (selecteur: string) => page.locator(".page.books").locator(selecteur).first().evaluate((el) => Math.round(el.getBoundingClientRect().right));
   const grille = await droite(".grid");
   for (const s of [".hero", ".head .tools", ".head .modes"]) expect(await droite(s), s).toBe(grille);

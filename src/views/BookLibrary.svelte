@@ -457,11 +457,13 @@
     background: #ffffff1a;
   }
 
-  /* À droite du titre : la recherche, puis le tri. */
+  /* À droite du titre : la recherche, puis le tri. La place qui reste sur la ligne du titre (pas leur largeur
+     « naturelle ») : la recherche rétrécit d'abord, le tri ne passe dessous que faute de place (téléphone). */
   .tools {
     display: flex;
-    flex: 1 1 auto;
-    flex-wrap: wrap;
+    flex: 1 1 0;
+    min-width: 0;
+    flex-wrap: nowrap;
     align-items: center;
     justify-content: flex-end;
     gap: 10px;
@@ -480,7 +482,7 @@
     flex: 0 1 320px;
     align-items: center;
     gap: 8px;
-    min-width: 180px;
+    min-width: 150px;
     padding: 0 16px;
     border: 1px solid transparent;
     color: var(--text-dim);
@@ -499,6 +501,10 @@
     background: none;
     color: var(--text);
     outline: none;
+  }
+
+  :global(html.phone) .tools {
+    flex-wrap: wrap;
   }
 
   :global(html.phone) .search {
